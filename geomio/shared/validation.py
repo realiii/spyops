@@ -381,18 +381,24 @@ class ValidateField(AbstractValidateType):
 
     def __init__(self, name: str, data_types: NAMES = (),
                  element_name: str = '', exists: bool = True,
-                 single: bool = False, strict: bool = True,
-                 exclude_geometry: bool = True,
+                 single: bool = False, exclude_geometry: bool = True,
                  exclude_primary: bool = True) -> None:
         """
         Initialize the ValidateField class
+
+        :param name: Name of the argument to validate
+        :param data_types: Data types to validate against
+        :param element_name: Argument Name of the element to validate against
+        :param exists: Ensure that the specified field exists
+        :param single: Expect only a single field
+        :param exclude_geometry: Exclude geometry column
+        :param exclude_primary: Exclude primary key attributes should be excluded
         """
         super().__init__(name=name)
         self._data_types: NAMES = data_types
         self._element_name: str = element_name
         self._exists: bool = exists
         self._single: bool = single
-        self._strict: bool = strict
         self._exclude_geometry: bool = exclude_geometry
         self._exclude_primary: bool = exclude_primary
     # End init built-in
@@ -426,9 +432,9 @@ class ValidateField(AbstractValidateType):
         """
         Find Field
         """
-        if self._strict or not element:
-            if not self._single and not isinstance(obj, (list, tuple)):
-                obj = obj,
+        if not element:
+            if not self._single:
+                return self._make_iterable(obj)
             return obj
         fields = validate_fields(
             element, fields=obj, exclude_geometry=self._exclude_geometry,
@@ -439,7 +445,7 @@ class ValidateField(AbstractValidateType):
             name = getattr(obj, NAME_ATTR, obj)
             raise ValueError(f'{name} not found in {element.name}')
         if not fields:
-            names = [getattr(i, NAME_ATTR, i) for i in obj]
+            names = [getattr(i, NAME_ATTR, i) for i in self._make_iterable(obj)]
             raise ValueError(f'{names} not found in {element.name}')
         return fields
     # End _find_field method
