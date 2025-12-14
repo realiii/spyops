@@ -1,0 +1,25 @@
+[project]
+name = "geomio"
+version = "0.0.1"
+description = "Geometry Analysis, Operations, and Management for GeoPackages"
+readme = "README.md"
+authors = [{ name = "Integrated Informatics (USA) Inc.", email = "contact@integrated-informatics.com" }]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+keywords = ["geopackage", "geometry", "gis", "spatial", "analysis"]
+requires-python = ">=3.11"
+dependencies = []
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple"
+publish-url = "https://test.pypi.org/legacy/"
