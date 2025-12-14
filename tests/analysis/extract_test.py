@@ -31,7 +31,7 @@ def test_table_select(world_tables, fresh_gpkg, table_name, where_clause, count)
     """
     Test table_select
     """
-    source = world_tables.tables[table_name]
+    source = world_tables[table_name]
     target = Table(geopackage=fresh_gpkg, name=table_name)
     result = table_select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
@@ -48,7 +48,7 @@ def test_table_select_bad_sql(world_tables, fresh_gpkg, table_name, where_clause
     """
     Test table_select bad SQL
     """
-    source = world_tables.tables[table_name]
+    source = world_tables[table_name]
     target = Table(geopackage=fresh_gpkg, name=table_name)
     with raises(OperationsError):
         table_select(source=source, target=target, where_clause=where_clause)
@@ -71,7 +71,7 @@ def test_select(world_features, fresh_gpkg, fc_name, where_clause, count):
     """
     Test select
     """
-    source = world_features.feature_classes[fc_name]
+    source = world_features[fc_name]
     target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
     result = select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
@@ -88,7 +88,7 @@ def test_select_bad_sql(world_features, fresh_gpkg, fc_name, where_clause):
     """
     Test select bad SQL
     """
-    source = world_features.feature_classes[fc_name]
+    source = world_features[fc_name]
     target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
     with raises(OperationsError):
         select(source=source, target=target, where_clause=where_clause)

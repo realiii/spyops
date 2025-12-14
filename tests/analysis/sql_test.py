@@ -41,7 +41,7 @@ def test_build_field_names_and_count(request, name, fix_name, count, inserts, se
     Test _build_field_names_and_count
     """
     geo = request.getfixturevalue(fix_name)
-    element = geo.tables.get(name, geo.feature_classes.get(name))
+    element = geo[name]
     result = _build_field_names_and_count(element)
     field_count, insert_field_names, select_field_names = result
     assert field_count == count
@@ -59,7 +59,7 @@ def test_build_sql_select_by_attributes(request, name, fix_name, group_names):
     Test build_sql_select_by_attributes
     """
     geo = request.getfixturevalue(fix_name)
-    element = geo.tables.get(name, geo.feature_classes.get(name))
+    element = geo[name]
 
     result = build_sql_select_by_attributes(element, group_names=group_names)
     group_count_sql, insert_sql, select_sql = result
