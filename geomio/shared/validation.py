@@ -472,11 +472,12 @@ class ValidateField(AbstractValidateType):
         aliases = set(data_types)
         for data_type in data_types:
             aliases.update(TYPE_ALIAS_LUT[data_type])
+        aliases = tuple(a.casefold() for a in aliases)
         if self._single:
-            if obj.data_type in aliases:
+            if obj.data_type.casefold().startswith(aliases):
                 return
         else:
-            if all(i.data_type in aliases for i in obj):
+            if all(i.data_type.casefold().startswith(aliases) for i in obj):
                 return
         types = PADDED_PIPE.join(data_types)
         raise ValueError(f'{self._name} must have data type of {types}')
