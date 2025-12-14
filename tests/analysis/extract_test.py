@@ -4,11 +4,12 @@ Test Extraction
 """
 
 
-from fudgeo import FeatureClass, Table
+from fudgeo import FeatureClass, Field, Table
 from pytest import mark, raises
 
-from geomio.analysis.extract import select, table_select
+from geomio.analysis.extract import select, split_by_attributes, table_select
 from geomio.shared.exceptions import OperationsError
+from geomio.shared.util import element_names, make_unique_name
 
 
 pytestmark = [mark.extract]
@@ -92,6 +93,28 @@ def test_select_bad_sql(world_features, fresh_gpkg, fc_name, where_clause):
     with raises(OperationsError):
         select(source=source, target=target, where_clause=where_clause)
 # End test_select_bad_sql function
+
+
+@mark.parametrize('fields, count', [
+    (Field('ISO_CC', data_type='TEXT'), 3),
+    ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
+    ('ISO_CC', 3),
+    (('ISO_CC', 'LAND_TYPE'), 7),
+])
+def test_split_by_attributes_features(world_features, fresh_gpkg, fields, count):
+    """
+    Test split_by_attributes
+    """
+    subset = 120
+    source = world_features.feature_classes['admin_a']
+    names = element_names(world_features)
+    source = source.copy(
+        make_unique_name(source.name, names=names),
+        where_clause=f"""fid <= {subset}""", geopackage=fresh_gpkg)
+    results = split_by_attributes(source, group_fields=fields, geopackage=fresh_gpkg)
+    assert len(results) == count
+    assert sum([r.count for r in results]) == subset
+# End test_split_by_attributes_features function
 
 
 if __name__ == '__main__':  # pragma: no cover

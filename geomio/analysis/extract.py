@@ -6,15 +6,22 @@ Extraction
 from typing import Callable
 
 from fudgeo import FeatureClass, Table
+from fudgeo.constant import FETCH_SIZE
 
+from geomio.analysis.sql import build_sql_select_by_attributes
 from geomio.analysis.util import shared_select
-
-from geomio.shared.constants import SOURCE, TARGET
+from geomio.shared.constants import (
+    GEOPACKAGE, GROUP_FIELDS, SOURCE, SQL_EMPTY, TARGET)
+from geomio.shared.field import TEXT_AND_NUMBERS, make_field_names
+from geomio.shared.hints import ELEMENT, FIELDS, FIELD_NAMES, GPKG
+from geomio.shared.util import element_names, make_unique_name
 from geomio.shared.validation import (
-    validate_feature_class, validate_result, validate_table)
+    validate_element, validate_feature_class, validate_field,
+    validate_geopackage, validate_result, validate_table)
 
 
-__all__ = ['table_select', 'select', 'extract_rows', 'extract_features']
+__all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
+           'split_by_attributes']
 
 
 @validate_result()
@@ -48,6 +55,41 @@ def select(source: FeatureClass, target: FeatureClass, where_clause: str = '',
     return shared_select(source=source, target=target,
                          where_clause=where_clause, overwrite=overwrite)
 # End select function
+
+
+@validate_result()
+@validate_geopackage(GEOPACKAGE)
+@validate_field(GROUP_FIELDS, data_types=TEXT_AND_NUMBERS,
+                element_name=SOURCE, exclude_primary=False)
+@validate_element(SOURCE)
+def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
+                        geopackage: GPKG) -> list[ELEMENT]:
+    """
+    Split by Attributes
+
+    Split an input table or feature class by groups of attributes.
+    """
+    group_names = make_field_names(group_fields)
+    group_count_sql, insert_sql, select_sql = build_sql_select_by_attributes(
+        source, group_names=group_names)
+    elements = []
+    target_names = element_names(geopackage)
+    with geopackage.connection as conn:
+        source_conn = source.geopackage.connection
+        cursor = source_conn.execute(group_count_sql)
+        group_count, = cursor.fetchone()
+        for i in range(1, group_count + 1):
+            cursor = source_conn.execute(select_sql, (i,))
+            name = make_unique_name(name=source.name, names=target_names)
+            element = source.copy(
+                name=name, description=source.description,
+                where_clause=SQL_EMPTY, geopackage=geopackage)
+            elements.append(element)
+            while records := cursor.fetchmany(FETCH_SIZE):
+                conn.executemany(
+                    insert_sql.format(element.escaped_name), records)
+    return elements
+# End split_by_attributes function
 
 
 # Aliases

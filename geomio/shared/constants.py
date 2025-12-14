@@ -19,7 +19,7 @@ SOURCE: str = 'source'
 OPERATOR: str = 'operator'
 TARGET: str = 'target'
 GEOPACKAGE: str = 'geopackage'
-
+GROUP_FIELDS: str = 'group_fields'
 
 XY_TOLERANCE: str = 'xy_tolerance'
 OVERWRITE: str = 'overwrite'
