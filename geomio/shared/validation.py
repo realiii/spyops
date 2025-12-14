@@ -238,7 +238,7 @@ class ValidateResult(AbstractValidate):
         # End wrapper function
         return wrapper
     # End call built-in
-# End ValidateXYTolerance class
+# End ValidateResult class
 
 
 class ValidateGeopackage(AbstractValidateTypeExists):
