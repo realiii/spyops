@@ -44,6 +44,16 @@ class AbstractValidate(metaclass=ABCMeta):
         bound.apply_defaults()
         return bound.arguments
     # End _get_arguments method
+
+    @staticmethod
+    def _make_iterable(obj: Any) -> tuple | list:
+        """
+        Make iterable
+        """
+        if not isinstance(obj, (list, tuple)):
+            return obj,
+        return obj
+    # End _make_iterable method
 # End AbstractValidate class
 
 
@@ -219,12 +229,9 @@ class ValidateResult(AbstractValidate):
             """
             Handler for the arguments and keyword arguments.
             """
-            elements = result = func(*args, **kwargs)
-            if not result:
+            if not (result := func(*args, **kwargs)):
                 return result
-            if not isinstance(result, (list, tuple)):
-                elements = result,
-            for element in elements:
+            for element in self._make_iterable(result):
                 if isinstance(element, (FeatureClass, Table)):
                     _check_output_empty(element)
             return result
