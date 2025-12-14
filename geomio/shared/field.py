@@ -58,7 +58,7 @@ def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,
     visited = set()
     field_lookup = {f.name.casefold(): f for f in element.fields}
     if not isinstance(fields, (list, tuple)):
-        fields = [fields]
+        fields = fields,
     for f in fields:
         if not isinstance(f, (Field, str)):
             continue
