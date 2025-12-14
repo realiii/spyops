@@ -7,8 +7,7 @@ Test Validation
 from pathlib import Path
 
 from fudgeo import (
-    FeatureClass, Field, GeoPackage, MemoryGeoPackage,
-    SpatialReferenceSystem, Table)
+    Field, GeoPackage, MemoryGeoPackage, SpatialReferenceSystem, Table)
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from pyproj import CRS
 from pytest import mark, raises
@@ -204,22 +203,22 @@ def test_validate_field_data_type(data_type, data_types, single, throws):
 # End test_validate_field_data_type function
 
 
-@mark.parametrize('fld, strict, exists, throws', [
-    (Field('NAME', data_type=SQLFieldType.text), True, True, False),
-    (Field('name', data_type=SQLFieldType.text), True, True, False),
-    (Field('asdf', data_type=SQLFieldType.text), True, True, True),
-    (Field('NAME', data_type=SQLFieldType.text), True, False, False),
-    (Field('name', data_type=SQLFieldType.text), True, False, False),
-    (Field('asdf', data_type=SQLFieldType.text), True, False, False),
-    ('asdf', False, True, True),
-    ('NAME', False, True, False),
+@mark.parametrize('fld, exists, throws', [
+    (Field('NAME', data_type=SQLFieldType.text), True, False),
+    (Field('name', data_type=SQLFieldType.text), True, False),
+    (Field('asdf', data_type=SQLFieldType.text), True, True),
+    (Field('NAME', data_type=SQLFieldType.text), False, False),
+    (Field('name', data_type=SQLFieldType.text), False, False),
+    (Field('asdf', data_type=SQLFieldType.text), False, True),
+    ('asdf', True, True),
+    ('NAME', True, False),
 ])
-def test_validate_field_single_field(world_tables, fld, strict, exists, throws):
+def test_validate_field_single_field(world_tables, fld, exists, throws):
     """
     Test validate field single field
     """
     @validate_table('table')
-    @validate_field('field', element_name='table', single=True, strict=strict, exists=exists)
+    @validate_field('field', element_name='table', single=True, exists=exists)
     def field_function(table, field):
         pass
     tbl = world_tables.tables['admin']
@@ -231,22 +230,22 @@ def test_validate_field_single_field(world_tables, fld, strict, exists, throws):
 # End test_validate_field_single_field function
 
 
-@mark.parametrize('fld, strict, exists, throws', [
-    (Field('NAME', data_type=SQLFieldType.text), True, True, False),
-    (Field('name', data_type=SQLFieldType.text), True, True, False),
-    (Field('asdf', data_type=SQLFieldType.text), True, True, True),
-    (Field('NAME', data_type=SQLFieldType.text), True, False, False),
-    (Field('name', data_type=SQLFieldType.text), True, False, False),
-    (Field('asdf', data_type=SQLFieldType.text), True, False, False),
-    ('asdf', False, True, True),
-    ('NAME', False, True, False),
+@mark.parametrize('fld, exists, throws', [
+    (Field('NAME', data_type=SQLFieldType.text), True, False),
+    (Field('name', data_type=SQLFieldType.text), True, False),
+    (Field('asdf', data_type=SQLFieldType.text), True, True),
+    (Field('NAME', data_type=SQLFieldType.text), False, False),
+    (Field('name', data_type=SQLFieldType.text), False, False),
+    (Field('asdf', data_type=SQLFieldType.text), False, True),
+    ('asdf', True, True),
+    ('NAME', True, False),
 ])
-def test_validate_field_multiple_fields(world_tables, fld, strict, exists, throws):
+def test_validate_field_multiple_fields(world_tables, fld, exists, throws):
     """
     Test validate field multiple fields
     """
     @validate_table('table')
-    @validate_field('fields', element_name='table', single=False, strict=strict, exists=exists)
+    @validate_field('fields', element_name='table', single=False, exists=exists)
     def field_function(table, fields):
         pass
     tbl = world_tables.tables['admin']
