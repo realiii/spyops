@@ -3,23 +3,28 @@
 Extraction
 """
 
+
 from typing import Callable
 
-from fudgeo import FeatureClass, Table
+from fudgeo import FeatureClass, Field, MemoryGeoPackage, Table
 from fudgeo.constant import FETCH_SIZE
+from shapely import box
 from shapely.io import from_wkb
 
 from geomio.analysis.sql import (
     build_query_components, build_sql_select_by_attributes)
 from geomio.analysis.util import shared_select
 from geomio.shared.constants import (
-    GEOPACKAGE, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET)
+    FIELD, GEOPACKAGE, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET,
+    UNDERSCORE)
+from geomio.shared.crs import extent_from_feature_class
 from geomio.shared.field import (
-    GEOM_TYPE_POLYGONS, TEXT_AND_NUMBERS, make_field_names)
+    GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import overlay_config
 from geomio.shared.hints import ELEMENT, FIELDS, FIELD_NAMES, FLOAT, GPKG
 from geomio.shared.util import (
-    add_spatial_index, element_names, extend_records, make_unique_name)
+    add_spatial_index, element_names, extend_records, make_unique_name,
+    make_valid_name)
 from geomio.shared.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geopackage, validate_result, validate_same_crs, validate_table,
@@ -27,7 +32,7 @@ from geomio.shared.validation import (
 
 
 __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
-           'split_by_attributes', 'clip']
+           'split_by_attributes', 'clip', 'split']
 
 
 @validate_result()
@@ -138,6 +143,43 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass,
             records.clear()
     return target
 # End clip function
+
+
+@validate_result()
+@validate_same_crs(SOURCE, OPERATOR)
+@validate_xy_tolerance()
+@validate_geopackage(GEOPACKAGE)
+@validate_field(FIELD, data_types=TEXTS, single=True)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(SOURCE)
+def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
+          geopackage: GPKG, overwrite: bool = False,
+          xy_tolerance: FLOAT = None) -> list[FeatureClass]:
+    """
+    Split
+
+    Extracts features for each polygon in the splitting feature class and uses
+    values from the specified field to name the output feature classes.
+    """
+    elements = []
+    split_extent = extent_from_feature_class(operator)
+    source_extent = extent_from_feature_class(source)
+    if not box(*split_extent).intersects(box(*source_extent)):
+        return elements
+    mgp = MemoryGeoPackage.create()
+    splitters = split_by_attributes(
+        operator, group_fields=[field], geopackage=mgp)
+    for s in splitters:
+        cursor = s.select(fields=[field], limit=1, include_geometry=False)
+        value, = cursor.fetchone()
+        name = make_valid_name(
+            f'{source.name}{UNDERSCORE}{value}', prefix='split')
+        target = FeatureClass(geopackage=geopackage, name=name)
+        clip(source, operator=s, target=target, overwrite=overwrite,
+             xy_tolerance=xy_tolerance)
+        elements.append(target)
+    return elements
+# End split function
 
 
 # Aliases

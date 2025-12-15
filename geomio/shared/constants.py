@@ -15,6 +15,7 @@ PADDED_PIPE: str = f'{SPACE}{PIPE}{SPACE}'
 GEOMS_ATTR: str = 'geoms'
 NAME_ATTR: str = 'name'
 
+FIELD: str = 'field'
 SOURCE: str = 'source'
 OPERATOR: str = 'operator'
 TARGET: str = 'target'

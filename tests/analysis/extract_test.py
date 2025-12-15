@@ -5,10 +5,11 @@ Test Extraction
 
 
 from fudgeo import FeatureClass, Field, Table
+from fudgeo.enumeration import SQLFieldType
 from pytest import mark, raises
 
 from geomio.analysis.extract import (
-    clip, select, split_by_attributes, table_select)
+    clip, select, split, split_by_attributes, table_select)
 from geomio.shared.exceptions import OperationsError
 from geomio.shared.util import element_names, make_unique_name
 
@@ -150,6 +151,40 @@ def test_clip(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
     assert result.count < source.count
     assert result.count == count
 # End test_clip function
+
+
+@mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
+    ('admin_a', None, 4, 114),
+    ('airports_p', None, 4, 40),
+    ('roads_l', None, 4, 2514),
+    ('admin_mp_a', None, 4, 68),
+    ('airports_mp_p', None, 4, 8),
+    ('roads_mp_l', None, 4, 14),
+    ('admin_a', 0.001, 4, 112),
+    ('airports_p', 0.001, 4, 40),
+    ('roads_l', 0.001, 4, 3380),
+    ('admin_mp_a', 0.001, 4, 68),
+    ('airports_mp_p', 0.001, 4, 8),
+    ('roads_mp_l', 0.001, 4, 14),
+    ('admin_a', 1, 4, 22),
+    ('airports_p', 1, 4, 35),
+    ('roads_l', 1, 4, 378),
+    ('admin_mp_a', 1, 4, 22),
+    ('airports_mp_p', 1, 4, 8),
+    ('roads_mp_l', 1, 4, 13),
+])
+def test_split(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, element_count, record_count):
+    """
+    Test split
+    """
+    splitter = inputs.feature_classes['splitter_a']
+    assert splitter.count == 5
+    source = world_features.feature_classes[fc_name]
+    field = Field('NAME', data_type=SQLFieldType.text)
+    results = split(source=source, operator=splitter, field=field, geopackage=fresh_gpkg, xy_tolerance=xy_tolerance)
+    assert len(results) == element_count
+    assert sum(r.count for r in results) == record_count
+# End test_split function
 
 
 if __name__ == '__main__':  # pragma: no cover
