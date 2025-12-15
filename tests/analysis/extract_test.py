@@ -107,7 +107,7 @@ def test_split_by_attributes_features(world_features, fresh_gpkg, fields, count)
     Test split_by_attributes
     """
     subset = 120
-    source = world_features.feature_classes['admin_a']
+    source = world_features['admin_a']
     names = element_names(world_features)
     source = source.copy(
         make_unique_name(source.name, names=names),
