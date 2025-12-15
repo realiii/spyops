@@ -7,11 +7,14 @@ Utilities
 from re import IGNORECASE, compile as recompile
 from typing import Callable
 
+from fudgeo import FeatureClass
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
+from shapely import GeometryCollection
 
-from geomio.shared.constants import DOUBLE_UNDER, UNDERSCORE
-from geomio.shared.hints import GPKG
+from geomio.shared.constants import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
+from geomio.shared.hints import ELEMENT, EXTENT, GPKG
+from geomio.shared.types import OverlayConfig
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub
@@ -70,6 +73,77 @@ def _replace_double_under(name: str) -> str:
         name = name.replace(DOUBLE_UNDER, UNDERSCORE)
     return name
 # End _replace_double_under function
+
+
+def add_spatial_index(element: ELEMENT) -> ELEMENT:
+    """
+    Add Spatial Index
+    """
+    if isinstance(element, FeatureClass):
+        element.add_spatial_index()
+    return element
+# End add_spatial_index function
+
+
+def expand_extent(extent: EXTENT) -> EXTENT:
+    """
+    Expand Extent for R-Tree Inaccuracy
+    """
+    tol = 12.5 * 10 ** -8
+    up = 1 + tol
+    down = 1 - tol
+    min_x, min_y, max_x, max_y = extent
+    return min_x * down, min_y * down, max_x * up, max_y * up
+# End expand_extent function
+
+
+def make_spatial_index_where(source: FeatureClass, extent: EXTENT) -> tuple[str, str]:
+    """
+    Make a where clause that selects features from the source that intersect
+    the extent of the operator feature class.
+    """
+    primary = source.primary_key_field
+    if not source.has_spatial_index or not primary:
+        return '', ''
+    min_x, min_y, max_x, max_y = extent
+    sql_stub = f"""{primary.escaped_name} {{}} (
+        SELECT id  
+        FROM {source.spatial_index_name} 
+        WHERE minx <= {max_x} AND maxx >= {min_x} AND 
+              miny <= {max_y} AND maxy >= {min_y})
+        """
+    # NOTE intersects the extent, does not intersect the extent
+    return sql_stub.format('IN'), sql_stub.format('NOT IN')
+# End make_spatial_index_where function
+
+
+def extend_records(results: list[tuple], records: list[tuple],
+                   config: OverlayConfig) -> None:
+    """
+    Extend Records
+    """
+    shapely_types = config.shapely_types
+    multi_cls = config.shapely_multi_cls
+    cls = config.fudgeo_cls
+    is_multi = config.is_multi
+    for g, result, attributes in results:
+        if result.is_empty:
+            continue
+        if isinstance(result, GeometryCollection):
+            result = multi_cls([r for r in result.geoms
+                                if isinstance(r, shapely_types)])
+        elif not isinstance(result, shapely_types):
+            continue
+        if is_multi:
+            if not hasattr(result, GEOMS_ATTR):
+                result = multi_cls([result])
+            records.append((cls.from_wkb(
+                result.wkb, srs_id=g.srs_id), *attributes))
+        else:
+            records.extend([(cls.from_wkb(
+                part.wkb, srs_id=g.srs_id), *attributes)
+                for part in getattr(result, GEOMS_ATTR, [result])])
+# End extend_records function
 
 
 if __name__ == '__main__':  # pragma: no cover

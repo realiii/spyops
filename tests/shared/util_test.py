@@ -4,11 +4,11 @@ Test Utilities
 """
 
 
-from pytest import mark
+from pytest import approx, mark
 
 from geomio.shared.util import (
-    element_names, make_unique_name, make_valid_name, _replace_double_under)
-
+    add_spatial_index, element_names, expand_extent, make_spatial_index_where,
+    make_unique_name, make_valid_name, _replace_double_under)
 
 pytestmark = [mark.utility]
 
@@ -52,6 +52,46 @@ def test_replace_double_under():
     """
     assert _replace_double_under('____init____') == '_init_'
 # End test_replace_double_under function
+
+
+def test_add_spatial_index(world_features, fresh_gpkg):
+    """
+    Test add_spatial_index
+    """
+    fc = world_features['admin_a'].copy(
+        name='aa', geopackage=fresh_gpkg,
+        where_clause="""fid <= 100""")
+    add_spatial_index(fc)
+    assert fc.has_spatial_index is True
+# End test_add_spatial_index function
+
+
+def test_expand_extent():
+    """
+    Test expand extent
+    """
+    min_value = 10_000_000
+    max_value = 10_000_000
+    min_x, min_y, max_x, max_y = expand_extent((
+        min_value, min_value, max_value, max_value))
+    assert min_x == min_y
+    assert approx(min_x, abs=0.001) == 9_999_998.75
+    assert max_x == max_y
+    assert approx(max_x, abs=0.001) == 10_000_001.25
+# End test_expand_extent function
+
+
+def test_make_spatial_index_where(world_features, fresh_gpkg):
+    """
+    Test make spatial index where
+    """
+    fc = world_features['admin_a'].copy(
+        name='aa', geopackage=fresh_gpkg,
+        where_clause="""fid <= 100""")
+    sql_inside, sql_outside = make_spatial_index_where(fc, extent=fc.extent)
+    assert sql_inside
+    assert sql_outside
+# End test_make_spatial_index_where function
 
 
 if __name__ == '__main__':  # pragma: no cover
