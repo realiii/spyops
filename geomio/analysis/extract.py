@@ -81,9 +81,9 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
         for i in range(1, group_count + 1):
             cursor = source_conn.execute(select_sql, (i,))
             name = make_unique_name(name=source.name, names=target_names)
-            element = source.copy(
+            element = add_spatial_index(source.copy(
                 name=name, description=source.description,
-                where_clause=SQL_EMPTY, geopackage=geopackage)
+                where_clause=SQL_EMPTY, geopackage=geopackage))
             elements.append(element)
             while records := cursor.fetchmany(FETCH_SIZE):
                 conn.executemany(
