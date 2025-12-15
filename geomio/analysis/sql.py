@@ -6,11 +6,15 @@ SQL Utilities
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
+from shapely import box
 
-from geomio.shared.constants import QUESTION
+from geomio.shared.constants import QUESTION, SQL_FULL
+from geomio.shared.crs import extent_from_feature_class
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.hints import ELEMENT
+from geomio.shared.types import QueryComponents
+from geomio.shared.util import make_spatial_index_where
 
 
 def build_sql_insert(element_name: str, field_names: str,
@@ -72,6 +76,49 @@ def _build_field_names_and_count(source: ELEMENT) -> tuple[int, str, str]:
         field_count += 1
     return field_count, insert_field_names, select_field_names
 # End _build_field_names_and_count function
+
+
+def build_query_components(source: FeatureClass, target: FeatureClass,
+                           operator: FeatureClass) -> QueryComponents:
+    """
+    Build Query Components
+    """
+    (field_count, insert_field_names,
+     select_field_names) = _build_field_names_and_count(source)
+    operator_extent = extent_from_feature_class(operator)
+    source_extent = extent_from_feature_class(source)
+    has_intersection = box(*operator_extent).intersects(box(*source_extent))
+    wheres = where_touches, where_outside = make_spatial_index_where(
+        source=source, extent=operator_extent)
+    if use_index := all(wheres):
+        sql_touches = _build_sql_select(
+            source, field_names=select_field_names, where_clause=where_touches)
+        sql_outside = _build_sql_select(
+            source, field_names=select_field_names, where_clause=where_outside)
+    else:
+        sql_touches = _build_sql_select(
+            source, field_names=select_field_names, where_clause=SQL_FULL)
+        sql_outside = ''
+    sql_insert = build_sql_insert(
+        target.escaped_name, field_names=insert_field_names,
+        field_count=field_count)
+    return QueryComponents(
+        use_index=use_index, has_intersection=has_intersection,
+        sql_touches=sql_touches, sql_outside=sql_outside, sql_insert=sql_insert)
+# End build_query_components function
+
+
+def _build_sql_select(element: ELEMENT, field_names: str,
+                      where_clause: str) -> str:
+    """
+    Build SQL statement for Select
+    """
+    return f"""
+        SELECT {field_names}
+        FROM {element.escaped_name} 
+        WHERE {where_clause}
+    """
+# End _build_sql_select function
 
 
 if __name__ == '__main__':  # pragma: no cover

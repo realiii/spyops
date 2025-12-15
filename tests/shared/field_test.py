@@ -24,7 +24,7 @@ def test_validate_fields(world_features, exclude_geometry, exclude_primary, coun
     """
     Test validate_fields
     """
-    element = world_features.feature_classes['cities_p']
+    element = world_features['cities_p']
     fields = validate_fields(
         element, fields=element.fields, exclude_geometry=exclude_geometry,
         exclude_primary=exclude_primary)
@@ -36,7 +36,7 @@ def test_validate_fields_repeats(world_features):
     """
     Test validate_fields with repeated fields
     """
-    element = world_features.feature_classes['cities_p']
+    element = world_features['cities_p']
     fields = validate_fields(
         element, fields=element.fields * 2, exclude_geometry=True,
         exclude_primary=True)
@@ -52,7 +52,7 @@ def test_validate_fields_edge(world_features, fields, count):
     """
     Test validate_fields edge cases
     """
-    element = world_features.feature_classes['cities_p']
+    element = world_features['cities_p']
     fields = validate_fields(element, fields=fields)
     assert len(fields) == count
 # End test_validate_fields_edge function
@@ -74,7 +74,7 @@ def test_get_geometry_column_name(world_features, include, expected):
     """
     Test get_geometry_column_name
     """
-    fc = world_features.feature_classes['cities_p']
+    fc = world_features['cities_p']
     assert get_geometry_column_name(fc, include_geom_type=include) == expected
 # End test_get_geometry_column_name function
 
@@ -83,8 +83,8 @@ def test_common_fields(world_features, inputs):
     """
     Test common_fields
     """
-    updater = inputs.feature_classes['updater_a']
-    admin = world_features.feature_classes['admin_a']
+    updater = inputs['updater_a']
+    admin = world_features['admin_a']
     fields = common_fields(updater, admin)
     assert len(fields) == 1
     field, = fields

@@ -37,7 +37,7 @@ def test_shared_select(world_tables, world_features, fresh_gpkg, name, where_cla
     """
     Test shared_select
     """
-    source = world_tables.tables.get(name, world_features.feature_classes.get(name))
+    source = world_tables[name] or world_features[name]
     target = source.__class__(geopackage=fresh_gpkg, name=name)
     result = shared_select(source=source, target=target, where_clause=where_clause, overwrite=True)
     assert result.count == count

@@ -10,8 +10,9 @@ from fudgeo.constant import COMMA_SPACE
 from pytest import mark
 
 from geomio.analysis.sql import (
-    build_sql_insert, _build_field_names_and_count,
-    build_sql_select_by_attributes)
+    build_query_components, build_sql_insert, _build_field_names_and_count,
+    build_sql_select_by_attributes, _build_sql_select)
+
 
 pytestmark = [mark.extract]
 
@@ -41,7 +42,7 @@ def test_build_field_names_and_count(request, name, fix_name, count, inserts, se
     Test _build_field_names_and_count
     """
     geo = request.getfixturevalue(fix_name)
-    element = geo.tables.get(name, geo.feature_classes.get(name))
+    element = geo[name]
     result = _build_field_names_and_count(element)
     field_count, insert_field_names, select_field_names = result
     assert field_count == count
@@ -59,7 +60,7 @@ def test_build_sql_select_by_attributes(request, name, fix_name, group_names):
     Test build_sql_select_by_attributes
     """
     geo = request.getfixturevalue(fix_name)
-    element = geo.tables.get(name, geo.feature_classes.get(name))
+    element = geo[name]
 
     result = build_sql_select_by_attributes(element, group_names=group_names)
     group_count_sql, insert_sql, select_sql = result
@@ -70,6 +71,37 @@ def test_build_sql_select_by_attributes(request, name, fix_name, group_names):
     assert insert_sql.strip().startswith('INSERT INTO {}(')
     assert f'dense_rank() OVER (ORDER BY {group_names}' in select_sql
 # End test_build_sql_select_by_attributes function
+
+
+def test_build_sql_select(world_tables):
+    """
+    Build SQL Select
+    """
+    table = world_tables['cities']
+    sql = _build_sql_select(table, field_names='bobby, tables', where_clause='1 = 1')
+    assert 'SELECT bobby, tables' in sql
+    assert 'FROM cities' in sql
+    assert 'WHERE 1 = 1' in sql
+# End test_build_sql_select function
+
+
+def test_build_query_components(inputs, world_features, fresh_gpkg):
+    """
+    Test build_query_components
+    """
+    source = world_features['cities_p']
+    operator = inputs['clipper_a']
+    target = source.copy(name='asdf', geopackage=fresh_gpkg)
+    qc = build_query_components(source, target, operator)
+    assert qc.use_index is True
+    assert qc.has_intersection is True
+    assert 'SELECT SHAPE "[Point]",' in qc.sql_touches
+    assert 'WHERE fid IN ' in qc.sql_touches
+    assert 'minx <= 16.47' in qc.sql_touches
+    assert 'AND maxy >= 46.49' in qc.sql_touches
+    assert 'WHERE fid NOT IN ' in qc.sql_outside
+    assert 'INSERT INTO asdf(SHAPE, CITY_NAME, GMI_ADMIN' in qc.sql_insert
+# End test_build_query_components function
 
 
 if __name__ == '__main__':  # pragma: no cover

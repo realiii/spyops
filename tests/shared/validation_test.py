@@ -91,7 +91,7 @@ def test_validate_element_data_type(world_features, world_tables, fresh_gpkg, na
     elif not name:
         e = Table(fresh_gpkg, name='asdf')
     else:
-        e = world_features.feature_classes.get(name, world_tables.tables.get(name))
+        e = world_features[name] or world_tables[name]
     if name is None and exists and has_content:
         with raises(ValueError):
             element_function(element=e)
@@ -142,7 +142,7 @@ def test_validate_feature_class_geometry(world_features, name, geometry_types):
     @validate_feature_class('feature_class', geometry_types=geometry_types)
     def fc_function(feature_class):
         pass
-    fc = world_features.feature_classes[name]
+    fc = world_features[name]
     if name == 'cities_p':
         with raises(ValueError):
             fc_function(fc)
@@ -164,7 +164,7 @@ def test_validate_feature_class_zm(world_features, name, has_z, has_m):
     @validate_feature_class('feature_class', has_z=has_z, has_m=has_m)
     def fc_function(feature_class):
         pass
-    fc = world_features.feature_classes[name]
+    fc = world_features[name]
     if has_z or has_m:
         with raises(ValueError):
             fc_function(fc)
@@ -221,7 +221,7 @@ def test_validate_field_single_field(world_tables, fld, exists, throws):
     @validate_field('field', element_name='table', single=True, exists=exists)
     def field_function(table, field):
         pass
-    tbl = world_tables.tables['admin']
+    tbl = world_tables['admin']
     if throws:
         with raises(ValueError):
             field_function(tbl, fld)
@@ -248,7 +248,7 @@ def test_validate_field_multiple_fields(world_tables, fld, exists, throws):
     @validate_field('fields', element_name='table', single=False, exists=exists)
     def field_function(table, fields):
         pass
-    tbl = world_tables.tables['admin']
+    tbl = world_tables['admin']
     if throws:
         with raises(ValueError):
             field_function(tbl, fld)
