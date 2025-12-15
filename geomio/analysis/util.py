@@ -8,6 +8,7 @@ from sqlite3 import OperationalError
 
 from geomio.shared.exceptions import OperationsError
 from geomio.shared.hints import ELEMENT
+from geomio.shared.util import add_spatial_index
 
 
 def shared_select(source: ELEMENT, target: ELEMENT, where_clause: str,
@@ -22,7 +23,7 @@ def shared_select(source: ELEMENT, target: ELEMENT, where_clause: str,
             overwrite=overwrite)
     except (OperationalError, ValueError) as err:
         raise OperationsError(err)
-    return element
+    return add_spatial_index(element)
 # End shared_select function
 
 
