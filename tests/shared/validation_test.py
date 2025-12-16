@@ -15,7 +15,7 @@ from pytest import mark, raises
 from warnings import catch_warnings, simplefilter
 
 from conftest import fresh_gpkg
-from geomio.shared.exceptions import OperationsError, OperationsWarning
+from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
     GEOM_TYPE_POLYGONS, REALS, TEXT_AND_NUMBERS)

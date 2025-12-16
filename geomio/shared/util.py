@@ -12,9 +12,9 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from geomio.shared.constants import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
-from geomio.shared.hints import ELEMENT, EXTENT, GPKG
-from geomio.shared.types import OverlayConfig
+from geomio.shared.base import OverlayConfig
+from geomio.shared.constant import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
+from geomio.shared.hint import ELEMENT, EXTENT, GPKG
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub

@@ -6,8 +6,8 @@ Utilities
 
 from sqlite3 import OperationalError
 
-from geomio.shared.exceptions import OperationsError
-from geomio.shared.hints import ELEMENT
+from geomio.shared.exception import OperationsError
+from geomio.shared.hint import ELEMENT
 from geomio.shared.util import add_spatial_index
 
 

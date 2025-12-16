@@ -22,9 +22,11 @@ from shapely import (
 from shapely.io import from_wkb
 from shapely.ops import unary_union
 
-from geomio.shared.constants import GEOMS_ATTR
+from geomio.shared.base import OverlayConfig
+from geomio.shared.constant import GEOMS_ATTR
+from geomio.shared.exception import OperationsError
 from geomio.shared.field import get_geometry_column_name
-from geomio.shared.types import OverlayConfig
+from geomio.shared.hint import EXTENT
 
 SHAPELY_GEOMETRY_LOOKUP: dict[str, tuple[Any, Any]] = {
     GeometryType.point: (ShapelyPoint, ShapelyMultiPoint),

@@ -8,7 +8,7 @@ from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import GeometryType, SQLFieldType
 
-from geomio.shared.hints import ELEMENT, FIELDS, FIELD_NAMES, NAMES
+from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
 
 
 GEOM_TYPE_POINTS: NAMES = GeometryType.point, GeometryType.multi_point

@@ -10,7 +10,7 @@ from pytest import mark, raises
 
 from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from geomio.shared.exceptions import OperationsError
+from geomio.shared.exception import OperationsError
 from geomio.shared.util import element_names, make_unique_name
 
 

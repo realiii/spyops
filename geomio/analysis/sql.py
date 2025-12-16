@@ -8,12 +8,12 @@ from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from shapely import box
 
-from geomio.shared.constants import QUESTION, SQL_FULL
-from geomio.shared.crs import extent_from_feature_class
+from geomio.shared.constant import QUESTION, SQL_FULL
+from geomio.shared.geometry import extent_from_feature_class
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
-from geomio.shared.hints import ELEMENT
-from geomio.shared.types import QueryComponents
+from geomio.shared.hint import ELEMENT
+from geomio.shared.base import QueryComponents
 from geomio.shared.util import make_spatial_index_where
 
 
