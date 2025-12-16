@@ -17,7 +17,6 @@ from geomio.analysis.util import shared_select
 from geomio.shared.constant import (
     FIELD, GEOPACKAGE, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET,
     UNDERSCORE)
-from geomio.shared.crs import extent_from_feature_class
 from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
