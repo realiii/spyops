@@ -4,6 +4,7 @@ Geometry Functionality
 """
 
 
+from math import nan
 from typing import Any
 
 from fudgeo import FeatureClass
@@ -15,6 +16,8 @@ from fudgeo.geometry import (
     MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon, MultiPolygonM,
     MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
+from fudgeo.util import get_extent
+from numpy import isfinite
 from shapely import (
     LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
     MultiPoint as ShapelyMultiPoint, MultiPolygon as ShapelyMultiPolygon,
@@ -133,6 +136,46 @@ def overlay_config(source: FeatureClass, operator: FeatureClass) -> OverlayConfi
         fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
         geometry=polygon, shapely_types=shapely_types)
 # End overlay_config function
+
+
+def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
+    """
+    Returns the extent from a feature class, use the extent if it has
+    been set, if not check the spatial index extent, failing over to
+    brute force check of all features.
+    """
+    extent = feature_class.extent
+    if isfinite(extent).all():
+        return extent
+    extent = _extent_from_spatial_index(feature_class)
+    if isfinite(extent).all():
+        return extent
+    extent = get_extent(feature_class)
+    if isfinite(extent).all():
+        return extent
+    raise OperationsError(
+        f'{feature_class.name} is empty or only contains empty geometries')
+# End extent_from_feature_class function
+
+
+def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
+    """
+    Extent from Spatial Index
+    """
+    empty = nan, nan, nan, nan
+    if not feature_class.has_spatial_index:
+        return empty
+    cursor = feature_class.geopackage.connection.execute(f"""
+        SELECT MIN(minx) AS MIN_X, MIN(miny) AS MIN_Y, 
+               MAX(maxx) AS MAX_X, MAX(maxy) AS MAX_Y
+        FROM {feature_class.spatial_index_name}""")
+    extent = cursor.fetchone()
+    if not extent:
+        return empty
+    if None in extent:
+        return empty
+    return extent
+# End _extent_from_spatial_index function
 
 
 if __name__ == '__main__':  # pragma: no cover
