@@ -4,11 +4,14 @@ Tests for Base
 """
 
 from fudgeo.geometry.point import PointZM
+from pytest import mark
 from shapely import MultiPoint
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 
 from geomio.shared.base import QueryComponents, OverlayConfig
+
+pytestmark = [mark.utility]
 
 
 def test_query_components_creation():
