@@ -146,5 +146,16 @@ def extend_records(results: list[tuple], records: list[tuple],
 # End extend_records function
 
 
+def to_int(value: str) -> int | None:
+    """
+    Simple Conversion to int, None if fails
+    """
+    try:
+        return int(value)
+    except (AttributeError, ValueError, TypeError):
+        return None
+# End to_int function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

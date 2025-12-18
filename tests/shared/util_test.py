@@ -8,7 +8,7 @@ from pytest import approx, mark
 
 from geomio.shared.util import (
     add_spatial_index, element_names, expand_extent, make_spatial_index_where,
-    make_unique_name, make_valid_name, _replace_double_under)
+    make_unique_name, make_valid_name, _replace_double_under, to_int)
 
 pytestmark = [mark.utility]
 
@@ -92,6 +92,22 @@ def test_make_spatial_index_where(world_features, fresh_gpkg):
     assert sql_inside
     assert sql_outside
 # End test_make_spatial_index_where function
+
+
+@mark.parametrize('value, expected', [
+    (None, None),
+    (1, 1),
+    ('1', 1),
+    ('abc', None),
+    ('abc123', None),
+    ('123abc', None),
+])
+def test_to_int(value, expected):
+    """
+    Test to_int
+    """
+    assert to_int(value) == expected
+# End test_to_int function
 
 
 if __name__ == '__main__':  # pragma: no cover
