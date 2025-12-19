@@ -60,5 +60,15 @@ def test_extent_from_feature_class(world_features, name, expected):
 # End test_extent_from_feature_class function
 
 
+def test_extent_from_feature_class_sans_extent(crs_geopackage):
+    """
+    Test extent from feature class sans extent in table
+    """
+    fc = crs_geopackage['test_32138_p']
+    extent = extent_from_feature_class(fc)
+    assert approx(extent, abs=0.1) == (971616.26, 2039110.0, 1023849.47, 2087677.50)
+# End test_extent_from_feature_class_sans_extent function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
