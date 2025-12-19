@@ -6,7 +6,10 @@ Utilities
 
 from sqlite3 import OperationalError
 
+from fudgeo import FeatureClass
+
 from geomio.shared.exception import OperationsError
+from geomio.shared.feature import copy_feature_class
 from geomio.shared.hint import ELEMENT
 from geomio.shared.util import add_spatial_index
 
@@ -17,10 +20,14 @@ def shared_select(source: ELEMENT, target: ELEMENT, where_clause: str,
     Common code for Table Select and Select functions
     """
     try:
-        element = source.copy(
-            name=target.name, geopackage=target.geopackage,
-            description=target.description, where_clause=where_clause,
-            overwrite=overwrite)
+        if isinstance(source, FeatureClass):
+            element = copy_feature_class(
+                source=source, target=target, where_clause=where_clause,
+                overwrite=overwrite)
+        else:
+            element = source.copy(
+                name=target.name, geopackage=target.geopackage,
+                where_clause=where_clause, overwrite=overwrite)
     except (OperationalError, ValueError) as err:
         raise OperationsError(err)
     return add_spatial_index(element)
