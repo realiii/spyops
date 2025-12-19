@@ -10,7 +10,7 @@ from pytest import mark, raises
 
 from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from geomio.shared.exceptions import OperationsError
+from geomio.shared.exception import OperationsError
 from geomio.shared.util import element_names, make_unique_name
 
 
@@ -29,12 +29,12 @@ pytestmark = [mark.extract]
     ('cities', 'POP IS NULL', 1377),
     ('cities', 'POP < 0', 0),
 ])
-def test_table_select(world_tables, fresh_gpkg, table_name, where_clause, count):
+def test_table_select(world_tables, mem_gpkg, table_name, where_clause, count):
     """
     Test table_select
     """
     source = world_tables[table_name]
-    target = Table(geopackage=fresh_gpkg, name=table_name)
+    target = Table(geopackage=mem_gpkg, name=table_name)
     result = table_select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
 # End test_table_select function
@@ -46,12 +46,12 @@ def test_table_select(world_tables, fresh_gpkg, table_name, where_clause, count)
     ('cities', 'POP ISNULL()'),
     ('cities', 'POP <<>> 0'),
 ])
-def test_table_select_bad_sql(world_tables, fresh_gpkg, table_name, where_clause):
+def test_table_select_bad_sql(world_tables, mem_gpkg, table_name, where_clause):
     """
     Test table_select bad SQL
     """
     source = world_tables[table_name]
-    target = Table(geopackage=fresh_gpkg, name=table_name)
+    target = Table(geopackage=mem_gpkg, name=table_name)
     with raises(OperationsError):
         table_select(source=source, target=target, where_clause=where_clause)
 # End test_table_select_bad_sql function
@@ -69,12 +69,12 @@ def test_table_select_bad_sql(world_tables, fresh_gpkg, table_name, where_clause
     ('cities_p', 'POP IS NULL', 1377),
     ('cities_p', 'POP < 0', 0),
 ])
-def test_select(world_features, fresh_gpkg, fc_name, where_clause, count):
+def test_select(world_features, mem_gpkg, fc_name, where_clause, count):
     """
     Test select
     """
     source = world_features[fc_name]
-    target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     result = select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
 # End test_select function
@@ -86,12 +86,12 @@ def test_select(world_features, fresh_gpkg, fc_name, where_clause, count):
     ('cities_p', 'POP ISNULL()'),
     ('cities_p', 'POP <<>> 0'),
 ])
-def test_select_bad_sql(world_features, fresh_gpkg, fc_name, where_clause):
+def test_select_bad_sql(world_features, mem_gpkg, fc_name, where_clause):
     """
     Test select bad SQL
     """
     source = world_features[fc_name]
-    target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     with raises(OperationsError):
         select(source=source, target=target, where_clause=where_clause)
 # End test_select_bad_sql function
@@ -103,7 +103,7 @@ def test_select_bad_sql(world_features, fresh_gpkg, fc_name, where_clause):
     ('ISO_CC', 3),
     (('ISO_CC', 'LAND_TYPE'), 7),
 ])
-def test_split_by_attributes_features(world_features, fresh_gpkg, fields, count):
+def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
     """
     Test split_by_attributes
     """
@@ -112,8 +112,8 @@ def test_split_by_attributes_features(world_features, fresh_gpkg, fields, count)
     names = element_names(world_features)
     source = source.copy(
         make_unique_name(source.name, names=names),
-        where_clause=f"""fid <= {subset}""", geopackage=fresh_gpkg)
-    results = split_by_attributes(source, group_fields=fields, geopackage=fresh_gpkg)
+        where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
+    results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
     assert len(results) == count
     assert sum([r.count for r in results]) == subset
 # End test_split_by_attributes_features function
@@ -139,14 +139,14 @@ def test_split_by_attributes_features(world_features, fresh_gpkg, fields, count)
     ('airports_mp_p', 1, 4),
     ('roads_mp_l', 1, 8),
 ])
-def test_clip(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
+def test_clip(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
     """
     Test clip
     """
     clipper = inputs['clipper_a']
     assert clipper.count == 3
     source = world_features[fc_name]
-    target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
     assert result.count < source.count
     assert result.count == count
@@ -173,7 +173,7 @@ def test_clip(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
     ('airports_mp_p', 1, 4, 8),
     ('roads_mp_l', 1, 4, 13),
 ])
-def test_split(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, element_count, record_count):
+def test_split(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
     """
     Test split
     """
@@ -181,7 +181,7 @@ def test_split(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, elemen
     assert splitter.count == 5
     source = world_features.feature_classes[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
-    results = split(source=source, operator=splitter, field=field, geopackage=fresh_gpkg, xy_tolerance=xy_tolerance)
+    results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
     assert len(results) == element_count
     assert sum(r.count for r in results) == record_count
 # End test_split function

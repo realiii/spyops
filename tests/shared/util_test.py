@@ -8,7 +8,7 @@ from pytest import approx, mark
 
 from geomio.shared.util import (
     add_spatial_index, element_names, expand_extent, make_spatial_index_where,
-    make_unique_name, make_valid_name, _replace_double_under)
+    make_unique_name, make_valid_name, _replace_double_under, to_int)
 
 pytestmark = [mark.utility]
 
@@ -54,12 +54,12 @@ def test_replace_double_under():
 # End test_replace_double_under function
 
 
-def test_add_spatial_index(world_features, fresh_gpkg):
+def test_add_spatial_index(world_features, mem_gpkg):
     """
     Test add_spatial_index
     """
     fc = world_features['admin_a'].copy(
-        name='aa', geopackage=fresh_gpkg,
+        name='aa', geopackage=mem_gpkg,
         where_clause="""fid <= 100""")
     add_spatial_index(fc)
     assert fc.has_spatial_index is True
@@ -81,17 +81,33 @@ def test_expand_extent():
 # End test_expand_extent function
 
 
-def test_make_spatial_index_where(world_features, fresh_gpkg):
+def test_make_spatial_index_where(world_features, mem_gpkg):
     """
     Test make spatial index where
     """
     fc = world_features['admin_a'].copy(
-        name='aa', geopackage=fresh_gpkg,
+        name='aa', geopackage=mem_gpkg,
         where_clause="""fid <= 100""")
     sql_inside, sql_outside = make_spatial_index_where(fc, extent=fc.extent)
     assert sql_inside
     assert sql_outside
 # End test_make_spatial_index_where function
+
+
+@mark.parametrize('value, expected', [
+    (None, None),
+    (1, 1),
+    ('1', 1),
+    ('abc', None),
+    ('abc123', None),
+    ('123abc', None),
+])
+def test_to_int(value, expected):
+    """
+    Test to_int
+    """
+    assert to_int(value) == expected
+# End test_to_int function
 
 
 if __name__ == '__main__':  # pragma: no cover

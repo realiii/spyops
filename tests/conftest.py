@@ -6,7 +6,7 @@ Fixtures
 
 from pathlib import Path
 
-from fudgeo import GeoPackage
+from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import fixture
 
 
@@ -46,6 +46,15 @@ def world_features(data_path) -> GeoPackage:
 # End world_features function
 
 
+@fixture(scope='session')
+def crs_geopackage(data_path) -> GeoPackage:
+    """
+    CRS GeoPackage
+    """
+    return GeoPackage(data_path.joinpath('crs.gpkg'))
+# End crs_geopackage function
+
+
 @fixture(scope='function')
 def fresh_gpkg(tmp_path) -> GeoPackage:
     """
@@ -53,6 +62,15 @@ def fresh_gpkg(tmp_path) -> GeoPackage:
     """
     return GeoPackage.create(tmp_path.joinpath('geo.gpkg'))
 # End fresh_gpkg function
+
+
+@fixture(scope='function')
+def mem_gpkg(tmp_path) -> MemoryGeoPackage:
+    """
+    Fresh MemoryGeoPackage
+    """
+    return MemoryGeoPackage.create()
+# End mem_gpkg function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -12,9 +12,9 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from geomio.shared.constants import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
-from geomio.shared.hints import ELEMENT, EXTENT, GPKG
-from geomio.shared.types import OverlayConfig
+from geomio.shared.base import OverlayConfig
+from geomio.shared.constant import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
+from geomio.shared.hint import ELEMENT, EXTENT, GPKG
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub
@@ -144,6 +144,17 @@ def extend_records(results: list[tuple], records: list[tuple],
                 part.wkb, srs_id=g.srs_id), *attributes)
                 for part in getattr(result, GEOMS_ATTR, [result])])
 # End extend_records function
+
+
+def to_int(value: str) -> int | None:
+    """
+    Simple Conversion to int, None if fails
+    """
+    try:
+        return int(value)
+    except (AttributeError, ValueError, TypeError):
+        return None
+# End to_int function
 
 
 if __name__ == '__main__':  # pragma: no cover

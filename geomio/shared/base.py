@@ -6,7 +6,8 @@ Types
 
 from typing import Any, NamedTuple
 
-from shapely.geometry.multipolygon import MultiPolygon as ShapelyMultiPolygon
+from shapely import (
+    MultiPolygon as ShapelyMultiPolygon, Polygon as ShapelyPolygon)
 
 
 class QueryComponents(NamedTuple):
@@ -29,7 +30,7 @@ class OverlayConfig(NamedTuple):
     is_multi: bool
     shapely_multi_cls: Any
     shapely_types: tuple
-    geometry: ShapelyMultiPolygon
+    geometry: ShapelyMultiPolygon | ShapelyPolygon
 # End OverlayConfig class
 
 

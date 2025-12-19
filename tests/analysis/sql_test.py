@@ -85,13 +85,13 @@ def test_build_sql_select(world_tables):
 # End test_build_sql_select function
 
 
-def test_build_query_components(inputs, world_features, fresh_gpkg):
+def test_build_query_components(inputs, world_features, mem_gpkg):
     """
     Test build_query_components
     """
     source = world_features['cities_p']
     operator = inputs['clipper_a']
-    target = source.copy(name='asdf', geopackage=fresh_gpkg)
+    target = source.copy(name='asdf', geopackage=mem_gpkg)
     qc = build_query_components(source, target, operator)
     assert qc.use_index is True
     assert qc.has_intersection is True
