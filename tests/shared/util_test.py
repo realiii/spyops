@@ -7,8 +7,9 @@ Test Utilities
 from pytest import approx, mark
 
 from geomio.shared.util import (
-    add_spatial_index, element_names, expand_extent, make_spatial_index_where,
+    element_names, expand_extent, make_spatial_index_where,
     make_unique_name, make_valid_name, _replace_double_under, to_int)
+
 
 pytestmark = [mark.utility]
 
@@ -52,18 +53,6 @@ def test_replace_double_under():
     """
     assert _replace_double_under('____init____') == '_init_'
 # End test_replace_double_under function
-
-
-def test_add_spatial_index(world_features, mem_gpkg):
-    """
-    Test add_spatial_index
-    """
-    fc = world_features['admin_a'].copy(
-        name='aa', geopackage=mem_gpkg,
-        where_clause="""fid <= 100""")
-    add_spatial_index(fc)
-    assert fc.has_spatial_index is True
-# End test_add_spatial_index function
 
 
 def test_expand_extent():

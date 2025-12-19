@@ -14,7 +14,7 @@ from shapely import GeometryCollection
 
 from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
-from geomio.shared.hint import ELEMENT, EXTENT, GPKG
+from geomio.shared.hint import EXTENT, GPKG
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub
@@ -73,16 +73,6 @@ def _replace_double_under(name: str) -> str:
         name = name.replace(DOUBLE_UNDER, UNDERSCORE)
     return name
 # End _replace_double_under function
-
-
-def add_spatial_index(element: ELEMENT) -> ELEMENT:
-    """
-    Add Spatial Index
-    """
-    if isinstance(element, FeatureClass):
-        element.add_spatial_index()
-    return element
-# End add_spatial_index function
 
 
 def expand_extent(extent: EXTENT) -> EXTENT:

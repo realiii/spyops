@@ -10,7 +10,7 @@ from pytest import mark
 
 from geomio.crs.util import from_crs, validate_srs
 from geomio.shared.constant import CUSTOM_UPPER
-from geomio.shared.feature import create_feature_class
+from geomio.shared.element import copy_element, create_feature_class
 from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY, CUSTOM_THIRD_PARTY_AUTHORITY_60000,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
@@ -57,6 +57,39 @@ def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
         assert key in srs.definition
         assert org_input in srs.definition
 # End test_from_crs_fresh function
+
+
+@mark.parametrize('name, where_clause, count', [
+    ('admin', None, 5824),
+    ('admin', '', 5824),
+    ('admin', 'ISO_CC = "BR"', 62),
+    ('disputed_boundaries', None, 561),
+    ('disputed_boundaries', '', 561),
+    ('disputed_boundaries', 'Description = "Disputed Boundary"', 364),
+    ('cities', None, 2540),
+    ('cities', '', 2540),
+    ('cities', 'POP IS NULL', 1377),
+    ('cities', 'POP < 0', 0),
+    ('lakes_a', None, 39),
+    ('lakes_a', '', 39),
+    ('lakes_a', 'SQKM > 5000', 28),
+    ('disputed_boundaries_l', None, 561),
+    ('disputed_boundaries_l', '', 561),
+    ('disputed_boundaries_l', 'Description = "Disputed Boundary"', 364),
+    ('cities_p', None, 2540),
+    ('cities_p', '', 2540),
+    ('cities_p', 'POP IS NULL', 1377),
+    ('cities_p', 'POP < 0', 0),
+])
+def test_copy_element(world_tables, world_features, mem_gpkg, name, where_clause, count):
+    """
+    Test copy_element
+    """
+    source = world_tables[name] or world_features[name]
+    target = source.__class__(geopackage=mem_gpkg, name=name)
+    result = copy_element(source=source, target=target, where_clause=where_clause, overwrite=True)
+    assert result.count == count
+# End test_scopy_element function
 
 
 if __name__ == '__main__':  # pragma: no cover

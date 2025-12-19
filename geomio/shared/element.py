@@ -4,11 +4,13 @@ Feature Class Functionality
 """
 
 
+from sqlite3 import OperationalError
+
 from fudgeo import FeatureClass, SpatialReferenceSystem
 
-
 from geomio.crs.util import validate_srs
-from geomio.shared.hint import FIELDS, GPKG
+from geomio.shared.exception import OperationsError
+from geomio.shared.hint import ELEMENT, FIELDS, GPKG
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
@@ -42,6 +44,26 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
         z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
         description=description, overwrite=overwrite, spatial_index=True)
 # End create_feature_class function
+
+
+def copy_element(source: ELEMENT, target: ELEMENT, *,
+                 where_clause: str = '', overwrite: bool = False) -> ELEMENT:
+    """
+    Copy Element, wrapper for Feature Class or Table
+    """
+    try:
+        if isinstance(source, FeatureClass):
+            element = copy_feature_class(
+                source=source, target=target, where_clause=where_clause,
+                overwrite=overwrite)
+        else:
+            element = source.copy(
+                name=target.name, geopackage=target.geopackage,
+                where_clause=where_clause, overwrite=overwrite)
+    except (OperationalError, ValueError) as err:
+        raise OperationsError(err)
+    return element
+# End copy_element function
 
 
 if __name__ == '__main__':  # pragma: no cover

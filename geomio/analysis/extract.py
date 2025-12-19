@@ -13,17 +13,16 @@ from shapely.io import from_wkb
 
 from geomio.analysis.sql import (
     build_query_components, build_sql_select_by_attributes)
-from geomio.analysis.util import shared_select
 from geomio.shared.constant import (
     FIELD, GEOPACKAGE, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET,
     UNDERSCORE)
+from geomio.shared.element import copy_element
 from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, FLOAT, GPKG
 from geomio.shared.util import (
-    add_spatial_index, element_names, extend_records, make_unique_name,
-    make_valid_name)
+    element_names, extend_records, make_unique_name, make_valid_name)
 from geomio.shared.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geopackage, validate_result, validate_same_crs, validate_table,
@@ -37,24 +36,24 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_result()
 @validate_table(TARGET, exists=False)
 @validate_table(SOURCE)
-def table_select(source: Table, target: Table, where_clause: str = '',
-                 overwrite: bool = False) -> Table:
+def table_select(source: Table, target: Table, *,
+                 where_clause: str = '', overwrite: bool = False) -> Table:
     """
     Table Select
 
     Select rows from a table using a where clause (optional) and write results
     to a target table.  Optionally overwrite the target table if it exists.
     """
-    return shared_select(source=source, target=target,
-                         where_clause=where_clause, overwrite=overwrite)
+    return copy_element(source=source, target=target,
+                        where_clause=where_clause, overwrite=overwrite)
 # End table_select function
 
 
 @validate_result()
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(SOURCE)
-def select(source: FeatureClass, target: FeatureClass, where_clause: str = '',
-           overwrite: bool = False) -> FeatureClass:
+def select(source: FeatureClass, target: FeatureClass, *,
+           where_clause: str = '', overwrite: bool = False) -> FeatureClass:
     """
     Select
 
@@ -62,8 +61,8 @@ def select(source: FeatureClass, target: FeatureClass, where_clause: str = '',
     write results to a target feature class.  Optionally overwrite the target
     feature class if it exists.
     """
-    return shared_select(source=source, target=target,
-                         where_clause=where_clause, overwrite=overwrite)
+    return copy_element(source=source, target=target,
+                        where_clause=where_clause, overwrite=overwrite)
 # End select function
 
 
@@ -73,7 +72,7 @@ def select(source: FeatureClass, target: FeatureClass, where_clause: str = '',
                 element_name=SOURCE, exclude_primary=False)
 @validate_element(SOURCE)
 def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
-                        geopackage: GPKG) -> list[ELEMENT]:
+                        geopackage: GPKG, *, overwrite: bool = False) -> list[ELEMENT]:
     """
     Split by Attributes
 
@@ -91,9 +90,9 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
         for i in range(1, group_count + 1):
             cursor = source_conn.execute(select_sql, (i,))
             name = make_unique_name(name=source.name, names=target_names)
-            element = add_spatial_index(source.copy(
-                name=name, description=source.description,
-                where_clause=SQL_EMPTY, geopackage=geopackage))
+            element = copy_element(
+                source=source, where_clause=SQL_EMPTY, overwrite=overwrite,
+                target=FeatureClass(geopackage=geopackage, name=name))
             elements.append(element)
             while records := cursor.fetchmany(FETCH_SIZE):
                 conn.executemany(
@@ -108,7 +107,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
-def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass,
+def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          overwrite: bool = False, xy_tolerance: FLOAT = None) -> FeatureClass:
     """
     Clip
@@ -118,7 +117,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass,
     """
     components = build_query_components(
         source, target=target, operator=operator)
-    target = shared_select(
+    target = copy_element(
         source=source, target=target, where_clause=SQL_EMPTY,
         overwrite=overwrite)
     if not components.has_intersection:
@@ -152,7 +151,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass,
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
-          geopackage: GPKG, overwrite: bool = False,
+          geopackage: GPKG, *, overwrite: bool = False,
           xy_tolerance: FLOAT = None) -> list[FeatureClass]:
     """
     Split
@@ -160,24 +159,24 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
     Extracts features for each polygon in the splitting feature class and uses
     values from the specified field to name the output feature classes.
     """
-    elements = []
+    features = []
     split_extent = extent_from_feature_class(operator)
     source_extent = extent_from_feature_class(source)
     if not box(*split_extent).intersects(box(*source_extent)):
-        return elements
+        return features
     mgp = MemoryGeoPackage.create()
     splitters = split_by_attributes(
-        operator, group_fields=[field], geopackage=mgp)
+        operator, group_fields=[field], geopackage=mgp, overwrite=True)
     for s in splitters:
         cursor = s.select(fields=[field], limit=1, include_geometry=False)
         value, = cursor.fetchone()
         name = make_valid_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
-        target = FeatureClass(geopackage=geopackage, name=name)
-        clip(source, operator=s, target=target, overwrite=overwrite,
-             xy_tolerance=xy_tolerance)
-        elements.append(target)
-    return elements
+        target = clip(
+            source, operator=s, xy_tolerance=xy_tolerance, overwrite=overwrite,
+            target=FeatureClass(geopackage=geopackage, name=name))
+        features.append(target)
+    return features
 # End split function
 
 
