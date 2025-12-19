@@ -37,8 +37,8 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_result()
 @validate_table(TARGET, exists=False)
 @validate_table(SOURCE)
-def table_select(source: Table, target: Table, where_clause: str = '',
-                 overwrite: bool = False) -> Table:
+def table_select(source: Table, target: Table, *,
+                 where_clause: str = '', overwrite: bool = False) -> Table:
     """
     Table Select
 
@@ -53,8 +53,8 @@ def table_select(source: Table, target: Table, where_clause: str = '',
 @validate_result()
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(SOURCE)
-def select(source: FeatureClass, target: FeatureClass, where_clause: str = '',
-           overwrite: bool = False) -> FeatureClass:
+def select(source: FeatureClass, target: FeatureClass, *,
+           where_clause: str = '', overwrite: bool = False) -> FeatureClass:
     """
     Select
 
@@ -73,7 +73,7 @@ def select(source: FeatureClass, target: FeatureClass, where_clause: str = '',
                 element_name=SOURCE, exclude_primary=False)
 @validate_element(SOURCE)
 def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
-                        geopackage: GPKG) -> list[ELEMENT]:
+                        geopackage: GPKG, *, overwrite: bool = False) -> list[ELEMENT]:
     """
     Split by Attributes
 
@@ -108,7 +108,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
-def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass,
+def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          overwrite: bool = False, xy_tolerance: FLOAT = None) -> FeatureClass:
     """
     Clip
@@ -152,7 +152,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass,
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
-          geopackage: GPKG, overwrite: bool = False,
+          geopackage: GPKG, *, overwrite: bool = False,
           xy_tolerance: FLOAT = None) -> list[FeatureClass]:
     """
     Split
