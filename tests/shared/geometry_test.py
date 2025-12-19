@@ -2,7 +2,8 @@
 """
 Tests for Geometry Module
 """
-from fudgeo import FeatureClass
+
+
 from fudgeo.geometry.point import Point
 from pytest import approx, mark
 from shapely import (
@@ -53,7 +54,7 @@ def test_extent_from_feature_class(world_features, name, expected):
     """
     Test extent from feature class
     """
-    fc = FeatureClass(geopackage=world_features, name=name)
+    fc = world_features[name]
     extent = extent_from_feature_class(fc)
     assert approx(extent, abs=0.000001) == expected
 # End test_extent_from_feature_class function
