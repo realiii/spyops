@@ -46,6 +46,15 @@ def world_features(data_path) -> GeoPackage:
 # End world_features function
 
 
+@fixture(scope='session')
+def crs_geopackage(data_path) -> GeoPackage:
+    """
+    CRS GeoPackage
+    """
+    return GeoPackage(data_path.joinpath('crs.gpkg'))
+# End crs_geopackage function
+
+
 @fixture(scope='function')
 def fresh_gpkg(tmp_path) -> GeoPackage:
     """
