@@ -54,12 +54,12 @@ def test_replace_double_under():
 # End test_replace_double_under function
 
 
-def test_add_spatial_index(world_features, fresh_gpkg):
+def test_add_spatial_index(world_features, mem_gpkg):
     """
     Test add_spatial_index
     """
     fc = world_features['admin_a'].copy(
-        name='aa', geopackage=fresh_gpkg,
+        name='aa', geopackage=mem_gpkg,
         where_clause="""fid <= 100""")
     add_spatial_index(fc)
     assert fc.has_spatial_index is True
@@ -81,12 +81,12 @@ def test_expand_extent():
 # End test_expand_extent function
 
 
-def test_make_spatial_index_where(world_features, fresh_gpkg):
+def test_make_spatial_index_where(world_features, mem_gpkg):
     """
     Test make spatial index where
     """
     fc = world_features['admin_a'].copy(
-        name='aa', geopackage=fresh_gpkg,
+        name='aa', geopackage=mem_gpkg,
         where_clause="""fid <= 100""")
     sql_inside, sql_outside = make_spatial_index_where(fc, extent=fc.extent)
     assert sql_inside

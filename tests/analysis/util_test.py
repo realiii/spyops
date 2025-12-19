@@ -33,12 +33,12 @@ pytestmark = [mark.extract]
     ('cities_p', 'POP IS NULL', 1377),
     ('cities_p', 'POP < 0', 0),
 ])
-def test_shared_select(world_tables, world_features, fresh_gpkg, name, where_clause, count):
+def test_shared_select(world_tables, world_features, mem_gpkg, name, where_clause, count):
     """
     Test shared_select
     """
     source = world_tables[name] or world_features[name]
-    target = source.__class__(geopackage=fresh_gpkg, name=name)
+    target = source.__class__(geopackage=mem_gpkg, name=name)
     result = shared_select(source=source, target=target, where_clause=where_clause, overwrite=True)
     assert result.count == count
 # End test_shared_select function

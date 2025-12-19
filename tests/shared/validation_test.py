@@ -14,7 +14,6 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from conftest import fresh_gpkg
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
@@ -28,11 +27,11 @@ from geomio.shared.validation import (
 pytestmark = [mark.validation]
 
 
-def test_check_output_empty(fresh_gpkg):
+def test_check_output_empty(mem_gpkg):
     """
     Test Check Output Empty
     """
-    tbl = fresh_gpkg.create_table('tbl')
+    tbl = mem_gpkg.create_table('tbl')
     with catch_warnings(record=True) as ws:
         simplefilter('always')
         _check_output_empty(tbl)
@@ -78,7 +77,7 @@ def test_validate_element_type(exists, has_content):
     ('', False, False),
     ('', False, True),
 ])
-def test_validate_element_data_type(world_features, world_tables, fresh_gpkg, name, exists, has_content):
+def test_validate_element_data_type(world_features, world_tables, mem_gpkg, name, exists, has_content):
     """
     Test validate element
     """
@@ -86,10 +85,10 @@ def test_validate_element_data_type(world_features, world_tables, fresh_gpkg, na
     def element_function(element):
         pass
     if name is None:
-        names = element_names(fresh_gpkg)
-        e = Table.create(fresh_gpkg, name=make_unique_name(str(name), names=names), fields=())
+        names = element_names(mem_gpkg)
+        e = Table.create(mem_gpkg, name=make_unique_name(str(name), names=names), fields=())
     elif not name:
-        e = Table(fresh_gpkg, name='asdf')
+        e = Table(mem_gpkg, name='asdf')
     else:
         e = world_features[name] or world_tables[name]
     if name is None and exists and has_content:
@@ -106,7 +105,7 @@ def test_validate_element_data_type(world_features, world_tables, fresh_gpkg, na
 @mark.parametrize('exists', [
     True, False
 ])
-def test_validate_geopackage(fresh_gpkg, exists):
+def test_validate_geopackage(mem_gpkg, exists):
     """
     Test validate_geopackage
     """
@@ -118,7 +117,7 @@ def test_validate_geopackage(fresh_gpkg, exists):
     if exists:
         with raises(ValueError):
             geo_function(GeoPackage(Path.home()))
-    geo_function(fresh_gpkg)
+    geo_function(mem_gpkg)
     geo_function(MemoryGeoPackage())
 # End test_validate_geopackage function
 
@@ -257,17 +256,17 @@ def test_validate_field_multiple_fields(world_tables, fld, exists, throws):
 # End test_validate_field_multiple_fields function
 
 
-def test_validate_same_crs(fresh_gpkg):
+def test_validate_same_crs(mem_gpkg):
     """
     Test validate same crs
     """
     @validate_same_crs('a', 'b')
     def crs_function(a, b):
         pass
-    srs_a = fresh_gpkg.spatial_references[4326]
+    srs_a = mem_gpkg.spatial_references[4326]
     srs_b = SpatialReferenceSystem(name='NAD27', organization='EPSG', org_coord_sys_id=4267, definition=CRS(4267).to_wkt())
-    fc_a = fresh_gpkg.create_feature_class('aaa', srs=srs_a)
-    fc_b = fresh_gpkg.create_feature_class('bbb', srs=srs_b)
+    fc_a = mem_gpkg.create_feature_class('aaa', srs=srs_a)
+    fc_b = mem_gpkg.create_feature_class('bbb', srs=srs_b)
     with raises(OperationsError):
         crs_function(fc_a, fc_b)
 # End test_validate_same_crs function
