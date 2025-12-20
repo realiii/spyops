@@ -11,14 +11,16 @@ from fudgeo import FeatureClass, SpatialReferenceSystem
 from geomio.crs.util import validate_srs
 from geomio.shared.exception import OperationsError
 from geomio.shared.hint import ELEMENT, FIELDS, GPKG
+from geomio.shared.settings import SETTINGS
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
-                       where_clause: str = '', overwrite: bool = False) -> FeatureClass:
+                       where_clause: str = '') -> FeatureClass:
     """
     Copy Feature Class, accounting for potential Spatial Reference System
     differences across GeoPackages and ensuring the target has a spatial index.
     """
+    overwrite = SETTINGS.overwrite
     geopackage = target.geopackage
     srs = validate_srs(geopackage, srs=source.spatial_reference_system)
     target = source.copy(
@@ -32,12 +34,13 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
 def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
                          srs: SpatialReferenceSystem, *, fields: FIELDS = (),
                          z_enabled: bool = False, m_enabled: bool = False,
-                         description: str = '', overwrite: bool = False) -> FeatureClass:
+                         description: str = '') -> FeatureClass:
     """
     Create Feature Class, a light wrapper around the create method of
     FeatureClass with some additional logic for Spatial Reference handling and
     ensuring spatial indexes are present.
     """
+    overwrite = SETTINGS.overwrite
     srs = validate_srs(geopackage, srs=srs)
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
@@ -47,16 +50,16 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
 
 
 def copy_element(source: ELEMENT, target: ELEMENT, *,
-                 where_clause: str = '', overwrite: bool = False) -> ELEMENT:
+                 where_clause: str = '') -> ELEMENT:
     """
     Copy Element, wrapper for Feature Class or Table
     """
     try:
         if isinstance(source, FeatureClass):
             element = copy_feature_class(
-                source=source, target=target, where_clause=where_clause,
-                overwrite=overwrite)
+                source=source, target=target, where_clause=where_clause)
         else:
+            overwrite = SETTINGS.overwrite
             element = source.copy(
                 name=target.name, geopackage=target.geopackage,
                 where_clause=where_clause, overwrite=overwrite)

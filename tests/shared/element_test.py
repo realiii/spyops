@@ -87,9 +87,9 @@ def test_copy_element(world_tables, world_features, mem_gpkg, name, where_clause
     """
     source = world_tables[name] or world_features[name]
     target = source.__class__(geopackage=mem_gpkg, name=name)
-    result = copy_element(source=source, target=target, where_clause=where_clause, overwrite=True)
+    result = copy_element(source=source, target=target, where_clause=where_clause)
     assert result.count == count
-# End test_scopy_element function
+# End test_copy_element function
 
 
 if __name__ == '__main__':  # pragma: no cover
