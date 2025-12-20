@@ -10,7 +10,9 @@ from pytest import mark, raises
 
 from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
+from geomio.shared.enumeration import Settings
 from geomio.shared.exception import OperationsError
+from geomio.shared.settings import Swap
 from geomio.shared.util import element_names, make_unique_name
 
 
@@ -38,6 +40,26 @@ def test_table_select(world_tables, mem_gpkg, table_name, where_clause, count):
     result = table_select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
 # End test_table_select function
+
+
+def test_table_select_overwrite(world_tables, mem_gpkg):
+    """
+    Test table_select that exercises overwrite
+    """
+    source = world_tables['admin']
+    where_clause = 'ISO_CC = "BR"'
+    count = 62
+    target = Table(geopackage=mem_gpkg, name=source.name)
+    result = table_select(source=source, target=target, where_clause=where_clause)
+    assert result.count == count
+
+    with raises(OperationsError):
+        table_select(source=source, target=target, where_clause=where_clause)
+
+    with Swap(Settings.OVERWRITE, True):
+        result = table_select(source=source, target=target, where_clause=where_clause)
+    assert result.count == count
+# End test_table_select_overwrite function
 
 
 @mark.parametrize('table_name, where_clause', [
