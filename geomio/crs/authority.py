@@ -192,7 +192,7 @@ class Authority:
     # End is_valid property
 
     @classmethod
-    def from_crs(cls, crs: CRS) -> 'Authority':
+    def from_crs(cls, crs: CRS) -> Self:
         """
         Build the Authority from a CRS object internals
         """
