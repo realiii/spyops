@@ -21,6 +21,7 @@ from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, FLOAT, GPKG
+from geomio.shared.settings import SETTINGS
 from geomio.shared.util import (
     element_names, extend_records, make_unique_name, make_valid_name)
 from geomio.shared.validation import (
@@ -37,15 +38,14 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_table(TARGET, exists=False)
 @validate_table(SOURCE)
 def table_select(source: Table, target: Table, *,
-                 where_clause: str = '', overwrite: bool = False) -> Table:
+                 where_clause: str = '') -> Table:
     """
     Table Select
 
     Select rows from a table using a where clause (optional) and write results
-    to a target table.  Optionally overwrite the target table if it exists.
+    to a target table.
     """
-    return copy_element(source=source, target=target,
-                        where_clause=where_clause, overwrite=overwrite)
+    return copy_element(source=source, target=target, where_clause=where_clause)
 # End table_select function
 
 
@@ -53,16 +53,14 @@ def table_select(source: Table, target: Table, *,
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(SOURCE)
 def select(source: FeatureClass, target: FeatureClass, *,
-           where_clause: str = '', overwrite: bool = False) -> FeatureClass:
+           where_clause: str = '') -> FeatureClass:
     """
     Select
 
     Select features from a feature class using a where clause (optional) and
-    write results to a target feature class.  Optionally overwrite the target
-    feature class if it exists.
+    write results to a target feature class.
     """
-    return copy_element(source=source, target=target,
-                        where_clause=where_clause, overwrite=overwrite)
+    return copy_element(source=source, target=target, where_clause=where_clause)
 # End select function
 
 
@@ -72,7 +70,7 @@ def select(source: FeatureClass, target: FeatureClass, *,
                 element_name=SOURCE, exclude_primary=False)
 @validate_element(SOURCE)
 def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
-                        geopackage: GPKG, *, overwrite: bool = False) -> list[ELEMENT]:
+                        geopackage: GPKG) -> list[ELEMENT]:
     """
     Split by Attributes
 
@@ -91,7 +89,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             cursor = source_conn.execute(select_sql, (i,))
             name = make_unique_name(name=source.name, names=target_names)
             element = copy_element(
-                source=source, where_clause=SQL_EMPTY, overwrite=overwrite,
+                source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
             elements.append(element)
             while records := cursor.fetchmany(FETCH_SIZE):
@@ -108,7 +106,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
-         overwrite: bool = False, xy_tolerance: FLOAT = None) -> FeatureClass:
+         xy_tolerance: FLOAT = None) -> FeatureClass:
     """
     Clip
 
@@ -117,9 +115,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     """
     components = build_query_components(
         source, target=target, operator=operator)
-    target = copy_element(
-        source=source, target=target, where_clause=SQL_EMPTY,
-        overwrite=overwrite)
+    target = copy_element(source=source, target=target, where_clause=SQL_EMPTY)
     if not components.has_intersection:
         return target
     records = []
@@ -151,8 +147,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
-          geopackage: GPKG, *, overwrite: bool = False,
-          xy_tolerance: FLOAT = None) -> list[FeatureClass]:
+          geopackage: GPKG, *, xy_tolerance: FLOAT = None) -> list[FeatureClass]:
     """
     Split
 
@@ -166,14 +161,14 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
         return features
     mgp = MemoryGeoPackage.create()
     splitters = split_by_attributes(
-        operator, group_fields=[field], geopackage=mgp, overwrite=True)
+        operator, group_fields=[field], geopackage=mgp)
     for s in splitters:
         cursor = s.select(fields=[field], limit=1, include_geometry=False)
         value, = cursor.fetchone()
         name = make_valid_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
         target = clip(
-            source, operator=s, xy_tolerance=xy_tolerance, overwrite=overwrite,
+            source, operator=s, xy_tolerance=xy_tolerance,
             target=FeatureClass(geopackage=geopackage, name=name))
         features.append(target)
     return features

@@ -17,5 +17,14 @@ class InfoOption(StrEnum):
 # End InfoOption class
 
 
+class Settings(StrEnum):
+    """
+    Analysis Settings
+    """
+    OVERWRITE = auto()
+    XY_TOLERANCE = auto()
+# End Settings class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
