@@ -52,5 +52,10 @@ EMPTY_INPUT: str = '{}: {} is empty'
 UNABLE_TO_USE_CRS: str = 'Unable to use authority and code from {}'
 
 
+BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',
+                         'gpkg_geometry_columns', 'gpkg_tile_matrix_set',
+                         'gpkg_tile_matrix', 'gpkg_extensions'}
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
