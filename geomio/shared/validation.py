@@ -19,7 +19,7 @@ from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
 from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
-from geomio.shared.hint import ELEMENT, NAMES, XY_TOL
+from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
 
@@ -319,6 +319,15 @@ class ValidateGeopackage(AbstractValidateTypeExists):
                 return success
         raise ValueError(f'{self._name} does not exist')
     # End _validate_exists method
+
+    def _get_object(self, kwargs: dict[str, Any]) -> GPKG | None:
+        """
+        Get Object
+        """
+        if (function_gpkg := super()._get_object(kwargs)) is not None:
+            return function_gpkg
+        return ANALYSIS_SETTINGS.current_workspace
+    # End _get_object method
 
     def _validation(self, obj: Any) -> None:
         """
