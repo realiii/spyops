@@ -15,7 +15,7 @@ from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
 from fudgeo.constant import MEMORY
 
 from geomio.crs.util import check_same_crs, get_crs_from_source
-from geomio.shared.constant import NAME_ATTR, PADDED_PIPE
+from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
 from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
@@ -269,6 +269,13 @@ class ValidateGeopackage(AbstractValidateTypeExists):
     Validate Geopackage
     """
     _types: ClassVar[tuple[type, ...]] = GeoPackage, MemoryGeoPackage
+
+    def __init__(self, name: str = GEOPACKAGE, exists: bool = True) -> None:
+        """
+        Initialize the ValidateGeopackage class
+        """
+        super().__init__(name=name, exists=exists)
+    # End init built-in
 
     def _validate_exists(self, obj: Any) -> bool:
         """
