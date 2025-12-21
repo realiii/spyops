@@ -12,7 +12,7 @@ from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
 from geomio.shared.enumeration import Settings
 from geomio.shared.exception import OperationsError
-from geomio.shared.settings import Swap
+from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 
 
@@ -207,6 +207,76 @@ def test_split(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_
     assert len(results) == element_count
     assert sum(r.count for r in results) == record_count
 # End test_split function
+
+
+@mark.parametrize('fc_name, xy_tolerance, count', [
+    ('admin_a', None, 89),
+    ('airports_p', None, 35),
+    ('roads_l', None, 2189),
+    ('admin_mp_a', None, 49),
+    ('airports_mp_p', None, 4),
+    ('roads_mp_l', None, 8),
+    ('admin_a', 0.001, 88),
+    ('airports_p', 0.001, 35),
+    ('roads_l', 0.001, 2956),
+    ('admin_mp_a', 0.001, 49),
+    ('airports_mp_p', 0.001, 4),
+    ('roads_mp_l', 0.001, 8),
+    ('admin_a', 1, 17),
+    ('airports_p', 1, 32),
+    ('roads_l', 1, 325),
+    ('admin_mp_a', 1, 17),
+    ('airports_mp_p', 1, 4),
+    ('roads_mp_l', 1, 8),
+])
+def test_clip_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
+    """
+    Test clip using analysis settings
+    """
+    clipper = inputs['clipper_a']
+    assert clipper.count == 3
+    source = world_features[fc_name]
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+    with Swap(Settings.XY_TOLERANCE, xy_tolerance):
+        result = clip(source=source, operator=clipper, target=target)
+    assert result.count < source.count
+    assert result.count == count
+# End test_clip_setting function
+
+
+@mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
+    ('admin_a', None, 4, 114),
+    ('airports_p', None, 4, 40),
+    ('roads_l', None, 4, 2514),
+    ('admin_mp_a', None, 4, 68),
+    ('airports_mp_p', None, 4, 8),
+    ('roads_mp_l', None, 4, 14),
+    ('admin_a', 0.001, 4, 112),
+    ('airports_p', 0.001, 4, 40),
+    ('roads_l', 0.001, 4, 3380),
+    ('admin_mp_a', 0.001, 4, 68),
+    ('airports_mp_p', 0.001, 4, 8),
+    ('roads_mp_l', 0.001, 4, 14),
+    ('admin_a', 1, 4, 22),
+    ('airports_p', 1, 4, 35),
+    ('roads_l', 1, 4, 378),
+    ('admin_mp_a', 1, 4, 22),
+    ('airports_mp_p', 1, 4, 8),
+    ('roads_mp_l', 1, 4, 13),
+])
+def test_split_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
+    """
+    Test split using analysis settings
+    """
+    splitter = inputs.feature_classes['splitter_a']
+    assert splitter.count == 5
+    source = world_features.feature_classes[fc_name]
+    field = Field('NAME', data_type=SQLFieldType.text)
+    with Swap(Settings.XY_TOLERANCE, xy_tolerance):
+        results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg)
+    assert len(results) == element_count
+    assert sum(r.count for r in results) == record_count
+# End test_split_setting function
 
 
 if __name__ == '__main__':  # pragma: no cover

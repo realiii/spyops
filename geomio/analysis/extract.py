@@ -20,8 +20,7 @@ from geomio.shared.element import copy_element
 from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
-from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, FLOAT, GPKG
-from geomio.shared.settings import SETTINGS
+from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from geomio.shared.util import (
     element_names, extend_records, make_unique_name, make_valid_name)
 from geomio.shared.validation import (
@@ -106,7 +105,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
-         xy_tolerance: FLOAT = None) -> FeatureClass:
+         xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
     Clip
 
@@ -147,7 +146,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
-          geopackage: GPKG, *, xy_tolerance: FLOAT = None) -> list[FeatureClass]:
+          geopackage: GPKG, *, xy_tolerance: XY_TOL = None) -> list[FeatureClass]:
     """
     Split
 

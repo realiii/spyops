@@ -5,7 +5,7 @@ Utilities
 
 
 from re import IGNORECASE, compile as recompile
-from typing import Callable
+from typing import Any, Callable
 
 from fudgeo import FeatureClass
 from fudgeo.sql import KEYWORDS
@@ -136,15 +136,26 @@ def extend_records(results: list[tuple], records: list[tuple],
 # End extend_records function
 
 
-def to_int(value: str) -> int | None:
+def safe_int(value: Any) -> int | None:
     """
     Simple Conversion to int, None if fails
     """
     try:
-        return int(value)
+        return int(safe_float(value))
     except (AttributeError, ValueError, TypeError):
         return None
-# End to_int function
+# End safe_int function
+
+
+def safe_float(value: Any) -> float | None:
+    """
+    Simple Conversion to float, None default value
+    """
+    try:
+        return float(value)
+    except (AttributeError, ValueError, TypeError):
+        return None
+# End safe_float function
 
 
 if __name__ == '__main__':  # pragma: no cover

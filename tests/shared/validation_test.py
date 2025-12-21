@@ -14,14 +14,17 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
+from geomio.shared.enumeration import Settings
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
     GEOM_TYPE_POLYGONS, REALS, TEXT_AND_NUMBERS)
+from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 from geomio.shared.validation import (
     _check_output_empty, validate_element, validate_feature_class,
-    validate_field, validate_geopackage, validate_same_crs, validate_table)
+    validate_field, validate_geopackage, validate_same_crs, validate_table,
+    validate_xy_tolerance)
 
 
 pytestmark = [mark.validation]
@@ -270,6 +273,46 @@ def test_validate_same_crs(mem_gpkg):
     with raises(OperationsError):
         crs_function(fc_a, fc_b)
 # End test_validate_same_crs function
+
+
+@mark.parametrize('value, expected', [
+    (None, None),
+    (0, 0.),
+    (-10, 0.),
+    ('10', 10.),
+])
+def test_validate_xy_tolerance_sans_setting(value, expected):
+    """
+    Test validate xy tolerance (sans setting)
+    """
+    @validate_xy_tolerance()
+    def xy_function(xy_tolerance=None):
+        return xy_tolerance
+
+    assert xy_function(value) == expected
+# End test_validate_xy_tolerance_sans_setting function
+
+
+@mark.parametrize('value, swap_value, expected', [
+    (None, None, None),
+    (0, None, 0.),
+    (-10, None, 0.),
+    ('10', None, 10.),
+])
+def test_validate_xy_tolerance_with_setting(value, swap_value, expected):
+    """
+    Test validate xy tolerance (with setting)
+    """
+    @validate_xy_tolerance()
+    def xy_function(xy_tolerance=None):
+        return xy_tolerance
+    with Swap(Settings.XY_TOLERANCE, swap_value):
+        assert xy_function(value) == expected
+    with Swap(Settings.XY_TOLERANCE, value):
+        assert xy_function(None) == expected
+    with Swap(Settings.XY_TOLERANCE, value):
+        assert xy_function(123) == 123.
+# End test_validate_xy_tolerance_with_setting function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -16,7 +16,7 @@ from geomio.shared.enumeration import InfoOption
 from geomio.shared.exception import (
     CoordinateSystemNotSupportedError, OperationsError)
 from geomio.shared.hint import GPKG
-from geomio.shared.util import to_int
+from geomio.shared.util import safe_int
 
 
 def get_crs_from_source(source: CRS | FeatureClass) -> CRS:
@@ -145,7 +145,7 @@ def from_crs(crs: CRS) -> SpatialReferenceSystem:
     if not authority.is_valid:
         raise CoordinateSystemNotSupportedError(msg)
     org_name, org_code = authority.org_name_and_code()
-    if (org_code := to_int(org_code)) is None:
+    if (org_code := safe_int(org_code)) is None:
         raise CoordinateSystemNotSupportedError(msg)
     # NOTE changed to WKT1_GDAL for similarity to QGIS, WKT1_ESRI does not
     #  create Compound CRS on export (was just Projected). Using WKT1_GDAL
