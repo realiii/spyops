@@ -70,6 +70,18 @@ class _AnalysisSettings:
     def current_workspace(self, value: GPKG | None) -> None:
         self._workspace.current = value
     # End current_workspace property
+
+    @property
+    def scratch_workspace(self) -> GPKG | None:
+        """
+        Scratch Workspace
+        """
+        return self._workspace.scratch
+
+    @scratch_workspace.setter
+    def scratch_workspace(self, value: GPKG | None) -> None:
+        self._workspace.scratch = value
+    # End scratch_workspace property
 # End _AnalysisSettings class
 
 
@@ -172,6 +184,7 @@ class _Workspace:
         """
         super().__init__()
         self._current: GPKG | None = None
+        self._scratch: GPKG | None = MemoryGeoPackage.create()
     # End init built-in
 
     @property
@@ -187,6 +200,19 @@ class _Workspace:
             value, setting=Setting.CURRENT_WORKSPACE)
     # End current property
 
+    @property
+    def scratch(self) -> GPKG | None:
+        """
+        Scratch GeoPackage
+        """
+        return self._scratch
+
+    @scratch.setter
+    def scratch(self, value: GPKG | None) -> None:
+        self._scratch = self._check_workspace(
+            value, setting=Setting.SCRATCH_WORKSPACE)
+    # End scratch property
+
     @staticmethod
     def _check_workspace(value: Any, setting: Setting) -> GPKG | None:
         """
@@ -196,7 +222,8 @@ class _Workspace:
             return value
         if isinstance(value, (str, Path)):
             if value == MEMORY:
-                return MemoryGeoPackage()
+                # NOTE new memory database is created each time, no sharing
+                return MemoryGeoPackage.create()
             if is_geopackage(value):
                 return GeoPackage(value)
             raise IOError(f'Unable to get {as_title(setting)} from: {value!r}')

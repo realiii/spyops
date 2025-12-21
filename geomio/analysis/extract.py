@@ -6,7 +6,7 @@ Extraction
 
 from typing import Callable
 
-from fudgeo import FeatureClass, Field, MemoryGeoPackage, Table
+from fudgeo import FeatureClass, Field, Table
 from fudgeo.constant import FETCH_SIZE
 from shapely import box
 from shapely.io import from_wkb
@@ -20,6 +20,7 @@ from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
+from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import (
     element_names, extend_records, make_unique_name, make_valid_name)
 from geomio.shared.validation import (
@@ -157,9 +158,9 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
     source_extent = extent_from_feature_class(source)
     if not box(*split_extent).intersects(box(*source_extent)):
         return features
-    mgp = MemoryGeoPackage.create()
     splitters = split_by_attributes(
-        operator, group_fields=[field], geopackage=mgp)
+        operator, group_fields=[field],
+        geopackage=ANALYSIS_SETTINGS.scratch_workspace)
     for s in splitters:
         cursor = s.select(fields=[field], limit=1, include_geometry=False)
         value, = cursor.fetchone()
