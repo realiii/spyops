@@ -13,7 +13,9 @@ from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
 from geomio.shared.base import OverlayConfig
-from geomio.shared.constant import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
+from geomio.shared.constant import (
+    DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
+from geomio.shared.enumeration import Setting
 from geomio.shared.hint import EXTENT, GPKG
 
 
@@ -156,6 +158,18 @@ def safe_float(value: Any) -> float | None:
     except (AttributeError, ValueError, TypeError):
         return None
 # End safe_float function
+
+
+def as_title(setting: Setting | str | None) -> str:
+    """
+    Change a setting enumeration value to a title text for exceptions
+    """
+    if setting is None:
+        return EMPTY
+    if setting == Setting.XY_TOLERANCE:
+        return 'XY Tolerance'
+    return str(setting).replace(UNDERSCORE, SPACE).title()
+# End as_title function
 
 
 if __name__ == '__main__':  # pragma: no cover
