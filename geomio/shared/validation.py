@@ -340,7 +340,7 @@ class ValidateGeopackage(AbstractValidateTypeExists):
 
 class ValidateContent(AbstractValidateTypeExists):
     """
-    Validate Element
+    Validate Content
     """
     def __init__(self, name: str, exists: bool = True,
                  has_content: bool = True) -> None:
