@@ -127,7 +127,7 @@ def test_select_bad_sql(world_features, mem_gpkg, fc_name, where_clause):
 ])
 def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
     """
-    Test split_by_attributes
+    Test split_by_attributes for feature classes
     """
     subset = 120
     source = world_features['admin_a']
