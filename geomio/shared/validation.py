@@ -20,7 +20,7 @@ from geomio.shared.enumeration import Settings
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
 from geomio.shared.hint import ELEMENT, NAMES, XY_TOL
-from geomio.shared.setting import SETTINGS
+from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
 
 
@@ -222,7 +222,7 @@ class ValidateXYTolerance(AbstractValidate):
 
         When a value provided is less than 0, it is treated as 0.
         """
-        settings_xy = SETTINGS.xy_tolerance
+        settings_xy = ANALYSIS_SETTINGS.xy_tolerance
         has_input = function_xy is not None
         has_settings = settings_xy is not None
         if not has_settings:

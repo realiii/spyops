@@ -11,7 +11,7 @@ from geomio.shared.hint import XY_TOL
 from geomio.shared.util import safe_float
 
 
-__all__ = ['SETTINGS', 'Swap']
+__all__ = ['ANALYSIS_SETTINGS', 'Swap']
 
 
 class _AnalysisSettings:
@@ -66,7 +66,7 @@ class Swap:
         super().__init__()
         setting = self._check_setting(setting)
         self._setting: Settings = setting
-        self._cached: Any = getattr(SETTINGS, setting)
+        self._cached: Any = getattr(ANALYSIS_SETTINGS, setting)
         self._value: Any = value
     # End init built-in
 
@@ -103,8 +103,8 @@ class Swap:
         """
         Context Manager Enter
         """
-        setattr(SETTINGS, self._setting, self._value)
-        self._value = getattr(SETTINGS, self._setting)
+        setattr(ANALYSIS_SETTINGS, self._setting, self._value)
+        self._value = getattr(ANALYSIS_SETTINGS, self._setting)
         return self
     # End enter built-in
 
@@ -112,7 +112,7 @@ class Swap:
         """
         Context Manager Exit
         """
-        setattr(SETTINGS, self._setting, self._cached)
+        setattr(ANALYSIS_SETTINGS, self._setting, self._cached)
         return False
     # End exit built-in
 # End Swap class
@@ -144,7 +144,7 @@ class _GeometryDimensions:
 # End _GeometryDimensions class
 
 
-SETTINGS = _AnalysisSettings()
+ANALYSIS_SETTINGS: _AnalysisSettings = _AnalysisSettings()
 
 
 if __name__ == '__main__':  # pragma: no cover

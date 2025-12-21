@@ -7,7 +7,7 @@ Test for Settings
 from pytest import mark, raises
 
 from geomio.shared.enumeration import Settings
-from geomio.shared.setting import SETTINGS, Swap
+from geomio.shared.setting import ANALYSIS_SETTINGS, Swap
 
 pytestmark = [mark.settings]
 
@@ -16,7 +16,7 @@ def test_analysis_settings_defaults():
     """
     Test Analysis Settings Defaults
     """
-    assert SETTINGS.overwrite is False
+    assert ANALYSIS_SETTINGS.overwrite is False
 # End test_analysis_settings_defaults function
 
 
@@ -57,7 +57,7 @@ def test_overwrite(setting, value, expected):
     with Swap(setting, value) as s:
         assert s.cached_value is False
         assert s.swap_value is expected
-    assert SETTINGS.overwrite is False
+    assert ANALYSIS_SETTINGS.overwrite is False
 # End test_overwrite function
 
 
