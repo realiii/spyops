@@ -10,7 +10,7 @@ from pytest import mark, raises
 
 from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from geomio.shared.enumeration import Settings
+from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsError
 from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
@@ -56,7 +56,7 @@ def test_table_select_overwrite(world_tables, mem_gpkg):
     with raises(OperationsError):
         table_select(source=source, target=target, where_clause=where_clause)
 
-    with Swap(Settings.OVERWRITE, True):
+    with Swap(Setting.OVERWRITE, True):
         result = table_select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
 # End test_table_select_overwrite function
@@ -127,7 +127,7 @@ def test_select_bad_sql(world_features, mem_gpkg, fc_name, where_clause):
 ])
 def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
     """
-    Test split_by_attributes
+    Test split_by_attributes for feature classes
     """
     subset = 120
     source = world_features['admin_a']
@@ -139,6 +139,29 @@ def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
     assert len(results) == count
     assert sum([r.count for r in results]) == subset
 # End test_split_by_attributes_features function
+
+
+@mark.parametrize('fields, count', [
+    (Field('ISO_CC', data_type='TEXT'), 3),
+    ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
+    ('ISO_CC', 3),
+    (('ISO_CC', 'LAND_TYPE'), 7),
+])
+def test_split_by_attributes_features_with_settings(world_features, mem_gpkg, fields, count):
+    """
+    Test split_by_attributes for feature classes with analysis settings
+    """
+    subset = 120
+    source = world_features['admin_a']
+    names = element_names(world_features)
+    source = source.copy(
+        make_unique_name(source.name, names=names),
+        where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
+    with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
+    assert len(results) == count
+    assert sum([r.count for r in results]) == subset
+# End test_split_by_attributes_features_with_settings function
 
 
 @mark.parametrize('fc_name, xy_tolerance, count', [
@@ -237,7 +260,7 @@ def test_clip_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, c
     assert clipper.count == 3
     source = world_features[fc_name]
     target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-    with Swap(Settings.XY_TOLERANCE, xy_tolerance):
+    with Swap(Setting.XY_TOLERANCE, xy_tolerance):
         result = clip(source=source, operator=clipper, target=target)
     assert result.count < source.count
     assert result.count == count
@@ -272,8 +295,8 @@ def test_split_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, 
     assert splitter.count == 5
     source = world_features.feature_classes[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
-    with Swap(Settings.XY_TOLERANCE, xy_tolerance):
-        results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg)
+    with Swap(Setting.XY_TOLERANCE, xy_tolerance), Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        results = split(source=source, operator=splitter, field=field, geopackage=None)
     assert len(results) == element_count
     assert sum(r.count for r in results) == record_count
 # End test_split_setting function

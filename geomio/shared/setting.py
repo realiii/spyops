@@ -4,21 +4,26 @@ Shared Settings for Analysis
 """
 
 
+from pathlib import Path
 from typing import Any, Self
 
-from geomio.shared.enumeration import Settings
-from geomio.shared.hint import XY_TOL
-from geomio.shared.util import safe_float
+from fudgeo import GeoPackage, MemoryGeoPackage
+from fudgeo.constant import MEMORY
+
+from geomio.shared.database import is_geopackage
+from geomio.shared.enumeration import Setting
+from geomio.shared.hint import GPKG, XY_TOL
+from geomio.shared.util import as_title, safe_float
 
 
-__all__ = ['SETTINGS', 'Swap']
+__all__ = ['ANALYSIS_SETTINGS', 'Swap']
 
 
 class _AnalysisSettings:
     """
     Analysis Settings
     """
-    __slots__ = ['_overwrite', '_dimensions']
+    __slots__ = ['_overwrite', '_dimensions', '_workspace']
 
     def __init__(self) -> None:
         """
@@ -27,6 +32,7 @@ class _AnalysisSettings:
         super().__init__()
         self._overwrite: bool = False
         self._dimensions: _GeometryDimensions = _GeometryDimensions()
+        self._workspace: _Workspace = _Workspace()
     # End init built-in
 
     @property
@@ -52,21 +58,33 @@ class _AnalysisSettings:
     def xy_tolerance(self, value: XY_TOL) -> None:
         self._dimensions.xy_tolerance = value
     # End xy_tolerance property
+
+    @property
+    def current_workspace(self) -> GPKG | None:
+        """
+        Current Workspace
+        """
+        return self._workspace.current
+
+    @current_workspace.setter
+    def current_workspace(self, value: GPKG | None) -> None:
+        self._workspace.current = value
+    # End current_workspace property
 # End _AnalysisSettings class
 
 
 class Swap:
     """
-    Swap Settings via Context
+    Swap Setting via Context
     """
-    def __init__(self, setting: Settings, value: Any) -> None:
+    def __init__(self, setting: Setting, value: Any) -> None:
         """
         Initialize the Swap class
         """
         super().__init__()
         setting = self._check_setting(setting)
-        self._setting: Settings = setting
-        self._cached: Any = getattr(SETTINGS, setting)
+        self._setting: Setting = setting
+        self._cached: Any = getattr(ANALYSIS_SETTINGS, setting)
         self._value: Any = value
     # End init built-in
 
@@ -88,23 +106,23 @@ class Swap:
     # End swap_value property
 
     @staticmethod
-    def _check_setting(setting: Settings) -> Settings:
+    def _check_setting(setting: Setting) -> Setting:
         """
         Check Setting is Expected
         """
-        if isinstance(setting, Settings):
+        if isinstance(setting, Setting):
             return setting
         if not isinstance(setting, str):
             raise TypeError(f'Invalid setting: {setting!r}')
-        return Settings(setting.casefold())
+        return Setting(setting.casefold())
     # End _check_setting method
 
     def __enter__(self) -> Self:
         """
         Context Manager Enter
         """
-        setattr(SETTINGS, self._setting, self._value)
-        self._value = getattr(SETTINGS, self._setting)
+        setattr(ANALYSIS_SETTINGS, self._setting, self._value)
+        self._value = getattr(ANALYSIS_SETTINGS, self._setting)
         return self
     # End enter built-in
 
@@ -112,7 +130,7 @@ class Swap:
         """
         Context Manager Exit
         """
-        setattr(SETTINGS, self._setting, self._cached)
+        setattr(ANALYSIS_SETTINGS, self._setting, self._cached)
         return False
     # End exit built-in
 # End Swap class
@@ -144,7 +162,50 @@ class _GeometryDimensions:
 # End _GeometryDimensions class
 
 
-SETTINGS = _AnalysisSettings()
+class _Workspace:
+    """
+    Workspace
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the _Workspace class
+        """
+        super().__init__()
+        self._current: GPKG | None = None
+    # End init built-in
+
+    @property
+    def current(self) -> GPKG:
+        """
+        Current Workspace
+        """
+        return self._current
+
+    @current.setter
+    def current(self, value: GPKG) -> None:
+        self._current = self._check_workspace(
+            value, setting=Setting.CURRENT_WORKSPACE)
+    # End current property
+
+    @staticmethod
+    def _check_workspace(value: Any, setting: Setting) -> GPKG | None:
+        """
+        Check Workspace
+        """
+        if isinstance(value, (GeoPackage, MemoryGeoPackage, type(None))):
+            return value
+        if isinstance(value, (str, Path)):
+            if value == MEMORY:
+                return MemoryGeoPackage()
+            if is_geopackage(value):
+                return GeoPackage(value)
+            raise IOError(f'Unable to get {as_title(setting)} from: {value!r}')
+        return None
+    # End _check_workspace method
+# End _Workspace class
+
+
+ANALYSIS_SETTINGS: _AnalysisSettings = _AnalysisSettings()
 
 
 if __name__ == '__main__':  # pragma: no cover

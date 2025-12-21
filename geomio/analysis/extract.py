@@ -14,8 +14,7 @@ from shapely.io import from_wkb
 from geomio.analysis.sql import (
     build_query_components, build_sql_select_by_attributes)
 from geomio.shared.constant import (
-    FIELD, GEOPACKAGE, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET,
-    UNDERSCORE)
+    FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
 from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
@@ -64,7 +63,7 @@ def select(source: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_geopackage(GEOPACKAGE)
+@validate_geopackage()
 @validate_field(GROUP_FIELDS, data_types=TEXT_AND_NUMBERS,
                 element_name=SOURCE, exclude_primary=False)
 @validate_element(SOURCE)
@@ -141,7 +140,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_result()
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_xy_tolerance()
-@validate_geopackage(GEOPACKAGE)
+@validate_geopackage()
 @validate_field(FIELD, data_types=TEXTS, single=True)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)

@@ -11,7 +11,7 @@ from fudgeo import FeatureClass, SpatialReferenceSystem
 from geomio.crs.util import validate_srs
 from geomio.shared.exception import OperationsError
 from geomio.shared.hint import ELEMENT, FIELDS, GPKG
-from geomio.shared.setting import SETTINGS
+from geomio.shared.setting import ANALYSIS_SETTINGS
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
@@ -20,7 +20,7 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
     Copy Feature Class, accounting for potential Spatial Reference System
     differences across GeoPackages and ensuring the target has a spatial index.
     """
-    overwrite = SETTINGS.overwrite
+    overwrite = ANALYSIS_SETTINGS.overwrite
     geopackage = target.geopackage
     srs = validate_srs(geopackage, srs=source.spatial_reference_system)
     target = source.copy(
@@ -40,7 +40,7 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
     FeatureClass with some additional logic for Spatial Reference handling and
     ensuring spatial indexes are present.
     """
-    overwrite = SETTINGS.overwrite
+    overwrite = ANALYSIS_SETTINGS.overwrite
     srs = validate_srs(geopackage, srs=srs)
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
@@ -59,7 +59,7 @@ def copy_element(source: ELEMENT, target: ELEMENT, *,
             element = copy_feature_class(
                 source=source, target=target, where_clause=where_clause)
         else:
-            overwrite = SETTINGS.overwrite
+            overwrite = ANALYSIS_SETTINGS.overwrite
             element = source.copy(
                 name=target.name, geopackage=target.geopackage,
                 where_clause=where_clause, overwrite=overwrite)

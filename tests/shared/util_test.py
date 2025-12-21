@@ -6,8 +6,9 @@ Test Utilities
 
 from pytest import approx, mark
 
+from geomio.shared.enumeration import Setting
 from geomio.shared.util import (
-    element_names, expand_extent, make_spatial_index_where,
+    as_title, element_names, expand_extent, make_spatial_index_where,
     make_unique_name, make_valid_name, _replace_double_under, safe_float,
     safe_int)
 
@@ -117,6 +118,21 @@ def test_safe_float(value, expected):
     """
     assert safe_float(value) == expected
 # End test_safe_float function
+
+
+@mark.parametrize('value, expected', [
+    (Setting.XY_TOLERANCE, 'XY Tolerance'),
+    (Setting.OVERWRITE, 'Overwrite'),
+    (Setting.CURRENT_WORKSPACE, 'Current Workspace'),
+    ('asdf', 'Asdf'),
+    (None, ''),
+])
+def test_as_title(value, expected):
+    """
+    Test as_title
+    """
+    assert as_title(value) == expected
+# End test_as_title function
 
 
 if __name__ == '__main__':  # pragma: no cover

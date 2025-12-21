@@ -15,12 +15,12 @@ from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
 from fudgeo.constant import MEMORY
 
 from geomio.crs.util import check_same_crs, get_crs_from_source
-from geomio.shared.constant import NAME_ATTR, PADDED_PIPE
-from geomio.shared.enumeration import Settings
+from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
+from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
-from geomio.shared.hint import ELEMENT, NAMES, XY_TOL
-from geomio.shared.setting import SETTINGS
+from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
+from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
 
 
@@ -74,6 +74,32 @@ class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
         self._name: str = name
     # End init built-in
 
+    def _get_object(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        return kwargs[self._name]
+    # End _get_object method
+
+    def _set_object(self, obj: Any, kwargs: dict[str, Any]) -> None:
+        """
+        Set Object into the kwargs
+        """
+        kwargs[self._name] = obj
+    # End _set_object method
+
+    @staticmethod
+    def _check_element(obj: Any) -> Any:
+        """
+        Check Element
+        """
+        if not isinstance(obj, str):
+            return obj
+        if not (settings_gpkg := ANALYSIS_SETTINGS.current_workspace):
+            return obj
+        return settings_gpkg[obj]
+    # End _check_element method
+
     def _validate_type(self, obj: Any) -> None:
         """
         Validate Type
@@ -108,10 +134,10 @@ class AbstractValidateTypeExists(AbstractValidateType):
             """
             Handler for the arguments and keyword arguments.
             """
-            kwargs = self._get_arguments(
-                func=func, args=args, kwargs=kwargs)
-            obj = kwargs[self._name]
+            kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
             self._validate_type(obj)
+            self._set_object(obj, kwargs=kwargs)
             if not self._validate_exists(obj):
                 return func(**kwargs)
             self._validation(obj)
@@ -179,7 +205,7 @@ class ValidateXYTolerance(AbstractValidate):
     """
     Validate XY Tolerance
     """
-    def __init__(self, name: str = str(Settings.XY_TOLERANCE)) -> None:
+    def __init__(self, name: str = str(Setting.XY_TOLERANCE)) -> None:
         """
         Initialize the ValidateXYTolerance class
         """
@@ -198,13 +224,27 @@ class ValidateXYTolerance(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            tolerance = safe_float(kwargs[self._name])
+            tolerance = self._get_object(kwargs)
             tolerance = self._validate_value(tolerance)
-            kwargs[self._name] = tolerance
+            self._set_object(tolerance, kwargs=kwargs)
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    def _get_object(self, kwargs: dict[str, Any]) -> XY_TOL:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        return safe_float(kwargs[self._name])
+    # End _get_object method
+
+    def _set_object(self, obj: XY_TOL, kwargs: dict[str, Any]) -> None:
+        """
+        Set Object into the kwargs
+        """
+        kwargs[self._name] = obj
+    # End _set_object method
 
     @staticmethod
     def _validate_value(function_xy: XY_TOL) -> XY_TOL:
@@ -222,7 +262,7 @@ class ValidateXYTolerance(AbstractValidate):
 
         When a value provided is less than 0, it is treated as 0.
         """
-        settings_xy = SETTINGS.xy_tolerance
+        settings_xy = ANALYSIS_SETTINGS.xy_tolerance
         has_input = function_xy is not None
         has_settings = settings_xy is not None
         if not has_settings:
@@ -270,6 +310,13 @@ class ValidateGeopackage(AbstractValidateTypeExists):
     """
     _types: ClassVar[tuple[type, ...]] = GeoPackage, MemoryGeoPackage
 
+    def __init__(self, name: str = GEOPACKAGE, exists: bool = True) -> None:
+        """
+        Initialize the ValidateGeopackage class
+        """
+        super().__init__(name=name, exists=exists)
+    # End init built-in
+
     def _validate_exists(self, obj: Any) -> bool:
         """
         Validate Exists
@@ -285,6 +332,15 @@ class ValidateGeopackage(AbstractValidateTypeExists):
         raise ValueError(f'{self._name} does not exist')
     # End _validate_exists method
 
+    def _get_object(self, kwargs: dict[str, Any]) -> GPKG | None:
+        """
+        Get Object
+        """
+        if (function_gpkg := super()._get_object(kwargs)) is not None:
+            return function_gpkg
+        return ANALYSIS_SETTINGS.current_workspace
+    # End _get_object method
+
     def _validation(self, obj: Any) -> None:
         """
         Validation
@@ -296,7 +352,7 @@ class ValidateGeopackage(AbstractValidateTypeExists):
 
 class ValidateContent(AbstractValidateTypeExists):
     """
-    Validate Element
+    Validate Content
     """
     def __init__(self, name: str, exists: bool = True,
                  has_content: bool = True) -> None:
@@ -317,6 +373,14 @@ class ValidateContent(AbstractValidateTypeExists):
             return
         raise ValueError(f'{self._name} is empty')
     # End _validate_content method
+
+    def _get_object(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        obj = super()._get_object(kwargs)
+        return self._check_element(obj)
+    # End _get_object method
 
     def _validation(self, obj: Any) -> None:
         """
@@ -436,11 +500,8 @@ class ValidateField(AbstractValidateType):
             Handler for the arguments and keyword arguments.
             """
             kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
-            obj = kwargs[self._name]
-            try:
-                element = kwargs[self._element_name]
-            except KeyError:
-                element = None
+            obj = self._get_object(kwargs)
+            element = self._get_element(kwargs)
             obj = self._find_field(obj, element=element)
             kwargs[self._name] = obj
             self._validate_type(obj)
@@ -450,6 +511,17 @@ class ValidateField(AbstractValidateType):
         # End wrapper function
         return wrapper
     # End call built-in
+
+    def _get_element(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Element
+        """
+        try:
+            element = kwargs[self._element_name]
+        except KeyError:
+            return None
+        return self._check_element(element)
+    # End _get_element method
 
     def _find_field(self, obj: Any, element: ELEMENT) -> Any:
         """

@@ -14,7 +14,7 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from geomio.shared.enumeration import Settings
+from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
@@ -125,6 +125,27 @@ def test_validate_geopackage(mem_gpkg, exists):
 # End test_validate_geopackage function
 
 
+@mark.parametrize('exists', [
+    True, False
+])
+def test_validate_geopackage_with_current(mem_gpkg, exists):
+    """
+    Test validate geopackage where current-workspace is used
+    """
+    @validate_geopackage(exists=exists)
+    def geo_function(geopackage):
+        return geopackage
+    with raises(TypeError):
+        geo_function(None)
+    assert geo_function(mem_gpkg) is mem_gpkg
+    with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        assert geo_function(None) is mem_gpkg
+    with raises(TypeError):
+        with Swap(Setting.CURRENT_WORKSPACE, None):
+            geo_function(None)
+# End test_validate_geopackage_with_current function
+
+
 @mark.parametrize('name, geometry_types', [
     ('admin_a', ()),
     ('roads_l', ()),
@@ -232,6 +253,25 @@ def test_validate_field_single_field(world_tables, fld, exists, throws):
 # End test_validate_field_single_field function
 
 
+def test_validate_table_with_setting(world_tables, world_features):
+    """
+    Test validate table using setting
+    """
+    @validate_table('table')
+    def table_function(table):
+        return table
+    name = 'admin'
+    assert isinstance(table_function(world_tables[name]), Table)
+    with raises(TypeError):
+        table_function(name)
+    with Swap(Setting.CURRENT_WORKSPACE, world_tables):
+        assert isinstance(table_function(name), Table)
+    with raises(TypeError):
+        with Swap(Setting.CURRENT_WORKSPACE, world_features):
+            table_function(name)
+# End test_validate_table_with_setting function
+
+
 @mark.parametrize('fld, exists, throws', [
     (Field('NAME', data_type=SQLFieldType.text), True, False),
     (Field('name', data_type=SQLFieldType.text), True, False),
@@ -306,11 +346,11 @@ def test_validate_xy_tolerance_with_setting(value, swap_value, expected):
     @validate_xy_tolerance()
     def xy_function(xy_tolerance=None):
         return xy_tolerance
-    with Swap(Settings.XY_TOLERANCE, swap_value):
+    with Swap(Setting.XY_TOLERANCE, swap_value):
         assert xy_function(value) == expected
-    with Swap(Settings.XY_TOLERANCE, value):
+    with Swap(Setting.XY_TOLERANCE, value):
         assert xy_function(None) == expected
-    with Swap(Settings.XY_TOLERANCE, value):
+    with Swap(Setting.XY_TOLERANCE, value):
         assert xy_function(123) == 123.
 # End test_validate_xy_tolerance_with_setting function
 
