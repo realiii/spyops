@@ -295,8 +295,8 @@ def test_split_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, 
     assert splitter.count == 5
     source = world_features.feature_classes[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
-    with Swap(Setting.XY_TOLERANCE, xy_tolerance):
-        results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg)
+    with Swap(Setting.XY_TOLERANCE, xy_tolerance), Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        results = split(source=source, operator=splitter, field=field, geopackage=None)
     assert len(results) == element_count
     assert sum(r.count for r in results) == record_count
 # End test_split_setting function
