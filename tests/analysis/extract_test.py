@@ -4,7 +4,7 @@ Test Extraction
 """
 
 
-from fudgeo import FeatureClass, Field, Table
+from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import SQLFieldType
 from pytest import mark, raises
 
@@ -287,7 +287,7 @@ def test_clip_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, c
     ('airports_mp_p', 1, 4, 8),
     ('roads_mp_l', 1, 4, 13),
 ])
-def test_split_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
+def test_split_setting(tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
     """
     Test split using analysis settings
     """
@@ -295,7 +295,10 @@ def test_split_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, 
     assert splitter.count == 5
     source = world_features.feature_classes[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
-    with Swap(Setting.XY_TOLERANCE, xy_tolerance), Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+    gpkg = GeoPackage.create(tmp_path / 'test_scratch.gpkg')
+    with (Swap(Setting.XY_TOLERANCE, xy_tolerance),
+          Swap(Setting.CURRENT_WORKSPACE, mem_gpkg),
+          Swap(Setting.SCRATCH_WORKSPACE, gpkg)):
         results = split(source=source, operator=splitter, field=field, geopackage=None)
     assert len(results) == element_count
     assert sum(r.count for r in results) == record_count
