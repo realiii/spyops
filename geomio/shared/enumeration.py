@@ -23,6 +23,7 @@ class Setting(StrEnum):
     """
     OVERWRITE = auto()
     XY_TOLERANCE = auto()
+    CURRENT_WORKSPACE = auto()
 # End Setting class
 
 
