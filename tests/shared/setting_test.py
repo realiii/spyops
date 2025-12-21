@@ -7,7 +7,7 @@ Test for Settings
 from pytest import mark, raises
 
 from geomio.shared.enumeration import Settings
-from geomio.shared.settings import SETTINGS, Swap
+from geomio.shared.setting import SETTINGS, Swap
 
 pytestmark = [mark.settings]
 

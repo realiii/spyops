@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Shared Settings
+Shared Settings for Analysis
 """
 
 
 from typing import Any, Self
 
 from geomio.shared.enumeration import Settings
+from geomio.shared.hint import XY_TOL
+from geomio.shared.util import safe_float
+
+
+__all__ = ['SETTINGS', 'Swap']
 
 
 class _AnalysisSettings:
     """
     Analysis Settings
     """
-    __slots__ = ['_overwrite']
+    __slots__ = ['_overwrite', '_dimensions']
 
     def __init__(self) -> None:
         """
@@ -21,6 +26,7 @@ class _AnalysisSettings:
         """
         super().__init__()
         self._overwrite: bool = False
+        self._dimensions: _GeometryDimensions = _GeometryDimensions()
     # End init built-in
 
     @property
@@ -34,10 +40,19 @@ class _AnalysisSettings:
     def overwrite(self, value: bool) -> None:
         self._overwrite = bool(value)
     # End overwrite property
+
+    @property
+    def xy_tolerance(self) -> XY_TOL:
+        """
+        XY Tolerance
+        """
+        return self._dimensions.xy_tolerance
+
+    @xy_tolerance.setter
+    def xy_tolerance(self, value: XY_TOL) -> None:
+        self._dimensions.xy_tolerance = value
+    # End xy_tolerance property
 # End _AnalysisSettings class
-
-
-SETTINGS = _AnalysisSettings()
 
 
 class Swap:
@@ -101,6 +116,36 @@ class Swap:
         return False
     # End exit built-in
 # End Swap class
+
+
+class _GeometryDimensions:
+    """
+    Geometry Dimensions
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the _GeometryDimensions class
+        """
+        super().__init__()
+        self._xy: XY_TOL = None
+    # End init built-in
+
+    @property
+    def xy_tolerance(self) -> XY_TOL:
+        """
+        XY Tolerance
+        """
+        return self._xy
+
+    @xy_tolerance.setter
+    def xy_tolerance(self, value: XY_TOL) -> None:
+        # NOTE use of safe_float here ensures we only have float or None
+        self._xy = safe_float(value)
+    # End xy_tolerance property
+# End _GeometryDimensions class
+
+
+SETTINGS = _AnalysisSettings()
 
 
 if __name__ == '__main__':  # pragma: no cover

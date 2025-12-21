@@ -11,7 +11,7 @@ from fudgeo import FeatureClass, SpatialReferenceSystem
 from geomio.crs.util import validate_srs
 from geomio.shared.exception import OperationsError
 from geomio.shared.hint import ELEMENT, FIELDS, GPKG
-from geomio.shared.settings import SETTINGS
+from geomio.shared.setting import SETTINGS
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,

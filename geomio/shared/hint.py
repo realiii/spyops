@@ -10,8 +10,7 @@ from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
 
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
-FLOAT: TypeAlias = float | int
-
+XY_TOL: TypeAlias = float | int | None
 
 ELEMENT: TypeAlias = Table | FeatureClass
 EXTENT: TypeAlias = tuple[float, float, float, float]

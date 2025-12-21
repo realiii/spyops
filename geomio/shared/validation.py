@@ -19,7 +19,9 @@ from geomio.shared.constant import NAME_ATTR, PADDED_PIPE
 from geomio.shared.enumeration import Settings
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
-from geomio.shared.hint import ELEMENT, NAMES
+from geomio.shared.hint import ELEMENT, NAMES, XY_TOL
+from geomio.shared.setting import SETTINGS
+from geomio.shared.util import safe_float
 
 
 class AbstractValidate(metaclass=ABCMeta):
@@ -196,24 +198,46 @@ class ValidateXYTolerance(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            tolerance = kwargs[self._name]
-            if not (tolerance is None or isinstance(tolerance, (int, float))):
-                raise TypeError(
-                    f'{self._name} must be a number or None, '
-                    f'got {type(tolerance)}')
-            # NOTE grid size of None --> use the highest precision of inputs
-            #  grid size of 0 --> use double precision
-            #  The default precision for geometries if not specified is 0
-            #  which means double precision.  For our use cases at the moment
-            #  the use of 0 and None are the same since we are not working with
-            #  direct input of geometries but rather feature classes.
-            if tolerance:
-                tolerance = max(0, tolerance)
+            # NOTE use of safe_float here ensures we only have float or None
+            tolerance = safe_float(kwargs[self._name])
+            tolerance = self._validate_value(tolerance)
             kwargs[self._name] = tolerance
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    @staticmethod
+    def _validate_value(function_xy: XY_TOL) -> XY_TOL:
+        """
+        Validate Value and also compare with XY Setting
+
+        When working with shapely the grid size parameter:
+        * None --> use the highest precision of inputs
+        * 0 --> use double precision
+
+        The default precision for geometries if not specified is 0,
+        which means double precision.  For our use cases at the moment
+        the use of 0 and None are the same since we are not working with
+        direct input of geometries but rather feature classes.
+
+        When a value provided is less than 0, it is treated as 0.
+        """
+        # NOTE safe_float used when setting xy_tolerance, meaning None or float
+        settings_xy = SETTINGS.xy_tolerance
+        has_input = function_xy is not None
+        has_settings = settings_xy is not None
+        if not has_settings:
+            if not has_input:
+                return function_xy
+            tolerance = function_xy
+        else:
+            if has_input:
+                tolerance = function_xy
+            else:
+                tolerance = settings_xy
+        return max(0, tolerance)
+    # End _validate_value method
 # End ValidateXYTolerance class
 
 

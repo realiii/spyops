@@ -12,7 +12,7 @@ from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
 from geomio.shared.enumeration import Settings
 from geomio.shared.exception import OperationsError
-from geomio.shared.settings import Swap
+from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 
 
