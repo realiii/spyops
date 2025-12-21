@@ -17,6 +17,8 @@ def test_analysis_settings_defaults():
     Test Analysis Settings Defaults
     """
     assert ANALYSIS_SETTINGS.overwrite is False
+    assert ANALYSIS_SETTINGS.xy_tolerance is None
+    assert ANALYSIS_SETTINGS.current_workspace is None
 # End test_analysis_settings_defaults function
 
 
@@ -50,15 +52,15 @@ def test_bad_setting(setting):
     ('OVERWRITE', 1, True),
     ('OVERWRITE', None, False),
 ])
-def test_overwrite(setting, value, expected):
+def test_swapping(setting, value, expected):
     """
-    Test Overwrite
+    Test Swapping using Overwrite
     """
     with Swap(setting, value) as s:
         assert s.cached_value is False
         assert s.swap_value is expected
     assert ANALYSIS_SETTINGS.overwrite is False
-# End test_overwrite function
+# End test_swapping function
 
 
 if __name__ == '__main__':  # pragma: no cover

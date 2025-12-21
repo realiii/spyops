@@ -4,11 +4,14 @@ Shared Settings for Analysis
 """
 
 
+from pathlib import Path
 from typing import Any, Self
 
-from geomio.shared.hint import XY_TOL
+from fudgeo import GeoPackage, MemoryGeoPackage
+
 from geomio.shared.enumeration import Setting
-from geomio.shared.util import safe_float
+from geomio.shared.hint import GPKG, XY_TOL
+from geomio.shared.util import as_title, safe_float
 
 
 __all__ = ['ANALYSIS_SETTINGS', 'Swap']
@@ -18,7 +21,7 @@ class _AnalysisSettings:
     """
     Analysis Settings
     """
-    __slots__ = ['_overwrite', '_dimensions']
+    __slots__ = ['_overwrite', '_dimensions', '_workspace']
 
     def __init__(self) -> None:
         """
@@ -27,6 +30,7 @@ class _AnalysisSettings:
         super().__init__()
         self._overwrite: bool = False
         self._dimensions: _GeometryDimensions = _GeometryDimensions()
+        self._workspace: _Workspace = _Workspace()
     # End init built-in
 
     @property
@@ -52,6 +56,18 @@ class _AnalysisSettings:
     def xy_tolerance(self, value: XY_TOL) -> None:
         self._dimensions.xy_tolerance = value
     # End xy_tolerance property
+
+    @property
+    def current_workspace(self) -> GPKG | None:
+        """
+        Current Workspace
+        """
+        return self._workspace.current
+
+    @current_workspace.setter
+    def current_workspace(self, value: GPKG | None) -> None:
+        self._workspace.current = value
+    # End current_workspace property
 # End _AnalysisSettings class
 
 
@@ -142,6 +158,52 @@ class _GeometryDimensions:
         self._xy = safe_float(value)
     # End xy_tolerance property
 # End _GeometryDimensions class
+
+
+class _Workspace:
+    """
+    Workspace
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the _Workspace class
+        """
+        super().__init__()
+        self._current: GPKG | None = None
+    # End init built-in
+
+    @property
+    def current(self) -> GPKG:
+        """
+        Current Workspace
+        """
+        return self._current
+
+    @current.setter
+    def current(self, value: GPKG) -> None:
+        self._current = self._check_workspace(
+            value, setting=Setting.CURRENT_WORKSPACE)
+    # End current property
+
+    @staticmethod
+    def _check_workspace(value: Any, setting: Setting) -> GPKG | None:
+        """
+        Check Workspace
+        """
+        if value is None:
+            return value
+        if isinstance(value, (GeoPackage, MemoryGeoPackage)):
+            if value.exists:
+                return value
+            raise IOError(f'{as_title(setting)} does not exist: {value.path}')
+        if isinstance(value, (str, Path)):
+            gpkg = GeoPackage(value)
+            if gpkg.exists:
+                return gpkg
+            raise IOError(f'{as_title(setting)} does not exist: {value}')
+        return None
+    # End _check_workspace method
+# End _Workspace class
 
 
 ANALYSIS_SETTINGS: _AnalysisSettings = _AnalysisSettings()
