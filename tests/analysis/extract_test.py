@@ -10,7 +10,7 @@ from pytest import mark, raises
 
 from geomio.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from geomio.shared.enumeration import Settings
+from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsError
 from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
@@ -56,7 +56,7 @@ def test_table_select_overwrite(world_tables, mem_gpkg):
     with raises(OperationsError):
         table_select(source=source, target=target, where_clause=where_clause)
 
-    with Swap(Settings.OVERWRITE, True):
+    with Swap(Setting.OVERWRITE, True):
         result = table_select(source=source, target=target, where_clause=where_clause)
     assert result.count == count
 # End test_table_select_overwrite function
@@ -237,7 +237,7 @@ def test_clip_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, c
     assert clipper.count == 3
     source = world_features[fc_name]
     target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-    with Swap(Settings.XY_TOLERANCE, xy_tolerance):
+    with Swap(Setting.XY_TOLERANCE, xy_tolerance):
         result = clip(source=source, operator=clipper, target=target)
     assert result.count < source.count
     assert result.count == count
@@ -272,7 +272,7 @@ def test_split_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, 
     assert splitter.count == 5
     source = world_features.feature_classes[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
-    with Swap(Settings.XY_TOLERANCE, xy_tolerance):
+    with Swap(Setting.XY_TOLERANCE, xy_tolerance):
         results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg)
     assert len(results) == element_count
     assert sum(r.count for r in results) == record_count

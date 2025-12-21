@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Test for Settings
+Test for Setting
 """
 
 
 from pytest import mark, raises
 
-from geomio.shared.enumeration import Settings
+from geomio.shared.enumeration import Setting
 from geomio.shared.setting import ANALYSIS_SETTINGS, Swap
 
 pytestmark = [mark.settings]
@@ -35,13 +35,13 @@ def test_bad_setting(setting):
 
 
 @mark.parametrize('setting, value, expected', [
-    (Settings.OVERWRITE, True, True),
-    (Settings.OVERWRITE, False, False),
-    (Settings.OVERWRITE, 'True', True),
-    (Settings.OVERWRITE, 'False', True),
-    (Settings.OVERWRITE, 0, False),
-    (Settings.OVERWRITE, 1, True),
-    (Settings.OVERWRITE, None, False),
+    (Setting.OVERWRITE, True, True),
+    (Setting.OVERWRITE, False, False),
+    (Setting.OVERWRITE, 'True', True),
+    (Setting.OVERWRITE, 'False', True),
+    (Setting.OVERWRITE, 0, False),
+    (Setting.OVERWRITE, 1, True),
+    (Setting.OVERWRITE, None, False),
     ('overwrite', True, True),
     ('overwrite', False, False),
     ('overwrite', 'True', True),

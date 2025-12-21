@@ -14,7 +14,7 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from geomio.shared.enumeration import Settings
+from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
@@ -306,11 +306,11 @@ def test_validate_xy_tolerance_with_setting(value, swap_value, expected):
     @validate_xy_tolerance()
     def xy_function(xy_tolerance=None):
         return xy_tolerance
-    with Swap(Settings.XY_TOLERANCE, swap_value):
+    with Swap(Setting.XY_TOLERANCE, swap_value):
         assert xy_function(value) == expected
-    with Swap(Settings.XY_TOLERANCE, value):
+    with Swap(Setting.XY_TOLERANCE, value):
         assert xy_function(None) == expected
-    with Swap(Settings.XY_TOLERANCE, value):
+    with Swap(Setting.XY_TOLERANCE, value):
         assert xy_function(123) == 123.
 # End test_validate_xy_tolerance_with_setting function
 

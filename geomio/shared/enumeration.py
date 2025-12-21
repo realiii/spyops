@@ -17,13 +17,13 @@ class InfoOption(StrEnum):
 # End InfoOption class
 
 
-class Settings(StrEnum):
+class Setting(StrEnum):
     """
     Analysis Settings
     """
     OVERWRITE = auto()
     XY_TOLERANCE = auto()
-# End Settings class
+# End Setting class
 
 
 if __name__ == '__main__':  # pragma: no cover

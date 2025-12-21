@@ -16,7 +16,7 @@ from fudgeo.constant import MEMORY
 
 from geomio.crs.util import check_same_crs, get_crs_from_source
 from geomio.shared.constant import NAME_ATTR, PADDED_PIPE
-from geomio.shared.enumeration import Settings
+from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
 from geomio.shared.hint import ELEMENT, NAMES, XY_TOL
@@ -179,7 +179,7 @@ class ValidateXYTolerance(AbstractValidate):
     """
     Validate XY Tolerance
     """
-    def __init__(self, name: str = str(Settings.XY_TOLERANCE)) -> None:
+    def __init__(self, name: str = str(Setting.XY_TOLERANCE)) -> None:
         """
         Initialize the ValidateXYTolerance class
         """

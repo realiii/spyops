@@ -6,8 +6,8 @@ Shared Settings for Analysis
 
 from typing import Any, Self
 
-from geomio.shared.enumeration import Settings
 from geomio.shared.hint import XY_TOL
+from geomio.shared.enumeration import Setting
 from geomio.shared.util import safe_float
 
 
@@ -57,15 +57,15 @@ class _AnalysisSettings:
 
 class Swap:
     """
-    Swap Settings via Context
+    Swap Setting via Context
     """
-    def __init__(self, setting: Settings, value: Any) -> None:
+    def __init__(self, setting: Setting, value: Any) -> None:
         """
         Initialize the Swap class
         """
         super().__init__()
         setting = self._check_setting(setting)
-        self._setting: Settings = setting
+        self._setting: Setting = setting
         self._cached: Any = getattr(ANALYSIS_SETTINGS, setting)
         self._value: Any = value
     # End init built-in
@@ -88,15 +88,15 @@ class Swap:
     # End swap_value property
 
     @staticmethod
-    def _check_setting(setting: Settings) -> Settings:
+    def _check_setting(setting: Setting) -> Setting:
         """
         Check Setting is Expected
         """
-        if isinstance(setting, Settings):
+        if isinstance(setting, Setting):
             return setting
         if not isinstance(setting, str):
             raise TypeError(f'Invalid setting: {setting!r}')
-        return Settings(setting.casefold())
+        return Setting(setting.casefold())
     # End _check_setting method
 
     def __enter__(self) -> Self:
