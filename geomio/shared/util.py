@@ -5,7 +5,7 @@ Utilities
 
 
 from re import IGNORECASE, compile as recompile
-from typing import Callable
+from typing import Any, Callable
 
 from fudgeo import FeatureClass
 from fudgeo.sql import KEYWORDS
@@ -144,7 +144,18 @@ def safe_int(value: Any) -> int | None:
         return int(safe_float(value))
     except (AttributeError, ValueError, TypeError):
         return None
-# End to_int function
+# End safe_int function
+
+
+def safe_float(value: Any) -> float | None:
+    """
+    Simple Conversion to float, None default value
+    """
+    try:
+        return float(value)
+    except (AttributeError, ValueError, TypeError):
+        return None
+# End safe_float function
 
 
 if __name__ == '__main__':  # pragma: no cover
