@@ -121,7 +121,7 @@ def test_validate_geopackage(mem_gpkg, exists):
         with raises(ValueError):
             geo_function(GeoPackage(Path.home()))
     geo_function(mem_gpkg)
-    geo_function(MemoryGeoPackage())
+    geo_function(MemoryGeoPackage.create())
 # End test_validate_geopackage function
 
 

@@ -196,7 +196,8 @@ class _Workspace:
             return value
         if isinstance(value, (str, Path)):
             if value == MEMORY:
-                return MemoryGeoPackage()
+                # NOTE new memory database is created each time, no sharing
+                return MemoryGeoPackage.create()
             if is_geopackage(value):
                 return GeoPackage(value)
             raise IOError(f'Unable to get {as_title(setting)} from: {value!r}')
