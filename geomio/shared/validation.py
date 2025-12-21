@@ -88,6 +88,18 @@ class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
         kwargs[self._name] = obj
     # End _set_object method
 
+    @staticmethod
+    def _check_element(obj: Any) -> Any:
+        """
+        Check Element
+        """
+        if not isinstance(obj, str):
+            return obj
+        if not (settings_gpkg := ANALYSIS_SETTINGS.current_workspace):
+            return obj
+        return settings_gpkg[obj]
+    # End _check_element method
+
     def _validate_type(self, obj: Any) -> None:
         """
         Validate Type
@@ -362,6 +374,14 @@ class ValidateContent(AbstractValidateTypeExists):
         raise ValueError(f'{self._name} is empty')
     # End _validate_content method
 
+    def _get_object(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        obj = super()._get_object(kwargs)
+        return self._check_element(obj)
+    # End _get_object method
+
     def _validation(self, obj: Any) -> None:
         """
         Validation
@@ -481,10 +501,7 @@ class ValidateField(AbstractValidateType):
             """
             kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
             obj = self._get_object(kwargs)
-            try:
-                element = kwargs[self._element_name]
-            except KeyError:
-                element = None
+            element = self._get_element(kwargs)
             obj = self._find_field(obj, element=element)
             kwargs[self._name] = obj
             self._validate_type(obj)
@@ -494,6 +511,17 @@ class ValidateField(AbstractValidateType):
         # End wrapper function
         return wrapper
     # End call built-in
+
+    def _get_element(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Element
+        """
+        try:
+            element = kwargs[self._element_name]
+        except KeyError:
+            return None
+        return self._check_element(element)
+    # End _get_element method
 
     def _find_field(self, obj: Any, element: ELEMENT) -> Any:
         """

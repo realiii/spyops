@@ -253,6 +253,25 @@ def test_validate_field_single_field(world_tables, fld, exists, throws):
 # End test_validate_field_single_field function
 
 
+def test_validate_table_with_setting(world_tables, world_features):
+    """
+    Test validate table using setting
+    """
+    @validate_table('table')
+    def table_function(table):
+        return table
+    name = 'admin'
+    assert isinstance(table_function(world_tables[name]), Table)
+    with raises(TypeError):
+        table_function(name)
+    with Swap(Setting.CURRENT_WORKSPACE, world_tables):
+        assert isinstance(table_function(name), Table)
+    with raises(TypeError):
+        with Swap(Setting.CURRENT_WORKSPACE, world_features):
+            table_function(name)
+# End test_validate_table_with_setting function
+
+
 @mark.parametrize('fld, exists, throws', [
     (Field('NAME', data_type=SQLFieldType.text), True, False),
     (Field('name', data_type=SQLFieldType.text), True, False),

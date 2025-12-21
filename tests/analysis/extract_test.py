@@ -158,7 +158,7 @@ def test_split_by_attributes_features_with_settings(world_features, mem_gpkg, fi
         make_unique_name(source.name, names=names),
         where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
     with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
-        results = split_by_attributes(source, group_fields=fields, geopackage=None)
+        results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
     assert len(results) == count
     assert sum([r.count for r in results]) == subset
 # End test_split_by_attributes_features_with_settings function
