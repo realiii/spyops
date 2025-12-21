@@ -74,6 +74,20 @@ class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
         self._name: str = name
     # End init built-in
 
+    def _get_object(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        return kwargs[self._name]
+    # End _get_object method
+
+    def _set_object(self, obj: Any, kwargs: dict[str, Any]) -> None:
+        """
+        Set Object into the kwargs
+        """
+        kwargs[self._name] = obj
+    # End _set_object method
+
     def _validate_type(self, obj: Any) -> None:
         """
         Validate Type
@@ -108,10 +122,10 @@ class AbstractValidateTypeExists(AbstractValidateType):
             """
             Handler for the arguments and keyword arguments.
             """
-            kwargs = self._get_arguments(
-                func=func, args=args, kwargs=kwargs)
-            obj = kwargs[self._name]
+            kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
             self._validate_type(obj)
+            self._set_object(obj, kwargs=kwargs)
             if not self._validate_exists(obj):
                 return func(**kwargs)
             self._validation(obj)
@@ -198,13 +212,27 @@ class ValidateXYTolerance(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            tolerance = safe_float(kwargs[self._name])
+            tolerance = self._get_object(kwargs)
             tolerance = self._validate_value(tolerance)
-            kwargs[self._name] = tolerance
+            self._set_object(tolerance, kwargs=kwargs)
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    def _get_object(self, kwargs: dict[str, Any]) -> XY_TOL:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        return safe_float(kwargs[self._name])
+    # End _get_object method
+
+    def _set_object(self, obj: XY_TOL, kwargs: dict[str, Any]) -> None:
+        """
+        Set Object into the kwargs
+        """
+        kwargs[self._name] = obj
+    # End _set_object method
 
     @staticmethod
     def _validate_value(function_xy: XY_TOL) -> XY_TOL:
@@ -443,7 +471,7 @@ class ValidateField(AbstractValidateType):
             Handler for the arguments and keyword arguments.
             """
             kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
-            obj = kwargs[self._name]
+            obj = self._get_object(kwargs)
             try:
                 element = kwargs[self._element_name]
             except KeyError:
