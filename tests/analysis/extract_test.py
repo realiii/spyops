@@ -141,6 +141,29 @@ def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
 # End test_split_by_attributes_features function
 
 
+@mark.parametrize('fields, count', [
+    (Field('ISO_CC', data_type='TEXT'), 3),
+    ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
+    ('ISO_CC', 3),
+    (('ISO_CC', 'LAND_TYPE'), 7),
+])
+def test_split_by_attributes_features_with_settings(world_features, mem_gpkg, fields, count):
+    """
+    Test split_by_attributes for feature classes with analysis settings
+    """
+    subset = 120
+    source = world_features['admin_a']
+    names = element_names(world_features)
+    source = source.copy(
+        make_unique_name(source.name, names=names),
+        where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
+    with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        results = split_by_attributes(source, group_fields=fields, geopackage=None)
+    assert len(results) == count
+    assert sum([r.count for r in results]) == subset
+# End test_split_by_attributes_features_with_settings function
+
+
 @mark.parametrize('fc_name, xy_tolerance, count', [
     ('admin_a', None, 89),
     ('airports_p', None, 35),
