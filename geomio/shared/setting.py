@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import Any, Self
 
 from fudgeo import GeoPackage, MemoryGeoPackage
+from fudgeo.constant import MEMORY
 
+from geomio.shared.database import is_geopackage
 from geomio.shared.enumeration import Setting
 from geomio.shared.hint import GPKG, XY_TOL
 from geomio.shared.util import as_title, safe_float
@@ -190,17 +192,14 @@ class _Workspace:
         """
         Check Workspace
         """
-        if value is None:
+        if isinstance(value, (GeoPackage, MemoryGeoPackage, type(None))):
             return value
-        if isinstance(value, (GeoPackage, MemoryGeoPackage)):
-            if value.exists:
-                return value
-            raise IOError(f'{as_title(setting)} does not exist: {value.path}')
         if isinstance(value, (str, Path)):
-            gpkg = GeoPackage(value)
-            if gpkg.exists:
-                return gpkg
-            raise IOError(f'{as_title(setting)} does not exist: {value}')
+            if value == MEMORY:
+                return MemoryGeoPackage()
+            if is_geopackage(value):
+                return GeoPackage(value)
+            raise IOError(f'Unable to get {as_title(setting)} from: {value!r}')
         return None
     # End _check_workspace method
 # End _Workspace class

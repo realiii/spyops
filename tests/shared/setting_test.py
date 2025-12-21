@@ -2,12 +2,11 @@
 """
 Test for Setting
 """
-
-
+from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import mark, raises
 
 from geomio.shared.enumeration import Setting
-from geomio.shared.setting import ANALYSIS_SETTINGS, Swap
+from geomio.shared.setting import ANALYSIS_SETTINGS, Swap, _Workspace
 
 pytestmark = [mark.settings]
 
@@ -61,6 +60,22 @@ def test_swapping(setting, value, expected):
         assert s.swap_value is expected
     assert ANALYSIS_SETTINGS.overwrite is False
 # End test_swapping function
+
+
+def test_check_workspace(data_path):
+    """
+    Test Check Workspace
+    """
+    setting = Setting.CURRENT_WORKSPACE
+    assert _Workspace._check_workspace(None, setting) is None
+    with raises(IOError):
+        _Workspace._check_workspace('test', setting)
+    assert isinstance(_Workspace._check_workspace(':memory:', setting), MemoryGeoPackage)
+    with raises(IOError):
+        _Workspace._check_workspace(data_path / 'test.gpkg', setting)
+    assert isinstance(_Workspace._check_workspace(data_path / 'crs.gpkg', setting), GeoPackage)
+    assert _Workspace._check_workspace(1234, setting) is None
+# End test_check_workspace function
 
 
 if __name__ == '__main__':  # pragma: no cover
