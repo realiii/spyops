@@ -125,6 +125,27 @@ def test_validate_geopackage(mem_gpkg, exists):
 # End test_validate_geopackage function
 
 
+@mark.parametrize('exists', [
+    True, False
+])
+def test_validate_geopackage_with_current(mem_gpkg, exists):
+    """
+    Test validate geopackage where current-workspace is used
+    """
+    @validate_geopackage(exists=exists)
+    def geo_function(geopackage):
+        return geopackage
+    with raises(TypeError):
+        geo_function(None)
+    assert geo_function(mem_gpkg) is mem_gpkg
+    with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        assert geo_function(None) is mem_gpkg
+    with raises(TypeError):
+        with Swap(Setting.CURRENT_WORKSPACE, None):
+            geo_function(None)
+# End test_validate_geopackage_with_current function
+
+
 @mark.parametrize('name, geometry_types', [
     ('admin_a', ()),
     ('roads_l', ()),
