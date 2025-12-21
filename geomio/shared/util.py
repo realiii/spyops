@@ -136,12 +136,12 @@ def extend_records(results: list[tuple], records: list[tuple],
 # End extend_records function
 
 
-def to_int(value: str) -> int | None:
+def safe_int(value: Any) -> int | None:
     """
     Simple Conversion to int, None if fails
     """
     try:
-        return int(value)
+        return int(safe_float(value))
     except (AttributeError, ValueError, TypeError):
         return None
 # End to_int function
