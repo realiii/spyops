@@ -198,7 +198,6 @@ class ValidateXYTolerance(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            # NOTE use of safe_float here ensures we only have float or None
             tolerance = safe_float(kwargs[self._name])
             tolerance = self._validate_value(tolerance)
             kwargs[self._name] = tolerance
@@ -223,7 +222,6 @@ class ValidateXYTolerance(AbstractValidate):
 
         When a value provided is less than 0, it is treated as 0.
         """
-        # NOTE safe_float used when setting xy_tolerance, meaning None or float
         settings_xy = SETTINGS.xy_tolerance
         has_input = function_xy is not None
         has_settings = settings_xy is not None

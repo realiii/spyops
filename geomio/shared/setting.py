@@ -139,7 +139,6 @@ class _GeometryDimensions:
 
     @xy_tolerance.setter
     def xy_tolerance(self, value: XY_TOL) -> None:
-        # NOTE use of safe_float here ensures we only have float or None
         self._xy = safe_float(value)
     # End xy_tolerance property
 # End _GeometryDimensions class
