@@ -414,8 +414,8 @@ class ValidateFeatureClass(ValidateContent):
     _types: ClassVar[tuple[type, ...]] = FeatureClass,
 
     def __init__(self, name: str, exists: bool = True, has_content: bool = True,
-                 geometry_types: NAMES = (),
-                 has_z: bool = False, has_m: bool = False) -> None:
+                 geometry_types: NAMES = (), has_z: bool = False,
+                 has_m: bool = False, add_index: bool = True) -> None:
         """
         Initialize the ValidateFeatureClass class
         """
@@ -423,6 +423,7 @@ class ValidateFeatureClass(ValidateContent):
         self._geometry_types: NAMES = geometry_types
         self._has_z: bool = has_z
         self._has_m: bool = has_m
+        self._add_index: bool = add_index
     # End init built-in
 
     def _validation(self, obj: Any) -> None:
@@ -432,9 +433,19 @@ class ValidateFeatureClass(ValidateContent):
         super()._validation(obj)
         self._validate_geometry_types(obj)
         self._validate_zm(obj)
+        self._add_spatial_index(obj)
     # End _validation method
 
-    def _validate_zm(self, obj: Any) -> None:
+    def _add_spatial_index(self, obj: FeatureClass) -> None:
+        """
+        Add Spatial Index
+        """
+        if not self._add_index:
+            return
+        obj.add_spatial_index()
+    # End _add_spatial_index method
+
+    def _validate_zm(self, obj: FeatureClass) -> None:
         """
         Validate Extended Geometry with Z and / or M
         """
@@ -444,7 +455,7 @@ class ValidateFeatureClass(ValidateContent):
             raise ValueError(f'{self._name} does not have M values')
     # End _validate_zm method
 
-    def _validate_geometry_types(self, obj: Any) -> None:
+    def _validate_geometry_types(self, obj: FeatureClass) -> None:
         """
         Validate Geometry Types
         """
