@@ -15,7 +15,7 @@ from geomio.analysis.sql import (
     build_query_components, build_sql_select_by_attributes)
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
-from geomio.shared.element import copy_element
+from geomio.shared.element import copy_element, copy_feature_class
 from geomio.shared.field import (
     GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
@@ -114,7 +114,8 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     """
     components = build_query_components(
         source, target=target, operator=operator)
-    target = copy_element(source=source, target=target, where_clause=SQL_EMPTY)
+    target = copy_feature_class(
+        source=source, target=target, where_clause=SQL_EMPTY)
     if not components.has_intersection:
         return target
     records = []
