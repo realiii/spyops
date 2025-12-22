@@ -8,12 +8,13 @@ from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from shapely import box
 
-from geomio.shared.constant import QUESTION, SQL_FULL
-from geomio.shared.geometry import extent_from_feature_class
+from geomio.shared.constant import QUESTION, SQL_EMPTY, SQL_FULL
+from geomio.shared.element import copy_feature_class
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
+from geomio.shared.geometry import extent_from_feature_class
 from geomio.shared.hint import ELEMENT
-from geomio.shared.base import QueryComponents
+from geomio.shared.base import AnalysisComponents
 from geomio.shared.util import make_spatial_index_where
 
 
@@ -78,34 +79,42 @@ def _build_field_names_and_count(source: ELEMENT) -> tuple[int, str, str]:
 # End _build_field_names_and_count function
 
 
-def build_query_components(source: FeatureClass, target: FeatureClass,
-                           operator: FeatureClass) -> QueryComponents:
+def build_analysis(source: FeatureClass, target: FeatureClass,
+                   operator: FeatureClass, use_empty: bool) -> AnalysisComponents:
     """
-    Build Query Components
+    Build the components needed for an Analysis
     """
     (field_count, insert_field_names,
      select_field_names) = _build_field_names_and_count(source)
     operator_extent = extent_from_feature_class(operator)
     source_extent = extent_from_feature_class(source)
     has_intersection = box(*operator_extent).intersects(box(*source_extent))
-    wheres = where_touches, where_outside = make_spatial_index_where(
+    wheres = where_intersect, where_disjoint = make_spatial_index_where(
         source=source, extent=operator_extent)
     if use_index := all(wheres):
-        sql_touches = _build_sql_select(
-            source, field_names=select_field_names, where_clause=where_touches)
-        sql_outside = _build_sql_select(
-            source, field_names=select_field_names, where_clause=where_outside)
+        sql_intersect = _build_sql_select(
+            source, field_names=select_field_names,
+            where_clause=where_intersect)
+        sql_disjoint = _build_sql_select(
+            source, field_names=select_field_names,
+            where_clause=where_disjoint)
     else:
-        sql_touches = _build_sql_select(
+        sql_intersect = _build_sql_select(
             source, field_names=select_field_names, where_clause=SQL_FULL)
-        sql_outside = ''
+        sql_disjoint = ''
     sql_insert = build_sql_insert(
         target.escaped_name, field_names=insert_field_names,
         field_count=field_count)
-    return QueryComponents(
+    if use_empty:
+        sql = SQL_EMPTY
+    else:
+        sql = SQL_FULL
+    target = copy_feature_class(source=source, target=target, where_clause=sql)
+    return AnalysisComponents(
         use_index=use_index, has_intersection=has_intersection,
-        sql_touches=sql_touches, sql_outside=sql_outside, sql_insert=sql_insert)
-# End build_query_components function
+        sql_intersect=sql_intersect, sql_disjoint=sql_disjoint,
+        sql_insert=sql_insert, target=target)
+# End build_analysis function
 
 
 def _build_sql_select(element: ELEMENT, field_names: str,
