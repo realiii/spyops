@@ -6,20 +6,22 @@ Types
 
 from typing import Any, NamedTuple
 
+from fudgeo import FeatureClass
 from shapely import (
     MultiPolygon as ShapelyMultiPolygon, Polygon as ShapelyPolygon)
 
 
-class QueryComponents(NamedTuple):
+class AnalysisComponents(NamedTuple):
     """
-    Spatial Query Components
+    Spatial Analysis Components
     """
     use_index: bool
     has_intersection: bool
-    sql_touches: str
-    sql_outside: str
+    sql_intersect: str
+    sql_disjoint: str
     sql_insert: str
-# End QueryComponents class
+    target: FeatureClass
+# End AnalysisComponents class
 
 
 class OverlayConfig(NamedTuple):

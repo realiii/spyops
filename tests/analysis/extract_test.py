@@ -222,9 +222,9 @@ def test_split(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_
     """
     Test split
     """
-    splitter = inputs.feature_classes['splitter_a']
+    splitter = inputs['splitter_a']
     assert splitter.count == 5
-    source = world_features.feature_classes[fc_name]
+    source = world_features[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
     results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
     assert len(results) == element_count
@@ -291,9 +291,9 @@ def test_split_setting(tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_t
     """
     Test split using analysis settings
     """
-    splitter = inputs.feature_classes['splitter_a']
+    splitter = inputs['splitter_a']
     assert splitter.count == 5
-    source = world_features.feature_classes[fc_name]
+    source = world_features[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
     gpkg = GeoPackage.create(tmp_path / 'test_scratch.gpkg')
     with (Swap(Setting.XY_TOLERANCE, xy_tolerance),

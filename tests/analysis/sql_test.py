@@ -6,11 +6,12 @@ Test for SQL Creation
 
 from textwrap import dedent
 
+from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from pytest import mark
 
 from geomio.analysis.sql import (
-    build_query_components, build_sql_insert, _build_field_names_and_count,
+    build_analysis, build_sql_insert, _build_field_names_and_count,
     build_sql_select_by_attributes, _build_sql_select)
 
 
@@ -87,20 +88,21 @@ def test_build_sql_select(world_tables):
 
 def test_build_query_components(inputs, world_features, mem_gpkg):
     """
-    Test build_query_components
+    Test build_analysis
     """
     source = world_features['cities_p']
     operator = inputs['clipper_a']
-    target = source.copy(name='asdf', geopackage=mem_gpkg)
-    qc = build_query_components(source, target, operator)
+    target = FeatureClass(mem_gpkg, 'asdf')
+    qc = build_analysis(source, target, operator, use_empty=True)
     assert qc.use_index is True
     assert qc.has_intersection is True
-    assert 'SELECT SHAPE "[Point]",' in qc.sql_touches
-    assert 'WHERE fid IN ' in qc.sql_touches
-    assert 'minx <= 16.47' in qc.sql_touches
-    assert 'AND maxy >= 46.49' in qc.sql_touches
-    assert 'WHERE fid NOT IN ' in qc.sql_outside
+    assert 'SELECT SHAPE "[Point]",' in qc.sql_intersect
+    assert 'WHERE fid IN ' in qc.sql_intersect
+    assert 'minx <= 16.47' in qc.sql_intersect
+    assert 'AND maxy >= 46.49' in qc.sql_intersect
+    assert 'WHERE fid NOT IN ' in qc.sql_disjoint
     assert 'INSERT INTO asdf(SHAPE, CITY_NAME, GMI_ADMIN' in qc.sql_insert
+    assert qc.target.exists is True
 # End test_build_query_components function
 
 

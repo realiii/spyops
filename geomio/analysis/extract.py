@@ -12,7 +12,7 @@ from shapely import box
 from shapely.io import from_wkb
 
 from geomio.analysis.sql import (
-    build_query_components, build_sql_select_by_attributes)
+    build_analysis, build_sql_select_by_attributes)
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
@@ -112,16 +112,15 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Extracts features using the features of a polygon feature class. Extracted
     features are cut along the edges of the clipping polygons.
     """
-    components = build_query_components(
-        source, target=target, operator=operator)
-    target = copy_element(source=source, target=target, where_clause=SQL_EMPTY)
+    components = build_analysis(
+        source, target=target, operator=operator, use_empty=True)
     if not components.has_intersection:
-        return target
+        return components.target
     records = []
     config = overlay_config(source, operator=operator)
     polygon = config.geometry
     with target.geopackage.connection as conn:
-        cursor = source.geopackage.connection.execute(components.sql_touches)
+        cursor = source.geopackage.connection.execute(components.sql_intersect)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
