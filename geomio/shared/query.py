@@ -11,7 +11,8 @@ from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from shapely import box
 
-from geomio.shared.constant import QUESTION, SQL_FULL
+from geomio.shared.constant import QUESTION, SQL_EMPTY, SQL_FULL
+from geomio.shared.element import copy_feature_class
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import extent_from_feature_class
@@ -71,6 +72,14 @@ class AbstractQuery(metaclass=ABCMeta):
     # End _field_names_and_count property
 
     @property
+    def source(self) -> ELEMENT:
+        """
+        Source
+        """
+        return self._element
+    # End source property
+
+    @property
     @abstractmethod
     def select(self) -> str:  # pragma: no cover
         """
@@ -94,6 +103,40 @@ class AbstractSpatialQuery(AbstractQuery):
     """
     Abstract Spatial Query Support
     """
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass) -> None:
+        """
+        Initialize the QueryClip class
+        """
+        super().__init__(source)
+        self._target: FeatureClass = target
+        self._operator: FeatureClass = operator
+    # End init built-in
+
+    @cached_property
+    def operator_extent(self) -> EXTENT:
+        """
+        Operator Extent
+        """
+        return extent_from_feature_class(self._operator)
+    # End operator_extent property
+
+    @cached_property
+    def source_extent(self) -> EXTENT:
+        """
+        Source Extent
+        """
+        return extent_from_feature_class(self._element)
+    # End source_extent property
+
+    @property
+    def has_intersection(self) -> bool:
+        """
+        Has Intersection between source and operator
+        """
+        return box(*self.operator_extent).intersects(box(*self.source_extent))
+    # End has_intersection property
+
     @staticmethod
     def _spatial_index_where(element: FeatureClass, extent: EXTENT) -> str:
         """
@@ -111,6 +154,32 @@ class AbstractSpatialQuery(AbstractQuery):
                   miny <= {max_y} AND maxy >= {min_y})
         """
     # End _spatial_index_wheres function
+
+    @property
+    def target(self) -> FeatureClass:
+        """
+        Alias for Target Empty
+        """
+        return self.target_empty
+    # End target property
+
+    @cached_property
+    def target_empty(self) -> FeatureClass:
+        """
+        Only the Structure of the Source copied to the Target Feature Class
+        """
+        return copy_feature_class(
+            self._element, target=self._target, where_clause=SQL_EMPTY)
+    # End target_empty property
+
+    @cached_property
+    def target_full(self) -> FeatureClass:
+        """
+        Full Copy of the Source Feature Class
+        """
+        return copy_feature_class(
+            self._element, target=self._target, where_clause=SQL_FULL)
+    # End target_full property
 
     @property
     @abstractmethod
@@ -187,44 +256,10 @@ class QuerySplitByAttributes(AbstractQuery):
 # End QuerySplitByAttributes class
 
 
-class QueryAnalysis(AbstractSpatialQuery):
+class QueryClip(AbstractSpatialQuery):
     """
-    Queries for Analysis (Overlay and Extract)
+    Queries for Clip
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
-                 operator: FeatureClass) -> None:
-        """
-        Initialize the QueryAnalysis class
-        """
-        super().__init__(source)
-        self._target: FeatureClass = target
-        self._operator: FeatureClass = operator
-    # End init built-in
-
-    @cached_property
-    def operator_extent(self) -> EXTENT:
-        """
-        Operator Extent
-        """
-        return extent_from_feature_class(self._operator)
-    # End operator_extent property
-
-    @cached_property
-    def source_extent(self) -> EXTENT:
-        """
-        Source Extent
-        """
-        return extent_from_feature_class(self._element)
-    # End source_extent property
-
-    @property
-    def has_intersection(self) -> bool:
-        """
-        Has Intersection between source and operator
-        """
-        return box(*self.operator_extent).intersects(box(*self.source_extent))
-    # End has_intersection property
-
     @property
     def select(self) -> str:
         """
@@ -270,7 +305,7 @@ class QueryAnalysis(AbstractSpatialQuery):
             self._target.escaped_name, field_names=insert_field_names,
             field_count=field_count)
     # End insert property
-# End QueryAnalysis class
+# End QueryClip class
 
 
 if __name__ == '__main__':  # pragma: no cover

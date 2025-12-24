@@ -9,11 +9,12 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import set_precision
 from shapely.io import from_wkb
 
-from geomio.analysis.util import build_analysis
+from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import OPERATOR, SOURCE, TARGET
 from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.geometry import overlay_config
 from geomio.shared.hint import XY_TOL
+from geomio.shared.query import QueryErase
 from geomio.shared.util import extend_records
 from geomio.shared.validation import (
     validate_feature_class, validate_result, validate_same_crs,
@@ -34,29 +35,16 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Removes the portion of the input feature class that overlaps with the
     operator feature class.
     """
-    ac = build_analysis(source, target=target, operator=operator)
-    target = ac.target
-    if not ac.has_intersection:
-        return target
+    query = QueryErase(source, target=target, operator=operator)
+    if not query.has_intersection:
+        return query.target_full
     records = []
     config = overlay_config(source, operator=operator)
     polygon = config.geometry
-    with (target.geopackage.connection as cout,
-          source.geopackage.connection as cin):
-        if ac.query.select_disjoint:
-            cursor = cin.execute(ac.query.select_disjoint)
-            while features := cursor.fetchmany(FETCH_SIZE):
-                if xy_tolerance is None:
-                    cout.executemany(ac.query.insert, features)
-                else:
-                    geometries = [from_wkb(g.wkb) for g, *_ in features]
-                    geometries = set_precision(geometries, grid_size=xy_tolerance)
-                    results = [(g, geom, attrs) for geom, (g, *attrs) in
-                               zip(geometries, features)]
-                    extend_records(results, records=records, config=config)
-                    cout.executemany(ac.query.insert, records)
-                    records.clear()
-        cursor = cin.execute(ac.query.select)
+    _process_disjoint(query, config=config, xy_tolerance=xy_tolerance)
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin):
+        cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
@@ -72,10 +60,36 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             results = [(g, geom.difference(polygon, grid_size=xy_tolerance), attrs)
                        for geom, (g, *attrs) in zip(geoms, changers)]
             extend_records(results, records=records, config=config)
-            cout.executemany(ac.query.insert, records)
+            cout.executemany(query.insert, records)
             records.clear()
-    return target
+    return query.target
 # End erase function
+
+
+def _process_disjoint(query: QueryErase, config: OverlayConfig,
+                      xy_tolerance: XY_TOL) -> None:
+    """
+    Process Disjoint Features
+    """
+    if not query.select_disjoint:
+        return
+    records = []
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin):
+        cursor = cin.execute(query.select_disjoint)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if xy_tolerance is None:
+                cout.executemany(query.insert, features)
+            else:
+                geometries = [from_wkb(g.wkb) for g, *_ in features]
+                geometries = set_precision(
+                    geometries, grid_size=xy_tolerance)
+                results = [(g, geom, attrs) for geom, (g, *attrs) in
+                           zip(geometries, features)]
+                extend_records(results, records=records, config=config)
+                cout.executemany(query.insert, records)
+                records.clear()
+# End _process_disjoint function
 
 
 if __name__ == '__main__':  # pragma: no cover

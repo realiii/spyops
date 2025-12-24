@@ -9,7 +9,7 @@ from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import SQLFieldType
 from pytest import approx, mark
 
-from geomio.shared.query import QueryAnalysis, QuerySplitByAttributes
+from geomio.shared.query import QueryClip, QuerySplitByAttributes
 
 
 pytestmark = [mark.extract]
@@ -65,7 +65,7 @@ def test_query_analysis(world_features, inputs, mem_gpkg):
     target = FeatureClass(mem_gpkg, 'test_target')
     source = world_features['cities_p']
     operator = inputs['clipper_a']
-    query = QueryAnalysis(source, target, operator)
+    query = QueryClip(source, target, operator)
     assert query.has_intersection is True
     assert approx(query.operator_extent, abs=0.0001) == (6.74573, 46.49314, 16.47727, 51.70966)
     assert approx(query.source_extent, abs=0.001) == (-176.15156, -54.79199, 179.19906, 78.20000)

@@ -11,8 +11,7 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import box
 from shapely.io import from_wkb
 
-from geomio.shared.query import QuerySplitByAttributes
-from geomio.analysis.util import build_analysis
+from geomio.shared.query import QueryClip, QuerySplitByAttributes
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
@@ -78,12 +77,12 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     target_names = element_names(geopackage)
     query = QuerySplitByAttributes(element=source, fields=group_fields)
     with (geopackage.connection as cout,
-          source.geopackage.connection as cin):
+          query.source.geopackage.connection as cin):
         cursor = cin.execute(query.group_count)
         group_count, = cursor.fetchone()
         for i in range(1, group_count + 1):
             cursor = cin.execute(query.select, (i,))
-            name = make_unique_name(name=source.name, names=target_names)
+            name = make_unique_name(name=query.source.name, names=target_names)
             element = copy_element(
                 source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
@@ -109,15 +108,15 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Extracts features using the features of a polygon feature class. Extracted
     features are cut along the edges of the operator polygons.
     """
-    ac = build_analysis(source, target=target, operator=operator)
-    if not ac.has_intersection:
-        return ac.target
+    query = QueryClip(source=source, target=target, operator=operator)
+    if not query.has_intersection:
+        return query.target_empty
     records = []
     config = overlay_config(source, operator=operator)
     polygon = config.geometry
-    with (ac.target.geopackage.connection as cout,
-          source.geopackage.connection as cin):
-        cursor = cin.execute(ac.query.select)
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin):
+        cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
@@ -128,9 +127,9 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             results = [(g, polygon.intersection(geom, grid_size=xy_tolerance), attrs)
                        for geom, (g, *attrs) in zip(geometries, keepers)]
             extend_records(results, records=records, config=config)
-            cout.executemany(ac.query.insert, records)
+            cout.executemany(query.insert, records)
             records.clear()
-    return ac.target
+    return query.target
 # End clip function
 
 
