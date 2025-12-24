@@ -32,7 +32,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Erase
 
     Removes the portion of the input feature class that overlaps with the
-    eraser feature class.
+    operator feature class.
     """
     ac = build_analysis(source, target=target, operator=operator)
     target = ac.target

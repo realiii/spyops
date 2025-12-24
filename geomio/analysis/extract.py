@@ -107,7 +107,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Clip
 
     Extracts features using the features of a polygon feature class. Extracted
-    features are cut along the edges of the clipping polygons.
+    features are cut along the edges of the operator polygons.
     """
     ac = build_analysis(source, target=target, operator=operator)
     if not ac.has_intersection:
@@ -146,7 +146,7 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
     """
     Split
 
-    Extracts features for each polygon in the splitting feature class and uses
+    Extracts features for each polygon in the operator feature class and uses
     values from the specified field to name the output feature classes.
     """
     features = []
