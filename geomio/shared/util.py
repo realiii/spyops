@@ -7,7 +7,6 @@ Utilities
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
-from fudgeo import FeatureClass
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
@@ -87,26 +86,6 @@ def expand_extent(extent: EXTENT) -> EXTENT:
     min_x, min_y, max_x, max_y = extent
     return min_x * down, min_y * down, max_x * up, max_y * up
 # End expand_extent function
-
-
-def make_spatial_index_where(source: FeatureClass, extent: EXTENT) -> tuple[str, str]:
-    """
-    Make a where clause that selects features from the source that intersect
-    the extent of the operator feature class.
-    """
-    primary = source.primary_key_field
-    if not source.has_spatial_index or not primary:
-        return '', ''
-    min_x, min_y, max_x, max_y = extent
-    sql_stub = f"""{primary.escaped_name} {{}} (
-        SELECT id  
-        FROM {source.spatial_index_name} 
-        WHERE minx <= {max_x} AND maxx >= {min_x} AND 
-              miny <= {max_y} AND maxy >= {min_y})
-        """
-    # NOTE intersects the extent, does not intersect the extent
-    return sql_stub.format('IN'), sql_stub.format('NOT IN')
-# End make_spatial_index_where function
 
 
 def extend_records(results: list[tuple], records: list[tuple],
