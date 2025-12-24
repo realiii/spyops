@@ -42,7 +42,6 @@ class QuerySplitByAttributes:
         """
         super().__init__()
         self._element: ELEMENT = element
-        self._fields: FIELDS = fields
         self._group_names: str = make_field_names(fields)
     # End init built-in
 
