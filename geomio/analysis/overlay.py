@@ -9,7 +9,7 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import set_precision
 from shapely.io import from_wkb
 
-from geomio.analysis.sql import build_analysis
+from geomio.analysis.util import build_analysis
 from geomio.shared.constant import OPERATOR, SOURCE, TARGET
 from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.geometry import overlay_config
@@ -34,30 +34,29 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Removes the portion of the input feature class that overlaps with the
     eraser feature class.
     """
-    components = build_analysis(
-        source, target=target, operator=operator, use_empty=True)
-    target = components.target
-    if not components.has_intersection:
+    ac = build_analysis(source, target=target, operator=operator)
+    target = ac.target
+    if not ac.has_intersection:
         return target
     records = []
     config = overlay_config(source, operator=operator)
     polygon = config.geometry
     with (target.geopackage.connection as cout,
           source.geopackage.connection as cin):
-        if components.sql_disjoint:
-            cursor = cin.execute(components.sql_disjoint)
+        if ac.query.select_disjoint:
+            cursor = cin.execute(ac.query.select_disjoint)
             while features := cursor.fetchmany(FETCH_SIZE):
                 if xy_tolerance is None:
-                    cout.executemany(components.sql_insert, features)
+                    cout.executemany(ac.query.insert, features)
                 else:
                     geometries = [from_wkb(g.wkb) for g, *_ in features]
                     geometries = set_precision(geometries, grid_size=xy_tolerance)
                     results = [(g, geom, attrs) for geom, (g, *attrs) in
                                zip(geometries, features)]
                     extend_records(results, records=records, config=config)
-                    cout.executemany(components.sql_insert, records)
+                    cout.executemany(ac.query.insert, records)
                     records.clear()
-        cursor = cin.execute(components.sql_intersect)
+        cursor = cin.execute(ac.query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
@@ -73,7 +72,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             results = [(g, geom.difference(polygon, grid_size=xy_tolerance), attrs)
                        for geom, (g, *attrs) in zip(geoms, changers)]
             extend_records(results, records=records, config=config)
-            cout.executemany(components.sql_insert, records)
+            cout.executemany(ac.query.insert, records)
             records.clear()
     return target
 # End erase function

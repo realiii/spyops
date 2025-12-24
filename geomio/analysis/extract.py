@@ -11,7 +11,8 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import box
 from shapely.io import from_wkb
 
-from geomio.analysis.sql import QuerySplitByAttributes, build_analysis
+from geomio.shared.query import QuerySplitByAttributes
+from geomio.analysis.util import build_analysis
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
@@ -108,15 +109,14 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Extracts features using the features of a polygon feature class. Extracted
     features are cut along the edges of the clipping polygons.
     """
-    components = build_analysis(
-        source, target=target, operator=operator, use_empty=True)
-    if not components.has_intersection:
-        return components.target
+    ac = build_analysis(source, target=target, operator=operator)
+    if not ac.has_intersection:
+        return ac.target
     records = []
     config = overlay_config(source, operator=operator)
     polygon = config.geometry
     with target.geopackage.connection as conn:
-        cursor = source.geopackage.connection.execute(components.sql_intersect)
+        cursor = source.geopackage.connection.execute(ac.query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
@@ -127,7 +127,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             results = [(g, polygon.intersection(geom, grid_size=xy_tolerance), attrs)
                        for geom, (g, *attrs) in zip(geometries, keepers)]
             extend_records(results, records=records, config=config)
-            conn.executemany(components.sql_insert, records)
+            conn.executemany(ac.query.insert, records)
             records.clear()
     return target
 # End clip function
