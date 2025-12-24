@@ -1,34 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Test for SQL Creation
+Test for Query builders
 """
 
-
-from textwrap import dedent
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import SQLFieldType
-from pytest import mark
+from pytest import approx, mark
 
-from geomio.analysis.sql import (
-    QuerySplitByAttributes, build_analysis, build_sql_insert,
-    _build_field_names_and_count, _build_sql_select)
+from geomio.shared.query import QueryAnalysis, QuerySplitByAttributes
 
 
 pytestmark = [mark.extract]
-
-
-def test_build_sql_insert():
-    """
-    Test build_sql_insert
-    """
-    sql = build_sql_insert(
-        element_name='test123', field_names=COMMA_SPACE.join('abcde'),
-        field_count=5)
-    sql = dedent(sql).strip().replace('\n', '')
-    assert sql == """INSERT INTO test123(a, b, c, d, e) VALUES (?, ?, ?, ?, ?)"""
-# End test_build_sql_insert function
 
 
 @mark.parametrize('name, fix_name, count, inserts, selects', [
@@ -39,18 +23,19 @@ def test_build_sql_insert():
      'SHAPE, FEATURE_ID, PART_ID, NAME, SURF_ELEV, DEPTH, SQMI, SQKM',
      'SHAPE "[Polygon]", FEATURE_ID, PART_ID, NAME, SURF_ELEV, DEPTH, SQMI, SQKM'),
 ])
-def test_build_field_names_and_count(request, name, fix_name, count, inserts, selects):
+def test_field_names_and_count(request, name, fix_name, count, inserts, selects):
     """
-    Test _build_field_names_and_count
+    Test _field_names_and_count
     """
     geo = request.getfixturevalue(fix_name)
     element = geo[name]
-    result = _build_field_names_and_count(element)
+    fields = [Field('a', data_type=SQLFieldType.text)]
+    result = QuerySplitByAttributes(element, fields)._field_names_and_count
     field_count, insert_field_names, select_field_names = result
     assert field_count == count
     assert insert_field_names == inserts
     assert select_field_names == selects
-# End test_build_field_names_and_count function
+# End test_field_names_and_count function
 
 
 @mark.parametrize('name, fix_name, group_names', [
@@ -73,36 +58,22 @@ def test_query_split_by_attributes(request, name, fix_name, group_names):
 # End test_query_split_by_attributes function
 
 
-def test_build_sql_select(world_tables):
+def test_query_analysis(world_features, inputs, mem_gpkg):
     """
-    Build SQL Select
+    Test Query Analysis
     """
-    table = world_tables['cities']
-    sql = _build_sql_select(table, field_names='bobby, tables', where_clause='1 = 1')
-    assert 'SELECT bobby, tables' in sql
-    assert 'FROM cities' in sql
-    assert 'WHERE 1 = 1' in sql
-# End test_build_sql_select function
-
-
-def test_build_query_components(inputs, world_features, mem_gpkg):
-    """
-    Test build_analysis
-    """
+    target = FeatureClass(mem_gpkg, 'test_target')
     source = world_features['cities_p']
     operator = inputs['clipper_a']
-    target = FeatureClass(mem_gpkg, 'asdf')
-    qc = build_analysis(source, target, operator, use_empty=True)
-    assert qc.use_index is True
-    assert qc.has_intersection is True
-    assert 'SELECT SHAPE "[Point]",' in qc.sql_intersect
-    assert 'WHERE fid IN ' in qc.sql_intersect
-    assert 'minx <= 16.47' in qc.sql_intersect
-    assert 'AND maxy >= 46.49' in qc.sql_intersect
-    assert 'WHERE fid NOT IN ' in qc.sql_disjoint
-    assert 'INSERT INTO asdf(SHAPE, CITY_NAME, GMI_ADMIN' in qc.sql_insert
-    assert qc.target.exists is True
-# End test_build_query_components function
+    query = QueryAnalysis(source, target, operator)
+    assert query.has_intersection is True
+    assert approx(query.operator_extent, abs=0.0001) == (6.74573, 46.49314, 16.47727, 51.70966)
+    assert approx(query.source_extent, abs=0.001) == (-176.15156, -54.79199, 179.19906, 78.20000)
+    assert query.select == query.select_intersect
+    assert query.select.strip().startswith('SELECT SHAPE "[Point]"')
+    assert query.insert.strip().startswith('INSERT INTO test_target')
+    assert query.select_disjoint
+# End test_query_analysis function
 
 
 if __name__ == '__main__':  # pragma: no cover
