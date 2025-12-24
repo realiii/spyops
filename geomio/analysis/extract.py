@@ -115,8 +115,9 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     records = []
     config = overlay_config(source, operator=operator)
     polygon = config.geometry
-    with target.geopackage.connection as conn:
-        cursor = source.geopackage.connection.execute(ac.query.select)
+    with (ac.target.geopackage.connection as cout,
+          source.geopackage.connection as cin):
+        cursor = cin.execute(ac.query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
@@ -127,9 +128,9 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             results = [(g, polygon.intersection(geom, grid_size=xy_tolerance), attrs)
                        for geom, (g, *attrs) in zip(geometries, keepers)]
             extend_records(results, records=records, config=config)
-            conn.executemany(ac.query.insert, records)
+            cout.executemany(ac.query.insert, records)
             records.clear()
-    return target
+    return ac.target
 # End clip function
 
 
