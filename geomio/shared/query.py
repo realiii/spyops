@@ -308,5 +308,12 @@ class QueryClip(AbstractSpatialQuery):
 # End QueryClip class
 
 
+class QueryErase(QueryClip):
+    """
+    Queries for Erase
+    """
+# End QueryErase class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

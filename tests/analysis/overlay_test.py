@@ -8,7 +8,7 @@ from fudgeo import FeatureClass
 from pytest import mark, param
 
 from geomio.analysis.overlay import erase
-from geomio.analysis.util import build_analysis
+from geomio.shared.query import QueryErase
 
 pytestmark = [mark.overlay]
 
@@ -42,8 +42,8 @@ def test_erase_reduced(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance
     source = world_features[fc_name]
     assert source.is_multi_part == ('mp' in fc_name)
     target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-    ac = build_analysis(source=source, target=target, operator=eraser)
-    _, touches = ac.query.select.split('WHERE', 1)
+    query = QueryErase(source=source, target=target, operator=eraser)
+    _, touches = query.select.split('WHERE', 1)
     subset = source.copy(f'subset_{fc_name}', where_clause=touches, geopackage=fresh_gpkg)
     assert subset.count <= source.count
     target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
