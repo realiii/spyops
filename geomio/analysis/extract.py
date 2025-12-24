@@ -11,13 +11,11 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import box
 from shapely.io import from_wkb
 
-from geomio.analysis.sql import (
-    build_analysis, build_sql_select_by_attributes)
+from geomio.analysis.sql import QuerySplitByAttributes, build_analysis
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
-from geomio.shared.field import (
-    GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
+from geomio.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
@@ -75,25 +73,23 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 
     Split an input table or feature class by groups of attributes.
     """
-    group_names = make_field_names(group_fields)
-    group_count_sql, insert_sql, select_sql = build_sql_select_by_attributes(
-        source, group_names=group_names)
     elements = []
     target_names = element_names(geopackage)
-    with geopackage.connection as conn:
-        source_conn = source.geopackage.connection
-        cursor = source_conn.execute(group_count_sql)
+    query = QuerySplitByAttributes(element=source, fields=group_fields)
+    with (geopackage.connection as cout,
+          source.geopackage.connection as cin):
+        cursor = cin.execute(query.group_count)
         group_count, = cursor.fetchone()
         for i in range(1, group_count + 1):
-            cursor = source_conn.execute(select_sql, (i,))
+            cursor = cin.execute(query.select, (i,))
             name = make_unique_name(name=source.name, names=target_names)
             element = copy_element(
                 source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
             elements.append(element)
             while records := cursor.fetchmany(FETCH_SIZE):
-                conn.executemany(
-                    insert_sql.format(element.escaped_name), records)
+                cout.executemany(
+                    query.insert.format(element.escaped_name), records)
     return elements
 # End split_by_attributes function
 

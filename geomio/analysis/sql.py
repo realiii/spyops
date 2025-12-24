@@ -4,6 +4,8 @@ SQL Utilities
 """
 
 
+from functools import cached_property
+
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from shapely import box
@@ -13,7 +15,7 @@ from geomio.shared.element import copy_feature_class
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import extent_from_feature_class
-from geomio.shared.hint import ELEMENT
+from geomio.shared.hint import ELEMENT, FIELDS
 from geomio.shared.base import AnalysisComponents
 from geomio.shared.util import make_spatial_index_where
 
@@ -30,36 +32,83 @@ def build_sql_insert(element_name: str, field_names: str,
 # End build_sql_insert function
 
 
-def build_sql_select_by_attributes(source: ELEMENT,
-                                   group_names: str) -> tuple[str, str, str]:
+class QuerySplitByAttributes:
     """
-    Build SQL statements for Select by Attributes
+    Queries for Split by Attributes
     """
-    (field_count, insert_field_names,
-     select_field_names) = _build_field_names_and_count(source)
-    group_count_sql = f"""
-        SELECT COUNT(C) AS C 
-        FROM (SELECT COUNT(1) AS C 
-              FROM {source.escaped_name} 
-              GROUP BY {group_names}
-        )
-    """
-    ids_sql = f"""
-        SELECT {source.primary_key_field.escaped_name}
-        FROM (SELECT {source.primary_key_field.escaped_name}, 
-                     dense_rank() OVER (ORDER BY {group_names}) AS __DRID__ 
-                     FROM {source.escaped_name})
-        WHERE __DRID__ = ?
-    """
-    select_sql = f"""
-        SELECT {select_field_names}
-        FROM {source.escaped_name}
-        WHERE {source.primary_key_field.escaped_name} IN ({ids_sql}) 
-    """
-    insert_sql = build_sql_insert(
-        '{}', field_names=insert_field_names, field_count=field_count)
-    return group_count_sql, insert_sql, select_sql
-# End build_sql_select_by_attributes function
+    def __init__(self, element: ELEMENT, fields: FIELDS) -> None:
+        """
+        Initialize the QuerySplitByAttributes class
+        """
+        super().__init__()
+        self._element: ELEMENT = element
+        self._fields: FIELDS = fields
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
+
+    @cached_property
+    def _field_names_and_count(self) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        fields = validate_fields(self._element, fields=self._element.fields)
+        select_field_names = insert_field_names = make_field_names(fields)
+        field_count = len(fields)
+        if isinstance(self._element, FeatureClass):
+            geom = get_geometry_column_name(self._element)
+            geom_type = get_geometry_column_name(
+                self._element, include_geom_type=True)
+            select_field_names = f'{geom_type}{COMMA_SPACE}{select_field_names}'
+            insert_field_names = f'{geom}{COMMA_SPACE}{insert_field_names}'
+            field_count += 1
+        return field_count, insert_field_names, select_field_names
+    # End _field_names_and_count property
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        *_, select_field_names = self._field_names_and_count
+        primary = self._element.primary_key_field.escaped_name
+        sub = f"""
+            SELECT {primary}
+            FROM (SELECT {primary}, 
+                         dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
+                         FROM {self._element.escaped_name})
+            WHERE __DRID__ = ?
+        """
+        return f"""
+            SELECT {select_field_names}
+            FROM {self._element.escaped_name}
+            WHERE {primary} IN ({sub}) 
+        """
+    # End select property
+
+    @property
+    def group_count(self) -> str:
+        """
+        Group Count Query
+        """
+        return f"""
+            SELECT COUNT(C) AS C 
+            FROM (SELECT COUNT(1) AS C 
+                  FROM {self._element.escaped_name} 
+                  GROUP BY {self._group_names}
+            )
+        """
+    # End group_count property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        field_count, insert_field_names, _ = self._field_names_and_count
+        return build_sql_insert(
+            '{}', field_names=insert_field_names, field_count=field_count)
+    # End insert property
+# End QuerySplitByAttributes class
 
 
 def _build_field_names_and_count(source: ELEMENT) -> tuple[int, str, str]:

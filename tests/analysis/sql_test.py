@@ -6,13 +6,14 @@ Test for SQL Creation
 
 from textwrap import dedent
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
+from fudgeo.enumeration import SQLFieldType
 from pytest import mark
 
 from geomio.analysis.sql import (
-    build_analysis, build_sql_insert, _build_field_names_and_count,
-    build_sql_select_by_attributes, _build_sql_select)
+    QuerySplitByAttributes, build_analysis, build_sql_insert,
+    _build_field_names_and_count, _build_sql_select)
 
 
 pytestmark = [mark.extract]
@@ -53,25 +54,23 @@ def test_build_field_names_and_count(request, name, fix_name, count, inserts, se
 
 
 @mark.parametrize('name, fix_name, group_names', [
-    ('cities', 'world_tables', 'FIPS_CNTRY, CNTRY_NAME, STATUS'),
-    ('lakes_a', 'world_features', 'FEATURE_ID, PART_ID, NAME'),
+    ('cities', 'world_tables', ('FIPS_CNTRY', 'CNTRY_NAME', 'STATUS')),
+    ('lakes_a', 'world_features', ('FEATURE_ID', 'PART_ID', 'NAME')),
 ])
-def test_build_sql_select_by_attributes(request, name, fix_name, group_names):
+def test_query_split_by_attributes(request, name, fix_name, group_names):
     """
-    Test build_sql_select_by_attributes
+    Test QuerySplitByAttributes
     """
     geo = request.getfixturevalue(fix_name)
     element = geo[name]
-
-    result = build_sql_select_by_attributes(element, group_names=group_names)
-    group_count_sql, insert_sql, select_sql = result
-
-    assert f'FROM {element.name}' in group_count_sql
-    assert f'GROUP BY {group_names}' in group_count_sql
-
-    assert insert_sql.strip().startswith('INSERT INTO {}(')
-    assert f'dense_rank() OVER (ORDER BY {group_names}' in select_sql
-# End test_build_sql_select_by_attributes function
+    fields = [Field(n, data_type=SQLFieldType.text) for n in group_names]
+    group_names = COMMA_SPACE.join(group_names)
+    query = QuerySplitByAttributes(element, fields)
+    assert f'FROM {element.name}' in query.group_count
+    assert f'GROUP BY {group_names}' in query.group_count
+    assert query.insert.strip().startswith('INSERT INTO {}(')
+    assert f'dense_rank() OVER (ORDER BY {group_names}' in query.select
+# End test_query_split_by_attributes function
 
 
 def test_build_sql_select(world_tables):
