@@ -19,18 +19,13 @@ def test_analysis_components_creation():
     Test AnalysisComponents
     """
     qc = AnalysisComponents(
-        use_index=True,
         has_intersection=False,
-        sql_intersect="SELECT * FROM touches",
-        sql_disjoint="SELECT * FROM outside",
-        sql_insert="INSERT INTO table",
+        query=None,
         target=None
     )
-    assert qc.use_index is True
     assert qc.has_intersection is False
-    assert qc.sql_intersect == "SELECT * FROM touches"
-    assert qc.sql_disjoint == "SELECT * FROM outside"
-    assert qc.sql_insert == "INSERT INTO table"
+    assert qc.query is None
+    assert qc.target is None
 # End test_analysis_components_creation function
 
 
