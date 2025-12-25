@@ -147,7 +147,17 @@ class AbstractSpatialQuery(AbstractQuery):
         return extent_from_feature_class(self._element)
     # End source_extent property
 
-    @property
+    @cached_property
+    def shared_extent(self) -> EXTENT:
+        """
+        Shared Extent between source and operator
+        """
+        shared = box(*self.operator_extent).intersection(
+            box(*self.source_extent))
+        return shared.bounds
+    # End shared_extent property
+
+    @cached_property
     def has_intersection(self) -> bool:
         """
         Has Intersection between source and operator
