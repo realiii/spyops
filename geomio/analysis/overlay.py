@@ -51,14 +51,14 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             geoms = [g for g, i in zip(geometries, intersects) if not i]
             if xy_tolerance is not None:
                 geoms = set_precision(geoms, grid_size=xy_tolerance)
-            results = [(g, geom, attrs) for geom, (g, *attrs) in
+            results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geoms, keepers)]
-            extend_records(results, records=records, config=config)
+            extend_records(results, records=records, config=query.config)
             changers = [f for f, i in zip(features, intersects) if i]
             geoms = [g for g, i in zip(geometries, intersects) if i]
-            results = [(g, geom.difference(polygon, grid_size=xy_tolerance), attrs)
-                       for geom, (g, *attrs) in zip(geoms, changers)]
-            extend_records(results, records=records, config=config)
+            results = [(geom.difference(polygon, grid_size=xy_tolerance), attrs)
+                       for geom, (_, *attrs) in zip(geoms, changers)]
+            extend_records(results, records=records, config=query.config)
             cout.executemany(query.insert, records)
             records.clear()
     return query.target
@@ -82,11 +82,10 @@ def _process_disjoint(query: QueryErase, xy_tolerance: XY_TOL) -> None:
                 cout.executemany(query.insert, features)
             else:
                 geometries = [from_wkb(g.wkb) for g, *_ in features]
-                geometries = set_precision(
-                    geometries, grid_size=xy_tolerance)
-                results = [(g, geom, attrs) for geom, (g, *attrs) in
+                geometries = set_precision(geometries, grid_size=xy_tolerance)
+                results = [(geom, attrs) for geom, (_, *attrs) in
                            zip(geometries, features)]
-                extend_records(results, records=records, config=config)
+                extend_records(results, records=records, config=query.config)
                 cout.executemany(query.insert, records)
                 records.clear()
 # End _process_disjoint function
