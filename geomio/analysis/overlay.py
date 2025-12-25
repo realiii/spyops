@@ -39,9 +39,8 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     if not query.has_intersection:
         return query.target_full
     records = []
-    config = overlay_config(source, operator=operator)
-    polygon = config.geometry
-    _process_disjoint(query, config=config, xy_tolerance=xy_tolerance)
+    polygon = query.config.geometry
+    _process_disjoint(query, xy_tolerance=xy_tolerance)
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin):
         cursor = cin.execute(query.select)
@@ -66,8 +65,9 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 # End erase function
 
 
-def _process_disjoint(query: QueryErase, config: OverlayConfig,
-                      xy_tolerance: XY_TOL) -> None:
+
+
+def _process_disjoint(query: QueryErase, xy_tolerance: XY_TOL) -> None:
     """
     Process Disjoint Features
     """

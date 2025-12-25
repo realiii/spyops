@@ -34,6 +34,7 @@ class OverlayConfig(NamedTuple):
     shapely_multi_cls: Any
     shapely_types: tuple
     geometry: ShapelyMultiPolygon | ShapelyPolygon
+    srs_id: int
 # End OverlayConfig class
 
 

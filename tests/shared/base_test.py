@@ -35,13 +35,14 @@ def test_overlay_config_creation():
     """
     oc = OverlayConfig(
         fudgeo_cls=PointZM, is_multi=False, shapely_multi_cls=MultiPoint,
-        shapely_types=(Point, MultiPoint), geometry=Polygon()
+        shapely_types=(Point, MultiPoint), geometry=Polygon(), srs_id=4326
     )
     assert oc.fudgeo_cls is PointZM
     assert oc.is_multi is False
     assert oc.shapely_multi_cls is MultiPoint
     assert oc.shapely_types == (Point, MultiPoint)
     assert oc.geometry.is_empty
+    assert oc.srs_id == 4326
 # End test_overlay_config_creation function
 
 

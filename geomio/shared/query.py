@@ -11,11 +11,12 @@ from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from shapely import box
 
+from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import QUESTION, SQL_EMPTY, SQL_FULL
 from geomio.shared.element import copy_feature_class
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
-from geomio.shared.geometry import extent_from_feature_class
+from geomio.shared.geometry import extent_from_feature_class, overlay_config
 from geomio.shared.hint import ELEMENT, EXTENT, FIELDS
 
 
@@ -112,6 +113,23 @@ class AbstractSpatialQuery(AbstractQuery):
         self._target: FeatureClass = target
         self._operator: FeatureClass = operator
     # End init built-in
+
+    @cached_property
+    def config(self) -> OverlayConfig:
+        """
+        Overlay Configuration
+        """
+        return overlay_config(
+            self.source, target=self.target, operator=self._operator)
+    # End config property
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        return self.select_intersect
+    # End select property
 
     @cached_property
     def operator_extent(self) -> EXTENT:

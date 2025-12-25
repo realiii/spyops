@@ -123,7 +123,8 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
 # End check_polygon function
 
 
-def overlay_config(source: FeatureClass, operator: FeatureClass) -> OverlayConfig:
+def overlay_config(source: FeatureClass, target: FeatureClass,
+                   operator: FeatureClass) -> OverlayConfig:
     """
     Overlay Configuration
     """
@@ -134,7 +135,8 @@ def overlay_config(source: FeatureClass, operator: FeatureClass) -> OverlayConfi
     shapely_types = _, multi_cls = SHAPELY_GEOMETRY_LOOKUP.get(geom_type)
     return OverlayConfig(
         fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
-        geometry=polygon, shapely_types=shapely_types)
+        geometry=polygon, shapely_types=shapely_types,
+        srs_id=target.spatial_reference_system.srs_id)
 # End overlay_config function
 
 

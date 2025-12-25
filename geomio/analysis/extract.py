@@ -16,7 +16,7 @@ from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
 from geomio.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
-from geomio.shared.geometry import extent_from_feature_class, overlay_config
+from geomio.shared.geometry import extent_from_feature_class
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import (
@@ -112,8 +112,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     if not query.has_intersection:
         return query.target_empty
     records = []
-    config = overlay_config(source, operator=operator)
-    polygon = config.geometry
+    polygon = query.config.geometry
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin):
         cursor = cin.execute(query.select)

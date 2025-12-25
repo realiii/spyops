@@ -35,13 +35,14 @@ def test_overlay_config(inputs, world_features):
     """
     operator = inputs['updater_a']
     fc = world_features['cities_p']
-    config = overlay_config(fc, operator=operator)
+    config = overlay_config(fc, target=inputs['eraser_a'], operator=operator)
     assert config.fudgeo_cls is Point
     assert config.is_multi is False
     assert config.shapely_multi_cls is ShapelyMultiPoint
     assert approx(config.geometry.bounds, abs=0.0001) == (
         6.74573, 46.13702, 16.47727, 52.52511)
     assert config.shapely_types == (ShapelyPoint, ShapelyMultiPoint)
+    assert config.srs_id == 4326
 # End test_overlay_config function
 
 

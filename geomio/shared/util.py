@@ -96,8 +96,9 @@ def extend_records(results: list[tuple], records: list[tuple],
     shapely_types = config.shapely_types
     multi_cls = config.shapely_multi_cls
     cls = config.fudgeo_cls
+    srs_id = config.srs_id
     is_multi = config.is_multi
-    for g, result, attributes in results:
+    for result, attributes in results:
         if result.is_empty:
             continue
         if isinstance(result, GeometryCollection):
@@ -109,10 +110,10 @@ def extend_records(results: list[tuple], records: list[tuple],
             if not hasattr(result, GEOMS_ATTR):
                 result = multi_cls([result])
             records.append((cls.from_wkb(
-                result.wkb, srs_id=g.srs_id), *attributes))
+                result.wkb, srs_id=srs_id), *attributes))
         else:
             records.extend([(cls.from_wkb(
-                part.wkb, srs_id=g.srs_id), *attributes)
+                part.wkb, srs_id=srs_id), *attributes)
                 for part in getattr(result, GEOMS_ATTR, [result])])
 # End extend_records function
 
