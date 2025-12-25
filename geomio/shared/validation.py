@@ -5,10 +5,11 @@ Validation
 
 
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 from functools import wraps
 from inspect import signature
 from pathlib import Path
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Type
 from warnings import warn
 
 from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
@@ -60,15 +61,13 @@ class AbstractValidate(metaclass=ABCMeta):
 # End AbstractValidate class
 
 
-class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
+class AbstractValidateArgument(AbstractValidate, metaclass=ABCMeta):
     """
-    Abstract Validate Type
+    Abstract Validation on an Argument by Name
     """
-    _types: ClassVar[tuple[type, ...]] = ()
-
     def __init__(self, name: str) -> None:
         """
-        Initialize the AbstractValidateType class
+        Initialize the AbstractValidateArgument class
         """
         super().__init__()
         self._name: str = name
@@ -87,6 +86,14 @@ class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
         """
         kwargs[self._name] = obj
     # End _set_object method
+# End AbstractValidateArgument class
+
+
+class AbstractValidateType(AbstractValidateArgument, metaclass=ABCMeta):
+    """
+    Abstract Validate Type
+    """
+    _types: ClassVar[tuple[type, ...]] = ()
 
     @staticmethod
     def _check_element(obj: Any) -> Any:
@@ -165,6 +172,50 @@ class AbstractValidateTypeExists(AbstractValidateType):
         pass
     # End _validation method
 # End AbstractValidateTypeExists class
+
+
+class ValidateEnumeration(AbstractValidateArgument):
+    """
+    Validate Item is of the expected Enumeration
+    """
+    def __init__(self, name: str, enum: Type[Enum]) -> None:
+        """
+        Initialize the ValidateEnumeration class
+        """
+        super().__init__(name)
+        self._enum: Type[Enum] = enum
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            obj = self._validate_value(obj)
+            self._set_object(obj, kwargs=kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _validate_value(self, obj: Any) -> Any:
+        """
+        Validate Value
+        """
+        if isinstance(obj, self._enum):
+            return obj
+        if isinstance(obj, str):
+            obj = self._enum(obj.casefold())
+        return self._enum(obj)
+    # End _validate_value method
+# End ValidateEnumeration class
 
 
 class ValidateSameCRS(AbstractValidate):
@@ -619,6 +670,7 @@ validate_result = ValidateResult
 validate_same_crs = ValidateSameCRS
 validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
+validate_enumeration = ValidateEnumeration
 
 
 def _check_output_empty(element: ELEMENT) -> ELEMENT:

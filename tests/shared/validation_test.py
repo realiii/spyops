@@ -14,7 +14,7 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from geomio.shared.enumeration import Setting
+from geomio.shared.enumeration import AttributeOption, Setting
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
@@ -22,7 +22,8 @@ from geomio.shared.field import (
 from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 from geomio.shared.validation import (
-    _check_output_empty, validate_element, validate_feature_class,
+    _check_output_empty, validate_element, validate_enumeration,
+    validate_feature_class,
     validate_field, validate_geopackage, validate_same_crs, validate_table,
     validate_xy_tolerance)
 
@@ -331,6 +332,26 @@ def test_validate_xy_tolerance_sans_setting(value, expected):
 
     assert xy_function(value) == expected
 # End test_validate_xy_tolerance_sans_setting function
+
+@mark.parametrize('value, expected, throws', [
+    (None, None, True),
+    ('ALL', AttributeOption.ALL, False),
+    (AttributeOption.ONLY_FID, AttributeOption.ONLY_FID, False),
+    (10, None, True),
+])
+def test_validate_enumeration(value, expected, throws):
+    """
+    Test validate enumeration
+    """
+    @validate_enumeration('option', AttributeOption)
+    def enum_function(option):
+        return option
+    if throws:
+        with raises(ValueError):
+            enum_function(value)
+    else:
+        assert enum_function(value) == expected
+# End test_validate_enumeration function
 
 
 @mark.parametrize('value, swap_value, expected', [
