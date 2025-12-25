@@ -29,5 +29,15 @@ class Setting(StrEnum):
 # End Setting class
 
 
+class AttributeOption(StrEnum):
+    """
+    Attribute Options
+    """
+    ALL = auto()
+    SANS_FID = auto()
+    ONLY_FID = auto()
+# End AttributeOption class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

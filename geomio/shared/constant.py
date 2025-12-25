@@ -41,11 +41,14 @@ OPERATOR: str = 'operator'
 TARGET: str = 'target'
 GEOPACKAGE: str = 'geopackage'
 GROUP_FIELDS: str = 'group_fields'
+ATTR_OPTION: str = 'attr_option'
 
 
 SQL_EMPTY: str = """ROWID <= -1"""
 SQL_FULL: str = """ROWID > -1"""
 
+IN: str = 'IN'
+NOT_IN: str = 'NOT IN'
 
 UNSUPPORTED_WKT: str = 'Unsupported WKT: {}'
 EMPTY_INPUT: str = '{}: {} is empty'
