@@ -9,11 +9,11 @@ from pytest import mark, param
 
 from geomio.analysis.overlay import erase, intersect
 from geomio.shared.enumeration import Setting
-from geomio.shared.query import QueryErase
+from geomio.query.overlay import QueryErase
 from geomio.shared.setting import Swap
 
 
-pytestmark = [mark.overlay]
+pytestmark = [mark.overlay, mark.query]
 
 
 @mark.parametrize('fc_name, xy_tolerance, count', [

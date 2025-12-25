@@ -12,7 +12,7 @@ from shapely import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from geomio.shared.query import AbstractQuery, AbstractSpatialQuery
+    from geomio.query.base import AbstractQuery, AbstractSpatialQuery
 
 
 class AnalysisComponents(NamedTuple):

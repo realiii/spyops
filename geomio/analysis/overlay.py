@@ -11,14 +11,15 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import STRtree, set_precision
 from shapely.io import from_wkb
 
-from geomio.shared.constant import OPERATOR, SOURCE, TARGET
+from geomio.query.overlay import QueryErase, QueryIntersect
+from geomio.shared.constant import ATTR_OPTION, OPERATOR, SOURCE, TARGET
+from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.hint import XY_TOL
-from geomio.shared.query import QueryErase, QueryIntersect
 from geomio.shared.util import extend_records
 from geomio.shared.validation import (
-    validate_feature_class, validate_result, validate_same_crs,
-    validate_xy_tolerance)
+    validate_enumeration, validate_feature_class, validate_result,
+    validate_same_crs, validate_xy_tolerance)
 
 
 @validate_result()
@@ -68,11 +69,14 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_result()
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_xy_tolerance()
+@validate_enumeration(ATTR_OPTION, AttributeOption)
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def intersect(source: FeatureClass, operator: FeatureClass,
-              target: FeatureClass, *, xy_tolerance: XY_TOL = None) -> FeatureClass:
+              target: FeatureClass, *,
+              attr_option: AttributeOption = AttributeOption.ALL,
+              xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
     Intersect
 
@@ -80,7 +84,8 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     operator feature class.  Optionally, extends the output feature class
     with attributes from the operator feature class.
     """
-    query = QueryIntersect(source, target=target, operator=operator)
+    query = QueryIntersect(source, target=target, operator=operator,
+                           attr_option=attr_option)
     if not query.has_intersection:
         return query.target_empty
     with query.operator.geopackage.connection as cin:

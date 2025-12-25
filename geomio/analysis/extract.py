@@ -11,7 +11,7 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import box
 from shapely.io import from_wkb
 
-from geomio.shared.query import QueryClip, QuerySplitByAttributes
+from geomio.query.extract import QueryClip, QuerySplitByAttributes
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element

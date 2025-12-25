@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-SQL Utilities
+Abstract Classes in support of Query objects
 """
-
 
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
@@ -14,10 +13,11 @@ from shapely import box
 from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import QUESTION, SQL_EMPTY, SQL_FULL
 from geomio.shared.element import copy_feature_class
+from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
-from geomio.shared.hint import ELEMENT, EXTENT, FIELDS
+from geomio.shared.hint import ELEMENT, EXTENT
 
 
 class AbstractQuery(metaclass=ABCMeta):
@@ -109,7 +109,7 @@ class AbstractSpatialQuery(AbstractQuery):
     def __init__(self, source: FeatureClass, target: FeatureClass,
                  operator: FeatureClass) -> None:
         """
-        Initialize the QueryClip class
+        Initialize the AbstractSpatialQuery class
         """
         super().__init__(source)
         self._target: FeatureClass = target
@@ -247,188 +247,20 @@ class AbstractSpatialQuery(AbstractQuery):
 # End AbstractSpatialQuery class
 
 
-class QuerySplitByAttributes(AbstractQuery):
+class AbstractSpatialAttribute(AbstractSpatialQuery):
     """
-    Queries for Split by Attributes
+    Abstract class extending with attribute options
     """
-    def __init__(self, element: ELEMENT, fields: FIELDS) -> None:
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass, attr_option: AttributeOption) -> None:
         """
-        Initialize the QuerySplitByAttributes class
+        Initialize the AbstractSpatialAttribute class
         """
-        super().__init__(element)
-        self._group_names: str = make_field_names(fields)
+        super().__init__(source=source, target=target, operator=operator)
+        self._attr_option: AttributeOption = attr_option
     # End init built-in
+# End AbstractSpatialAttribute class
 
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        elm = self._element
-        *_, select_field_names = self._field_names_and_count(elm)
-        primary = elm.primary_key_field.escaped_name
-        sub = f"""
-            SELECT {primary}
-            FROM (SELECT {primary}, 
-                         dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
-                         FROM {elm.escaped_name})
-            WHERE __DRID__ = ?
-        """
-        return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=f'{primary} IN ({sub})')
-    # End select property
-
-    @property
-    def group_count(self) -> str:
-        """
-        Group Count Query
-        """
-        return f"""
-            SELECT COUNT(C) AS C 
-            FROM (SELECT COUNT(1) AS C 
-                  FROM {self._element.escaped_name} 
-                  GROUP BY {self._group_names}
-            )
-        """
-    # End group_count property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        elm = self._element
-        field_count, insert_field_names, _ = self._field_names_and_count(elm)
-        return self._make_insert('{}', insert_field_names, field_count)
-    # End insert property
-# End QuerySplitByAttributes class
-
-
-class QueryClip(AbstractSpatialQuery):
-    """
-    Queries for Clip
-    """
-    @property
-    def select_intersect(self) -> str:
-        """
-        Selection query for intersection
-        """
-        elm = self._element
-        if where := self._spatial_index_where(
-                elm, extent=self.shared_extent):
-            where = where.format('IN')
-        else:
-            where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names, where_clause=where)
-    # End select_intersect property
-
-    @property
-    def select_disjoint(self) -> str:
-        """
-        Selection query for disjoint
-        """
-        elm = self._element
-        if not (where := self._spatial_index_where(
-                elm, extent=self.shared_extent)):
-            return ''
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=where.format('NOT IN'))
-    # End select_disjoint property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        elm = self._element
-        field_count, insert_field_names, _ = self._field_names_and_count(elm)
-        return self._make_insert(
-            self._target.escaped_name, field_names=insert_field_names,
-            field_count=field_count)
-    # End insert property
-# End QueryClip class
-
-
-class QueryErase(QueryClip):
-    """
-    Queries for Erase
-    """
-# End QueryErase class
-
-
-class QueryIntersect(AbstractSpatialQuery):
-    """
-    Queries for Intersect
-    """
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        return self.select_intersect
-    # End select property
-
-    @property
-    def select_operator(self) -> str:
-        """
-        Selection Query for Operator
-        """
-        elm = self._operator
-        if where := self._spatial_index_where(elm, extent=self.shared_extent):
-            where = where.format('IN')
-        else:
-            where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(elm, select_field_names, where_clause=where)
-    # End select_operator property
-
-    @property
-    def select_intersect(self) -> str:
-        """
-        Selection query for intersection
-        """
-        elm = self._element
-        if where := self._spatial_index_where(elm, extent=self.shared_extent):
-            where = where.format('IN')
-        else:
-            where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names, where_clause=where)
-    # End select_intersect property
-
-    @property
-    def select_disjoint(self) -> str:
-        """
-        Selection query for disjoint
-        """
-        elm = self._element
-        if not (where := self._spatial_index_where(
-                elm, extent=self.shared_extent)):
-            return ''
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=where.format('NOT IN'))
-    # End select_disjoint property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        elm = self._element
-        field_count, insert_field_names, _ = self._field_names_and_count(elm)
-        return self._make_insert(
-            self._target.escaped_name, field_names=insert_field_names,
-            field_count=field_count)
-    # End insert property
-# End QueryIntersect class
 
 
 if __name__ == '__main__':  # pragma: no cover
