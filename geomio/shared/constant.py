@@ -41,7 +41,7 @@ OPERATOR: str = 'operator'
 TARGET: str = 'target'
 GEOPACKAGE: str = 'geopackage'
 GROUP_FIELDS: str = 'group_fields'
-ATTR_OPTION: str = 'attr_option'
+ATTRIBUTE_OPTION: str = 'attribute_option'
 
 
 SQL_EMPTY: str = """ROWID <= -1"""
