@@ -122,7 +122,7 @@ class AbstractSpatialQuery(AbstractQuery):
         Overlay Configuration
         """
         return overlay_config(
-            self.source, target=self.target, operator=self._operator)
+            self.source, target=self.target, operator=self.operator)
     # End config property
 
     @property
@@ -138,7 +138,7 @@ class AbstractSpatialQuery(AbstractQuery):
         """
         Operator Extent
         """
-        return extent_from_feature_class(self._operator)
+        return extent_from_feature_class(self.operator)
     # End operator_extent property
 
     @cached_property
@@ -146,7 +146,7 @@ class AbstractSpatialQuery(AbstractQuery):
         """
         Source Extent
         """
-        return extent_from_feature_class(self._element)
+        return extent_from_feature_class(self.source)
     # End source_extent property
 
     @cached_property
@@ -215,7 +215,7 @@ class AbstractSpatialQuery(AbstractQuery):
         Only the Structure of the Source copied to the Target Feature Class
         """
         return copy_feature_class(
-            self._element, target=self._target, where_clause=SQL_EMPTY)
+            self.source, target=self._target, where_clause=SQL_EMPTY)
     # End target_empty property
 
     @cached_property
@@ -224,7 +224,7 @@ class AbstractSpatialQuery(AbstractQuery):
         Full Copy of the Source Feature Class
         """
         return copy_feature_class(
-            self._element, target=self._target, where_clause=SQL_FULL)
+            self.source, target=self._target, where_clause=SQL_FULL)
     # End target_full property
 
     @property

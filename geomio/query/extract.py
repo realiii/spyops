@@ -27,7 +27,7 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Selection Query
         """
-        elm = self._element
+        elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
         primary = elm.primary_key_field.escaped_name
         sub = f"""
@@ -50,7 +50,7 @@ class QuerySplitByAttributes(AbstractQuery):
         return f"""
             SELECT COUNT(C) AS C 
             FROM (SELECT COUNT(1) AS C 
-                  FROM {self._element.escaped_name} 
+                  FROM {self.source.escaped_name} 
                   GROUP BY {self._group_names}
             )
         """
@@ -61,7 +61,7 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Insert Query
         """
-        elm = self._element
+        elm = self.source
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert('{}', insert_field_names, field_count)
     # End insert property
@@ -108,10 +108,10 @@ class QueryClip(AbstractSpatialQuery):
         """
         Insert Query
         """
-        elm = self._element
+        elm = self.source
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert(
-            self._target.escaped_name, field_names=insert_field_names,
+            self.target.escaped_name, field_names=insert_field_names,
             field_count=field_count)
     # End insert property
 # End QueryClip class
