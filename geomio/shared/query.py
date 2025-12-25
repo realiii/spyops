@@ -5,7 +5,7 @@ SQL Utilities
 
 
 from abc import ABCMeta, abstractmethod
-from functools import cached_property
+from functools import cache, cached_property
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
@@ -32,13 +32,15 @@ class AbstractQuery(metaclass=ABCMeta):
         self._element: ELEMENT = element
     # End init built-in
 
-    def _make_select(self, field_names: str, where_clause: str) -> str:
+    @staticmethod
+    def _make_select(element: ELEMENT, field_names: str,
+                     where_clause: str) -> str:
         """
         Make SQL statement for Select
         """
         return f"""
             SELECT {field_names}
-            FROM {self._element.escaped_name} 
+            FROM {element.escaped_name} 
             WHERE {where_clause}
         """
     # End _make_select function
@@ -54,18 +56,18 @@ class AbstractQuery(metaclass=ABCMeta):
         """
     # End _make_insert function
 
-    @cached_property
-    def _field_names_and_count(self) -> tuple[int, str, str]:
+    @cache
+    def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
         """
         Field Names for Select and Insert + Derive Field Count
         """
-        fields = validate_fields(self._element, fields=self._element.fields)
+        fields = validate_fields(element, fields=element.fields)
         select_field_names = insert_field_names = make_field_names(fields)
         field_count = len(fields)
-        if isinstance(self._element, FeatureClass):
-            geom = get_geometry_column_name(self._element)
+        if isinstance(element, FeatureClass):
+            geom = get_geometry_column_name(element)
             geom_type = get_geometry_column_name(
-                self._element, include_geom_type=True)
+                element, include_geom_type=True)
             select_field_names = f'{geom_type}{COMMA_SPACE}{select_field_names}'
             insert_field_names = f'{geom}{COMMA_SPACE}{insert_field_names}'
             field_count += 1
@@ -262,17 +264,19 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Selection Query
         """
-        *_, select_field_names = self._field_names_and_count
-        primary = self._element.primary_key_field.escaped_name
+        elm = self._element
+        *_, select_field_names = self._field_names_and_count(elm)
+        primary = elm.primary_key_field.escaped_name
         sub = f"""
             SELECT {primary}
             FROM (SELECT {primary}, 
                          dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
-                         FROM {self._element.escaped_name})
+                         FROM {elm.escaped_name})
             WHERE __DRID__ = ?
         """
         return self._make_select(
-            select_field_names, where_clause=f'{primary} IN ({sub})')
+            elm, field_names=select_field_names,
+            where_clause=f'{primary} IN ({sub})')
     # End select property
 
     @property
@@ -294,7 +298,8 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Insert Query
         """
-        field_count, insert_field_names, _ = self._field_names_and_count
+        elm = self._element
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert('{}', insert_field_names, field_count)
     # End insert property
 # End QuerySplitByAttributes class
@@ -303,6 +308,62 @@ class QuerySplitByAttributes(AbstractQuery):
 class QueryClip(AbstractSpatialQuery):
     """
     Queries for Clip
+    """
+    @property
+    def select_intersect(self) -> str:
+        """
+        Selection query for intersection
+        """
+        elm = self._element
+        if where := self._spatial_index_where(
+                elm, extent=self.shared_extent):
+            where = where.format('IN')
+        else:
+            where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_select(
+            elm, field_names=select_field_names, where_clause=where)
+    # End select_intersect property
+
+    @property
+    def select_disjoint(self) -> str:
+        """
+        Selection query for disjoint
+        """
+        elm = self._element
+        if not (where := self._spatial_index_where(
+                elm, extent=self.shared_extent)):
+            return ''
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_select(
+            elm, field_names=select_field_names,
+            where_clause=where.format('NOT IN'))
+    # End select_disjoint property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        elm = self._element
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
+        return self._make_insert(
+            self._target.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End insert property
+# End QueryClip class
+
+
+class QueryErase(QueryClip):
+    """
+    Queries for Erase
+    """
+# End QueryErase class
+
+
+class QueryIntersect(AbstractSpatialQuery):
+    """
+    Queries for Intersect
     """
     @property
     def select(self) -> str:
@@ -331,13 +392,14 @@ class QueryClip(AbstractSpatialQuery):
         """
         Selection query for intersection
         """
-        if where := self._spatial_index_where(
-                self._element, extent=self.operator_extent):
+        elm = self._element
+        if where := self._spatial_index_where(elm, extent=self.shared_extent):
             where = where.format('IN')
         else:
             where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count
-        return self._make_select(select_field_names, where_clause=where)
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_select(
+            elm, field_names=select_field_names, where_clause=where)
     # End select_intersect property
 
     @property
@@ -345,12 +407,14 @@ class QueryClip(AbstractSpatialQuery):
         """
         Selection query for disjoint
         """
+        elm = self._element
         if not (where := self._spatial_index_where(
-                self._element, extent=self.operator_extent)):
+                elm, extent=self.shared_extent)):
             return ''
-        *_, select_field_names = self._field_names_and_count
+        *_, select_field_names = self._field_names_and_count(elm)
         return self._make_select(
-            select_field_names, where_clause=where.format('NOT IN'))
+            elm, field_names=select_field_names,
+            where_clause=where.format('NOT IN'))
     # End select_disjoint property
 
     @property
@@ -358,19 +422,13 @@ class QueryClip(AbstractSpatialQuery):
         """
         Insert Query
         """
-        field_count, insert_field_names, _ = self._field_names_and_count
+        elm = self._element
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert(
             self._target.escaped_name, field_names=insert_field_names,
             field_count=field_count)
     # End insert property
-# End QueryClip class
-
-
-class QueryErase(QueryClip):
-    """
-    Queries for Erase
-    """
-# End QueryErase class
+# End QueryIntersect class
 
 
 if __name__ == '__main__':  # pragma: no cover
