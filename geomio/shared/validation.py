@@ -20,6 +20,7 @@ from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
 from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
+from geomio.shared.geometry import set_extent
 from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
@@ -346,8 +347,11 @@ class ValidateResult(AbstractValidate):
             if not (result := func(*args, **kwargs)):
                 return result
             for element in self._make_iterable(result):
-                if isinstance(element, (FeatureClass, Table)):
-                    _check_output_empty(element)
+                if isinstance(element, Table):
+                    _check_output(element)
+                if isinstance(element, FeatureClass):
+                    _check_output(element)
+                    set_extent(element)
             return result
         # End wrapper function
         return wrapper
@@ -673,14 +677,18 @@ validate_xy_tolerance = ValidateXYTolerance
 validate_enumeration = ValidateEnumeration
 
 
-def _check_output_empty(element: ELEMENT) -> ELEMENT:
+def _check_output(element: ELEMENT) -> ELEMENT:
     """
-    Check element for content, warn if empty
+    Check element for existence and content, warn if not present or empty
     """
+    if not element.exists:
+        warn(f'{element.name} was not created', OperationsWarning)
+        return element
     if element.is_empty:
         warn(f'{element.name} created but contains no rows', OperationsWarning)
+        return element
     return element
-# End _check_output_empty function
+# End _check_output function
 
 
 if __name__ == '__main__':  # pragma: no cover
