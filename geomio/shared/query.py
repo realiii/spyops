@@ -174,6 +174,22 @@ class AbstractSpatialQuery(AbstractQuery):
     # End _spatial_index_wheres function
 
     @property
+    def source(self) -> FeatureClass:
+        """
+        Source
+        """
+        return self._element
+    # End source property
+
+    @property
+    def operator(self) -> FeatureClass:
+        """
+        Operator
+        """
+        return self._operator
+    # End operator property
+
+    @property
     def target(self) -> FeatureClass:
         """
         Alias for Target Empty
