@@ -313,6 +313,20 @@ class QueryClip(AbstractSpatialQuery):
     # End select property
 
     @property
+    def select_operator(self) -> str:
+        """
+        Selection Query for Operator
+        """
+        elm = self._operator
+        if where := self._spatial_index_where(elm, extent=self.shared_extent):
+            where = where.format('IN')
+        else:
+            where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_select(elm, select_field_names, where_clause=where)
+    # End select_operator property
+
+    @property
     def select_intersect(self) -> str:
         """
         Selection query for intersection
