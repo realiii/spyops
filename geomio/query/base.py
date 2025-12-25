@@ -252,12 +252,13 @@ class AbstractSpatialAttribute(AbstractSpatialQuery):
     Abstract class extending with attribute options
     """
     def __init__(self, source: FeatureClass, target: FeatureClass,
-                 operator: FeatureClass, attr_option: AttributeOption) -> None:
+                 operator: FeatureClass,
+                 attribute_option: AttributeOption) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
         super().__init__(source=source, target=target, operator=operator)
-        self._attr_option: AttributeOption = attr_option
+        self._attr_option: AttributeOption = attribute_option
     # End init built-in
 # End AbstractSpatialAttribute class
 

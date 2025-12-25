@@ -12,7 +12,7 @@ from shapely import STRtree, set_precision
 from shapely.io import from_wkb
 
 from geomio.query.overlay import QueryErase, QueryIntersect
-from geomio.shared.constant import ATTR_OPTION, OPERATOR, SOURCE, TARGET
+from geomio.shared.constant import ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.hint import XY_TOL
@@ -69,13 +69,13 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_result()
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_xy_tolerance()
-@validate_enumeration(ATTR_OPTION, AttributeOption)
+@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def intersect(source: FeatureClass, operator: FeatureClass,
               target: FeatureClass, *,
-              attr_option: AttributeOption = AttributeOption.ALL,
+              attribute_option: AttributeOption = AttributeOption.ALL,
               xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
     Intersect
@@ -85,7 +85,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     with attributes from the operator feature class.
     """
     query = QueryIntersect(source, target=target, operator=operator,
-                           attr_option=attr_option)
+                           attribute_option=attribute_option)
     if not query.has_intersection:
         return query.target_empty
     with query.operator.geopackage.connection as cin:
