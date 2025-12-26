@@ -681,10 +681,10 @@ def _check_output(element: ELEMENT) -> ELEMENT:
     """
     Check element for existence and content, warn if not present or empty
     """
-    if not element.exists:
+    if not element:
         warn(f'{element.name} was not created', OperationsWarning)
         return element
-    if element.is_empty:
+    if not len(element):
         warn(f'{element.name} created but contains no rows', OperationsWarning)
         return element
     return element
