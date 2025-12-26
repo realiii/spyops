@@ -34,9 +34,18 @@ class TestQueryIntersect:
     # End test_field_names_and_count method
 
     @mark.parametrize('option, names', [
-        (AttributeOption.ALL, ['fid_admin_a', 'FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY', 'ISO_CODE', 'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES', 'AUTONOMOUS', 'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK', 'fid_intersect_a', 'ID', 'NAME_1', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
+        (AttributeOption.ALL, [
+            'fid_admin_a', 'FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY',
+            'ISO_CODE', 'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES',
+            'AUTONOMOUS', 'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK',
+            'fid_intersect_a', 'ID', 'NAME_1', 'WHEN', 'EXAMPLE_JSON', 'BOB',
+            'NOT_NOW']),
         (AttributeOption.ONLY_FID, ['fid_admin_a', 'fid_intersect_a']),
-        (AttributeOption.SANS_FID, ['FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY', 'ISO_CODE', 'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES', 'AUTONOMOUS', 'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK', 'ID', 'NAME_1', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
+        (AttributeOption.SANS_FID, [
+            'FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY', 'ISO_CODE', 'ISO_CC',
+            'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES', 'AUTONOMOUS',
+            'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK', 'ID', 'NAME_1',
+            'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
     ])
     def test_unique_fields(self, inputs, world_features, mem_gpkg, option, names):
         """
