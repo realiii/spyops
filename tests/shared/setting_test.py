@@ -78,5 +78,18 @@ def test_check_workspace(data_path):
 # End test_check_workspace function
 
 
+def test_scratch_workspace(fresh_gpkg):
+    """
+    Test scratch workspace
+    """
+    original = ANALYSIS_SETTINGS.scratch_workspace
+    with Swap(Setting.SCRATCH_WORKSPACE, fresh_gpkg) as s:
+        assert isinstance(s.cached_value, MemoryGeoPackage)
+        assert isinstance(s.swap_value, GeoPackage)
+        assert ANALYSIS_SETTINGS.scratch_workspace is fresh_gpkg
+    assert ANALYSIS_SETTINGS.scratch_workspace is original
+# End test_scratch_workspace function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
