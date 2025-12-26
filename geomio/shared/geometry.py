@@ -80,7 +80,7 @@ FUDGEO_GEOMETRY_LOOKUP: dict[str, dict[tuple[bool, bool], Any]] = {
 
 def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
     """
-    Build MultiPolygon from Polygon or MultiPolygon Feature Class
+    Build MultiPolygon from a Polygon or MultiPolygon Feature Class
     """
     polygons = _get_polygons(feature_class)
     # noinspection PyTypeChecker
