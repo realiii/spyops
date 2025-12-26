@@ -140,6 +140,31 @@ def overlay_config(source: FeatureClass, target: FeatureClass,
 # End overlay_config function
 
 
+def set_extent(feature_class: FeatureClass) -> None:
+    """
+    Set Extent on a Feature Class using existing, spatial index, or
+    geometry extents.
+    """
+    try:
+        feature_class.extent = extent_from_feature_class(feature_class)
+    except OperationsError:  # pragma: no cover
+        return
+# End set_extent function
+
+
+def _extent_from_index_or_geometry(feature_class: FeatureClass) -> EXTENT:
+    """
+    Get the Extent from the Spatial Index, fail over to the extent derived
+    from geometries.
+    """
+    extent = _extent_from_spatial_index(feature_class)
+    if isfinite(extent).all():
+        return extent
+    else:  # pragma: no cover
+        return get_extent(feature_class)
+# End _extent_from_index_or_geometry function
+
+
 def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
     """
     Returns the extent from a feature class, use the extent if it has
@@ -149,14 +174,12 @@ def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
     extent = feature_class.extent
     if isfinite(extent).all():
         return extent
-    extent = _extent_from_spatial_index(feature_class)
+    extent = _extent_from_index_or_geometry(feature_class)
     if isfinite(extent).all():
         return extent
-    extent = get_extent(feature_class)
-    if isfinite(extent).all():
-        return extent
-    raise OperationsError(
-        f'{feature_class.name} is empty or only contains empty geometries')
+    else:  # pragma: no cover
+        raise OperationsError(
+            f'{feature_class.name} is empty or only contains empty geometries')
 # End extent_from_feature_class function
 
 
