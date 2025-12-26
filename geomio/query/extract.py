@@ -117,5 +117,19 @@ class QueryClip(AbstractSpatialQuery):
 # End QueryClip class
 
 
+class QuerySplit(AbstractSpatialQuery):
+    """
+    Queries for Split, really just here for the has_intersection
+    """
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query, not used
+        """
+        return ''
+    # End insert property
+# End QuerySplit class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

@@ -6,17 +6,15 @@ Extraction
 
 from typing import Callable
 
-from fudgeo import FeatureClass, Field, Table
+from fudgeo import FeatureCla
 from fudgeo.constant import FETCH_SIZE
-from shapely import box
 from shapely.io import from_wkb
 
-from geomio.query.extract import QueryClip, QuerySplitByAttributes
+from geomio.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
 from geomio.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
-from geomio.shared.geometry import extent_from_feature_class
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import (
@@ -148,9 +146,8 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
     values from the specified field to name the output feature classes.
     """
     features = []
-    split_extent = extent_from_feature_class(operator)
-    source_extent = extent_from_feature_class(source)
-    if not box(*split_extent).intersects(box(*source_extent)):
+    query = QuerySplit(source, target=None, operator=operator)
+    if not query.has_intersection:
         return features
     splitters = split_by_attributes(
         operator, group_fields=[field],
