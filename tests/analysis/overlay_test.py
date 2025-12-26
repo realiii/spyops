@@ -41,17 +41,17 @@ def test_erase_reduced(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance
     Test erase -- reduced data for faster testing
     """
     eraser = inputs['eraser_a']
-    assert eraser.count == 5
+    assert len(eraser) == 5
     source = world_features[fc_name]
     assert source.is_multi_part == ('mp' in fc_name)
     target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
     query = QueryErase(source=source, target=target, operator=eraser)
     _, touches = query.select.split('WHERE', 1)
     subset = source.copy(f'subset_{fc_name}', where_clause=touches, geopackage=fresh_gpkg)
-    assert subset.count <= source.count
+    assert len(subset) <= len(source)
     target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
     result = erase(source=subset, operator=eraser, target=target, xy_tolerance=xy_tolerance)
-    assert result.count == count
+    assert len(result) == count
 # End test_erase_reduced function
 
 
@@ -66,12 +66,12 @@ def test_erase(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count)
     Test erase - ensure that disjoint is exercised
     """
     eraser = inputs['eraser_a']
-    assert eraser.count == 5
+    assert len(eraser) == 5
     source = world_features[fc_name]
     assert source.is_multi_part == ('mp' in fc_name)
     target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
     result = erase(source=source, operator=eraser, target=target, xy_tolerance=xy_tolerance)
-    assert result.count == count
+    assert len(result) == count
 # End test_erase function
 
 
