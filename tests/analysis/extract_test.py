@@ -38,7 +38,7 @@ def test_table_select(world_tables, mem_gpkg, table_name, where_clause, count):
     source = world_tables[table_name]
     target = Table(geopackage=mem_gpkg, name=table_name)
     result = table_select(source=source, target=target, where_clause=where_clause)
-    assert result.count == count
+    assert len(result) == count
 # End test_table_select function
 
 
@@ -51,14 +51,14 @@ def test_table_select_overwrite(world_tables, mem_gpkg):
     count = 62
     target = Table(geopackage=mem_gpkg, name=source.name)
     result = table_select(source=source, target=target, where_clause=where_clause)
-    assert result.count == count
+    assert len(result) == count
 
     with raises(OperationsError):
         table_select(source=source, target=target, where_clause=where_clause)
 
     with Swap(Setting.OVERWRITE, True):
         result = table_select(source=source, target=target, where_clause=where_clause)
-    assert result.count == count
+    assert len(result) == count
 # End test_table_select_overwrite function
 
 
@@ -98,7 +98,7 @@ def test_select(world_features, mem_gpkg, fc_name, where_clause, count):
     source = world_features[fc_name]
     target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     result = select(source=source, target=target, where_clause=where_clause)
-    assert result.count == count
+    assert len(result) == count
 # End test_select function
 
 
@@ -137,7 +137,7 @@ def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
         where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
     results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
     assert len(results) == count
-    assert sum([r.count for r in results]) == subset
+    assert sum([len(r) for r in results]) == subset
 # End test_split_by_attributes_features function
 
 
@@ -160,7 +160,7 @@ def test_split_by_attributes_features_with_settings(world_features, mem_gpkg, fi
     with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
         results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
     assert len(results) == count
-    assert sum([r.count for r in results]) == subset
+    assert sum([len(r) for r in results]) == subset
 # End test_split_by_attributes_features_with_settings function
 
 
@@ -189,12 +189,12 @@ def test_clip(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
     Test clip
     """
     clipper = inputs['clipper_a']
-    assert clipper.count == 3
+    assert len(clipper) == 3
     source = world_features[fc_name]
     target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
-    assert result.count < source.count
-    assert result.count == count
+    assert len(result) < len(source)
+    assert len(result) == count
 # End test_clip function
 
 
@@ -223,12 +223,12 @@ def test_split(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_
     Test split
     """
     splitter = inputs['splitter_a']
-    assert splitter.count == 5
+    assert len(splitter) == 5
     source = world_features[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
     results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
     assert len(results) == element_count
-    assert sum(r.count for r in results) == record_count
+    assert sum(len(r) for r in results) == record_count
 # End test_split function
 
 
@@ -257,13 +257,13 @@ def test_clip_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, c
     Test clip using analysis settings
     """
     clipper = inputs['clipper_a']
-    assert clipper.count == 3
+    assert len(clipper) == 3
     source = world_features[fc_name]
     target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     with Swap(Setting.XY_TOLERANCE, xy_tolerance):
         result = clip(source=source, operator=clipper, target=target)
-    assert result.count < source.count
-    assert result.count == count
+    assert len(result) < len(source)
+    assert len(result) == count
 # End test_clip_setting function
 
 
@@ -292,7 +292,7 @@ def test_split_setting(tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_t
     Test split using analysis settings
     """
     splitter = inputs['splitter_a']
-    assert splitter.count == 5
+    assert len(splitter) == 5
     source = world_features[fc_name]
     field = Field('NAME', data_type=SQLFieldType.text)
     gpkg = GeoPackage.create(tmp_path / 'test_scratch.gpkg')
@@ -301,7 +301,7 @@ def test_split_setting(tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_t
           Swap(Setting.SCRATCH_WORKSPACE, gpkg)):
         results = split(source=source, operator=splitter, field=field, geopackage=None)
     assert len(results) == element_count
-    assert sum(r.count for r in results) == record_count
+    assert sum(len(r) for r in results) == record_count
 # End test_split_setting function
 
 
