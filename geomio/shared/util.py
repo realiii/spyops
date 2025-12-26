@@ -7,7 +7,6 @@ Utilities
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
-from fudgeo import FeatureClass
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
@@ -63,7 +62,8 @@ def make_valid_name(name: str, prefix: str) -> str:
     name = _replace_double_under(name).rstrip(UNDERSCORE)
     if NAME_MATCHER(name):
         return name
-    return make_valid_name(name, prefix=prefix)
+    else:  # pragma: no cover
+        return make_valid_name(name, prefix=prefix)
 # End _make_valid_name function
 
 
@@ -89,26 +89,6 @@ def expand_extent(extent: EXTENT) -> EXTENT:
 # End expand_extent function
 
 
-def make_spatial_index_where(source: FeatureClass, extent: EXTENT) -> tuple[str, str]:
-    """
-    Make a where clause that selects features from the source that intersect
-    the extent of the operator feature class.
-    """
-    primary = source.primary_key_field
-    if not source.has_spatial_index or not primary:
-        return '', ''
-    min_x, min_y, max_x, max_y = extent
-    sql_stub = f"""{primary.escaped_name} {{}} (
-        SELECT id  
-        FROM {source.spatial_index_name} 
-        WHERE minx <= {max_x} AND maxx >= {min_x} AND 
-              miny <= {max_y} AND maxy >= {min_y})
-        """
-    # NOTE intersects the extent, does not intersect the extent
-    return sql_stub.format('IN'), sql_stub.format('NOT IN')
-# End make_spatial_index_where function
-
-
 def extend_records(results: list[tuple], records: list[tuple],
                    config: OverlayConfig) -> None:
     """
@@ -117,8 +97,9 @@ def extend_records(results: list[tuple], records: list[tuple],
     shapely_types = config.shapely_types
     multi_cls = config.shapely_multi_cls
     cls = config.fudgeo_cls
+    srs_id = config.srs_id
     is_multi = config.is_multi
-    for g, result, attributes in results:
+    for result, attributes in results:
         if result.is_empty:
             continue
         if isinstance(result, GeometryCollection):
@@ -130,10 +111,10 @@ def extend_records(results: list[tuple], records: list[tuple],
             if not hasattr(result, GEOMS_ATTR):
                 result = multi_cls([result])
             records.append((cls.from_wkb(
-                result.wkb, srs_id=g.srs_id), *attributes))
+                result.wkb, srs_id=srs_id), *attributes))
         else:
             records.extend([(cls.from_wkb(
-                part.wkb, srs_id=g.srs_id), *attributes)
+                part.wkb, srs_id=srs_id), *attributes)
                 for part in getattr(result, GEOMS_ATTR, [result])])
 # End extend_records function
 

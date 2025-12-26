@@ -93,7 +93,7 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
                 for poly in polys:
                     # noinspection PyTypeChecker
                     polygon: ShapelyPolygon = from_wkb(poly.wkb)
-                    if check_polygon(polygon) is None:
+                    if check_polygon(polygon) is None:  # pragma: no cover
                         continue
                     polygons.append(polygon)
     # noinspection PyTypeChecker
@@ -114,7 +114,7 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
     if not polygon.is_valid:
         return None
     polygons = [p for p in getattr(polygon, GEOMS_ATTR, [polygon])
-                if p.is_valid and isinstance(polygon, ShapelyPolygon)]
+                if p.is_valid and isinstance(p, ShapelyPolygon)]
     if not polygons:
         return None
     if len(polygons) == 1:
@@ -123,7 +123,8 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
 # End check_polygon function
 
 
-def overlay_config(source: FeatureClass, operator: FeatureClass) -> OverlayConfig:
+def overlay_config(source: FeatureClass, target: FeatureClass,
+                   operator: FeatureClass) -> OverlayConfig:
     """
     Overlay Configuration
     """
@@ -134,8 +135,34 @@ def overlay_config(source: FeatureClass, operator: FeatureClass) -> OverlayConfi
     shapely_types = _, multi_cls = SHAPELY_GEOMETRY_LOOKUP.get(geom_type)
     return OverlayConfig(
         fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
-        geometry=polygon, shapely_types=shapely_types)
+        geometry=polygon, shapely_types=shapely_types,
+        srs_id=target.spatial_reference_system.srs_id)
 # End overlay_config function
+
+
+def set_extent(feature_class: FeatureClass) -> None:
+    """
+    Set Extent on a Feature Class using existing, spatial index, or
+    geometry extents.
+    """
+    try:
+        feature_class.extent = extent_from_feature_class(feature_class)
+    except OperationsError:  # pragma: no cover
+        return
+# End set_extent function
+
+
+def _extent_from_index_or_geometry(feature_class: FeatureClass) -> EXTENT:
+    """
+    Get the Extent from the Spatial Index, fail over to the extent derived
+    from geometries.
+    """
+    extent = _extent_from_spatial_index(feature_class)
+    if isfinite(extent).all():
+        return extent
+    else:  # pragma: no cover
+        return get_extent(feature_class)
+# End _extent_from_index_or_geometry function
 
 
 def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
@@ -147,14 +174,12 @@ def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
     extent = feature_class.extent
     if isfinite(extent).all():
         return extent
-    extent = _extent_from_spatial_index(feature_class)
+    extent = _extent_from_index_or_geometry(feature_class)
     if isfinite(extent).all():
         return extent
-    extent = get_extent(feature_class)
-    if isfinite(extent).all():
-        return extent
-    raise OperationsError(
-        f'{feature_class.name} is empty or only contains empty geometries')
+    else:  # pragma: no cover
+        raise OperationsError(
+            f'{feature_class.name} is empty or only contains empty geometries')
 # End extent_from_feature_class function
 
 
@@ -163,16 +188,16 @@ def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
     Extent from Spatial Index
     """
     empty = nan, nan, nan, nan
-    if not feature_class.has_spatial_index:
+    if not feature_class.has_spatial_index:  # pragma: no cover
         return empty
     cursor = feature_class.geopackage.connection.execute(f"""
         SELECT MIN(minx) AS MIN_X, MIN(miny) AS MIN_Y, 
                MAX(maxx) AS MAX_X, MAX(maxy) AS MAX_Y
         FROM {feature_class.spatial_index_name}""")
     extent = cursor.fetchone()
-    if not extent:
+    if not extent:  # pragma: no cover
         return empty
-    if None in extent:
+    if None in extent:  # pragma: no cover
         return empty
     return extent
 # End _extent_from_spatial_index function

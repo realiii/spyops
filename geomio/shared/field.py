@@ -121,7 +121,7 @@ def common_fields(a: ELEMENT, b: ELEMENT) -> FIELDS:
     a_fields = exclude_special(a, fields=a.fields)
     b_fields = exclude_special(b, fields=b.fields)
     # NOTE this means that we only have primary key and / or geometry fields
-    if not a_fields or not b_fields:
+    if not a_fields or not b_fields:  # pragma: no cover
         return []
     a_lookup = _field_name_type(a_fields)
     b_lookup = _field_name_type(b_fields)
@@ -142,6 +142,15 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
         lookup[field.name.casefold(), data_type] = field
     return lookup
 # End _field_name_type function
+
+
+def clone_field(field: Field, name: str) -> Field:
+    """
+    Clone Field
+    """
+    return Field(name=name, data_type=field.data_type, size=field.size,
+                 is_nullable=field.is_nullable, default=field.default)
+# End clone_field method
 
 
 if __name__ == '__main__':  # pragma: no cover

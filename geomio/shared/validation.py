@@ -5,10 +5,11 @@ Validation
 
 
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 from functools import wraps
 from inspect import signature
 from pathlib import Path
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Type
 from warnings import warn
 
 from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
@@ -19,6 +20,7 @@ from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
 from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
+from geomio.shared.geometry import set_extent
 from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
@@ -55,20 +57,19 @@ class AbstractValidate(metaclass=ABCMeta):
         """
         if not isinstance(obj, (list, tuple)):
             return obj,
-        return obj
+        else:  # pragma: no cover
+            return obj
     # End _make_iterable method
 # End AbstractValidate class
 
 
-class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
+class AbstractValidateArgument(AbstractValidate, metaclass=ABCMeta):
     """
-    Abstract Validate Type
+    Abstract Validation on an Argument by Name
     """
-    _types: ClassVar[tuple[type, ...]] = ()
-
     def __init__(self, name: str) -> None:
         """
-        Initialize the AbstractValidateType class
+        Initialize the AbstractValidateArgument class
         """
         super().__init__()
         self._name: str = name
@@ -87,6 +88,14 @@ class AbstractValidateType(AbstractValidate, metaclass=ABCMeta):
         """
         kwargs[self._name] = obj
     # End _set_object method
+# End AbstractValidateArgument class
+
+
+class AbstractValidateType(AbstractValidateArgument, metaclass=ABCMeta):
+    """
+    Abstract Validate Type
+    """
+    _types: ClassVar[tuple[type, ...]] = ()
 
     @staticmethod
     def _check_element(obj: Any) -> Any:
@@ -167,6 +176,50 @@ class AbstractValidateTypeExists(AbstractValidateType):
 # End AbstractValidateTypeExists class
 
 
+class ValidateEnumeration(AbstractValidateArgument):
+    """
+    Validate Item is of the expected Enumeration
+    """
+    def __init__(self, name: str, enum: Type[Enum]) -> None:
+        """
+        Initialize the ValidateEnumeration class
+        """
+        super().__init__(name)
+        self._enum: Type[Enum] = enum
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            obj = self._validate_value(obj)
+            self._set_object(obj, kwargs=kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _validate_value(self, obj: Any) -> Any:
+        """
+        Validate Value
+        """
+        if isinstance(obj, self._enum):
+            return obj
+        if isinstance(obj, str):
+            obj = self._enum(obj.casefold())
+        return self._enum(obj)
+    # End _validate_value method
+# End ValidateEnumeration class
+
+
 class ValidateSameCRS(AbstractValidate):
     """
     Validate Same Coordinate Reference System
@@ -179,7 +232,7 @@ class ValidateSameCRS(AbstractValidate):
         self._names: NAMES = names
     # End init built-in
 
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -213,7 +266,7 @@ class ValidateXYTolerance(AbstractValidate):
         self._name: str = name
     # End init built-in
 
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -283,7 +336,7 @@ class ValidateResult(AbstractValidate):
     """
     Validate Result
     """
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -295,8 +348,11 @@ class ValidateResult(AbstractValidate):
             if not (result := func(*args, **kwargs)):
                 return result
             for element in self._make_iterable(result):
-                if isinstance(element, (FeatureClass, Table)):
-                    _check_output_empty(element)
+                if isinstance(element, Table):
+                    _check_output(element)
+                if isinstance(element, FeatureClass):
+                    _check_output(element)
+                    set_extent(element)
             return result
         # End wrapper function
         return wrapper
@@ -324,7 +380,7 @@ class ValidateGeopackage(AbstractValidateTypeExists):
         if not self._exists:
             return False
         if isinstance(obj.path, Path):
-            if success := obj.path.is_file():
+            if success := obj.path.is_file():  # pragma: no cover
                 return success
         if isinstance(obj.path, str):
             if success := (obj.path == MEMORY):
@@ -440,7 +496,7 @@ class ValidateFeatureClass(ValidateContent):
         """
         Add Spatial Index
         """
-        if not self._add_index:
+        if not self._add_index:  # pragma: no cover
             return
         obj.add_spatial_index()
     # End _add_spatial_index method
@@ -604,8 +660,9 @@ class ValidateField(AbstractValidateType):
             names = [item.name.casefold() for item in obj]
         if not (missing := [n for n in names if n not in source_names]):
             return
-        names = PADDED_PIPE.join(missing)
-        raise ValueError(f'{names} not found in {element.name}')
+        else:  # pragma: no cover
+            names = PADDED_PIPE.join(missing)
+            raise ValueError(f'{names} not found in {element.name}')
     # End _validate_exists method
 # End ValidateField class
 
@@ -619,16 +676,21 @@ validate_result = ValidateResult
 validate_same_crs = ValidateSameCRS
 validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
+validate_enumeration = ValidateEnumeration
 
 
-def _check_output_empty(element: ELEMENT) -> ELEMENT:
+def _check_output(element: ELEMENT) -> ELEMENT:
     """
-    Check element for content, warn if empty
+    Check element for existence and content, warn if not present or empty
     """
-    if element.is_empty:
+    if not element:
+        warn(f'{element.name} was not created', OperationsWarning)
+        return element
+    if not len(element):
         warn(f'{element.name} created but contains no rows', OperationsWarning)
+        return element
     return element
-# End _check_output_empty function
+# End _check_output function
 
 
 if __name__ == '__main__':  # pragma: no cover

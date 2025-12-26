@@ -58,6 +58,9 @@ def test_is_geopackage(crs_geopackage, tmp_path):
     with path.open('w') as fout:
         fout.write('test')
     assert is_geopackage(path) is False
+    path = tmp_path / 'test.db'
+    connect(path)
+    assert is_geopackage(path) is False
 # End test_is_geopackage function
 
 

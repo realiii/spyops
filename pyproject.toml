@@ -18,8 +18,8 @@ classifiers = [
 keywords = ["geopackage", "geometry", "gis", "spatial", "analysis"]
 requires-python = ">=3.11"
 dependencies = [
-    "fudgeo>=1.4.1",
-    "numpy>=2.3.5",
+    "fudgeo==1.4.2",
+    "numpy==2.4.0",
     "pyproj>=3.7.2",
     "shapely>=2.1.2",
 ]

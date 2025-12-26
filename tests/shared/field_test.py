@@ -5,10 +5,12 @@ Test Field
 
 
 from fudgeo import Field
+from fudgeo.enumeration import DataType, SQLFieldType
 from pytest import mark
 
 from geomio.shared.field import (
-    common_fields, get_geometry_column_name, make_field_names, validate_fields)
+    clone_field, common_fields, get_geometry_column_name, make_field_names,
+    validate_fields)
 
 
 pytestmark = [mark.field]
@@ -90,6 +92,22 @@ def test_common_fields(world_features, inputs):
     field, = fields
     assert field.name == 'NAME'
 # End test_common_fields function
+
+
+def test_clone_field():
+    """
+    Clone a Field, changing its name
+    """
+    fld = Field(name='asdf', data_type=SQLFieldType.text, size=50,
+              is_nullable=False, default='ABCDEFG')
+    cloned = clone_field(fld, 'qwer')
+    assert fld != cloned
+    assert fld is not cloned
+    assert cloned == Field(
+        name='qwer', data_type=SQLFieldType.text, size=50,
+        is_nullable=False, default='ABCDEFG'
+    )
+# End test_clone_field function
 
 
 if __name__ == '__main__':  # pragma: no cover

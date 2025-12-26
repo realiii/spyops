@@ -6,19 +6,15 @@ Extraction
 
 from typing import Callable
 
-from fudgeo import FeatureClass, Field, Table
+from fudgeo import FeatureClass, Table, Field
 from fudgeo.constant import FETCH_SIZE
-from shapely import box
 from shapely.io import from_wkb
 
-from geomio.analysis.sql import (
-    build_analysis, build_sql_select_by_attributes)
+from geomio.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
 from geomio.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from geomio.shared.element import copy_element
-from geomio.shared.field import (
-    GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS, make_field_names)
-from geomio.shared.geometry import extent_from_feature_class, overlay_config
+from geomio.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import (
@@ -75,25 +71,23 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 
     Split an input table or feature class by groups of attributes.
     """
-    group_names = make_field_names(group_fields)
-    group_count_sql, insert_sql, select_sql = build_sql_select_by_attributes(
-        source, group_names=group_names)
     elements = []
     target_names = element_names(geopackage)
-    with geopackage.connection as conn:
-        source_conn = source.geopackage.connection
-        cursor = source_conn.execute(group_count_sql)
+    query = QuerySplitByAttributes(element=source, fields=group_fields)
+    with (geopackage.connection as cout,
+          query.source.geopackage.connection as cin):
+        cursor = cin.execute(query.group_count)
         group_count, = cursor.fetchone()
         for i in range(1, group_count + 1):
-            cursor = source_conn.execute(select_sql, (i,))
-            name = make_unique_name(name=source.name, names=target_names)
+            cursor = cin.execute(query.select, (i,))
+            name = make_unique_name(name=query.source.name, names=target_names)
             element = copy_element(
                 source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
             elements.append(element)
             while records := cursor.fetchmany(FETCH_SIZE):
-                conn.executemany(
-                    insert_sql.format(element.escaped_name), records)
+                cout.executemany(
+                    query.insert.format(element.escaped_name), records)
     return elements
 # End split_by_attributes function
 
@@ -110,17 +104,16 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     Clip
 
     Extracts features using the features of a polygon feature class. Extracted
-    features are cut along the edges of the clipping polygons.
+    features are cut along the edges of the operator polygons.
     """
-    components = build_analysis(
-        source, target=target, operator=operator, use_empty=True)
-    if not components.has_intersection:
-        return components.target
+    query = QueryClip(source=source, target=target, operator=operator)
+    if not query.has_intersection:
+        return query.target_empty
     records = []
-    config = overlay_config(source, operator=operator)
-    polygon = config.geometry
-    with target.geopackage.connection as conn:
-        cursor = source.geopackage.connection.execute(components.sql_intersect)
+    polygon = query.config.geometry
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin):
+        cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
             intersects = polygon.intersects(geometries)
@@ -128,12 +121,12 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
                 continue
             keepers = [f for f, keep in zip(features, intersects) if keep]
             geometries = [g for g, keep in zip(geometries, intersects) if keep]
-            results = [(g, polygon.intersection(geom, grid_size=xy_tolerance), attrs)
-                       for geom, (g, *attrs) in zip(geometries, keepers)]
-            extend_records(results, records=records, config=config)
-            conn.executemany(components.sql_insert, records)
+            results = [(polygon.intersection(geom, grid_size=xy_tolerance), attrs)
+                       for geom, (_, *attrs) in zip(geometries, keepers)]
+            extend_records(results, records=records, config=query.config)
+            cout.executemany(query.insert, records)
             records.clear()
-    return target
+    return query.target
 # End clip function
 
 
@@ -149,13 +142,12 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
     """
     Split
 
-    Extracts features for each polygon in the splitting feature class and uses
+    Extracts features for each polygon in the operator feature class and uses
     values from the specified field to name the output feature classes.
     """
     features = []
-    split_extent = extent_from_feature_class(operator)
-    source_extent = extent_from_feature_class(source)
-    if not box(*split_extent).intersects(box(*source_extent)):
+    query = QuerySplit(source, target=None, operator=operator)
+    if not query.has_intersection:
         return features
     splitters = split_by_attributes(
         operator, group_fields=[field],

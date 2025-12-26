@@ -14,7 +14,7 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from geomio.shared.enumeration import Setting
+from geomio.shared.enumeration import AttributeOption, Setting
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
@@ -22,9 +22,9 @@ from geomio.shared.field import (
 from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 from geomio.shared.validation import (
-    _check_output_empty, validate_element, validate_feature_class,
-    validate_field, validate_geopackage, validate_same_crs, validate_table,
-    validate_xy_tolerance)
+    _check_output, validate_element, validate_enumeration,
+    validate_feature_class, validate_field, validate_geopackage,
+    validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
 
 
 pytestmark = [mark.validation]
@@ -37,11 +37,25 @@ def test_check_output_empty(mem_gpkg):
     tbl = mem_gpkg.create_table('tbl')
     with catch_warnings(record=True) as ws:
         simplefilter('always')
-        _check_output_empty(tbl)
+        _check_output(tbl)
         assert len(ws) == 1
         w, = ws
         assert issubclass(w.category, OperationsWarning)
 # End test_check_output_empty function
+
+
+def test_check_output_not_exists(mem_gpkg):
+    """
+    Test Check Output not exists
+    """
+    tbl = Table(mem_gpkg, name='aaaaa1111111111')
+    with catch_warnings(record=True) as ws:
+        simplefilter('always')
+        _check_output(tbl)
+        assert len(ws) == 1
+        w, = ws
+        assert issubclass(w.category, OperationsWarning)
+# End test_check_output_not_exists function
 
 
 @mark.parametrize('exists, has_content', [
@@ -332,6 +346,26 @@ def test_validate_xy_tolerance_sans_setting(value, expected):
     assert xy_function(value) == expected
 # End test_validate_xy_tolerance_sans_setting function
 
+@mark.parametrize('value, expected, throws', [
+    (None, None, True),
+    ('ALL', AttributeOption.ALL, False),
+    (AttributeOption.ONLY_FID, AttributeOption.ONLY_FID, False),
+    (10, None, True),
+])
+def test_validate_enumeration(value, expected, throws):
+    """
+    Test validate enumeration
+    """
+    @validate_enumeration('option', AttributeOption)
+    def enum_function(option):
+        return option
+    if throws:
+        with raises(ValueError):
+            enum_function(value)
+    else:
+        assert enum_function(value) == expected
+# End test_validate_enumeration function
+
 
 @mark.parametrize('value, swap_value, expected', [
     (None, None, None),
@@ -353,6 +387,18 @@ def test_validate_xy_tolerance_with_setting(value, swap_value, expected):
     with Swap(Setting.XY_TOLERANCE, value):
         assert xy_function(123) == 123.
 # End test_validate_xy_tolerance_with_setting function
+
+
+def test_validate_result(inputs):
+    """
+    Test validate result
+    """
+    fc = inputs['updater_a']
+    @validate_result()
+    def result_function(result):
+        return result
+    assert result_function(fc) == fc
+# End test_validate_result function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -4,22 +4,23 @@ Types
 """
 
 
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass
 from shapely import (
     MultiPolygon as ShapelyMultiPolygon, Polygon as ShapelyPolygon)
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from geomio.query.base import AbstractQuery, AbstractSpatialQuery
+
+
 class AnalysisComponents(NamedTuple):
     """
     Spatial Analysis Components
     """
-    use_index: bool
     has_intersection: bool
-    sql_intersect: str
-    sql_disjoint: str
-    sql_insert: str
+    query: Union['AbstractQuery', 'AbstractSpatialQuery']
     target: FeatureClass
 # End AnalysisComponents class
 
@@ -33,6 +34,7 @@ class OverlayConfig(NamedTuple):
     shapely_multi_cls: Any
     shapely_types: tuple
     geometry: ShapelyMultiPolygon | ShapelyPolygon
+    srs_id: int
 # End OverlayConfig class
 
 

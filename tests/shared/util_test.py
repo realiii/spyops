@@ -8,9 +8,8 @@ from pytest import approx, mark
 
 from geomio.shared.enumeration import Setting
 from geomio.shared.util import (
-    as_title, element_names, expand_extent, make_spatial_index_where,
-    make_unique_name, make_valid_name, _replace_double_under, safe_float,
-    safe_int)
+    as_title, element_names, expand_extent, make_unique_name, make_valid_name,
+    _replace_double_under, safe_float, safe_int)
 
 
 pytestmark = [mark.utility]
@@ -70,19 +69,6 @@ def test_expand_extent():
     assert max_x == max_y
     assert approx(max_x, abs=0.001) == 10_000_001.25
 # End test_expand_extent function
-
-
-def test_make_spatial_index_where(world_features, mem_gpkg):
-    """
-    Test make spatial index where
-    """
-    fc = world_features['admin_a'].copy(
-        name='aa', geopackage=mem_gpkg,
-        where_clause="""fid <= 100""")
-    sql_inside, sql_outside = make_spatial_index_where(fc, extent=fc.extent)
-    assert sql_inside
-    assert sql_outside
-# End test_make_spatial_index_where function
 
 
 @mark.parametrize('value, expected', [

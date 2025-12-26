@@ -21,7 +21,7 @@ def is_geopackage(path: Path | str) -> bool:
         return False
     try:
         conn = connect(path)
-    except OperationalError:
+    except OperationalError:  # pragma: no cover
         return False
     if not _is_sqlite(connection=conn):
         conn.close()
