@@ -22,10 +22,9 @@ from geomio.shared.field import (
 from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 from geomio.shared.validation import (
-    _check_output_empty, validate_element, validate_enumeration,
-    validate_feature_class,
-    validate_field, validate_geopackage, validate_same_crs, validate_table,
-    validate_xy_tolerance)
+    _check_output, validate_element, validate_enumeration,
+    validate_feature_class, validate_field, validate_geopackage,
+    validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
 
 
 pytestmark = [mark.validation]
@@ -38,11 +37,25 @@ def test_check_output_empty(mem_gpkg):
     tbl = mem_gpkg.create_table('tbl')
     with catch_warnings(record=True) as ws:
         simplefilter('always')
-        _check_output_empty(tbl)
+        _check_output(tbl)
         assert len(ws) == 1
         w, = ws
         assert issubclass(w.category, OperationsWarning)
 # End test_check_output_empty function
+
+
+def test_check_output_not_exists(mem_gpkg):
+    """
+    Test Check Output not exists
+    """
+    tbl = Table(mem_gpkg, name='aaaaa1111111111')
+    with catch_warnings(record=True) as ws:
+        simplefilter('always')
+        _check_output(tbl)
+        assert len(ws) == 1
+        w, = ws
+        assert issubclass(w.category, OperationsWarning)
+# End test_check_output_not_exists function
 
 
 @mark.parametrize('exists, has_content', [
@@ -374,6 +387,18 @@ def test_validate_xy_tolerance_with_setting(value, swap_value, expected):
     with Swap(Setting.XY_TOLERANCE, value):
         assert xy_function(123) == 123.
 # End test_validate_xy_tolerance_with_setting function
+
+
+def test_validate_result(inputs):
+    """
+    Test validate result
+    """
+    fc = inputs['updater_a']
+    @validate_result()
+    def result_function(result):
+        return result
+    assert result_function(fc) == fc
+# End test_validate_result function
 
 
 if __name__ == '__main__':  # pragma: no cover
