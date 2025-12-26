@@ -44,9 +44,9 @@ GROUP_FIELDS: str = 'group_fields'
 ATTRIBUTE_OPTION: str = 'attribute_option'
 ALGORITHM_OPTION: str = 'algorithm_option'
 
-
-SQL_EMPTY: str = """ROWID <= -1"""
-SQL_FULL: str = """ROWID > -1"""
+ROWID: str = 'ROWID'
+SQL_EMPTY: str = f"""{ROWID} <= -1"""
+SQL_FULL: str = f"""{ROWID} > -1"""
 
 IN: str = 'IN'
 NOT_IN: str = 'NOT IN'

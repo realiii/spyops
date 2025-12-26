@@ -25,6 +25,16 @@ class AnalysisComponents(NamedTuple):
 # End AnalysisComponents class
 
 
+class PlanarizeResults(NamedTuple):
+    """
+    Planarize Results
+    """
+    planarized: list[ShapelyPolygon]
+    polygons: list[ShapelyPolygon]
+    ids: list[int]
+# End PlanarizeResults class
+
+
 class OverlayConfig(NamedTuple):
     """
     Overlay Configuration

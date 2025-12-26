@@ -8,7 +8,7 @@ from math import nan
 from typing import Any
 
 from fudgeo import FeatureClass
-from fudgeo.constant import FETCH_SIZE
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import GeometryType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
@@ -28,8 +28,8 @@ from shapely.io import from_wkb
 from shapely.ops import unary_union
 from shapely.set_operations import union_all
 
-from geomio.shared.base import OverlayConfig
-from geomio.shared.constant import GEOMS_ATTR
+from geomio.shared.base import OverlayConfig, PlanarizeResults
+from geomio.shared.constant import GEOMS_ATTR, ROWID
 from geomio.shared.exception import OperationsError
 from geomio.shared.field import get_geometry_column_name
 from geomio.shared.hint import EXTENT
@@ -82,7 +82,7 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
     """
     Build MultiPolygon from a Polygon or MultiPolygon Feature Class
     """
-    polygons = _get_polygons(feature_class)
+    polygons, _ = _get_polygons(feature_class)
     # noinspection PyTypeChecker
     multi: ShapelyMultiPolygon = unary_union(polygons)
     prepare(multi)
@@ -90,20 +90,25 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
 # End build_multi_polygon function
 
 
-def _get_polygons(feature_class: FeatureClass) -> list[ShapelyPolygon]:
+def _get_polygons(feature_class: FeatureClass) \
+        -> tuple[list[ShapelyPolygon], list[int]]:
     """
     Get Polygons from a Polygon or MultiPolygon Feature Class
     """
+    ids = []
     polygons = []
-    column_name = get_geometry_column_name(
-        feature_class, include_geom_type=True)
+    geom_name = get_geometry_column_name(feature_class, include_geom_type=True)
+    if field := feature_class.primary_key_field:
+        fid_name = field.name
+    else:
+        fid_name = ROWID
     is_multi = feature_class.is_multi_part
     with feature_class.geopackage.connection as cin:
         cursor = cin.execute(
-            f"""SELECT {column_name} 
+            f"""SELECT {geom_name}{COMMA_SPACE}{fid_name} 
                 FROM {feature_class.escaped_name}""")
         while geoms := cursor.fetchmany(FETCH_SIZE):
-            for geom, in geoms:
+            for geom, id_ in geoms:
                 polys = geom.polygons if is_multi else [geom]
                 for poly in polys:
                     # noinspection PyTypeChecker
@@ -111,7 +116,8 @@ def _get_polygons(feature_class: FeatureClass) -> list[ShapelyPolygon]:
                     if check_polygon(polygon) is None:  # pragma: no cover
                         continue
                     polygons.append(polygon)
-    return polygons
+                    ids.append(id_)
+    return polygons, ids
 # End _get_polygons function
 
 
@@ -215,26 +221,28 @@ def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
 # End _extent_from_spatial_index function
 
 
-def planarize_polygons(feature_class: FeatureClass) -> list[ShapelyPolygon]:
+def planarize_polygons(feature_class: FeatureClass) -> PlanarizeResults:
     """
     Planarize a list of polygons or multipolygons, returning a list of polygons.
     """
     rings = []
-    if not (polygons := _get_polygons(feature_class)):
-        return []
+    polygons, ids = _get_polygons(feature_class)
+    empty = PlanarizeResults(planarized=[], polygons=[], ids=[])
+    if not polygons:
+        return empty
     for polygon in polygons:
         rings.append(polygon.exterior)
         rings.extend(polygon.interiors)
     segments = union_all(rings)
     if not (segments := getattr(segments, GEOMS_ATTR, [segments])):
-        return []
+        return empty
     collections = polygonize(segments)
     if isinstance(collections, GeometryCollection):
         collections = [collections]
     planarized = []
     for collection in collections:
         planarized.extend(getattr(collection, GEOMS_ATTR, [collection]))
-    return planarized
+    return PlanarizeResults(planarized=planarized, polygons=polygons, ids=ids)
 # End planarize_polygons function
 
 

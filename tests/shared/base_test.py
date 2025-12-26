@@ -9,7 +9,9 @@ from shapely import MultiPoint
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 
-from geomio.shared.base import AnalysisComponents, OverlayConfig
+from geomio.shared.base import (
+    AnalysisComponents, OverlayConfig,
+    PlanarizeResults)
 
 pytestmark = [mark.utility]
 
@@ -44,6 +46,17 @@ def test_overlay_config_creation():
     assert oc.geometry.is_empty
     assert oc.srs_id == 4326
 # End test_overlay_config_creation function
+
+
+def test_planarize_results():
+    """
+    Test Planarize Results
+    """
+    pr = PlanarizeResults([Polygon()], [Polygon()], [1])
+    assert pr.planarized == [Polygon()]
+    assert pr.polygons == [Polygon()]
+    assert pr.ids == [1]
+# End test_planarize_results function
 
 
 if __name__ == '__main__':  # pragma: no cover
