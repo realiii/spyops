@@ -118,7 +118,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
                     intersections = op_geom.intersection(
                         [geometries[idx] for idx in indexes])
                 results.extend([
-                    (g, src_attr)
+                    (g, (*src_attr, *op_attr))
                     for g, src_attr in zip(intersections, src_attrs)])
             extend_records(results, records=records, config=query.config)
             cout.executemany(query.insert, records)
