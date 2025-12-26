@@ -6,7 +6,7 @@ Extraction
 
 from typing import Callable
 
-from fudgeo import FeatureCla
+from fudgeo import FeatureClass, Table, Field
 from fudgeo.constant import FETCH_SIZE
 from shapely.io import from_wkb
 
