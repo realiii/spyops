@@ -22,8 +22,11 @@ from shapely import (
     LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
     MultiPoint as ShapelyMultiPoint, MultiPolygon as ShapelyMultiPolygon,
     Point as ShapelyPoint, Polygon as ShapelyPolygon, make_valid, prepare)
+from shapely.constructive import polygonize
+from shapely.geometry.collection import GeometryCollection
 from shapely.io import from_wkb
 from shapely.ops import unary_union
+from shapely.set_operations import union_all
 
 from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import GEOMS_ATTR
@@ -210,6 +213,29 @@ def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
         return empty
     return extent
 # End _extent_from_spatial_index function
+
+
+def planarize_polygons(feature_class: FeatureClass) -> list[ShapelyPolygon]:
+    """
+    Planarize a list of polygons or multipolygons, returning a list of polygons.
+    """
+    rings = []
+    if not (polygons := _get_polygons(feature_class)):
+        return []
+    for polygon in polygons:
+        rings.append(polygon.exterior)
+        rings.extend(polygon.interiors)
+    segments = union_all(rings)
+    if not (segments := getattr(segments, GEOMS_ATTR, [segments])):
+        return []
+    collections = polygonize(segments)
+    if isinstance(collections, GeometryCollection):
+        collections = [collections]
+    planarized = []
+    for collection in collections:
+        planarized.extend(getattr(collection, GEOMS_ATTR, [collection]))
+    return planarized
+# End planarize_polygons function
 
 
 if __name__ == '__main__':  # pragma: no cover
