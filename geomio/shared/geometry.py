@@ -114,7 +114,7 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
     if not polygon.is_valid:
         return None
     polygons = [p for p in getattr(polygon, GEOMS_ATTR, [polygon])
-                if p.is_valid and isinstance(polygon, ShapelyPolygon)]
+                if p.is_valid and isinstance(p, ShapelyPolygon)]
     if not polygons:
         return None
     if len(polygons) == 1:

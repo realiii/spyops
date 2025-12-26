@@ -7,10 +7,12 @@ Tests for Geometry Module
 from fudgeo.geometry.point import Point
 from pytest import approx, mark
 from shapely import (
-    MultiPolygon, MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint)
+    MultiPolygon, MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint,
+    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon)
 
 from geomio.shared.geometry import (
-    build_multi_polygon, extent_from_feature_class, overlay_config)
+    build_multi_polygon, check_polygon, extent_from_feature_class,
+    overlay_config)
 
 
 pytestmark = [mark.geometry]
@@ -69,6 +71,24 @@ def test_extent_from_feature_class_sans_extent(crs_geopackage):
     extent = extent_from_feature_class(fc)
     assert approx(extent, abs=0.1) == (971616.26, 2039110.0, 1023849.47, 2087677.50)
 # End test_extent_from_feature_class_sans_extent function
+
+
+@mark.parametrize('polygon, type_', [
+    (ShapelyPolygon([(0, 0), (0, 1), (1, 1), (1, 0)]), ShapelyPolygon),
+    (ShapelyPolygon([(0, 0), (1, 1), (1, 2), (1, 1), (0, 0)]), type(None)),
+    (ShapelyPolygon([(0, 0), (1, 1), (1, 0), (0, 1), (0, 0)]), ShapelyMultiPolygon),
+    (ShapelyMultiPolygon([ShapelyPolygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+                          ShapelyPolygon([(0, 0), (0, 1), (1, 1), (1, 0)])]), ShapelyPolygon),
+    (ShapelyMultiPolygon([ShapelyPolygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
+                          ShapelyPolygon([(10, 10), (10, 11), (11, 11), (11, 10)])]), ShapelyMultiPolygon),
+    (ShapelyPolygon([(0, 0), (0, 0), (0, 0), (0, 0)]), type(None)),
+])
+def test_check_polygon(polygon, type_):
+    """
+    Test check_polygon
+    """
+    assert isinstance(check_polygon(polygon), type_)
+# End test_check_polygon function
 
 
 if __name__ == '__main__':  # pragma: no cover
