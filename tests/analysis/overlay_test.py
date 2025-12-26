@@ -8,7 +8,7 @@ from fudgeo import FeatureClass
 from pytest import mark, param
 
 from geomio.analysis.overlay import erase, intersect
-from geomio.shared.enumeration import Setting
+from geomio.shared.enumeration import AttributeOption, Setting
 from geomio.query.overlay import QueryErase
 from geomio.shared.setting import Swap
 
@@ -75,38 +75,77 @@ def test_erase(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count)
 # End test_erase function
 
 
-@mark.parametrize('fc_name, xy_tolerance, count', [
-    ('admin_a', None, 114),
-    ('airports_p', None, 40),
-    ('roads_l', None, 2514),
-    ('admin_mp_a', None, 68),
-    ('airports_mp_p', None, 8),
-    ('roads_mp_l', None, 14),
-    ('admin_a', 0.001, 112),
-    ('airports_p', 0.001, 40),
-    ('roads_l', 0.001, 3380),
-    ('admin_mp_a', 0.001, 68),
-    ('airports_mp_p', 0.001, 8),
-    ('roads_mp_l', 0.001, 14),
-    ('admin_a', 1, 22),
-    ('airports_p', 1, 35),
-    ('roads_l', 1, 378),
-    ('admin_mp_a', 1, 22),
-    ('airports_mp_p', 1, 8),
-    ('roads_mp_l', 1, 13),
+@mark.parametrize('fc_name, xy_tolerance, option, feature_count, field_count', [
+    ('admin_a', None, AttributeOption.ALL, 114, 25),
+    ('airports_p', None, AttributeOption.ALL, 40, 14),
+    ('roads_l', None, AttributeOption.ALL, 2514, 22),
+    ('admin_mp_a', None, AttributeOption.ALL, 68, 23),
+    ('airports_mp_p', None, AttributeOption.ALL, 8, 11),
+    ('roads_mp_l', None, AttributeOption.ALL, 14, 11),
+    ('admin_a', 0.001, AttributeOption.ALL, 112, 25),
+    ('airports_p', 0.001, AttributeOption.ALL, 40, 14),
+    ('roads_l', 0.001, AttributeOption.ALL, 3380, 22),
+    ('admin_mp_a', 0.001, AttributeOption.ALL, 68, 23),
+    ('airports_mp_p', 0.001, AttributeOption.ALL, 8, 11),
+    ('roads_mp_l', 0.001, AttributeOption.ALL, 14, 11),
+    ('admin_a', 1, AttributeOption.ALL, 22, 25),
+    ('airports_p', 1, AttributeOption.ALL, 35, 14),
+    ('roads_l', 1, AttributeOption.ALL, 378, 22),
+    ('admin_mp_a', 1, AttributeOption.ALL, 22, 23),
+    ('airports_mp_p', 1, AttributeOption.ALL, 8, 11),
+    ('roads_mp_l', 1, AttributeOption.ALL, 13, 11),
+    ('admin_a', None, AttributeOption.ONLY_FID, 114, 4),
+    ('airports_p', None, AttributeOption.ONLY_FID, 40, 4),
+    ('roads_l', None, AttributeOption.ONLY_FID, 2514, 4),
+    ('admin_mp_a', None, AttributeOption.ONLY_FID, 68, 4),
+    ('airports_mp_p', None, AttributeOption.ONLY_FID, 8, 4),
+    ('roads_mp_l', None, AttributeOption.ONLY_FID, 14, 4),
+    ('admin_a', 0.001, AttributeOption.ONLY_FID, 112, 4),
+    ('airports_p', 0.001, AttributeOption.ONLY_FID, 40, 4),
+    ('roads_l', 0.001, AttributeOption.ONLY_FID, 3380, 4),
+    ('admin_mp_a', 0.001, AttributeOption.ONLY_FID, 68, 4),
+    ('airports_mp_p', 0.001, AttributeOption.ONLY_FID, 8, 4),
+    ('roads_mp_l', 0.001, AttributeOption.ONLY_FID, 14, 4),
+    ('admin_a', 1, AttributeOption.ONLY_FID, 22, 4),
+    ('airports_p', 1, AttributeOption.ONLY_FID, 35, 4),
+    ('roads_l', 1, AttributeOption.ONLY_FID, 378, 4),
+    ('admin_mp_a', 1, AttributeOption.ONLY_FID, 22, 4),
+    ('airports_mp_p', 1, AttributeOption.ONLY_FID, 8, 4),
+    ('roads_mp_l', 1, AttributeOption.ONLY_FID, 13, 4),
+    ('admin_a', None, AttributeOption.SANS_FID, 114, 23),
+    ('airports_p', None, AttributeOption.SANS_FID, 40, 12),
+    ('roads_l', None, AttributeOption.SANS_FID, 2514, 20),
+    ('admin_mp_a', None, AttributeOption.SANS_FID, 68, 21),
+    ('airports_mp_p', None, AttributeOption.SANS_FID, 8, 9),
+    ('roads_mp_l', None, AttributeOption.SANS_FID, 14, 9),
+    ('admin_a', 0.001, AttributeOption.SANS_FID, 112, 23),
+    ('airports_p', 0.001, AttributeOption.SANS_FID, 40, 12),
+    ('roads_l', 0.001, AttributeOption.SANS_FID, 3380, 20),
+    ('admin_mp_a', 0.001, AttributeOption.SANS_FID, 68, 21),
+    ('airports_mp_p', 0.001, AttributeOption.SANS_FID, 8, 9),
+    ('roads_mp_l', 0.001, AttributeOption.SANS_FID, 14, 9),
+    ('admin_a', 1, AttributeOption.SANS_FID, 22, 23),
+    ('airports_p', 1, AttributeOption.SANS_FID, 35, 12),
+    ('roads_l', 1, AttributeOption.SANS_FID, 378, 20),
+    ('admin_mp_a', 1, AttributeOption.SANS_FID, 22, 21),
+    ('airports_mp_p', 1, AttributeOption.SANS_FID, 8, 9),
+    ('roads_mp_l', 1, AttributeOption.SANS_FID, 13, 9),
 ])
-def test_intersect_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
+def test_intersect_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
+                           option, feature_count, field_count):
     """
     Test intersect using analysis settings
     """
     operator = inputs['intersect_a']
-    assert operator.count == 5
+    assert len(operator) == 5
     source = world_features[fc_name]
     target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
     with Swap(Setting.XY_TOLERANCE, xy_tolerance):
-        result = intersect(source=source, operator=operator, target=target)
-    assert result.count < source.count
-    assert result.count == count
+        result = intersect(source=source, operator=operator, target=target,
+                           attribute_option=option)
+    assert len(result) < len(source)
+    assert len(result) == feature_count
+    assert len(result.fields) == field_count
 # End test_intersect_setting function
 
 
