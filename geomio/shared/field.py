@@ -144,5 +144,14 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
 # End _field_name_type function
 
 
+def clone_field(field: Field, name: str) -> Field:
+    """
+    Clone Field
+    """
+    return Field(name=name, data_type=field.data_type, size=field.size,
+                 is_nullable=field.is_nullable, default=field.default)
+# End clone_field method
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
