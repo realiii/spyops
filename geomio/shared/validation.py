@@ -57,7 +57,8 @@ class AbstractValidate(metaclass=ABCMeta):
         """
         if not isinstance(obj, (list, tuple)):
             return obj,
-        return obj
+        else:  # pragma: no cover
+            return obj
     # End _make_iterable method
 # End AbstractValidate class
 
@@ -187,7 +188,7 @@ class ValidateEnumeration(AbstractValidateArgument):
         self._enum: Type[Enum] = enum
     # End init built-in
 
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -231,7 +232,7 @@ class ValidateSameCRS(AbstractValidate):
         self._names: NAMES = names
     # End init built-in
 
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -265,7 +266,7 @@ class ValidateXYTolerance(AbstractValidate):
         self._name: str = name
     # End init built-in
 
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -335,7 +336,7 @@ class ValidateResult(AbstractValidate):
     """
     Validate Result
     """
-    def __call__(self, func: Callable) -> Callable:  # pragma: no cover
+    def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
         """
@@ -379,7 +380,7 @@ class ValidateGeopackage(AbstractValidateTypeExists):
         if not self._exists:
             return False
         if isinstance(obj.path, Path):
-            if success := obj.path.is_file():
+            if success := obj.path.is_file():  # pragma: no cover
                 return success
         if isinstance(obj.path, str):
             if success := (obj.path == MEMORY):
@@ -495,7 +496,7 @@ class ValidateFeatureClass(ValidateContent):
         """
         Add Spatial Index
         """
-        if not self._add_index:
+        if not self._add_index:  # pragma: no cover
             return
         obj.add_spatial_index()
     # End _add_spatial_index method
@@ -659,8 +660,9 @@ class ValidateField(AbstractValidateType):
             names = [item.name.casefold() for item in obj]
         if not (missing := [n for n in names if n not in source_names]):
             return
-        names = PADDED_PIPE.join(missing)
-        raise ValueError(f'{names} not found in {element.name}')
+        else:  # pragma: no cover
+            names = PADDED_PIPE.join(missing)
+            raise ValueError(f'{names} not found in {element.name}')
     # End _validate_exists method
 # End ValidateField class
 

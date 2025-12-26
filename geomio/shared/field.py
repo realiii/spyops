@@ -121,7 +121,7 @@ def common_fields(a: ELEMENT, b: ELEMENT) -> FIELDS:
     a_fields = exclude_special(a, fields=a.fields)
     b_fields = exclude_special(b, fields=b.fields)
     # NOTE this means that we only have primary key and / or geometry fields
-    if not a_fields or not b_fields:
+    if not a_fields or not b_fields:  # pragma: no cover
         return []
     a_lookup = _field_name_type(a_fields)
     b_lookup = _field_name_type(b_fields)

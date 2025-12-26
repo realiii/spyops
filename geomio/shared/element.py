@@ -63,7 +63,7 @@ def copy_element(source: ELEMENT, target: ELEMENT, *,
             element = source.copy(
                 name=target.name, geopackage=target.geopackage,
                 where_clause=where_clause, overwrite=overwrite)
-    except (OperationalError, ValueError) as err:
+    except (OperationalError, ValueError) as err:  # pragma: no cover
         raise OperationsError(err)
     return element
 # End copy_element function

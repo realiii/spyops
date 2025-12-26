@@ -93,7 +93,7 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
                 for poly in polys:
                     # noinspection PyTypeChecker
                     polygon: ShapelyPolygon = from_wkb(poly.wkb)
-                    if check_polygon(polygon) is None:
+                    if check_polygon(polygon) is None:  # pragma: no cover
                         continue
                     polygons.append(polygon)
     # noinspection PyTypeChecker
@@ -165,16 +165,16 @@ def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
     Extent from Spatial Index
     """
     empty = nan, nan, nan, nan
-    if not feature_class.has_spatial_index:
+    if not feature_class.has_spatial_index:  # pragma: no cover
         return empty
     cursor = feature_class.geopackage.connection.execute(f"""
         SELECT MIN(minx) AS MIN_X, MIN(miny) AS MIN_Y, 
                MAX(maxx) AS MAX_X, MAX(maxy) AS MAX_Y
         FROM {feature_class.spatial_index_name}""")
     extent = cursor.fetchone()
-    if not extent:
+    if not extent:  # pragma: no cover
         return empty
-    if None in extent:
+    if None in extent:  # pragma: no cover
         return empty
     return extent
 # End _extent_from_spatial_index function

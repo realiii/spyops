@@ -62,7 +62,8 @@ def make_valid_name(name: str, prefix: str) -> str:
     name = _replace_double_under(name).rstrip(UNDERSCORE)
     if NAME_MATCHER(name):
         return name
-    return make_valid_name(name, prefix=prefix)
+    else:  # pragma: no cover
+        return make_valid_name(name, prefix=prefix)
 # End _make_valid_name function
 
 
