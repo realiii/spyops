@@ -42,6 +42,7 @@ TARGET: str = 'target'
 GEOPACKAGE: str = 'geopackage'
 GROUP_FIELDS: str = 'group_fields'
 ATTRIBUTE_OPTION: str = 'attribute_option'
+ALGORITHM_OPTION: str = 'algorithm_option'
 
 
 SQL_EMPTY: str = """ROWID <= -1"""
