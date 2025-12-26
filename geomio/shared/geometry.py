@@ -79,12 +79,24 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
     """
     Build MultiPolygon from Polygon or MultiPolygon Feature Class
     """
+    polygons = _get_polygons(feature_class)
+    # noinspection PyTypeChecker
+    multi: ShapelyMultiPolygon = unary_union(polygons)
+    prepare(multi)
+    return multi
+# End build_multi_polygon function
+
+
+def _get_polygons(feature_class: FeatureClass) -> list[ShapelyPolygon]:
+    """
+    Get Polygons from a Polygon or MultiPolygon Feature Class
+    """
     polygons = []
     column_name = get_geometry_column_name(
         feature_class, include_geom_type=True)
     is_multi = feature_class.is_multi_part
-    with feature_class.geopackage.connection as conn:
-        cursor = conn.execute(
+    with feature_class.geopackage.connection as cin:
+        cursor = cin.execute(
             f"""SELECT {column_name} 
                 FROM {feature_class.escaped_name}""")
         while geoms := cursor.fetchmany(FETCH_SIZE):
@@ -96,11 +108,8 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
                     if check_polygon(polygon) is None:  # pragma: no cover
                         continue
                     polygons.append(polygon)
-    # noinspection PyTypeChecker
-    multi: ShapelyMultiPolygon = unary_union(polygons)
-    prepare(multi)
-    return multi
-# End build_multi_polygon function
+    return polygons
+# End _get_polygons function
 
 
 def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
