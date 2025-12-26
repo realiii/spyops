@@ -21,7 +21,7 @@ def test_build_multi_polygon(inputs):
     Test build multi polygon
     """
     fc = inputs['updater_a']
-    assert fc.count == 5
+    assert len(fc) == 5
     polygon = build_multi_polygon(fc)
     assert isinstance(polygon, MultiPolygon)
     assert approx(polygon.bounds, abs=0.0001) == (
