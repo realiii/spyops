@@ -7,9 +7,10 @@ Test for Query builders
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import SQLFieldType
-from pytest import approx, mark
+from pytest import approx, mark, raises
 
 from geomio.query.extract import QueryClip, QuerySplitByAttributes
+from geomio.shared.base import OverlayConfig
 
 pytestmark = [mark.extract, mark.query]
 
@@ -34,9 +35,9 @@ def test_query_split_by_attributes(request, name, fix_name, group_names):
 # End test_query_split_by_attributes function
 
 
-def test_query_analysis(world_features, inputs, mem_gpkg):
+def test_query_clip(world_features, inputs, mem_gpkg):
     """
-    Test Query Analysis
+    Test Query Clip
     """
     target = FeatureClass(mem_gpkg, 'test_target')
     source = world_features['cities_p']
@@ -49,7 +50,12 @@ def test_query_analysis(world_features, inputs, mem_gpkg):
     assert query.select.strip().startswith('SELECT SHAPE "[Point]"')
     assert query.insert.strip().startswith('INSERT INTO test_target')
     assert query.select_disjoint
-# End test_query_analysis function
+    assert query.operator is operator
+    assert isinstance(query.config, OverlayConfig)
+    with raises(ValueError):
+        _ = query.target_full
+    assert 'FROM clipper_a' in query.select_operator
+# End test_query_clip function
 
 
 if __name__ == '__main__':  # pragma: no cover

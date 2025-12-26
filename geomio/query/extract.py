@@ -5,7 +5,6 @@ Query Classes for analysis.extract module
 
 
 from geomio.query.base import AbstractQuery, AbstractSpatialQuery
-from geomio.shared.constant import IN, NOT_IN, SQL_FULL
 from geomio.shared.field import make_field_names
 from geomio.shared.hint import ELEMENT, FIELDS
 
@@ -73,37 +72,6 @@ class QueryClip(AbstractSpatialQuery):
     Queries for Clip
     """
     @property
-    def select_intersect(self) -> str:
-        """
-        Selection query for intersection
-        """
-        elm = self._element
-        if where := self._spatial_index_where(
-                elm, extent=self.shared_extent):
-            where = where.format(IN)
-        else:
-            where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names, where_clause=where)
-    # End select_intersect property
-
-    @property
-    def select_disjoint(self) -> str:
-        """
-        Selection query for disjoint
-        """
-        elm = self._element
-        if not (where := self._spatial_index_where(
-                elm, extent=self.shared_extent)):
-            return ''
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=where.format(NOT_IN))
-    # End select_disjoint property
-
-    @property
     def insert(self) -> str:
         """
         Insert Query
@@ -122,7 +90,7 @@ class QuerySplit(AbstractSpatialQuery):
     Queries for Split, really just here for the has_intersection
     """
     @property
-    def insert(self) -> str:
+    def insert(self) -> str:  # pragma: no cover
         """
         Insert Query, not used
         """
