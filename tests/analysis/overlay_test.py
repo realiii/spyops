@@ -8,7 +8,7 @@ from fudgeo import FeatureClass
 from pytest import mark, param
 
 from geomio.analysis.overlay import erase, intersect
-from geomio.shared.enumeration import AttributeOption, Setting
+from geomio.shared.enumeration import AlgorithmOption, AttributeOption, Setting
 from geomio.query.overlay import QueryErase
 from geomio.shared.setting import Swap
 
@@ -147,6 +147,23 @@ def test_intersect_setting(inputs, world_features, mem_gpkg, fc_name, xy_toleran
     assert len(result) == feature_count
     assert len(result.fields) == field_count
 # End test_intersect_setting function
+
+
+@mark.parametrize('option, count', [
+    (AlgorithmOption.PAIRWISE, 64),
+    (AlgorithmOption.CLASSIC, 369),
+])
+def test_intersect_option(inputs, mem_gpkg, option, count):
+    """
+    Test Intersect with Options for Classic and Pairwise
+    """
+    operator = inputs['intersect_a']
+    source = inputs['int_flavor_a']
+    target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_intersect_a')
+    result = intersect(source=source, operator=operator, target=target,
+                       algorithm_option=option)
+    assert len(result) == count
+# End test_intersect_option function
 
 
 if __name__ == '__main__':  # pragma: no cover

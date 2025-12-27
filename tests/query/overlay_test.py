@@ -79,7 +79,30 @@ class TestQueryIntersectPairwise:
         assert not len(query.target_empty)
         assert query.insert.strip().startswith('INSERT INTO cities_____p')
     # End test_target_empty method
-# End TestQueryIntersect class
+# End TestQueryIntersectPairwise class
+
+
+class TestQueryIntersectClassic:
+    """
+    Test Query Intersect Classic
+    """
+    def test_planarize(self, inputs, mem_gpkg):
+        """
+        Test Planarize
+        """
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=None,
+            operator=inputs['intersect_a'],
+            attribute_option=AttributeOption.ALL)
+        operator = query.operator_planar
+        assert len(operator) == 9
+        source = query.source_planar
+        assert len(source) == 268
+        target = FeatureClass(geopackage=mem_gpkg, name='planarize_test_a')
+        intersect(source, operator=operator, target=target)
+        assert len(target) == 380
+    # End test_planarize method
+# End TestQueryIntersectClassic class
 
 
 if __name__ == '__main__':  # pragma: no cover
