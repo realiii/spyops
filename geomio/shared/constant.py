@@ -44,6 +44,7 @@ GROUP_FIELDS: str = 'group_fields'
 ATTRIBUTE_OPTION: str = 'attribute_option'
 ALGORITHM_OPTION: str = 'algorithm_option'
 
+DUNDER_FID: str = '__fid__'
 ROWID: str = 'ROWID'
 SQL_EMPTY: str = f"""{ROWID} <= -1"""
 SQL_FULL: str = f"""{ROWID} > -1"""
