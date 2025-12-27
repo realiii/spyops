@@ -349,14 +349,20 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
                 for f in others]
     # End _make_unique_fields method
 
+    @staticmethod
+    def _make_fid_field(field: Field, element: ELEMENT) -> Field:
+        """
+        Make FID Field
+        """
+        return clone_field(field, name=f'{field.name}{UNDERSCORE}{element.name}')
+    # End _make_fid_field method
+
     def _make_primaries(self, source: Field, operator: Field) -> tuple[Field, Field]:
         """
         Make Unique Primary Key Columns
         """
-        source = clone_field(
-            source, name=f'{source.name}{UNDERSCORE}{self.source.name}')
-        operator = clone_field(
-            operator, name=f'{operator.name}{UNDERSCORE}{self.operator.name}')
+        source = self._make_fid_field(source, self.source)
+        operator = self._make_fid_field(operator, self.operator)
         names = {source.name.casefold()}
         operator.name = make_unique_name(operator.name, names=names)
         return source, operator
