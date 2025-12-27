@@ -80,35 +80,18 @@ FUDGEO_GEOMETRY_LOOKUP: dict[str, dict[tuple[bool, bool], Any]] = {
 
 def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
     """
-    Build MultiPolygon from a Polygon or MultiPolygon Feature Class
+    Build MultiPolygon from Polygon or MultiPolygon Feature Class
     """
-    polygons, _ = _get_polygons(feature_class)
-    # noinspection PyTypeChecker
-    multi: ShapelyMultiPolygon = unary_union(polygons)
-    prepare(multi)
-    return multi
-# End build_multi_polygon function
-
-
-def _get_polygons(feature_class: FeatureClass) \
-        -> tuple[list[ShapelyPolygon], list[int]]:
-    """
-    Get Polygons from a Polygon or MultiPolygon Feature Class
-    """
-    ids = []
     polygons = []
-    geom_name = get_geometry_column_name(feature_class, include_geom_type=True)
-    if field := feature_class.primary_key_field:
-        fid_name = field.name
-    else:
-        fid_name = ROWID
+    column_name = get_geometry_column_name(
+        feature_class, include_geom_type=True)
     is_multi = feature_class.is_multi_part
     with feature_class.geopackage.connection as cin:
         cursor = cin.execute(
-            f"""SELECT {geom_name}{COMMA_SPACE}{fid_name} 
+            f"""SELECT {column_name} 
                 FROM {feature_class.escaped_name}""")
         while geoms := cursor.fetchmany(FETCH_SIZE):
-            for geom, id_ in geoms:
+            for geom, in geoms:
                 polys = geom.polygons if is_multi else [geom]
                 for poly in polys:
                     # noinspection PyTypeChecker
@@ -116,9 +99,11 @@ def _get_polygons(feature_class: FeatureClass) \
                     if check_polygon(polygon) is None:  # pragma: no cover
                         continue
                     polygons.append(polygon)
-                    ids.append(id_)
-    return polygons, ids
-# End _get_polygons function
+    # noinspection PyTypeChecker
+    multi: ShapelyMultiPolygon = unary_union(polygons)
+    prepare(multi)
+    return multi
+# End build_multi_polygon function
 
 
 def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
