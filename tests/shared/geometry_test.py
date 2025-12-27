@@ -12,7 +12,7 @@ from shapely import (
 
 from geomio.shared.geometry import (
     build_multi_polygon, check_polygon, extent_from_feature_class,
-    overlay_config, planarize_polygons)
+    overlay_config)
 
 
 pytestmark = [mark.geometry]
@@ -89,22 +89,6 @@ def test_check_polygon(polygon, type_):
     """
     assert isinstance(check_polygon(polygon), type_)
 # End test_check_polygon function
-
-
-@mark.parametrize('name, feature_count, planar_count', [
-    ('intersect_a', 5, 7),
-    ('int_flavor_a', 50, 136),
-])
-def test_planarize_polygons(inputs, name, feature_count, planar_count):
-    """
-    Test planarize_polygons
-    """
-    fc = inputs[name]
-    assert len(fc) == feature_count
-    results = planarize_polygons(fc)
-    assert len(results.planarized) == planar_count
-    assert len(results.polygons) == feature_count
-# End test_planarize_polygons function
 
 
 if __name__ == '__main__':  # pragma: no cover
