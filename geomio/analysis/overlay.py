@@ -88,10 +88,13 @@ def intersect(source: FeatureClass, operator: FeatureClass,
                            attribute_option=attribute_option)
     if not query.has_intersection:
         return query.target_empty
+    op_geoms = []
+    op_features = []
     with query.operator.geopackage.connection as cin:
         cursor = cin.execute(query.select_operator)
-        op_features = cursor.fetchall()
-        op_geoms = [from_wkb(g.wkb) for g, *_ in op_features]
+        while features := cursor.fetchmany(FETCH_SIZE):
+            op_features.extend(features)
+            op_geoms.extend([from_wkb(g.wkb) for g, *_ in op_features])
     records = []
     tree = STRtree(op_geoms)
     with (query.target.geopackage.connection as cout,
