@@ -11,8 +11,10 @@ from fudgeo.constant import FETCH_SIZE
 from shapely import STRtree, set_precision
 from shapely.io import from_wkb
 
-from geomio.query.overlay import QueryErase, QueryIntersect
-from geomio.shared.constant import ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET
+from geomio.query.overlay import (
+    QueryErase, QueryIntersectPairwise)
+from geomio.shared.constant import (
+    ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET)
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.hint import XY_TOL
@@ -84,8 +86,8 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     operator feature class.  Optionally, extends the output feature class
     with attributes from the operator feature class.
     """
-    query = QueryIntersect(source, target=target, operator=operator,
-                           attribute_option=attribute_option)
+    query = QueryIntersectPairwise(source, target=target, operator=operator,
+                                   attribute_option=attribute_option)
     if not query.has_intersection:
         return query.target_empty
     op_geoms = []

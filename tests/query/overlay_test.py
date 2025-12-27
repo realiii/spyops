@@ -2,18 +2,22 @@
 """
 Test for Overlay Query Classes
 """
+
+
 from fudgeo import FeatureClass
 from pytest import mark
 
-from geomio.query.overlay import QueryIntersect
+from geomio.analysis.overlay import intersect
+from geomio.query.overlay import QueryIntersectClassic, QueryIntersectPairwise
 from geomio.shared.enumeration import AttributeOption
+from geomio.shared.field import get_geometry_column_name
 
 pytestmark = [mark.overlay, mark.query]
 
 
-class TestQueryIntersect:
+class TestQueryIntersectPairwise:
     """
-    Test Query Intersect
+    Test Query Intersect Pairwise
     """
     @mark.parametrize('option, names', [
         (AttributeOption.ALL, 'geom "[Polygon]", fid, ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
@@ -27,8 +31,8 @@ class TestQueryIntersect:
         operator = inputs['intersect_a']
         cites = world_features['cities_p']
         target = FeatureClass(geopackage=mem_gpkg, name='cities_1234_p')
-        query = QueryIntersect(source=cites, target=target, operator=operator,
-                               attribute_option=option)
+        query = QueryIntersectPairwise(source=cites, target=target, operator=operator,
+                                       attribute_option=option)
         *_, select = query._field_names_and_count(operator)
         assert select == names
     # End test_field_names_and_count method
@@ -54,8 +58,8 @@ class TestQueryIntersect:
         operator = inputs['intersect_a']
         admin = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name='adminaaaaaa')
-        query = QueryIntersect(source=admin, target=target, operator=operator,
-                               attribute_option=option)
+        query = QueryIntersectPairwise(source=admin, target=target, operator=operator,
+                                       attribute_option=option)
         fields = query._get_unique_fields()
 
         assert [f.name for f in fields] == names
@@ -68,8 +72,8 @@ class TestQueryIntersect:
         operator = inputs['intersect_a']
         cites = world_features['cities_p']
         target = FeatureClass(geopackage=mem_gpkg, name='cities_____p')
-        query = QueryIntersect(source=cites, target=target, operator=operator,
-                               attribute_option=AttributeOption.ALL)
+        query = QueryIntersectPairwise(source=cites, target=target, operator=operator,
+                                       attribute_option=AttributeOption.ALL)
         assert isinstance(query.target_empty, FeatureClass)
         assert query.target_empty
         assert not len(query.target_empty)

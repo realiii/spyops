@@ -14,11 +14,11 @@ class QueryErase(QueryClip):
 # End QueryErase class
 
 
-class QueryIntersect(AbstractSpatialAttribute):
+class QueryIntersectPairwise(AbstractSpatialAttribute):
     """
-    Queries for Intersect
+    Queries for Intersect (Pairwise)
     """
-# End QueryIntersect class
+# End QueryIntersectPairwise class
 
 
 if __name__ == '__main__':  # pragma: no cover
