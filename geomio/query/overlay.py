@@ -47,6 +47,20 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
     """
     Queries for Intersect (Classic)
     """
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass,
+                 attribute_option: AttributeOption) -> None:
+        """
+        Initialize the AbstractSpatialAttribute class
+        """
+        super().__init__(source=source, target=target, operator=operator,
+                         attribute_option=attribute_option)
+        source = self._planarize(self.source, self.select)
+        operator = self._planarize(self.operator, self.select_operator)
+        self._element = source
+        self._operator = operator
+    # End init built-in
+
     @cached_property
     def scratch(self) -> MemoryGeoPackage:
         """
@@ -190,22 +204,6 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         primary = f'{element.primary_key_field.escaped_name} AS {alias}'
         return 0, '', f'{select_field_names}{COMMA_SPACE}{primary}'
     # End _field_names_and_count method
-
-    @cached_property
-    def operator_planar(self) -> FeatureClass:
-        """
-        Operator
-        """
-        return self._planarize(self.operator, self.select_operator)
-    # End operator property
-
-    @cached_property
-    def source_planar(self) -> FeatureClass:
-        """
-        Source
-        """
-        return self._planarize(self.source, self.select)
-    # End source property
 # End QueryIntersectPairwise class
 
 

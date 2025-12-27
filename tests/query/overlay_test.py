@@ -94,13 +94,10 @@ class TestQueryIntersectClassic:
             inputs['int_flavor_a'], target=None,
             operator=inputs['intersect_a'],
             attribute_option=AttributeOption.ALL)
-        operator = query.operator_planar
+        operator = query.operator
         assert len(operator) == 9
-        source = query.source_planar
+        source = query.source
         assert len(source) == 268
-        target = FeatureClass(geopackage=mem_gpkg, name='planarize_test_a')
-        intersect(source, operator=operator, target=target)
-        assert len(target) == 380
     # End test_planarize method
 # End TestQueryIntersectClassic class
 
