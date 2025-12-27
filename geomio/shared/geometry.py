@@ -124,11 +124,14 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
 
 
 def overlay_config(source: FeatureClass, target: FeatureClass,
-                   operator: FeatureClass) -> OverlayConfig:
+                   operator: FeatureClass | None) -> OverlayConfig:
     """
     Overlay Configuration
     """
-    polygon = build_multi_polygon(operator)
+    if operator is None:
+        polygon = ShapelyPolygon()
+    else:
+        polygon = build_multi_polygon(operator)
     geom_type = source.geometry_type.upper()
     is_multi = source.is_multi_part
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][source.has_z, source.has_m]
