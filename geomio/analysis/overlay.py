@@ -12,10 +12,10 @@ from shapely import STRtree, set_precision
 from shapely.io import from_wkb
 
 from geomio.query.overlay import (
-    QueryErase, QueryIntersectPairwise)
+    QueryErase, QueryIntersectClassic, QueryIntersectPairwise)
 from geomio.shared.constant import (
-    ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET)
-from geomio.shared.enumeration import AttributeOption
+    ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET)
+from geomio.shared.enumeration import AlgorithmOption, AttributeOption
 from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.hint import XY_TOL
 from geomio.shared.util import extend_records
@@ -71,6 +71,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_result()
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_xy_tolerance()
+@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
@@ -78,6 +79,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 def intersect(source: FeatureClass, operator: FeatureClass,
               target: FeatureClass, *,
               attribute_option: AttributeOption = AttributeOption.ALL,
+              algorithm_option: AlgorithmOption = AlgorithmOption.PAIRWISE,
               xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
     Intersect
@@ -86,8 +88,12 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     operator feature class.  Optionally, extends the output feature class
     with attributes from the operator feature class.
     """
-    query = QueryIntersectPairwise(source, target=target, operator=operator,
-                                   attribute_option=attribute_option)
+    if algorithm_option == AlgorithmOption.CLASSIC:
+        cls = QueryIntersectClassic
+    else:
+        cls = QueryIntersectPairwise
+    query = cls(source, target=target, operator=operator,
+                attribute_option=attribute_option)
     if not query.has_intersection:
         return query.target_empty
     op_geoms = []
