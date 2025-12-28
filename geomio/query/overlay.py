@@ -208,7 +208,7 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         else:
             primary = EMPTY
         select_field_names = make_field_names(fields)
-        return 0, '', f'{geom_type}{primary}{COMMA_SPACE}{select_field_names}'
+        return 0, EMPTY, f'{geom_type}{primary}{COMMA_SPACE}{select_field_names}'
     # End _field_names_and_count method
 # End QueryIntersectPairwise class
 
