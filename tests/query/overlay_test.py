@@ -31,8 +31,9 @@ class TestQueryIntersectPairwise:
         operator = inputs['intersect_a']
         cites = world_features['cities_p']
         target = FeatureClass(geopackage=mem_gpkg, name='cities_1234_p')
-        query = QueryIntersectPairwise(source=cites, target=target, operator=operator,
-                                       attribute_option=option)
+        query = QueryIntersectPairwise(
+            source=cites, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
         *_, select = query._field_names_and_count(operator)
         assert select == names
     # End test_field_names_and_count method
@@ -58,8 +59,9 @@ class TestQueryIntersectPairwise:
         operator = inputs['intersect_a']
         admin = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name='adminaaaaaa')
-        query = QueryIntersectPairwise(source=admin, target=target, operator=operator,
-                                       attribute_option=option)
+        query = QueryIntersectPairwise(
+            source=admin, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
         fields = query._get_unique_fields()
 
         assert [f.name for f in fields] == names
@@ -78,8 +80,9 @@ class TestQueryIntersectPairwise:
         """
         admin = operator = inputs['intersect_a']
         target = FeatureClass(geopackage=mem_gpkg, name='adminaaaaaa')
-        query = QueryIntersectPairwise(source=admin, target=target, operator=operator,
-                                       attribute_option=option)
+        query = QueryIntersectPairwise(
+            source=admin, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
         fields = query._get_unique_fields()
 
         assert [f.name for f in fields] == names
@@ -92,8 +95,9 @@ class TestQueryIntersectPairwise:
         operator = inputs['intersect_a']
         cites = world_features['cities_p']
         target = FeatureClass(geopackage=mem_gpkg, name='cities_____p')
-        query = QueryIntersectPairwise(source=cites, target=target, operator=operator,
-                                       attribute_option=AttributeOption.ALL)
+        query = QueryIntersectPairwise(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
         assert isinstance(query.target_empty, FeatureClass)
         assert query.target_empty
         assert not len(query.target_empty)
@@ -117,7 +121,7 @@ class TestPlanarize:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizeSource(source=source, operator=operator)
+        ps = PlanarizeSource(source=source, operator=operator, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
         fc = ps()
         assert fc.field_names == ['fid', 'SHAPE', 'fid_int_flavor_a', 'id']
@@ -135,14 +139,29 @@ class TestPlanarize:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizeOperator(source=source, operator=operator)
-        assert ps.temporary_fid_field.name == 'fid_intersect_a'
-        fc = ps()
+        po = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
+        assert po.temporary_fid_field.name == 'fid_intersect_a'
+        fc = po()
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_intersect_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 9
     # End test_planarize_operator method
+
+    def test_planarize_operator_holes(self, inputs, mem_gpkg):
+        """
+        Test Planarize Operator using feature class with holes
+        """
+        operator = inputs['intersect_holes_a']
+        source = inputs['int_flavor_a']
+        po = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
+        assert po.temporary_fid_field.name == 'fid_intersect_holes_a'
+        fc = po()
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_intersect_holes_a', 'ID', 'NAME', 'WHEN',
+            'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
+        assert len(fc) == 9
+    # End test_planarize_operator_holes method
 # End TestPlanarize class
 
 
@@ -157,7 +176,7 @@ class TestQueryIntersectClassic:
         query = QueryIntersectClassic(
             inputs['int_flavor_a'], target=None,
             operator=inputs['intersect_a'],
-            attribute_option=AttributeOption.ALL)
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
         source = query.source
         assert len(source) == 268
         operator = query.operator
@@ -177,7 +196,7 @@ class TestQueryIntersectClassic:
         query = QueryIntersectClassic(
             inputs['int_flavor_a'], target=target,
             operator=inputs['intersect_a'],
-            attribute_option=option)
+            attribute_option=option, xy_tolerance=None)
         assert query.target.field_names == names
     # End test_target_fields method
 # End TestQueryIntersectClassic class
