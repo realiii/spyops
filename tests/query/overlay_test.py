@@ -147,6 +147,21 @@ class TestPlanarize:
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 9
     # End test_planarize_operator method
+
+    def test_planarize_operator_holes(self, inputs, mem_gpkg):
+        """
+        Test Planarize Operator using feature class with holes
+        """
+        operator = inputs['intersect_holes_a']
+        source = inputs['int_flavor_a']
+        po = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
+        assert po.temporary_fid_field.name == 'fid_intersect_holes_a'
+        fc = po()
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_intersect_holes_a', 'ID', 'NAME', 'WHEN',
+            'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
+        assert len(fc) == 9
+    # End test_planarize_operator_holes method
 # End TestPlanarize class
 
 
