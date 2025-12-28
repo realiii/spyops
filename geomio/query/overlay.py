@@ -23,7 +23,7 @@ from geomio.shared.constant import EMPTY, GEOMS_ATTR
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import overlay_config
-from geomio.shared.hint import ELEMENT, FIELDS, POLYGONS
+from geomio.shared.hint import ELEMENT, FIELDS, POLYGONS, XY_TOL
 from geomio.shared.element import create_feature_class
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.util import element_names, extend_records, make_unique_name
@@ -47,12 +47,14 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
     """
     Base Class for Planarizing Feature Class
     """
-    def __init__(self, source: FeatureClass, operator: FeatureClass) -> None:
+    def __init__(self, source: FeatureClass, operator: FeatureClass,
+                 xy_tolerance: XY_TOL) -> None:
         """
         Initialize the BasePlanarizeFeatureClass class
         """
-        super().__init__(source=source, operator=operator, target=None,
-                         attribute_option=AttributeOption.ALL)
+        super().__init__(
+            source=source, operator=operator, target=None,
+            attribute_option=AttributeOption.ALL, xy_tolerance=xy_tolerance)
     # End init built-in
 
     @abstractmethod
@@ -259,17 +261,18 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
     Queries for Intersect (Classic)
     """
     def __init__(self, source: FeatureClass, target: FeatureClass,
-                 operator: FeatureClass,
-                 attribute_option: AttributeOption) -> None:
+                 operator: FeatureClass, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
+        source = PlanarizeSource(
+            source, operator=operator, xy_tolerance=xy_tolerance)()
+        operator = PlanarizeOperator(
+            source, operator=operator, xy_tolerance=xy_tolerance)()
         super().__init__(source=source, target=target, operator=operator,
-                         attribute_option=attribute_option)
-        self._source_planar = PlanarizeSource(source, operator=operator)
-        self._operator_planar = PlanarizeOperator(source, operator=operator)
-        self._element = self._source_planar()
-        self._operator = self._operator_planar()
+                         attribute_option=attribute_option,
+                         xy_tolerance=xy_tolerance)
     # End init built-in
 
     def _get_unique_fields(self) -> FIELDS:

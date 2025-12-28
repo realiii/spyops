@@ -19,7 +19,7 @@ from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import extent_from_feature_class, overlay_config
-from geomio.shared.hint import ELEMENT, EXTENT, FIELDS
+from geomio.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
 from geomio.shared.util import make_unique_name
 
 
@@ -281,13 +281,14 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     Abstract class extending with attribute options
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass,
-                 attribute_option: AttributeOption) -> None:
+                 operator: FeatureClass, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
         super().__init__(source=source, target=target, operator=operator)
         self._attr_option: AttributeOption = attribute_option
+        self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
     @cache
