@@ -121,6 +121,23 @@ class TestQueryIntersectClassic:
         assert names == planar_names
     # End test_field_names_and_count method
 
+    @mark.parametrize('option, names', [
+        (AttributeOption.ALL, ['fid', 'SHAPE', 'fid_int_flavor_a', 'id', 'fid_intersect_a', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
+        (AttributeOption.SANS_FID, ['fid', 'SHAPE', 'id', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
+        (AttributeOption.ONLY_FID, ['fid', 'SHAPE', 'fid_int_flavor_a', 'fid_intersect_a'] ),
+    ])
+    def test_target_fields(self, inputs, mem_gpkg, option, names):
+        """
+        Test field names and count
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option)
+        assert query.target.field_names == names
+    # End test_target_fields method
+
 
 # End TestQueryIntersectClassic class
 

@@ -213,6 +213,16 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
             select_field_names = EMPTY
         return 0, EMPTY, f'{geom_type}{primary}{select_field_names}'
     # End _field_names_and_count method
+
+    def _get_unique_fields_sans_fid(self) -> list[Field]:
+        """
+        Get Unique Fields for the SANS_FID Attribute Option
+        """
+        _, *src_fields = self._get_fields(self.source)
+        _, *op_fields = self._get_fields(self.operator)
+        op_fields = self._make_unique_fields(src_fields, op_fields)
+        return [*src_fields, *op_fields]
+    # End _get_unique_fields_sans_fid method
 # End QueryIntersectClassic class
 
 

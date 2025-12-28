@@ -333,11 +333,18 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             op, *_ = self._get_fields(self.operator)
             return self._make_primaries(src, op)
         else:
-            src_fields = self._get_fields(self.source)
-            op_fields = self._get_fields(self.operator)
-            op_fields = self._make_unique_fields(src_fields, op_fields)
-            return [*src_fields, *op_fields]
+            return self._get_unique_fields_sans_fid()
     # End _get_unique_fields method
+
+    def _get_unique_fields_sans_fid(self) -> list[Field]:
+        """
+        Get Unique Fields for the SANS_FID Attribute Option
+        """
+        src_fields = self._get_fields(self.source)
+        op_fields = self._get_fields(self.operator)
+        op_fields = self._make_unique_fields(src_fields, op_fields)
+        return [*src_fields, *op_fields]
+    # End _get_unique_fields_sans_fid method
 
     @staticmethod
     def _make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
