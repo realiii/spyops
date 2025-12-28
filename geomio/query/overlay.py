@@ -73,10 +73,11 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         """
         Planarized Feature Class
         """
-        geoms, attributes = self._fetch_features(feature_class, sql)
+        geoms, attributes = self._fetch_features(feature_class, sql=sql)
         planarized = self._make_planarized_geometry(geoms)
-        results = self._build_planar_results(planarized, geoms, attributes)
-        return self._save_planarized(feature_class, results)
+        results = self._build_planar_results(
+            planarized, geoms=geoms, attributes=attributes)
+        return self._save_planarized(feature_class, results=results)
     # End _planarize method
 
     @staticmethod
