@@ -7,8 +7,9 @@ Test for Overlay Query Classes
 from fudgeo import FeatureClass
 from pytest import mark
 
-from geomio.query.overlay import QueryIntersectClassic, QueryIntersectPairwise
-from geomio.shared.constant import DUNDER_FID
+from geomio.query.overlay import (
+    PlanarizeOperator, PlanarizeSource, QueryIntersectClassic,
+    QueryIntersectPairwise)
 from geomio.shared.enumeration import AttributeOption
 
 pytestmark = [mark.overlay, mark.query]
@@ -101,6 +102,50 @@ class TestQueryIntersectPairwise:
 # End TestQueryIntersectPairwise class
 
 
+class TestPlanarize:
+    """
+    Test Planarize
+    """
+    @mark.parametrize('option', [
+        AttributeOption.ALL,
+        AttributeOption.SANS_FID,
+        AttributeOption.ONLY_FID,
+    ])
+    def test_planarize_source(self, inputs, mem_gpkg, option):
+        """
+        Test Planarize Source
+        """
+        operator = inputs['intersect_a']
+        source = inputs['int_flavor_a']
+        ps = PlanarizeSource(source=source, operator=operator)
+        assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
+        fc = ps()
+        assert fc.field_names == ['fid', 'SHAPE', 'fid_int_flavor_a', 'id']
+        assert len(fc) == 268
+    # End test_planarize_source method
+
+    @mark.parametrize('option', [
+        AttributeOption.ALL,
+        AttributeOption.SANS_FID,
+        AttributeOption.ONLY_FID,
+    ])
+    def test_planarize_operator(self, inputs, mem_gpkg, option):
+        """
+        Test Planarize Operator
+        """
+        operator = inputs['intersect_a']
+        source = inputs['int_flavor_a']
+        ps = PlanarizeOperator(source=source, operator=operator)
+        assert ps.temporary_fid_field.name == 'fid_intersect_a'
+        fc = ps()
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_intersect_a', 'ID', 'NAME', 'WHEN',
+            'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
+        assert len(fc) == 9
+    # End test_planarize_operator method
+# End TestPlanarize class
+
+
 class TestQueryIntersectClassic:
     """
     Test Query Intersect Classic
@@ -113,32 +158,11 @@ class TestQueryIntersectClassic:
             inputs['int_flavor_a'], target=None,
             operator=inputs['intersect_a'],
             attribute_option=AttributeOption.ALL)
-        operator = query.operator
-        assert len(operator) == 9
         source = query.source
         assert len(source) == 268
-    # End test_planarize method
-
-    @mark.parametrize('option, input_names, planar_names', [
-        (AttributeOption.ALL, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
-        (AttributeOption.SANS_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
-        (AttributeOption.ONLY_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__"'),
-    ])
-    def test_field_names_and_count(self, inputs, mem_gpkg, option, input_names, planar_names):
-        """
-        Test field names and count
-        """
-        source = inputs['int_flavor_a']
-        query = QueryIntersectClassic(
-            source, target=None,
-            operator=inputs['intersect_a'],
-            attribute_option=option)
-        *_, names = query._field_names_and_count(source)
-        assert names == input_names
         operator = query.operator
-        *_, names = query._field_names_and_count(operator)
-        assert names == planar_names
-    # End test_field_names_and_count method
+        assert len(operator) == 9
+    # End test_planarize method
 
     @mark.parametrize('option, names', [
         (AttributeOption.ALL, ['fid', 'SHAPE', 'fid_int_flavor_a', 'id', 'fid_intersect_a', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
@@ -156,32 +180,6 @@ class TestQueryIntersectClassic:
             attribute_option=option)
         assert query.target.field_names == names
     # End test_target_fields method
-
-    @mark.parametrize('option, source_names, target_names', [
-        (AttributeOption.ALL, [DUNDER_FID, 'id'], [DUNDER_FID, 'ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
-        (AttributeOption.SANS_FID, ['id'], ['ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
-        (AttributeOption.ONLY_FID, [DUNDER_FID], [DUNDER_FID]),
-    ])
-    def test_get_fields(self, inputs, mem_gpkg, option, source_names, target_names):
-        """
-        Test get fields
-        """
-        source = inputs['int_flavor_a']
-        operator = inputs['intersect_a']
-        query = QueryIntersectClassic(
-            source, target=None,
-            operator=operator,
-            attribute_option=option)
-        fields = query._get_fields(source)
-        assert [f.name for f in fields] == ['id']
-        fields = query._get_fields(query.source)
-        assert [f.name for f in fields] == source_names
-
-        fields = query._get_fields(operator)
-        assert [f.name for f in fields] == ['ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
-        fields = query._get_fields(query.operator)
-        assert [f.name for f in fields] == target_names
-    # End test_get_fields method
 # End TestQueryIntersectClassic class
 
 
