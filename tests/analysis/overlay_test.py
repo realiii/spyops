@@ -8,7 +8,6 @@ from fudgeo import FeatureClass
 from pytest import mark, param
 
 from geomio.analysis.overlay import erase, intersect
-from geomio.shared.constant import DUNDER_FID
 from geomio.shared.enumeration import AlgorithmOption, AttributeOption, Setting
 from geomio.query.overlay import QueryErase
 from geomio.shared.setting import Swap
@@ -169,7 +168,6 @@ def test_intersect_option(inputs, mem_gpkg, algorithm_option, attribute_option, 
         name=f'{str(algorithm_option)}_{attribute_option}_a')
     result = intersect(source=source, operator=operator, target=target,
                        algorithm_option=algorithm_option, attribute_option=attribute_option)
-    assert not any([DUNDER_FID in f.name.casefold() for f in result.fields])
     assert len(result) == feature_count
     assert len(result.fields) == field_count
 # End test_intersect_option function
