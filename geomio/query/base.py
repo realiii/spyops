@@ -13,7 +13,7 @@ from shapely import box
 
 from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import (
-    DUNDER_FID, EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
+    EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
 from geomio.shared.element import copy_feature_class, create_feature_class
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
@@ -319,32 +319,19 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         Get Unique Fields and Rename Primary Key Columns if included
         """
         if self._attr_option == AttributeOption.ALL:
-            src, *src_fields = self._get_fields(self.source)
-            op, *op_fields = self._get_fields(self.operator)
-            src, op = self._make_primaries(src, op)
-            # NOTE make unique if the fid field names are already in use
-            src = self._make_unique_fields(src_fields, [src])
-            op = self._make_unique_fields(op_fields, [op])
-            fields = [*src, *src_fields]
-            op_fields = self._make_unique_fields(fields, [*op, *op_fields])
-            return [*fields, *op_fields]
+            _, *src_fields = self._get_fields(self.source)
+            _, *op_fields = self._get_fields(self.operator)
+            src_fields = [self.output_fid_source, *src_fields]
+            op_fields = self._make_unique_fields(src_fields, [*op_fields])
+            return [*src_fields, self.output_fid_operator, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
-            src, *_ = self._get_fields(self.source)
-            op, *_ = self._get_fields(self.operator)
-            return self._make_primaries(src, op)
+            return self.output_fid_source, self.output_fid_operator
         else:
-            return self._get_unique_fields_sans_fid()
+            src_fields = self._get_fields(self.source)
+            op_fields = self._get_fields(self.operator)
+            op_fields = self._make_unique_fields(src_fields, op_fields)
+            return [*src_fields, *op_fields]
     # End _get_unique_fields method
-
-    def _get_unique_fields_sans_fid(self) -> list[Field]:
-        """
-        Get Unique Fields for the SANS_FID Attribute Option
-        """
-        src_fields = self._get_fields(self.source)
-        op_fields = self._get_fields(self.operator)
-        op_fields = self._make_unique_fields(src_fields, op_fields)
-        return [*src_fields, *op_fields]
-    # End _get_unique_fields_sans_fid method
 
     @staticmethod
     def _make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
@@ -361,22 +348,43 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Make FID Field
         """
-        name = field.name
-        if name.startswith(DUNDER_FID):
-            name = FID
-        return clone_field(field, name=f'{name}{UNDERSCORE}{element.name}')
+        return clone_field(field, name=f'{field.name}{UNDERSCORE}{element.name}')
     # End _make_fid_field method
 
-    def _make_primaries(self, source: Field, operator: Field) -> tuple[Field, Field]:
+    @cached_property
+    def output_fid_source(self) -> Field:
         """
-        Make Unique Primary Key Columns
+        Output FID for Source
         """
-        source = self._make_fid_field(source, self.source)
-        operator = self._make_fid_field(operator, self.operator)
+        field = self._make_fid_field(self.source.primary_key_field, self.source)
+        return self._avoid_name_clash(field)
+    # End output_fid_source property
+
+    @cached_property
+    def output_fid_operator(self) -> Field:
+        """
+        Output FID for Operator
+        """
+        source = self.output_fid_source
         names = {source.name.casefold()}
-        operator.name = make_unique_name(operator.name, names=names)
-        return source, operator
-    # End _make_primaries method
+        field = self._make_fid_field(
+            self.operator.primary_key_field, element=self.operator)
+        field.name = make_unique_name(field.name, names=names)
+        return self._avoid_name_clash(field)
+    # End output_fid_operator property
+
+    def _avoid_name_clash(self, field: Field) -> Field:
+        """
+        Avoid Name Clash with Source or Operator Fields
+        """
+        if self._attr_option != AttributeOption.ALL:
+            return field
+        _, *src_fields = self._get_fields(self.source)
+        _, *op_fields = self._get_fields(self.operator)
+        fields = [*src_fields, *op_fields]
+        field, = self._make_unique_fields(fields, [field])
+        return field
+    # End _avoid_name_clash method
 
     @property
     def insert(self) -> str:

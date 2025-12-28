@@ -64,6 +64,26 @@ class TestQueryIntersectPairwise:
         assert [f.name for f in fields] == names
     # End test_unique_fields method
 
+    @mark.parametrize('option, names', [
+        (AttributeOption.ALL, [
+            'fid_intersect_a', 'ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB',
+            'NOT_NOW', 'fid_intersect_a_1', 'ID_1', 'NAME_1', 'WHEN_1',
+            'EXAMPLE_JSON_1', 'BOB_1', 'NOT_NOW_1']),
+        (AttributeOption.ONLY_FID, ['fid_intersect_a', 'fid_intersect_a_1']),
+    ])
+    def test_unique_fields_same(self, inputs, world_features, mem_gpkg, option, names):
+        """
+        Test field names and count using same source and operator
+        """
+        admin = operator = inputs['intersect_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='adminaaaaaa')
+        query = QueryIntersectPairwise(source=admin, target=target, operator=operator,
+                                       attribute_option=option)
+        fields = query._get_unique_fields()
+
+        assert [f.name for f in fields] == names
+    # End test_unique_fields_same method
+
     def test_target_empty(self, inputs, world_features, mem_gpkg):
         """
         Test target empty
