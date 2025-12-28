@@ -173,5 +173,23 @@ def test_intersect_option(inputs, mem_gpkg, algorithm_option, attribute_option, 
 # End test_intersect_option function
 
 
+@mark.parametrize('xy_tolerance, feature_count', [
+    (None, 380),
+    (0.001, 379),
+    (0.05, 352),
+])
+def test_intersect_option_xy_tolerance(inputs, mem_gpkg, xy_tolerance, feature_count):
+    """
+    Test Intersect classical with XY Tolerance
+    """
+    operator = inputs['intersect_a']
+    source = inputs['int_flavor_a']
+    target = FeatureClass(geopackage=mem_gpkg, name='xy_a')
+    result = intersect(source=source, operator=operator, target=target,
+                       algorithm_option=AlgorithmOption.CLASSIC, xy_tolerance=xy_tolerance)
+    assert len(result) == feature_count
+# End test_intersect_option_xy_tolerance function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
