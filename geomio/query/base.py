@@ -178,7 +178,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         primary = element.primary_key_field
         if not element.has_spatial_index or not primary:  # pragma: no cover
-            return ''
+            return EMPTY
         min_x, min_y, max_x, max_y = extent
         return f"""{primary.escaped_name} {{}} (
             SELECT id  
@@ -267,7 +267,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         elm = self.source
         if not (where := self._spatial_index_where(
                 elm, extent=self.shared_extent)):  # pragma: no cover
-            return ''
+            return EMPTY
         *_, select_field_names = self._field_names_and_count(elm)
         return self._make_select(
             elm, field_names=select_field_names,
@@ -298,7 +298,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         fields = self._get_fields(element)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         select_field_names = make_field_names(fields)
-        return 0, '', f'{geom_type}{COMMA_SPACE}{select_field_names}'
+        return 0, EMPTY, f'{geom_type}{COMMA_SPACE}{select_field_names}'
     # End _field_names_and_count method
 
     def _get_fields(self, element: ELEMENT) -> FIELDS:
