@@ -5,6 +5,7 @@ Query Classes for analysis.extract module
 
 
 from geomio.query.base import AbstractQuery, AbstractSpatialQuery
+from geomio.shared.constant import EMPTY
 from geomio.shared.field import make_field_names
 from geomio.shared.hint import ELEMENT, FIELDS
 
@@ -94,7 +95,7 @@ class QuerySplit(AbstractSpatialQuery):
         """
         Insert Query, not used
         """
-        return ''
+        return EMPTY
     # End insert property
 # End QuerySplit class
 

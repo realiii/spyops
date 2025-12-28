@@ -209,8 +209,8 @@ def _has_same_org_name(geopackage: GPKG, srs_id: int,
     Check if SRS ID is in the table and has the same organization name
     """
     sql = """SELECT organization FROM gpkg_spatial_ref_sys WHERE srs_id = ?"""
-    with geopackage.connection as conn:
-        cursor = conn.execute(sql, (srs_id,))
+    with geopackage.connection as cin:
+        cursor = cin.execute(sql, (srs_id,))
         if not (result := cursor.fetchone()):
             return False
         org_name, = result
@@ -234,14 +234,14 @@ def _get_srs_id(geopackage: GPKG, wkt: str) -> int:
     Get SRS ID
     """
     stub = """SELECT max(srs_id) AS MAX_ID FROM gpkg_spatial_ref_sys"""
-    with geopackage.connection as conn:
-        cursor = conn.execute(f'{stub} WHERE definition = ?', (wkt,))
+    with geopackage.connection as cin:
+        cursor = cin.execute(f'{stub} WHERE definition = ?', (wkt,))
         # NOTE this unpacking works because we are using an aggregate query
         value, = cursor.fetchone()
     if value not in (None, 0):
         return value
-    with geopackage.connection as conn:
-        cursor = conn.execute(stub)
+    with geopackage.connection as cin:
+        cursor = cin.execute(stub)
         value, = cursor.fetchone()
     return max(value, CUSTOM_RANGE_START) + 1
 # End _get_srs_id function

@@ -13,7 +13,7 @@ from shapely import box
 
 from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import (
-    IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
+    EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
 from geomio.shared.element import copy_feature_class, create_feature_class
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
@@ -178,7 +178,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         primary = element.primary_key_field
         if not element.has_spatial_index or not primary:  # pragma: no cover
-            return ''
+            return EMPTY
         min_x, min_y, max_x, max_y = extent
         return f"""{primary.escaped_name} {{}} (
             SELECT id  
@@ -267,7 +267,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         elm = self.source
         if not (where := self._spatial_index_where(
                 elm, extent=self.shared_extent)):  # pragma: no cover
-            return ''
+            return EMPTY
         *_, select_field_names = self._field_names_and_count(elm)
         return self._make_select(
             elm, field_names=select_field_names,
@@ -280,7 +280,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     """
     Abstract class extending with attribute options
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass,
                  attribute_option: AttributeOption) -> None:
         """
@@ -298,7 +298,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         fields = self._get_fields(element)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         select_field_names = make_field_names(fields)
-        return 0, '', f'{geom_type}{COMMA_SPACE}{select_field_names}'
+        return 0, EMPTY, f'{geom_type}{COMMA_SPACE}{select_field_names}'
     # End _field_names_and_count method
 
     def _get_fields(self, element: ELEMENT) -> FIELDS:
@@ -319,19 +319,13 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         Get Unique Fields and Rename Primary Key Columns if included
         """
         if self._attr_option == AttributeOption.ALL:
-            src, *src_fields = self._get_fields(self.source)
-            op, *op_fields = self._get_fields(self.operator)
-            src, op = self._make_primaries(src, op)
-            # NOTE make unique if the fid field names are already in use
-            src = self._make_unique_fields(src_fields, [src])
-            op = self._make_unique_fields(op_fields, [op])
-            fields = [*src, *src_fields]
-            op_fields = self._make_unique_fields(fields, [*op, *op_fields])
-            return [*fields, *op_fields]
+            _, *src_fields = self._get_fields(self.source)
+            _, *op_fields = self._get_fields(self.operator)
+            src_fields = [self.output_fid_source, *src_fields]
+            op_fields = self._make_unique_fields(src_fields, op_fields)
+            return [*src_fields, self.output_fid_operator, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
-            src, *_ = self._get_fields(self.source)
-            op, *_ = self._get_fields(self.operator)
-            return self._make_primaries(src, op)
+            return self.output_fid_source, self.output_fid_operator
         else:
             src_fields = self._get_fields(self.source)
             op_fields = self._get_fields(self.operator)
@@ -349,18 +343,48 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
                 for f in others]
     # End _make_unique_fields method
 
-    def _make_primaries(self, source: Field, operator: Field) -> tuple[Field, Field]:
+    @staticmethod
+    def _make_fid_field(field: Field, element: ELEMENT) -> Field:
         """
-        Make Unique Primary Key Columns
+        Make FID Field
         """
-        source = clone_field(
-            source, name=f'{source.name}{UNDERSCORE}{self.source.name}')
-        operator = clone_field(
-            operator, name=f'{operator.name}{UNDERSCORE}{self.operator.name}')
+        return clone_field(field, name=f'{field.name}{UNDERSCORE}{element.name}')
+    # End _make_fid_field method
+
+    @cached_property
+    def output_fid_source(self) -> Field:
+        """
+        Output FID for Source
+        """
+        field = self._make_fid_field(self.source.primary_key_field, self.source)
+        return self._avoid_name_clash(field)
+    # End output_fid_source property
+
+    @cached_property
+    def output_fid_operator(self) -> Field:
+        """
+        Output FID for Operator
+        """
+        source = self.output_fid_source
         names = {source.name.casefold()}
-        operator.name = make_unique_name(operator.name, names=names)
-        return source, operator
-    # End _make_primaries method
+        field = self._make_fid_field(
+            self.operator.primary_key_field, element=self.operator)
+        field.name = make_unique_name(field.name, names=names)
+        return self._avoid_name_clash(field)
+    # End output_fid_operator property
+
+    def _avoid_name_clash(self, field: Field) -> Field:
+        """
+        Avoid Name Clash with Source or Operator Fields
+        """
+        if self._attr_option != AttributeOption.ALL:
+            return field
+        _, *src_fields = self._get_fields(self.source)
+        _, *op_fields = self._get_fields(self.operator)
+        fields = [*src_fields, *op_fields]
+        field, = self._make_unique_fields(fields, [field])
+        return field
+    # End _avoid_name_clash method
 
     @property
     def insert(self) -> str:

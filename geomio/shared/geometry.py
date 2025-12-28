@@ -83,8 +83,8 @@ def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
     column_name = get_geometry_column_name(
         feature_class, include_geom_type=True)
     is_multi = feature_class.is_multi_part
-    with feature_class.geopackage.connection as conn:
-        cursor = conn.execute(
+    with feature_class.geopackage.connection as cin:
+        cursor = cin.execute(
             f"""SELECT {column_name} 
                 FROM {feature_class.escaped_name}""")
         while geoms := cursor.fetchmany(FETCH_SIZE):
@@ -124,11 +124,14 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
 
 
 def overlay_config(source: FeatureClass, target: FeatureClass,
-                   operator: FeatureClass) -> OverlayConfig:
+                   operator: FeatureClass | None) -> OverlayConfig:
     """
     Overlay Configuration
     """
-    polygon = build_multi_polygon(operator)
+    if operator is None:
+        polygon = ShapelyPolygon()
+    else:
+        polygon = build_multi_polygon(operator)
     geom_type = source.geometry_type.upper()
     is_multi = source.is_multi_part
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][source.has_z, source.has_m]

@@ -39,5 +39,14 @@ class AttributeOption(StrEnum):
 # End AttributeOption class
 
 
+class AlgorithmOption(StrEnum):
+    """
+    Algorithm Option
+    """
+    CLASSIC = auto()
+    PAIRWISE = auto()
+# End AlgorithmOption class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

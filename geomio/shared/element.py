@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Feature Class Functionality
+Feature Class and some Table Functionality
 """
 
 
