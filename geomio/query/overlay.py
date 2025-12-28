@@ -19,7 +19,7 @@ from shapely.set_operations import union_all
 
 from geomio.query.base import AbstractSpatialAttribute
 from geomio.query.extract import QueryClip
-from geomio.shared.constant import DUNDER_FID, GEOMS_ATTR
+from geomio.shared.constant import DUNDER_FID, EMPTY, GEOMS_ATTR
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import overlay_config
@@ -199,10 +199,16 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         """
         Override field names for Selection -- ignore insert names and count
         """
-        *_, select_field_names = super()._field_names_and_count(element)
-        alias = self.temporary_fid_field.escaped_name
-        primary = f'{element.primary_key_field.escaped_name} AS {alias}'
-        return 0, '', f'{select_field_names}{COMMA_SPACE}{primary}'
+        fields = self._get_fields(element)
+        geom_type = get_geometry_column_name(element, include_geom_type=True)
+        if self.temporary_fid_field not in fields:
+            alias = self.temporary_fid_field.escaped_name
+            primary = f'{element.primary_key_field.escaped_name} AS {alias}'
+            primary = f'{COMMA_SPACE}{primary}'
+        else:
+            primary = EMPTY
+        select_field_names = make_field_names(fields)
+        return 0, '', f'{geom_type}{primary}{COMMA_SPACE}{select_field_names}'
     # End _field_names_and_count method
 # End QueryIntersectPairwise class
 
