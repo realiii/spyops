@@ -8,12 +8,12 @@ from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 
 from fudgeo import FeatureClass, Field
-from fudgeo.constant import COMMA_SPACE
+from fudgeo.constant import COMMA_SPACE, FID
 from shapely import box
 
 from geomio.shared.base import OverlayConfig
 from geomio.shared.constant import (
-    IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
+    DUNDER_FID, EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
 from geomio.shared.element import copy_feature_class, create_feature_class
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
@@ -354,7 +354,10 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Make FID Field
         """
-        return clone_field(field, name=f'{field.name}{UNDERSCORE}{element.name}')
+        name = field.name
+        if name.startswith(DUNDER_FID):
+            name = FID
+        return clone_field(field, name=f'{name}{UNDERSCORE}{element.name}')
     # End _make_fid_field method
 
     def _make_primaries(self, source: Field, operator: Field) -> tuple[Field, Field]:
