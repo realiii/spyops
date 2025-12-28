@@ -99,6 +99,29 @@ class TestQueryIntersectClassic:
         source = query.source
         assert len(source) == 268
     # End test_planarize method
+
+    @mark.parametrize('option, input_names, planar_names', [
+        (AttributeOption.ALL, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.SANS_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_field_names_and_count(self, inputs, mem_gpkg, option, input_names, planar_names):
+        """
+        Test field names and count
+        """
+        operator = inputs['int_flavor_a']
+        query = QueryIntersectClassic(
+            operator, target=None,
+            operator=inputs['intersect_a'],
+            attribute_option=option)
+        *_, names = query._field_names_and_count(operator)
+        assert names == input_names
+        operator = query.operator
+        *_, names = query._field_names_and_count(operator)
+        assert names == planar_names
+    # End test_field_names_and_count method
+
+
 # End TestQueryIntersectClassic class
 
 

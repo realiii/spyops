@@ -109,7 +109,7 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         planar = self._make_planar_feature_class(feature_class, fields)
         config = overlay_config(planar, target=planar, operator=None)
         extend_records(results=results, records=records, config=config)
-        sql = self._make_insert_sql(planar, fields)
+        sql = self._make_insert_sql(planar, fields=fields)
         with planar.geopackage.connection as cout:
             cout.executemany(sql, records)
         return planar
@@ -190,9 +190,7 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         """
         Get Fields from Element based on Attribute Option
         """
-        if self._attr_option in (AttributeOption.ALL, AttributeOption.SANS_FID):
-            return validate_fields(element, fields=element.fields)
-        return []
+        return validate_fields(element, fields=element.fields)
     # End _get_fields method
 
     @cache
@@ -208,8 +206,12 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
             primary = f'{COMMA_SPACE}{primary}'
         else:
             primary = EMPTY
-        select_field_names = make_field_names(fields)
-        return 0, EMPTY, f'{geom_type}{primary}{COMMA_SPACE}{select_field_names}'
+        if fields:
+            select_field_names = make_field_names(fields)
+            select_field_names = f'{COMMA_SPACE}{select_field_names}'
+        else:
+            select_field_names = EMPTY
+        return 0, EMPTY, f'{geom_type}{primary}{select_field_names}'
     # End _field_names_and_count method
 # End QueryIntersectClassic class
 
