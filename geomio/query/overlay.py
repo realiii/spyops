@@ -104,7 +104,7 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         Save Planarized Feature Class
         """
         records = []
-        fields = [*self._get_fields(feature_class), self.temporary_fid_field]
+        fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
         planar = self._make_planar_feature_class(feature_class, fields)
         config = overlay_config(planar, target=planar, operator=None)
         extend_records(results=results, records=records, config=config)
