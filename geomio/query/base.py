@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 
 from fudgeo import FeatureClass, Field
-from fudgeo.constant import COMMA_SPACE, FID
+from fudgeo.constant import COMMA_SPACE
 from shapely import box
 
 from geomio.shared.base import OverlayConfig
