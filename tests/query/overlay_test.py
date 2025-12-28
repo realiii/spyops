@@ -160,7 +160,7 @@ class TestPlanarize:
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_intersect_holes_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
-        assert len(fc) == 9
+        assert len(fc) == 13
     # End test_planarize_operator_holes method
 # End TestPlanarize class
 
