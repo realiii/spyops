@@ -139,9 +139,9 @@ class TestPlanarize:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
-        assert ps.temporary_fid_field.name == 'fid_intersect_a'
-        fc = ps()
+        po = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
+        assert po.temporary_fid_field.name == 'fid_intersect_a'
+        fc = po()
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_intersect_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
