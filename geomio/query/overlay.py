@@ -12,7 +12,8 @@ from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import GeometryType
 
-from shapely import GeometryCollection, Polygon as ShapelyPolygon, STRtree
+from shapely import (
+    GeometryCollection, Polygon as ShapelyPolygon, STRtree, coverage_simplify)
 from shapely.constructive import polygonize
 from shapely.io import from_wkb
 from shapely.set_operations import union_all
@@ -147,8 +148,7 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         return validate_fields(element, fields=element.fields)
     # End _get_fields method
 
-    @staticmethod
-    def _make_planarized_geometry(geoms: POLYGONS) -> list[ShapelyPolygon]:
+    def _make_planarized_geometry(self, geoms: POLYGONS) -> list[ShapelyPolygon]:
         """
         Make Planarized Geometry
         """
@@ -166,7 +166,10 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         planarized = []
         for collection in collections:
             planarized.extend(getattr(collection, GEOMS_ATTR, [collection]))
-        return planarized
+        if self._xy_tolerance is None:
+            return planarized
+        simplified = coverage_simplify(planarized, tolerance=self._xy_tolerance)
+        return simplified.tolist()
     # End _make_planarized_geometry method
 
     @staticmethod
