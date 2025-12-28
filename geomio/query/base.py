@@ -280,7 +280,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     """
     Abstract class extending with attribute options
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass,
                  attribute_option: AttributeOption) -> None:
         """
