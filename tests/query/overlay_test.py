@@ -7,10 +7,9 @@ Test for Overlay Query Classes
 from fudgeo import FeatureClass
 from pytest import mark
 
-from geomio.analysis.overlay import intersect
 from geomio.query.overlay import QueryIntersectClassic, QueryIntersectPairwise
+from geomio.shared.constant import DUNDER_FID
 from geomio.shared.enumeration import AttributeOption
-from geomio.shared.field import get_geometry_column_name
 
 pytestmark = [mark.overlay, mark.query]
 
@@ -102,19 +101,19 @@ class TestQueryIntersectClassic:
 
     @mark.parametrize('option, input_names, planar_names', [
         (AttributeOption.ALL, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
-        (AttributeOption.SANS_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
-        (AttributeOption.ONLY_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.SANS_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'geom "[MultiPolygon]", fid AS "__fid__", id', 'SHAPE "[Polygon]", "__fid__"'),
     ])
     def test_field_names_and_count(self, inputs, mem_gpkg, option, input_names, planar_names):
         """
         Test field names and count
         """
-        operator = inputs['int_flavor_a']
+        source = inputs['int_flavor_a']
         query = QueryIntersectClassic(
-            operator, target=None,
+            source, target=None,
             operator=inputs['intersect_a'],
             attribute_option=option)
-        *_, names = query._field_names_and_count(operator)
+        *_, names = query._field_names_and_count(source)
         assert names == input_names
         operator = query.operator
         *_, names = query._field_names_and_count(operator)
@@ -138,7 +137,31 @@ class TestQueryIntersectClassic:
         assert query.target.field_names == names
     # End test_target_fields method
 
+    @mark.parametrize('option, source_names, target_names', [
+        (AttributeOption.ALL, [DUNDER_FID, 'id'], [DUNDER_FID, 'ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
+        (AttributeOption.SANS_FID, ['id'], ['ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
+        (AttributeOption.ONLY_FID, [DUNDER_FID], [DUNDER_FID]),
+    ])
+    def test_get_fields(self, inputs, mem_gpkg, option, source_names, target_names):
+        """
+        Test get fields
+        """
+        source = inputs['int_flavor_a']
+        operator = inputs['intersect_a']
+        query = QueryIntersectClassic(
+            source, target=None,
+            operator=operator,
+            attribute_option=option)
+        fields = query._get_fields(source)
+        assert [f.name for f in fields] == ['id']
+        fields = query._get_fields(query.source)
+        assert [f.name for f in fields] == source_names
 
+        fields = query._get_fields(operator)
+        assert [f.name for f in fields] == ['ID', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
+        fields = query._get_fields(query.operator)
+        assert [f.name for f in fields] == target_names
+    # End test_get_fields method
 # End TestQueryIntersectClassic class
 
 

@@ -190,6 +190,10 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         """
         Get Fields from Element based on Attribute Option
         """
+        if self.temporary_fid_field not in element.fields:
+            return validate_fields(element, fields=element.fields)
+        if self._attr_option == AttributeOption.ONLY_FID:
+            return [self.temporary_fid_field]
         return validate_fields(element, fields=element.fields)
     # End _get_fields method
 
