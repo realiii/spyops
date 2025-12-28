@@ -109,7 +109,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     """
     Abstract Spatial Query Support
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass) -> None:
         """
         Initialize the AbstractSpatialQuery class
