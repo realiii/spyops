@@ -210,7 +210,7 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         select_field_names = make_field_names(fields)
         return 0, EMPTY, f'{geom_type}{primary}{COMMA_SPACE}{select_field_names}'
     # End _field_names_and_count method
-# End QueryIntersectPairwise class
+# End QueryIntersectClassic class
 
 
 if __name__ == '__main__':  # pragma: no cover
