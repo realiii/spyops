@@ -110,7 +110,7 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         """
         field_names = make_field_names(fields)
         geom_name = get_geometry_column_name(planar)
-        field_names = f'{geom_name}{COMMA_SPACE}{field_names}'
+        field_names = self._concatenate(geom_name, field_names)
         return self._make_insert(
             planar.escaped_name, field_names=field_names,
             field_count=len(fields) + 1)
@@ -207,12 +207,12 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         Override field names for Selection -- ignore insert names and count
         """
         fields = self._get_fields(element)
+        select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
-        select_field_names = make_field_names(fields)
         alias = self.temporary_fid_field.escaped_name
         primary = f'{element.primary_key_field.escaped_name} AS {alias}'
-        primary = f'{COMMA_SPACE}{primary}'
-        return 0, EMPTY, f'{geom_type}{primary}{COMMA_SPACE}{select_field_names}'
+        geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
+        return 0, EMPTY, self._concatenate(geom_primary, select_names)
     # End _field_names_and_count method
 # End AbstractPlanarizeFeatureClass class
 
@@ -304,9 +304,9 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         fields = self._get_fields(element)
         if self._attr_option in (AttributeOption.ALL, AttributeOption.SANS_FID):
             _, *fields = fields
+        select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
-        select_field_names = make_field_names(fields)
-        return 0, EMPTY, f'{geom_type}{COMMA_SPACE}{select_field_names}'
+        return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
 # End QueryIntersectClassic class
 

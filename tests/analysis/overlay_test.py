@@ -55,6 +55,24 @@ def test_erase_reduced(inputs, world_features, fresh_gpkg, fc_name, xy_tolerance
 # End test_erase_reduced function
 
 
+def test_erase_reduced_sans_attributes(inputs, world_features, fresh_gpkg):
+    """
+    Test erase -- reduced data for faster testing -- sans attributes
+    """
+    eraser = inputs['intersect_sans_attr_a']
+    assert len(eraser) == 5
+    source = world_features['admin_sans_attr_a']
+    target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
+    query = QueryErase(source=source, target=target, operator=eraser)
+    _, touches = query.select.split('WHERE', 1)
+    subset = source.copy(f'subset_sans_attr_a', where_clause=touches, geopackage=fresh_gpkg)
+    assert len(subset) <= len(source)
+    target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
+    result = erase(source=subset, operator=eraser, target=target)
+    assert len(result) == 245
+# End test_erase_reduced_sans_attributes function
+
+
 @mark.parametrize('fc_name, xy_tolerance, count', [
     ('airports_p', None, 3464),
     ('airports_mp_p', None, 191),
@@ -163,6 +181,30 @@ def test_intersect_option(inputs, mem_gpkg, algorithm_option, attribute_option, 
     """
     operator = inputs['intersect_a']
     source = inputs['int_flavor_a']
+    target = FeatureClass(
+        geopackage=mem_gpkg,
+        name=f'{str(algorithm_option)}_{attribute_option}_a')
+    result = intersect(source=source, operator=operator, target=target,
+                       algorithm_option=algorithm_option, attribute_option=attribute_option)
+    assert len(result) == feature_count
+    assert len(result.fields) == field_count
+# End test_intersect_option function
+
+
+@mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
+    (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 114, 4),
+    (AlgorithmOption.PAIRWISE, AttributeOption.SANS_FID, 114, 2),
+    (AlgorithmOption.PAIRWISE, AttributeOption.ONLY_FID, 114, 4),
+    (AlgorithmOption.CLASSIC, AttributeOption.ALL, 128, 4),
+    (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 128, 2),
+    (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 128, 4),
+])
+def test_intersect_option_sans_attributes(inputs, world_features, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+    """
+    Test Intersect with Options for Classic and Pairwise -- sans attributes
+    """
+    operator = inputs['intersect_sans_attr_a']
+    source = world_features['admin_sans_attr_a']
     target = FeatureClass(
         geopackage=mem_gpkg,
         name=f'{str(algorithm_option)}_{attribute_option}_a')

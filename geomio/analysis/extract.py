@@ -134,7 +134,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_xy_tolerance()
 @validate_geopackage()
-@validate_field(FIELD, data_types=TEXTS, single=True)
+@validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
 def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
