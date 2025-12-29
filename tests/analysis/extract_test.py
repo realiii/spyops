@@ -102,6 +102,24 @@ def test_select(world_features, mem_gpkg, fc_name, where_clause, count):
 # End test_select function
 
 
+def test_select_sans_attrs(inputs, world_features, mem_gpkg):
+    """
+    Test select sans attributes
+    """
+    where_clause = 'fid <= 10'
+    fc_name = 'intersect_sans_attr_a'
+    source = inputs[fc_name]
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+    result = select(source=source, target=target, where_clause=where_clause)
+    assert len(result) == 5
+    fc_name = 'admin_sans_attr_a'
+    source = world_features[fc_name]
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+    result = select(source=source, target=target, where_clause=where_clause)
+    assert len(result) == 10
+# End test_select_sans_attrs function
+
+
 @mark.parametrize('fc_name, where_clause', [
     ('admin_a', 'ISO = "BR"'),
     ('disputed_boundaries_l', 'Description = "Disputed Boundary'),
@@ -139,6 +157,22 @@ def test_split_by_attributes_features(world_features, mem_gpkg, fields, count):
     assert len(results) == count
     assert sum([len(r) for r in results]) == subset
 # End test_split_by_attributes_features function
+
+
+def test_split_by_attributes_features_sans_attributes(world_features, mem_gpkg):
+    """
+    Test split_by_attributes for feature classes sans attributes
+    """
+    count = 15
+    source = world_features['admin_sans_attr_a']
+    names = element_names(world_features)
+    source = source.copy(
+        make_unique_name(source.name, names=names),
+        where_clause=f"""fid <= {count}""", geopackage=mem_gpkg)
+    results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
+    assert len(results) == count
+    assert sum([len(r) for r in results]) == count
+# End test_split_by_attributes_features_sans_attributes function
 
 
 @mark.parametrize('fields, count', [
@@ -196,6 +230,19 @@ def test_clip(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
     assert len(result) < len(source)
     assert len(result) == count
 # End test_clip function
+
+
+def test_clip_sans_attributes(inputs, world_features, mem_gpkg):
+    """
+    Test clip sans attributes
+    """
+    clipper = inputs['intersect_sans_attr_a']
+    assert len(clipper) == 5
+    source = world_features['admin_sans_attr_a']
+    target = FeatureClass(geopackage=mem_gpkg, name='sans')
+    result = clip(source=source, operator=clipper, target=target)
+    assert len(result) == 107
+# End test_clip_sans_attributes function
 
 
 @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
