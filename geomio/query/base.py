@@ -65,17 +65,27 @@ class AbstractQuery(metaclass=ABCMeta):
         Field Names for Select and Insert + Derive Field Count
         """
         fields = validate_fields(element, fields=element.fields)
-        select_field_names = insert_field_names = make_field_names(fields)
+        select_names = insert_names = make_field_names(fields)
         field_count = len(fields)
         if isinstance(element, FeatureClass):
             geom = get_geometry_column_name(element)
             geom_type = get_geometry_column_name(
                 element, include_geom_type=True)
-            select_field_names = f'{geom_type}{COMMA_SPACE}{select_field_names}'
-            insert_field_names = f'{geom}{COMMA_SPACE}{insert_field_names}'
+            select_names = self._concatenate(geom_type, select_names)
+            insert_names = self._concatenate(geom, insert_names)
             field_count += 1
-        return field_count, insert_field_names, select_field_names
+        return field_count, insert_names, select_names
     # End _field_names_and_count method
+
+    @staticmethod
+    def _concatenate(left: str, right: str) -> str:
+        """
+        Conditionally Concatenate field names
+        """
+        if not right:
+            return left
+        return f'{left}{COMMA_SPACE}{right}'
+    # End _concatenate method
 
     @property
     def source(self) -> ELEMENT:
@@ -297,9 +307,9 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         Override field names for Selection -- ignore insert names and count
         """
         fields = self._get_fields(element)
+        select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
-        select_field_names = make_field_names(fields)
-        return 0, EMPTY, f'{geom_type}{COMMA_SPACE}{select_field_names}'
+        return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
 
     def _get_fields(self, element: ELEMENT) -> FIELDS:
@@ -397,7 +407,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         geom_name = get_geometry_column_name(self.target)
         return self._make_insert(
             self.target.escaped_name,
-            field_names=f'{geom_name}{COMMA_SPACE}{names}',
+            field_names=self._concatenate(geom_name, names),
             field_count=len(fields) + 1)
     # End insert property
 
