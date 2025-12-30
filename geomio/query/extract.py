@@ -34,7 +34,7 @@ class QuerySplitByAttributes(AbstractQuery):
             SELECT {primary}
             FROM (SELECT {primary}, 
                          dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
-                         FROM {elm.escaped_name})
+                  FROM {elm.escaped_name})
             WHERE __DRID__ = ?
         """
         return self._make_select(
