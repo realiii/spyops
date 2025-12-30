@@ -120,9 +120,10 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             if not intersects.any():
                 continue
             keepers = [f for f, keep in zip(features, intersects) if keep]
-            geometries = [g for g, keep in zip(geometries, intersects) if keep]
-            results = [(polygon.intersection(geom, grid_size=xy_tolerance), attrs)
-                       for geom, (_, *attrs) in zip(geometries, keepers)]
+            geoms = polygon.intersection(
+                [g for g, keep in zip(geometries, intersects) if keep],
+                grid_size=xy_tolerance)
+            results = [(geom, attrs) for geom, (_, *attrs) in zip(geoms, keepers)]
             extend_records(results, records=records, config=query.config)
             cout.executemany(query.insert, records)
             records.clear()
