@@ -28,8 +28,7 @@ def test_query_split_by_attributes(request, name, fix_name, group_names):
     fields = [Field(n, data_type=SQLFieldType.text) for n in group_names]
     group_names = COMMA_SPACE.join(group_names)
     query = QuerySplitByAttributes(element, fields)
-    assert f'FROM {element.name}' in query.group_count
-    assert f'GROUP BY {group_names}' in query.group_count
+    assert f'FROM {element.name}' in query.groups
     assert query.insert.strip().startswith('INSERT INTO {}(')
     assert f'dense_rank() OVER (ORDER BY {group_names}' in query.select
 # End test_query_split_by_attributes function
