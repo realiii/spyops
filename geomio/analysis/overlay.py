@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
 from shapely import STRtree, set_precision
 from shapely.io import from_wkb
 
@@ -42,10 +43,12 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     if not query.has_intersection:
         return query.target_full
     records = []
+    insert_sql = query.insert
     polygon = query.config.geometry
     _process_disjoint(query, xy_tolerance=xy_tolerance)
     with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin):
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
@@ -62,7 +65,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             results = [(geom.difference(polygon, grid_size=xy_tolerance), attrs)
                        for geom, (_, *attrs) in zip(geoms, changers)]
             extend_records(results, records=records, config=query.config)
-            cout.executemany(query.insert, records)
+            executor(sql=insert_sql, data=records)
             records.clear()
     return query.target
 # End erase function
@@ -104,9 +107,11 @@ def intersect(source: FeatureClass, operator: FeatureClass,
             op_features.extend(features)
             op_geoms.extend([from_wkb(g.wkb) for g, *_ in op_features])
     records = []
+    insert_sql = query.insert
     tree = STRtree(op_geoms)
     with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin):
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
@@ -132,7 +137,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
                     (g, (*src_attr, *op_attr))
                     for g, src_attr in zip(intersections, src_attrs)])
             extend_records(results, records=records, config=query.config)
-            cout.executemany(query.insert, records)
+            executor(sql=insert_sql, data=records)
             records.clear()
     return query.target
 # End intersect function
@@ -145,19 +150,21 @@ def _process_disjoint(query: QueryErase, xy_tolerance: XY_TOL) -> None:
     if not query.select_disjoint:
         return
     records = []
+    insert_sql = query.insert
     with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin):
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select_disjoint)
         while features := cursor.fetchmany(FETCH_SIZE):
             if xy_tolerance is None:
-                cout.executemany(query.insert, features)
+                executor(sql=insert_sql, data=features)
             else:
                 geometries = [from_wkb(g.wkb) for g, *_ in features]
                 geometries = set_precision(geometries, grid_size=xy_tolerance)
                 results = [(geom, attrs) for geom, (_, *attrs) in
                            zip(geometries, features)]
                 extend_records(results, records=records, config=query.config)
-                cout.executemany(query.insert, records)
+                executor(sql=insert_sql, data=records)
                 records.clear()
 # End _process_disjoint function
 

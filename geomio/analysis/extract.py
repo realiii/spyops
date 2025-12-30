@@ -8,6 +8,7 @@ from typing import Callable
 
 from fudgeo import FeatureClass, Table, Field
 from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
 from shapely.io import from_wkb
 
 from geomio.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
@@ -98,8 +99,10 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
                 target=FeatureClass(geopackage=geopackage, name=name))
             elements[tuple(group)] = element
             cursor = cin.execute(query_select, (i,))
-            while records := cursor.fetchmany(FETCH_SIZE):
-                cout.executemany(query_insert.format(element.escaped_name), records)
+            with ExecuteMany(connection=cout, table=element) as executor:
+                insert_sql = query_insert.format(element.escaped_name)
+                while records := cursor.fetchmany(FETCH_SIZE):
+                    executor(sql=insert_sql, data=records)
     return elements
 # End _split_by_attributes function
 
@@ -133,9 +136,10 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
         return query.target_empty
     records = []
     polygon = query.config.geometry
-    query_insert = query.insert
+    insert_sql = query.insert
     with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin):
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
@@ -148,7 +152,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
                 grid_size=xy_tolerance)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
             extend_records(results, records=records, config=query.config)
-            cout.executemany(query_insert, records)
+            executor(sql=insert_sql, data=records)
             records.clear()
     return query.target
 # End _clip function

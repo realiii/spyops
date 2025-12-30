@@ -10,6 +10,7 @@ from functools import cache, cached_property
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
+from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
 
 from shapely import (
@@ -135,9 +136,10 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         planar = self._make_planar_feature_class(feature_class, fields)
         config = overlay_config(planar, target=planar, operator=None)
         extend_records(results=results, records=records, config=config)
-        sql = self._make_insert_sql(planar, fields=fields)
-        with planar.geopackage.connection as cout:
-            cout.executemany(sql, records)
+        insert_sql = self._make_insert_sql(planar, fields=fields)
+        with (planar.geopackage.connection as cout,
+              ExecuteMany(connection=cout, table=planar) as executor):
+            executor(sql=insert_sql, data=records)
         return planar
     # End _save_planarized method
 
