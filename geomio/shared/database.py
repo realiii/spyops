@@ -61,5 +61,38 @@ def _is_geopackage(connection: 'Connection') -> bool:
 # End _is_geopackage function
 
 
+def get_table_names(connection: 'Connection') -> list[str]:
+    """
+    Get Tables Names
+    """
+    sql = """
+        SELECT NAME FROM sqlite_master 
+        WHERE TYPE = 'table'
+        UNION
+        SELECT NAME FROM sqlite_temp_master 
+        WHERE TYPE = 'table'
+    """
+    cursor = connection.execute(sql)
+    return [n for n, in cursor.fetchall()]
+# End get_table_names function
+
+
+def has_table(connection: 'Connection', table_name: str) -> bool:
+    """
+    Check for a table by name, case insensitive
+    """
+    param: str = 'table_name'
+    sql = f"""
+        SELECT NAME FROM sqlite_master 
+        WHERE TYPE = 'table' AND lower(NAME) = :{param}
+        UNION
+        SELECT NAME FROM sqlite_temp_master 
+        WHERE TYPE = 'table' AND lower(NAME) = :{param}
+    """
+    cursor = connection.execute(sql, {param: table_name.casefold()})
+    return bool(cursor.fetchone())
+# End has_table method
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
