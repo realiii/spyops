@@ -43,18 +43,18 @@ class QuerySplitByAttributes(AbstractQuery):
     # End select property
 
     @property
-    def group_count(self) -> str:
+    def groups(self) -> str:
         """
-        Group Count Query
+        Groups
         """
+        elm = self.source
         return f"""
-            SELECT COUNT(C) AS C 
-            FROM (SELECT COUNT(1) AS C 
-                  FROM {self.source.escaped_name} 
-                  GROUP BY {self._group_names}
-            )
+            SELECT DISTINCT * 
+            FROM (SELECT dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
+            FROM {elm.escaped_name})
         """
-    # End group_count property
+    # End groups property
 
     @property
     def insert(self) -> str:
