@@ -77,7 +77,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 # End split_by_attributes function
 
 
-def _split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
+def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
                          geopackage: GPKG) -> dict[tuple, ELEMENT]:
     """
     Internal Split by Attributes
@@ -123,8 +123,8 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 # End clip function
 
 
-def _clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
-          xy_tolerance: XY_TOL) -> FeatureClass:
+def _clip(*, source: FeatureClass, operator: FeatureClass,
+          target: FeatureClass, xy_tolerance: XY_TOL) -> FeatureClass:
     """
     Internal Clip
     """
@@ -180,7 +180,7 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
         name = make_valid_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
         target = _clip(
-            source, operator=s, xy_tolerance=xy_tolerance,
+            source=source, operator=s, xy_tolerance=xy_tolerance,
             target=FeatureClass(geopackage=geopackage, name=name))
         features.append(target)
     return features
