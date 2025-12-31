@@ -352,5 +352,55 @@ def test_split_setting(tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_t
 # End test_split_setting function
 
 
+@mark.benchmark
+@mark.parametrize('name, count', [
+    ('utmzone_continentish_a', 200_915),
+    ('utmzone_sparse_a', 26_602),
+])
+def test_clip_larger_inputs(inputs, world_features, mem_gpkg, name, count):
+    """
+    Test clip using larger inputs
+    """
+    operator = inputs[name]
+    source = world_features['admin_a']
+    target = FeatureClass(geopackage=mem_gpkg, name=name)
+    result = clip(source=source, operator=operator, target=target)
+    assert len(result) == count
+# End test_clip_larger_inputs function
+
+
+@mark.benchmark
+@mark.parametrize('name, count', [
+    ('utmzone_continentish_a', 708),
+    ('utmzone_sparse_a', 228),
+])
+def test_split_larger_inputs(inputs, world_features, mem_gpkg, name, count):
+    """
+    Test split using larger inputs
+    """
+    operator = inputs[name]
+    source = world_features['admin_a']
+    results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
+    assert len(results) == count
+# End test_split_larger_inputs function
+
+
+@mark.benchmark
+@mark.parametrize('fix_name, name, fields, count', [
+    ('inputs', 'utmzone_continentish_a', ('ZONE', 'ROW_'), 708),
+    ('inputs', 'utmzone_sparse_a', ('ZONE', 'ROW_'), 228),
+    ('world_features', 'admin_a', ('COUNTRY', 'ISO_CC', 'ADMINTYPE'), 376),
+])
+def test_split_by_attributes_larger_inputs(request, inputs, mem_gpkg, fix_name, name, fields, count):
+    """
+    Test split by attributes using larger inputs
+    """
+    source = request.getfixturevalue(fix_name)[name]
+    results = split_by_attributes(
+        source=source, group_fields=fields, geopackage=mem_gpkg)
+    assert len(results) == count
+# End test_split_by_attributes_larger_inputs function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

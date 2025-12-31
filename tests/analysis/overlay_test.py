@@ -233,5 +233,41 @@ def test_intersect_option_xy_tolerance(inputs, mem_gpkg, xy_tolerance, feature_c
 # End test_intersect_option_xy_tolerance function
 
 
+@mark.benchmark
+@mark.parametrize('name, count', [
+    ('utmzone_continentish_a', 11_046),
+    ('utmzone_sparse_a', 186_254),
+])
+def test_erase_larger_inputs(inputs, world_features, mem_gpkg, name, count):
+    """
+    Test erase using larger inputs
+    """
+    operator = inputs[name]
+    source = world_features['admin_a']
+    target = FeatureClass(geopackage=mem_gpkg, name=name)
+    result = erase(source=source, operator=operator, target=target)
+    assert len(result) == count
+# End test_erase_larger_inputs function
+
+
+@mark.benchmark
+@mark.parametrize('option, name, count', [
+    (AlgorithmOption.CLASSIC, 'utmzone_continentish_a', 206_708),
+    (AlgorithmOption.CLASSIC, 'utmzone_sparse_a', 26_951),
+    (AlgorithmOption.PAIRWISE, 'utmzone_continentish_a', 205_532),
+    (AlgorithmOption.PAIRWISE, 'utmzone_sparse_a', 26_949),
+])
+def test_intersect_larger_inputs(inputs, world_features, mem_gpkg, option, name, count):
+    """
+    Test intersect using larger inputs
+    """
+    operator = inputs[name]
+    source = world_features['admin_a']
+    target = FeatureClass(geopackage=mem_gpkg, name=name)
+    result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
+    assert len(result) == count
+# End test_intersect_larger_inputs function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
