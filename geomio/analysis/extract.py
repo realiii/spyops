@@ -88,12 +88,15 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     query = QuerySplitByAttributes(element=source, fields=group_fields)
     query_select = query.select
     query_insert = query.insert
+    source_name = query.source.name
     with (geopackage.connection as cout,
           query.source.geopackage.connection as cin,):
         cursor = cin.execute(query.groups)
         groups = cursor.fetchall()
         for i, *group in groups:
-            name = make_unique_name(name=query.source.name, names=target_names)
+            name = UNDERSCORE.join([str(g).strip() for g in group])
+            name = make_valid_name(name, prefix=source_name)
+            name = make_unique_name(name, names=target_names)
             element = copy_element(
                 source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
