@@ -20,7 +20,9 @@ from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
 from geomio.shared.enumeration import Setting
 from geomio.shared.exception import OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
-from geomio.shared.geometry import set_extent
+from geomio.shared.geometry import (
+    check_dimension, get_geometry_dimension,
+    set_extent)
 from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
@@ -252,6 +254,41 @@ class ValidateSameCRS(AbstractValidate):
         return wrapper
     # End call built-in
 # End ValidateSameCRS class
+
+
+class ValidateGeometryDimension(AbstractValidate):
+    """
+    Validate Geometry Dimension
+    """
+    def __init__(self, *names) -> None:
+        """
+        Initialize the ValidateGeometryDimension class
+        """
+        super().__init__()
+        self._names: NAMES = names
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            first, *others = self._names
+            a = get_geometry_dimension(kwargs[first])
+            for other in others:
+                b = get_geometry_dimension(kwargs[other])
+                check_dimension(a=a, name_a=first, b=b, name_b=other)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+# End ValidateGeometryDimension class
 
 
 class ValidateXYTolerance(AbstractValidate):
@@ -675,14 +712,15 @@ class ValidateField(AbstractValidateType):
 
 # NOTE aliases, decorators look better as snake case
 validate_element = ValidateElement
+validate_enumeration = ValidateEnumeration
 validate_feature_class = ValidateFeatureClass
 validate_field = ValidateField
+validate_geometry_dimension = ValidateGeometryDimension
 validate_geopackage = ValidateGeopackage
 validate_result = ValidateResult
 validate_same_crs = ValidateSameCRS
 validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
-validate_enumeration = ValidateEnumeration
 
 
 def _check_output(element: ELEMENT) -> ELEMENT:

@@ -19,11 +19,13 @@ from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
     GEOM_TYPE_POLYGONS, REALS, TEXT_AND_NUMBERS)
+from geomio.shared.geometry import get_geometry_dimension
 from geomio.shared.setting import Swap
 from geomio.shared.util import element_names, make_unique_name
 from geomio.shared.validation import (
     _check_output, validate_element, validate_enumeration,
-    validate_feature_class, validate_field, validate_geopackage,
+    validate_feature_class, validate_field, validate_geometry_dimension,
+    validate_geopackage,
     validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
 
 
@@ -420,6 +422,29 @@ def test_validate_result(inputs):
         return result
     assert result_function(fc) == fc
 # End test_validate_result function
+
+
+@mark.parametrize('source_name, operator_name, throws, expected', [
+    ('admin_a', 'admin_mp_a', False, (2, 2)),
+    ('admin_a', 'airports_p', True, ()),
+    ('airports_p', 'admin_a', False, (0, 2)),
+])
+def test_validate_geometry_dimension(world_features, source_name, operator_name, throws, expected):
+    """
+    Test validate geometry dimension
+    """
+    source = world_features[source_name]
+    operator = world_features[operator_name]
+    @validate_geometry_dimension('s', 'o')
+    def geom_function(s, o):
+        return get_geometry_dimension(s), get_geometry_dimension(o)
+
+    if throws:
+        with raises(OperationsError):
+            geom_function(source, operator)
+    else:
+        assert geom_function(source, operator) == expected
+# End test_validate_geometry_dimension function
 
 
 if __name__ == '__main__':  # pragma: no cover
