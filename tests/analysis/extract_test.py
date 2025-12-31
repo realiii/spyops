@@ -352,5 +352,38 @@ def test_split_setting(tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_t
 # End test_split_setting function
 
 
+@mark.benchmark
+@mark.parametrize('name, count', [
+    ('utmzone_continentish_a', 200_915),
+    ('utmzone_sparse_a', 26_602),
+])
+def test_clip_larger_inputs(inputs, world_features, mem_gpkg, name, count):
+    """
+    Test clip using larger inputs
+    """
+    operator = inputs[name]
+    source = world_features['admin_a']
+    target = FeatureClass(geopackage=mem_gpkg, name=name)
+    result = clip(source=source, operator=operator, target=target)
+    assert len(result) == count
+# End test_clip_larger_inputs function
+
+
+@mark.benchmark
+@mark.parametrize('name, count', [
+    ('utmzone_continentish_a', 708),
+    ('utmzone_sparse_a', 228),
+])
+def test_split_larger_inputs(inputs, world_features, mem_gpkg, name, count):
+    """
+    Test split using larger inputs
+    """
+    operator = inputs[name]
+    source = world_features['admin_a']
+    results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
+    assert len(results) == count
+# End test_split_larger_inputs function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
