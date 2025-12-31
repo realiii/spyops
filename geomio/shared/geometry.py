@@ -206,5 +206,37 @@ def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
 # End _extent_from_spatial_index function
 
 
+def get_geometry_dimension(feature_class: FeatureClass) -> int:
+    """
+    Get Geometry Dimension
+    """
+    shape_type = feature_class.shape_type
+    if shape_type in (GeometryType.point, GeometryType.multi_point):
+        return 0
+    elif shape_type in (GeometryType.linestring, GeometryType.multi_linestring):
+        return 1
+    elif shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+        return 2
+    return -1
+# End get_geometry_dimension function
+
+
+def check_dimension(a: int, name_a: str, b: int, name_b: str) -> None:
+    """
+    Check integers representing geometry dimension, current implementation
+    is that b must be same or higher dimension than a, or in more concrete
+    terms, the operator must have same or higher dimension than source.
+    """
+    if b >= a:
+        return
+    dim_type = {0: GeometryType.point,
+                1: GeometryType.linestring,
+                2: GeometryType.polygon}
+    raise OperationsError(
+        f'Geometry dimension mismatch, cannot overlay '
+        f'{name_a} {dim_type[a]} with {name_b} {dim_type[b]}')
+# End check_dimension function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

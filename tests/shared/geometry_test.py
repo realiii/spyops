@@ -5,14 +5,16 @@ Tests for Geometry Module
 
 
 from fudgeo.geometry.point import Point
-from pytest import approx, mark
+from pytest import approx, mark, raises
 from shapely import (
     MultiPolygon, MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint,
     Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon)
 
+from geomio.shared.exception import OperationsError
 from geomio.shared.geometry import (
-    build_multi_polygon, check_polygon, extent_from_feature_class,
-    overlay_config)
+    build_multi_polygon, check_dimension, check_polygon,
+    extent_from_feature_class,
+    get_geometry_dimension, overlay_config)
 
 
 pytestmark = [mark.geometry]
@@ -89,6 +91,36 @@ def test_check_polygon(polygon, type_):
     """
     assert isinstance(check_polygon(polygon), type_)
 # End test_check_polygon function
+
+
+@mark.parametrize('name, dimension', [
+    ('airports_p', 0),
+    ('airports_mp_p', 0),
+    ('roads_l', 1),
+    ('roads_mp_l', 1),
+    ('admin_a', 2),
+    ('admin_mp_a', 2),
+])
+def test_get_geometry_dimension(world_features, name, dimension):
+    """
+    Test get_geometry_dimension
+    """
+    fc = world_features[name]
+    assert get_geometry_dimension(fc) == dimension
+# End test_get_geometry_dimension function
+
+
+def test_check_dimension():
+    """
+    Test check_dimension
+    """
+    assert check_dimension(0, name_a='aa', b=1, name_b='bb') is None
+    assert check_dimension(1, name_a='aa', b=1, name_b='bb') is None
+    assert check_dimension(1, name_a='aa', b=2, name_b='bb') is None
+    assert check_dimension(2, name_a='aa', b=2, name_b='bb') is None
+    with raises(OperationsError):
+        check_dimension(2, name_a='aa', b=1, name_b='bb')
+# End test_check_dimension function
 
 
 if __name__ == '__main__':  # pragma: no cover
