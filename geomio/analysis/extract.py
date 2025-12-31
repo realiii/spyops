@@ -22,8 +22,8 @@ from geomio.shared.util import (
     element_names, extend_records, make_unique_name, make_valid_name)
 from geomio.shared.validation import (
     validate_element, validate_feature_class, validate_field,
-    validate_geopackage, validate_result, validate_same_crs, validate_table,
-    validate_xy_tolerance)
+    validate_geometry_dimension, validate_geopackage, validate_result,
+    validate_same_crs, validate_table, validate_xy_tolerance)
 
 
 __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
@@ -81,6 +81,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_result()
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_xy_tolerance()
+@validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_feature_class(TARGET, exists=False)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
