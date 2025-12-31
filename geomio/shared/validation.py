@@ -609,6 +609,12 @@ class ValidateField(AbstractValidateType):
         if not fields:
             names = [getattr(i, NAME_ATTR, i) for i in self._make_iterable(obj)]
             raise ValueError(f'{names} not found in {element.name}')
+        obj = self._make_iterable(obj)
+        if len(fields) != len(obj):
+            found = {f.name.casefold() for f in fields}
+            names = [getattr(i, NAME_ATTR, i) for i in obj
+                     if getattr(i, NAME_ATTR, i).casefold() not in found]
+            raise ValueError(f'{names} not found in {element.name}')
         return fields
     # End _find_field method
 
