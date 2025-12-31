@@ -84,12 +84,14 @@ def has_table(connection: 'Connection', table_name: str) -> bool:
     param: str = 'table_name'
     sql = f"""
         SELECT NAME FROM sqlite_master 
-        WHERE TYPE = 'table' AND lower(NAME) = :{param}
+        WHERE TYPE = 'table' AND NAME = :{param}
+        COLLATE NOCASE
         UNION
         SELECT NAME FROM sqlite_temp_master 
-        WHERE TYPE = 'table' AND lower(NAME) = :{param}
+        WHERE TYPE = 'table' AND NAME = :{param}
+        COLLATE NOCASE
     """
-    cursor = connection.execute(sql, {param: table_name.casefold()})
+    cursor = connection.execute(sql, {param: table_name})
     return bool(cursor.fetchone())
 # End has_table method
 
