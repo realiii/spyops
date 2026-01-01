@@ -162,31 +162,32 @@ def test_validate_geopackage_with_current(mem_gpkg, exists):
 # End test_validate_geopackage_with_current function
 
 
-@mark.parametrize('name, geometry_types', [
-    ('admin_a', ()),
-    ('roads_l', ()),
-    ('airports_p', ()),
-    ('admin_a', GEOM_TYPE_POLYGONS),
-    ('roads_l', GEOM_TYPE_LINES),
-    ('airports_p', GEOM_TYPE_POINTS),
-    ('admin_a', GeometryType.polygon),
-    ('roads_l', GeometryType.linestring),
-    ('airports_p', GeometryType.point),
-    ('cities_p', GEOM_TYPE_POLYGONS),
+@mark.parametrize('name, geometry_types, throws', [
+    ('admin_a', (), False),
+    ('roads_l', (), False),
+    ('airports_p', (), False),
+    ('admin_a', GEOM_TYPE_POLYGONS, False),
+    ('roads_l', GEOM_TYPE_LINES, False),
+    ('airports_p', GEOM_TYPE_POINTS, False),
+    ('admin_a', GeometryType.polygon, False),
+    ('roads_l', GeometryType.linestring, False),
+    ('airports_p', GeometryType.point, False),
+    ('cities_p', GEOM_TYPE_POLYGONS, True),
+    (None, GEOM_TYPE_POLYGONS, True),
 ])
-def test_validate_feature_class_geometry(world_features, name, geometry_types):
+def test_validate_feature_class_geometry(world_features, name, geometry_types, throws):
     """
     Test validate feature class geometry
     """
     @validate_feature_class('feature_class', geometry_types=geometry_types)
     def fc_function(feature_class):
-        pass
+        return feature_class
     fc = world_features[name]
-    if name == 'cities_p':
-        with raises(ValueError):
+    if throws:
+        with raises((ValueError, TypeError)):
             fc_function(fc)
     else:
-        fc_function(fc)
+        assert fc_function(fc) is fc
 # End test_validate_feature_class_geometry function
 
 
@@ -202,13 +203,13 @@ def test_validate_feature_class_zm(world_features, name, has_z, has_m):
     """
     @validate_feature_class('feature_class', has_z=has_z, has_m=has_m)
     def fc_function(feature_class):
-        pass
+        return feature_class
     fc = world_features[name]
     if has_z or has_m:
         with raises(ValueError):
             fc_function(fc)
     else:
-        fc_function(fc)
+        assert fc_function(fc) is fc
 # End test_validate_feature_class_zm function
 
 
