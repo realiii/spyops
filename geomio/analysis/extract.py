@@ -83,7 +83,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_feature_class(TARGET, exists=False)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(OPERATOR)
 @validate_feature_class(SOURCE)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          xy_tolerance: XY_TOL = None) -> FeatureClass:
