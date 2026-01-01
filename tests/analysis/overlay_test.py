@@ -288,6 +288,72 @@ def test_intersect_classic_xy_tolerance(inputs, mem_gpkg, xy_tolerance, feature_
 # End test_intersect_classic_xy_tolerance function
 
 
+@mark.parametrize('option, xy_tolerance, count', [
+    (AlgorithmOption.CLASSIC, None, 195),
+    (AlgorithmOption.CLASSIC, 0.001, 209),
+    (AlgorithmOption.PAIRWISE, None, 195),
+    (AlgorithmOption.PAIRWISE, 0.001, 209),
+])
+def test_intersect_line_on_line(world_features, inputs, mem_gpkg, option, xy_tolerance, count):
+    """
+    Test intersect using a line feature class as the operator on a line feature class
+    """
+    operator = inputs['rivers_portion_l']
+    source = world_features['rivers_l']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = intersect(source=source, operator=operator, target=target,
+                       algorithm_option=option, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_intersect_line_on_line function
+
+
+@mark.parametrize('option, xy_tolerance, count', [
+    (AlgorithmOption.CLASSIC, None, 7524),
+    (AlgorithmOption.CLASSIC, 0, 7524),
+    (AlgorithmOption.CLASSIC, 0.0000000001, 3),
+    (AlgorithmOption.CLASSIC, 0.1, 0),
+    (AlgorithmOption.PAIRWISE, None, 7524),
+    (AlgorithmOption.PAIRWISE, 0, 7524),
+    (AlgorithmOption.PAIRWISE, 0.0000000001, 3),
+    (AlgorithmOption.PAIRWISE, 0.1, 0),
+])
+def test_intersect_line_on_point(inputs, mem_gpkg, option, xy_tolerance, count):
+    """
+    Test intersect using a line feature class as the operator on a point feature class
+    """
+    operator = inputs['rivers_portion_l']
+    source = inputs['river_p']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = intersect(source=source, operator=operator, target=target,
+                       algorithm_option=option, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_intersect_line_on_point function
+
+
+@mark.parametrize('option, xy_tolerance, count', [
+    (AlgorithmOption.CLASSIC, None, 100),
+    (AlgorithmOption.CLASSIC, 0, 100),
+    (AlgorithmOption.CLASSIC, 0.001, 100),
+    (AlgorithmOption.PAIRWISE, None, 100),
+    (AlgorithmOption.PAIRWISE, 0, 100),
+    (AlgorithmOption.PAIRWISE, 0.001, 100),
+])
+def test_intersect_point_on_point(inputs, mem_gpkg, option, xy_tolerance, count):
+    """
+    Test intersect using a point feature class as the operator on a point feature class
+    """
+    operator = inputs['river_p']
+    operator = operator.copy(
+        name='river_p_operator', where_clause='fid <= 100', geopackage=mem_gpkg)
+    assert len(operator) == 100
+    source = inputs['river_p']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = intersect(source=source, operator=operator, target=target,
+                       algorithm_option=option, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_intersect_point_on_point function
+
+
 @mark.benchmark
 @mark.parametrize('name, count', [
     ('utmzone_continentish_a', 11_046),
