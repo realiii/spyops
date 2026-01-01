@@ -96,7 +96,7 @@ def extend_records(results: list[tuple], records: list[tuple],
     """
     srs_id = config.srs_id
     cls = config.fudgeo_cls
-    srs_id = config.srs_id
+    combiner = config.combiner
     is_multi = config.is_multi
     multi_cls = config.shapely_multi_cls
     shapely_types = config.shapely_types
@@ -108,6 +108,7 @@ def extend_records(results: list[tuple], records: list[tuple],
                                 if isinstance(r, shapely_types)])
         elif not isinstance(result, shapely_types):
             continue
+        result = combiner(result)
         if is_multi:
             if not hasattr(result, GEOMS_ATTR):
                 result = multi_cls([result])
