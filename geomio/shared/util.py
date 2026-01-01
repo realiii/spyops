@@ -103,7 +103,7 @@ def extend_records(results: list[tuple], records: list[tuple],
         if result.is_empty:
             continue
         if isinstance(result, GeometryCollection):
-            result = multi_cls([r for r in result.geoms
+            result = multi_cls([r for r in getattr(result, GEOMS_ATTR)
                                 if isinstance(r, shapely_types)])
         elif not isinstance(result, shapely_types):
             continue
