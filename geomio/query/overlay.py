@@ -12,7 +12,6 @@ from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
-
 from shapely import (
     GeometryCollection, Polygon as ShapelyPolygon, STRtree, coverage_simplify)
 from shapely.constructive import polygonize
@@ -22,12 +21,12 @@ from shapely.set_operations import union_all
 from geomio.query.base import AbstractSpatialAttribute
 from geomio.query.extract import QueryClip
 from geomio.shared.constant import EMPTY, GEOMS_ATTR
+from geomio.shared.element import create_feature_class
+from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import geometry_config
-from geomio.shared.hint import ELEMENT, FIELDS, POLYGONS, XY_TOL
-from geomio.shared.element import create_feature_class
-from geomio.shared.enumeration import AttributeOption
+from geomio.shared.hint import ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL
 from geomio.shared.util import element_names, extend_records, make_unique_name
 
 
@@ -45,14 +44,33 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
 # End QueryIntersectPairwise class
 
 
-class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta):
+def _planarize_factory(source: FeatureClass, operator: FeatureClass,
+                       xy_tolerance: XY_TOL) -> tuple[FeatureClass, FeatureClass]:
     """
-    Base Class for Planarizing Feature Class
+    Planarize Feature Class
+    """
+    if source.shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+        src_cls = PlanarizePolygonSource
+    else:
+        src_cls = PlanarizeGeneralSource
+    if operator.shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+        op_cls = PlanarizePolygonOperator
+    else:
+        op_cls = PlanarizeGeneralOperator
+    source = src_cls(source, operator=operator, xy_tolerance=xy_tolerance)()
+    operator = op_cls(source, operator=operator, xy_tolerance=xy_tolerance)()
+    return source, operator
+# End _planarize_factory function
+
+
+class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
+    """
+    Abstract Base Class for Planarizing Feature Classes
     """
     def __init__(self, source: FeatureClass, operator: FeatureClass,
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the BasePlanarizeFeatureClass class
+        Initialize the AbstractPlanarize class
         """
         super().__init__(
             source=source, operator=operator, target=None,
@@ -67,6 +85,32 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         pass
     # End call built-in
 
+    @property
+    @abstractmethod
+    def _shape_type(self) -> str:
+        """
+        Shape Type
+        """
+        pass
+    # End _shape_type property
+
+    @property
+    @abstractmethod
+    def temporary_fid_field(self) -> Field:
+        """
+        Temporary FID Field
+        """
+        pass
+    # End temporary_fid_field property
+
+    @abstractmethod
+    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
+        """
+        Planarized Feature Class
+        """
+        pass
+    # End _planarize method
+
     @cached_property
     def scratch(self) -> MemoryGeoPackage:
         """
@@ -74,6 +118,99 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         """
         return MemoryGeoPackage.create()
     # End scratch property
+
+    def _make_insert_sql(self, planar: FeatureClass, fields: FIELDS) -> str:
+        """
+        Make Insert SQL for the Planar Feature Class
+        """
+        field_names = make_field_names(fields)
+        geom_name = get_geometry_column_name(planar)
+        field_names = self._concatenate(geom_name, field_names)
+        return self._make_insert(
+            planar.escaped_name, field_names=field_names,
+            field_count=len(fields) + 1)
+    # End _make_insert_sql method
+
+    def _save_planarized(self, feature_class: FeatureClass,
+                         results: list[tuple]) -> FeatureClass:
+        """
+        Save Planarized Feature Class
+        """
+        records = []
+        fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
+        planar = self._make_planar_feature_class(feature_class, fields=fields)
+        config = geometry_config(planar, target=planar)
+        extend_records(results=results, records=records, config=config)
+        insert_sql = self._make_insert_sql(planar, fields=fields)
+        with (planar.geopackage.connection as cout,
+              ExecuteMany(connection=cout, table=planar) as executor):
+            executor(sql=insert_sql, data=records)
+        return planar
+    # End _save_planarized method
+
+    def _get_fields(self, element: ELEMENT) -> FIELDS:
+        """
+        Get Fields from Element based on Attribute Option
+        """
+        return validate_fields(element, fields=element.fields)
+    # End _get_fields method
+
+    @staticmethod
+    def _fetch_features(feature_class: FeatureClass, sql: str) \
+            -> tuple[POLYGONS | LINES | POINTS, list[tuple]]:
+        """
+        Fetch Features, return shapely geometries and attributes
+        """
+        geoms = []
+        attributes = []
+        with feature_class.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                attributes.extend([feature[1:] for feature in features])
+                geoms.extend([from_wkb(g.wkb) for g, *_ in features])
+        return geoms, attributes
+    # End _fetch_features method
+
+    def _make_planar_feature_class(self, feature_class: FeatureClass,
+                                   fields: FIELDS) -> FeatureClass:
+        """
+        Make Planar Feature Class
+        """
+        names = element_names(self.scratch)
+        name = make_unique_name(feature_class.name, names)
+        return create_feature_class(
+            geopackage=self.scratch, name=name, shape_type=self._shape_type,
+            srs=feature_class.spatial_reference_system, fields=fields,
+            z_enabled=feature_class.has_z, m_enabled=feature_class.has_m)
+    # End _make_planar_feature_class method
+
+    @cache
+    def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
+        """
+        Override field names for Selection -- ignore insert names and count
+        """
+        fields = self._get_fields(element)
+        select_names = make_field_names(fields)
+        geom_type = get_geometry_column_name(element, include_geom_type=True)
+        alias = self.temporary_fid_field.escaped_name
+        primary = f'{element.primary_key_field.escaped_name} AS {alias}'
+        geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
+        return 0, EMPTY, self._concatenate(geom_primary, select_names)
+    # End _field_names_and_count method
+# End AbstractPlanarize class
+
+
+class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
+    """
+    Abstract Class for Planarizing a Polygon Feature Class
+    """
+    @property
+    def _shape_type(self) -> str:
+        """
+        Shape Type
+        """
+        return GeometryType.polygon
+    # End _shape_type property
 
     def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
         """
@@ -105,51 +242,6 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         return results
     # End _build_planar_results method
 
-    def _make_insert_sql(self, planar: FeatureClass, fields: FIELDS) -> str:
-        """
-        Make Insert SQL for the Planar Feature Class
-        """
-        field_names = make_field_names(fields)
-        geom_name = get_geometry_column_name(planar)
-        field_names = self._concatenate(geom_name, field_names)
-        return self._make_insert(
-            planar.escaped_name, field_names=field_names,
-            field_count=len(fields) + 1)
-    # End _make_insert_sql method
-
-    @property
-    @abstractmethod
-    def temporary_fid_field(self) -> Field:
-        """
-        Temporary FID Field
-        """
-        pass
-    # End temporary_fid_field property
-
-    def _save_planarized(self, feature_class: FeatureClass,
-                         results: list[tuple]) -> FeatureClass:
-        """
-        Save Planarized Feature Class
-        """
-        records = []
-        fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
-        planar = self._make_planar_feature_class(feature_class, fields)
-        config = geometry_config(planar, target=planar)
-        extend_records(results=results, records=records, config=config)
-        insert_sql = self._make_insert_sql(planar, fields=fields)
-        with (planar.geopackage.connection as cout,
-              ExecuteMany(connection=cout, table=planar) as executor):
-            executor(sql=insert_sql, data=records)
-        return planar
-    # End _save_planarized method
-
-    def _get_fields(self, element: ELEMENT) -> FIELDS:
-        """
-        Get Fields from Element based on Attribute Option
-        """
-        return validate_fields(element, fields=element.fields)
-    # End _get_fields method
-
     def _make_planarized_geometry(self, geoms: POLYGONS) -> list[ShapelyPolygon]:
         """
         Make Planarized Geometry
@@ -173,55 +265,12 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         simplified = coverage_simplify(planarized, tolerance=self._xy_tolerance)
         return simplified.tolist()
     # End _make_planarized_geometry method
-
-    @staticmethod
-    def _fetch_features(feature_class: FeatureClass, sql: str) \
-            -> tuple[POLYGONS, list[tuple]]:
-        """
-        Fetch Features, return shapely geometries and attributes
-        """
-        geoms = []
-        attributes = []
-        with feature_class.geopackage.connection as cin:
-            cursor = cin.execute(sql)
-            while features := cursor.fetchmany(FETCH_SIZE):
-                attributes.extend([feature[1:] for feature in features])
-                geoms.extend([from_wkb(g.wkb) for g, *_ in features])
-        return geoms, attributes
-    # End _fetch_features method
-
-    def _make_planar_feature_class(self, feature_class: FeatureClass,
-                                   fields: FIELDS) -> FeatureClass:
-        """
-        Make Planar Feature Class
-        """
-        names = element_names(self.scratch)
-        name = make_unique_name(feature_class.name, names)
-        return create_feature_class(
-            geopackage=self.scratch, name=name, shape_type=GeometryType.polygon,
-            srs=feature_class.spatial_reference_system, fields=fields,
-            z_enabled=feature_class.has_z, m_enabled=feature_class.has_m)
-    # End _make_planar_feature_class method
-
-    @cache
-    def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
-        """
-        Override field names for Selection -- ignore insert names and count
-        """
-        fields = self._get_fields(element)
-        select_names = make_field_names(fields)
-        geom_type = get_geometry_column_name(element, include_geom_type=True)
-        alias = self.temporary_fid_field.escaped_name
-        primary = f'{element.primary_key_field.escaped_name} AS {alias}'
-        geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
-        return 0, EMPTY, self._concatenate(geom_primary, select_names)
-    # End _field_names_and_count method
-# End AbstractPlanarizeFeatureClass class
+# End AbstractPlanarizePolygon class
 
 
-class PlanarizeSource(AbstractPlanarizeFeatureClass):
+class PlanarizePolygonSource(AbstractPlanarizePolygon):
     """
-    Planarize a source feature class
+    Planarize a source polygon feature class
     """
     def __call__(self) -> FeatureClass:
         """
@@ -237,12 +286,12 @@ class PlanarizeSource(AbstractPlanarizeFeatureClass):
         """
         return self.output_fid_source
     # End temporary_fid_field property
-# End PlanarizeSource class
+# End PlanarizePolygonSource class
 
 
-class PlanarizeOperator(AbstractPlanarizeFeatureClass):
+class PlanarizePolygonOperator(AbstractPlanarizePolygon):
     """
-    Planarize an operator feature class
+    Planarize an operator polygon feature class
     """
     def __call__(self) -> FeatureClass:
         """
@@ -258,7 +307,80 @@ class PlanarizeOperator(AbstractPlanarizeFeatureClass):
         """
         return self.output_fid_operator
     # End temporary_fid_field property
-# End PlanarizeOperator class
+# End PlanarizePolygonOperator class
+
+
+class AbstractPlanarizeGeneral(AbstractPlanarize, metaclass=ABCMeta):
+    """
+    Abstract Class for Planarizing a LineString or Point Feature Class
+    """
+    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
+        """
+        Planarized Feature Class
+        """
+        geoms, attributes = self._fetch_features(feature_class, sql=sql)
+        results = list(zip(geoms, attributes))
+        return self._save_planarized(feature_class, results=results)
+    # End _planarize method
+# End AbstractPlanarizeGeneral class
+
+
+class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
+    """
+    Planarize a source feature class -- handling for FID
+    """
+    def __call__(self) -> FeatureClass:
+        """
+        Make Class Callable
+        """
+        return self._planarize(self.source, sql=self.select)
+    # End call built-in
+
+    @property
+    def _shape_type(self) -> str:
+        """
+        Shape Type
+        """
+        return self.source.shape_type
+    # End _shape_type property
+
+    @property
+    def temporary_fid_field(self) -> Field:
+        """
+        Temporary FID Field
+        """
+        return self.output_fid_source
+    # End temporary_fid_field property
+# End PlanarizeGeneralSource class
+
+
+class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
+    """
+    Planarize an operator feature class -- handling for FID
+    """
+    def __call__(self) -> FeatureClass:
+        """
+        Make Class Callable
+        """
+        return self._planarize(self.operator, sql=self.select_operator)
+    # End call built-in
+
+    @property
+    def _shape_type(self) -> str:
+        """
+        Shape Type
+        """
+        return self.operator.shape_type
+    # End _shape_type property
+
+    @property
+    def temporary_fid_field(self) -> Field:
+        """
+        Temporary FID Field
+        """
+        return self.output_fid_operator
+    # End temporary_fid_field property
+# End PlanarizeGeneralOperator class
 
 
 class QueryIntersectClassic(AbstractSpatialAttribute):
@@ -271,10 +393,8 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
         """
         Initialize the AbstractSpatialAttribute class
         """
-        source = PlanarizeSource(
-            source, operator=operator, xy_tolerance=xy_tolerance)()
-        operator = PlanarizeOperator(
-            source, operator=operator, xy_tolerance=xy_tolerance)()
+        source, operator = _planarize_factory(
+            source, operator=operator, xy_tolerance=xy_tolerance)
         super().__init__(source=source, target=target, operator=operator,
                          attribute_option=attribute_option,
                          xy_tolerance=xy_tolerance)

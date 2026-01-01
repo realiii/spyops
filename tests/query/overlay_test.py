@@ -8,8 +8,8 @@ from fudgeo import FeatureClass
 from pytest import mark
 
 from geomio.query.overlay import (
-    PlanarizeOperator, PlanarizeSource, QueryIntersectClassic,
-    QueryIntersectPairwise)
+    PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
+    PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise)
 from geomio.shared.enumeration import AttributeOption
 
 pytestmark = [mark.overlay, mark.query]
@@ -106,40 +106,30 @@ class TestQueryIntersectPairwise:
 # End TestQueryIntersectPairwise class
 
 
-class TestPlanarize:
+class TestPlanarizePolygons:
     """
-    Test Planarize
+    Test Planarize Polygons
     """
-    @mark.parametrize('option', [
-        AttributeOption.ALL,
-        AttributeOption.SANS_FID,
-        AttributeOption.ONLY_FID,
-    ])
-    def test_planarize_source(self, inputs, mem_gpkg, option):
+    def test_planarize_source(self, inputs, mem_gpkg):
         """
         Test Planarize Source
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizeSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
         fc = ps()
         assert fc.field_names == ['fid', 'SHAPE', 'fid_int_flavor_a', 'id']
         assert len(fc) == 268
     # End test_planarize_source method
 
-    @mark.parametrize('option', [
-        AttributeOption.ALL,
-        AttributeOption.SANS_FID,
-        AttributeOption.ONLY_FID,
-    ])
-    def test_planarize_operator(self, inputs, mem_gpkg, option):
+    def test_planarize_operator(self, inputs, mem_gpkg):
         """
         Test Planarize Operator
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        po = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_a'
         fc = po()
         assert fc.field_names == [
@@ -154,7 +144,7 @@ class TestPlanarize:
         """
         operator = inputs['intersect_holes_a']
         source = inputs['int_flavor_a']
-        po = PlanarizeOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_holes_a'
         fc = po()
         assert fc.field_names == [
@@ -162,7 +152,56 @@ class TestPlanarize:
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 13
     # End test_planarize_operator_holes method
-# End TestPlanarize class
+# End TestPlanarizePolygons class
+
+
+class TestPlanarizeGeneral:
+    """
+    Test Planarize Line Strings and Points
+    """
+    def test_planarize_source(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Source
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['rivers_l']
+        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'fid_rivers_l'
+        fc = ps()
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_rivers_l', 'FEATURE_ID', 'PART_ID',
+            'NAME', 'SYSTEM', 'MILES', 'KILOMETERS']
+        assert len(fc) == 135
+    # End test_planarize_source method
+
+    def test_planarize_operator(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Operator
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['rivers_l']
+        po = PlanarizeGeneralOperator(source=source, operator=operator, xy_tolerance=None)
+        assert po.temporary_fid_field.name == 'fid_rivers_portion_l'
+        fc = po()
+        assert fc.field_names == ['fid', 'SHAPE', 'fid_rivers_portion_l', 'NAME', 'SYSTEM']
+        assert len(fc) == 134
+    # End test_planarize_operator method
+
+    def test_planarize_source_point(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Source Point
+        """
+        operator = inputs['rivers_portion_l']
+        source = inputs['river_p']
+        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'fid_river_p'
+        fc = ps()
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_river_p', 'NAME', 'SYSTEM', 'vertex_index',
+            'vertex_part', 'vertex_part_index', 'distance', 'angle']
+        assert len(fc) == 20620
+    # End test_planarize_source_point method
+# End TestPlanarizeGeneral class
 
 
 class TestQueryIntersectClassic:
