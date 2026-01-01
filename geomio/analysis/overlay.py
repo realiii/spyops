@@ -73,7 +73,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 @validate_result()
 @validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(OPERATOR)
 @validate_feature_class(TARGET, exists=False)
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
