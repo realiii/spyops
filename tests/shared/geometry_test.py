@@ -3,16 +3,18 @@
 Tests for Geometry Module
 """
 
-
 from fudgeo.geometry.point import Point
-from pytest import approx, mark
+from pytest import approx, mark, raises
 from shapely import (
-    MultiPolygon, MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint,
-    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon)
+    MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint,
+    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon,
+    MultiLineString as ShapelyMultiLineString)
 
+from geomio.shared.exception import OperationsError
 from geomio.shared.geometry import (
-    build_multi_polygon, check_polygon, extent_from_feature_class,
-    overlay_config)
+    build_multi, check_dimension, check_polygon,
+    extent_from_feature_class,
+    get_geometry_dimension, geometry_config)
 
 
 pytestmark = [mark.geometry]
@@ -24,25 +26,46 @@ def test_build_multi_polygon(inputs):
     """
     fc = inputs['updater_a']
     assert len(fc) == 5
-    polygon = build_multi_polygon(fc)
-    assert isinstance(polygon, MultiPolygon)
+    polygon = build_multi(fc)
+    assert isinstance(polygon, ShapelyMultiPolygon)
     assert approx(polygon.bounds, abs=0.0001) == (
         6.74573, 46.13702, 16.47727, 52.52511)
 # End test_build_multi_polygon function
+
+
+def test_build_multi_line_string(world_features):
+    """
+    Test build multi line string
+    """
+    fc = world_features['rivers_l']
+    assert len(fc) == 136
+    line = build_multi(fc)
+    assert isinstance(line, ShapelyMultiLineString)
+    assert approx(line.bounds, abs=0.0001) == (-164.88743, -36.96944, 160.76359, 71.39248)
+# End test_build_multi_line_string function
+
+
+def test_build_multi_point(world_features):
+    """
+    Test build multi point
+    """
+    fc = world_features['airports_p']
+    assert len(fc) == 3500
+    line = build_multi(fc)
+    assert isinstance(line, ShapelyMultiPoint)
+    assert approx(line.bounds, abs=0.0001) == (-177.38063, -54.84327, 178.55922, 78.24611)
+# End test_build_multi_line_string function
 
 
 def test_overlay_config(inputs, world_features):
     """
     Test overlay config
     """
-    operator = inputs['updater_a']
     fc = world_features['cities_p']
-    config = overlay_config(fc, target=inputs['eraser_a'], operator=operator)
+    config = geometry_config(fc, target=inputs['eraser_a'])
     assert config.fudgeo_cls is Point
     assert config.is_multi is False
     assert config.shapely_multi_cls is ShapelyMultiPoint
-    assert approx(config.geometry.bounds, abs=0.0001) == (
-        6.74573, 46.13702, 16.47727, 52.52511)
     assert config.shapely_types == (ShapelyPoint, ShapelyMultiPoint)
     assert config.srs_id == 4326
 # End test_overlay_config function
@@ -89,6 +112,36 @@ def test_check_polygon(polygon, type_):
     """
     assert isinstance(check_polygon(polygon), type_)
 # End test_check_polygon function
+
+
+@mark.parametrize('name, dimension', [
+    ('airports_p', 0),
+    ('airports_mp_p', 0),
+    ('roads_l', 1),
+    ('roads_mp_l', 1),
+    ('admin_a', 2),
+    ('admin_mp_a', 2),
+])
+def test_get_geometry_dimension(world_features, name, dimension):
+    """
+    Test get_geometry_dimension
+    """
+    fc = world_features[name]
+    assert get_geometry_dimension(fc) == dimension
+# End test_get_geometry_dimension function
+
+
+def test_check_dimension():
+    """
+    Test check_dimension
+    """
+    assert check_dimension(0, name_a='aa', b=1, name_b='bb') is None
+    assert check_dimension(1, name_a='aa', b=1, name_b='bb') is None
+    assert check_dimension(1, name_a='aa', b=2, name_b='bb') is None
+    assert check_dimension(2, name_a='aa', b=2, name_b='bb') is None
+    with raises(OperationsError):
+        check_dimension(2, name_a='aa', b=1, name_b='bb')
+# End test_check_dimension function
 
 
 if __name__ == '__main__':  # pragma: no cover

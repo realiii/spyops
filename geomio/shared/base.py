@@ -4,7 +4,7 @@ Types
 """
 
 
-from typing import Any, NamedTuple, TYPE_CHECKING, Union
+from typing import Any, Callable, NamedTuple, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass
 from shapely import (
@@ -35,17 +35,17 @@ class PlanarizeResults(NamedTuple):
 # End PlanarizeResults class
 
 
-class OverlayConfig(NamedTuple):
+class GeometryConfig(NamedTuple):
     """
-    Overlay Configuration
+    Geometry Configuration
     """
     fudgeo_cls: Any
     is_multi: bool
     shapely_multi_cls: Any
     shapely_types: tuple
-    geometry: ShapelyMultiPolygon | ShapelyPolygon
     srs_id: int
-# End OverlayConfig class
+    combiner: Callable
+# End GeometryConfig class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -34,6 +34,9 @@ CODE_KEY: str = 'code'
 
 GEOMS_ATTR: str = 'geoms'
 NAME_ATTR: str = 'name'
+POLYGONS_ATTR: str = 'polygons'
+LINES_ATTR: str = 'lines'
+POINTS_ATTR: str = 'points'
 
 FIELD: str = 'field'
 SOURCE: str = 'source'

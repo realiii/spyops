@@ -11,7 +11,7 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from geomio.shared.base import OverlayConfig
+from geomio.shared.base import GeometryConfig
 from geomio.shared.constant import (
     DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
 from geomio.shared.enumeration import Setting
@@ -90,32 +90,32 @@ def expand_extent(extent: EXTENT) -> EXTENT:
 
 
 def extend_records(results: list[tuple], records: list[tuple],
-                   config: OverlayConfig) -> None:
+                   config: GeometryConfig) -> None:
     """
     Extend Records
     """
-    shapely_types = config.shapely_types
-    multi_cls = config.shapely_multi_cls
-    cls = config.fudgeo_cls
     srs_id = config.srs_id
+    cls = config.fudgeo_cls
+    combiner = config.combiner
     is_multi = config.is_multi
-    for result, attributes in results:
+    multi_cls = config.shapely_multi_cls
+    shapely_types = config.shapely_types
+    for result, attrs in results:
         if result.is_empty:
             continue
         if isinstance(result, GeometryCollection):
-            result = multi_cls([r for r in result.geoms
+            result = multi_cls([r for r in getattr(result, GEOMS_ATTR)
                                 if isinstance(r, shapely_types)])
         elif not isinstance(result, shapely_types):
             continue
+        result = combiner(result)
         if is_multi:
             if not hasattr(result, GEOMS_ATTR):
                 result = multi_cls([result])
-            records.append((cls.from_wkb(
-                result.wkb, srs_id=srs_id), *attributes))
+            records.append((cls.from_wkb(result.wkb, srs_id=srs_id), *attrs))
         else:
-            records.extend([(cls.from_wkb(
-                part.wkb, srs_id=srs_id), *attributes)
-                for part in getattr(result, GEOMS_ATTR, [result])])
+            records.extend([(cls.from_wkb(part.wkb, srs_id=srs_id), *attrs)
+                            for part in getattr(result, GEOMS_ATTR, [result])])
 # End extend_records function
 
 

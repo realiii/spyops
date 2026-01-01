@@ -207,13 +207,13 @@ def test_split_by_attributes_features_with_settings(world_features, mem_gpkg, fi
     ('roads_mp_l', None, 8),
     ('admin_a', 0.001, 88),
     ('airports_p', 0.001, 35),
-    ('roads_l', 0.001, 2956),
+    ('roads_l', 0.001, 2319),
     ('admin_mp_a', 0.001, 49),
     ('airports_mp_p', 0.001, 4),
     ('roads_mp_l', 0.001, 8),
     ('admin_a', 1, 17),
     ('airports_p', 1, 32),
-    ('roads_l', 1, 325),
+    ('roads_l', 1, 300),
     ('admin_mp_a', 1, 17),
     ('airports_mp_p', 1, 4),
     ('roads_mp_l', 1, 8),
@@ -245,6 +245,58 @@ def test_clip_sans_attributes(inputs, world_features, mem_gpkg):
 # End test_clip_sans_attributes function
 
 
+@mark.parametrize('xy_tolerance, count', [
+    (None, 195),
+    (0.001, 209),
+])
+def test_clip_line_on_line(world_features, inputs, mem_gpkg, xy_tolerance, count):
+    """
+    Test clipping using a line feature class as the operator on a line feature class
+    """
+    clipper = inputs['rivers_portion_l']
+    source = world_features['rivers_l']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_clip_line_on_line function
+
+
+@mark.parametrize('xy_tolerance, count', [
+    (None, 7398),
+    (0, 7398),
+    (0.0000000001, 3),
+    (0.1, 0),
+])
+def test_clip_line_on_point(inputs, mem_gpkg, xy_tolerance, count):
+    """
+    Test clipping using a line feature class as the operator on a point feature class
+    """
+    clipper = inputs['rivers_portion_l']
+    source = inputs['river_p']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_clip_line_on_point function
+
+
+@mark.parametrize('xy_tolerance, count', [
+    (None, 100),
+    (0, 100),
+    (0.001, 100),
+])
+def test_clip_point_on_point(inputs, mem_gpkg, xy_tolerance, count):
+    """
+    Test clipping using a point feature class as the operator on a point feature class
+    """
+    clipper = inputs['river_p'].copy(name='river_p_clipper', where_clause='fid <= 100', geopackage=mem_gpkg)
+    assert len(clipper) == 100
+    source = inputs['river_p']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_clip_point_on_point function
+
+
 @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
     ('admin_a', None, 4, 114),
     ('airports_p', None, 4, 40),
@@ -254,13 +306,13 @@ def test_clip_sans_attributes(inputs, world_features, mem_gpkg):
     ('roads_mp_l', None, 4, 14),
     ('admin_a', 0.001, 4, 112),
     ('airports_p', 0.001, 4, 40),
-    ('roads_l', 0.001, 4, 3380),
+    ('roads_l', 0.001, 4, 2679),
     ('admin_mp_a', 0.001, 4, 68),
     ('airports_mp_p', 0.001, 4, 8),
     ('roads_mp_l', 0.001, 4, 14),
     ('admin_a', 1, 4, 22),
     ('airports_p', 1, 4, 35),
-    ('roads_l', 1, 4, 378),
+    ('roads_l', 1, 4, 344),
     ('admin_mp_a', 1, 4, 22),
     ('airports_mp_p', 1, 4, 8),
     ('roads_mp_l', 1, 4, 13),
@@ -288,13 +340,13 @@ def test_split(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_
     ('roads_mp_l', None, 8),
     ('admin_a', 0.001, 88),
     ('airports_p', 0.001, 35),
-    ('roads_l', 0.001, 2956),
+    ('roads_l', 0.001, 2319),
     ('admin_mp_a', 0.001, 49),
     ('airports_mp_p', 0.001, 4),
     ('roads_mp_l', 0.001, 8),
     ('admin_a', 1, 17),
     ('airports_p', 1, 32),
-    ('roads_l', 1, 325),
+    ('roads_l', 1, 300),
     ('admin_mp_a', 1, 17),
     ('airports_mp_p', 1, 4),
     ('roads_mp_l', 1, 8),
@@ -323,13 +375,13 @@ def test_clip_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance, c
     ('roads_mp_l', None, 4, 14),
     ('admin_a', 0.001, 4, 112),
     ('airports_p', 0.001, 4, 40),
-    ('roads_l', 0.001, 4, 3380),
+    ('roads_l', 0.001, 4, 2679),
     ('admin_mp_a', 0.001, 4, 68),
     ('airports_mp_p', 0.001, 4, 8),
     ('roads_mp_l', 0.001, 4, 14),
     ('admin_a', 1, 4, 22),
     ('airports_p', 1, 4, 35),
-    ('roads_l', 1, 4, 378),
+    ('roads_l', 1, 4, 344),
     ('admin_mp_a', 1, 4, 22),
     ('airports_mp_p', 1, 4, 8),
     ('roads_mp_l', 1, 4, 13),

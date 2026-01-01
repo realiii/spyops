@@ -26,11 +26,11 @@ from geomio.shared.validation import (
 
 
 @validate_result()
-@validate_same_crs(SOURCE, OPERATOR)
-@validate_xy_tolerance()
-@validate_feature_class(TARGET, exists=False)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(TARGET, exists=False)
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
 def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
           xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
@@ -43,8 +43,8 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     if not query.has_intersection:
         return query.target_full
     records = []
+    geometry = query.geometry
     insert_sql = query.insert
-    polygon = query.config.geometry
     _process_disjoint(query, xy_tolerance=xy_tolerance)
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
@@ -52,7 +52,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
-            intersects = polygon.intersects(geometries)
+            intersects = geometry.intersects(geometries)
             keepers = [f for f, i in zip(features, intersects) if not i]
             geoms = [g for g, i in zip(geometries, intersects) if not i]
             if xy_tolerance is not None:
@@ -62,7 +62,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             extend_records(results, records=records, config=query.config)
             changers = [f for f, i in zip(features, intersects) if i]
             geoms = [g for g, i in zip(geometries, intersects) if i]
-            results = [(geom.difference(polygon, grid_size=xy_tolerance), attrs)
+            results = [(geom.difference(geometry, grid_size=xy_tolerance), attrs)
                        for geom, (_, *attrs) in zip(geoms, changers)]
             extend_records(results, records=records, config=query.config)
             executor(sql=insert_sql, data=records)
@@ -72,13 +72,13 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_same_crs(SOURCE, OPERATOR)
-@validate_xy_tolerance()
-@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
-@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
-@validate_feature_class(TARGET, exists=False)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(TARGET, exists=False)
+@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
 def intersect(source: FeatureClass, operator: FeatureClass,
               target: FeatureClass, *,
               attribute_option: AttributeOption = AttributeOption.ALL,
