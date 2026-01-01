@@ -167,6 +167,61 @@ def test_intersect_setting(inputs, world_features, mem_gpkg, fc_name, xy_toleran
 # End test_intersect_setting function
 
 
+@mark.parametrize('fc_name, xy_tolerance, option, feature_count, field_count', [
+    ('admin_a', None, AttributeOption.ALL, 128, 25),
+    ('airports_p', None, AttributeOption.ALL, 40, 14),
+    ('roads_l', None, AttributeOption.ALL, 2560, 22),
+    ('admin_mp_a', None, AttributeOption.ALL, 128, 23),
+    ('airports_mp_p', None, AttributeOption.ALL, 12, 11),
+    ('roads_mp_l', None, AttributeOption.ALL, 21, 11),
+    ('admin_a', 0.001, AttributeOption.ALL, 125, 25),
+    ('airports_p', 0.001, AttributeOption.ALL, 40, 14),
+    ('roads_l', 0.001, AttributeOption.ALL, 2725, 22),
+    ('admin_mp_a', 0.001, AttributeOption.ALL, 125, 23),
+    ('airports_mp_p', 0.001, AttributeOption.ALL, 12, 11),
+    ('roads_mp_l', 0.001, AttributeOption.ALL, 21, 11),
+    ('admin_a', None, AttributeOption.ONLY_FID, 128, 4),
+    ('airports_p', None, AttributeOption.ONLY_FID, 40, 4),
+    ('roads_l', None, AttributeOption.ONLY_FID, 2560, 4),
+    ('admin_mp_a', None, AttributeOption.ONLY_FID, 128, 4),
+    ('airports_mp_p', None, AttributeOption.ONLY_FID, 12, 4),
+    ('roads_mp_l', None, AttributeOption.ONLY_FID, 21, 4),
+    ('admin_a', 0.001, AttributeOption.ONLY_FID, 125, 4),
+    ('airports_p', 0.001, AttributeOption.ONLY_FID, 40, 4),
+    ('roads_l', 0.001, AttributeOption.ONLY_FID, 2725, 4),
+    ('admin_mp_a', 0.001, AttributeOption.ONLY_FID, 125, 4),
+    ('airports_mp_p', 0.001, AttributeOption.ONLY_FID, 12, 4),
+    ('roads_mp_l', 0.001, AttributeOption.ONLY_FID, 21, 4),
+    ('admin_a', None, AttributeOption.SANS_FID, 128, 23),
+    ('airports_p', None, AttributeOption.SANS_FID, 40, 12),
+    ('roads_l', None, AttributeOption.SANS_FID, 2560, 20),
+    ('admin_mp_a', None, AttributeOption.SANS_FID, 128, 21),
+    ('airports_mp_p', None, AttributeOption.SANS_FID, 12, 9),
+    ('roads_mp_l', None, AttributeOption.SANS_FID, 21, 9),
+    ('admin_a', 0.001, AttributeOption.SANS_FID, 125, 23),
+    ('airports_p', 0.001, AttributeOption.SANS_FID, 40, 12),
+    ('roads_l', 0.001, AttributeOption.SANS_FID, 2725, 20),
+    ('admin_mp_a', 0.001, AttributeOption.SANS_FID, 125, 21),
+    ('airports_mp_p', 0.001, AttributeOption.SANS_FID, 12, 9),
+    ('roads_mp_l', 0.001, AttributeOption.SANS_FID, 21, 9),
+])
+def test_intersect_classic_setting(inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
+                                   option, feature_count, field_count):
+    """
+    Test intersect using analysis settings -- classic algorithm
+    """
+    operator = inputs['intersect_a']
+    assert len(operator) == 5
+    source = world_features[fc_name]
+    target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+    with Swap(Setting.XY_TOLERANCE, xy_tolerance):
+        result = intersect(source=source, operator=operator, target=target,
+                           attribute_option=option, algorithm_option=AlgorithmOption.CLASSIC)
+    assert len(result) == feature_count
+    assert len(result.fields) == field_count
+# End test_intersect_classic_setting function
+
+
 @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
     (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 64, 11),
     (AlgorithmOption.PAIRWISE, AttributeOption.SANS_FID, 64, 9),
