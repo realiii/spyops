@@ -275,9 +275,9 @@ def test_intersect_option_sans_attributes(inputs, world_features, mem_gpkg, algo
     (0.001, 379),
     (0.05, 352),
 ])
-def test_intersect_classic_xy_tolerance(inputs, mem_gpkg, xy_tolerance, feature_count):
+def test_intersect_option_xy_tolerance(inputs, mem_gpkg, xy_tolerance, feature_count):
     """
-    Test Intersect classic with XY Tolerance
+    Test Intersect classical with XY Tolerance
     """
     operator = inputs['intersect_a']
     source = inputs['int_flavor_a']
@@ -285,7 +285,7 @@ def test_intersect_classic_xy_tolerance(inputs, mem_gpkg, xy_tolerance, feature_
     result = intersect(source=source, operator=operator, target=target,
                        algorithm_option=AlgorithmOption.CLASSIC, xy_tolerance=xy_tolerance)
     assert len(result) == feature_count
-# End test_intersect_classic_xy_tolerance function
+# End test_intersect_option_xy_tolerance function
 
 
 @mark.benchmark
