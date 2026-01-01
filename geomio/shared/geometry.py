@@ -26,6 +26,7 @@ from shapely.geometry.base import (
     BaseGeometry as ShapelyGeometry,
     BaseMultipartGeometry as ShapelyMultipartGeometry)
 from shapely.io import from_wkb
+from shapely.linear import line_merge
 from shapely.ops import unary_union
 
 from geomio.shared.base import GeometryConfig
@@ -220,17 +221,40 @@ def _check_geometry(geom: ShapelyGeometry, method_name: str,
 # End _check_geometry function
 
 
+def _nada(value: Any) -> Any:
+    """
+    Nada
+    """
+    return value
+# End _nada function
+
+
+def _combine_lines(value: ShapelyLineString | ShapelyMultiLineString) \
+        -> ShapelyLineString | ShapelyMultiLineString:
+    """
+    Combine Lines using Directed Line Merge
+    """
+    if isinstance(value, ShapelyMultiLineString):
+        return line_merge(value, directed=True)
+    return value
+# End _combine_lines function
+
+
 def geometry_config(source: FeatureClass, target: FeatureClass) -> GeometryConfig:
     """
     Geometry Configuration
     """
-    geom_type = source.geometry_type.upper()
     is_multi = source.is_multi_part
+    geom_type = source.geometry_type.upper()
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][source.has_z, source.has_m]
     shapely_types = _, multi_cls = SHAPELY_GEOMETRY_LOOKUP.get(geom_type)
+    if ShapelyLineString in shapely_types:
+        combiner = _combine_lines
+    else:
+        combiner = _nada
     return GeometryConfig(
         fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
-        shapely_types=shapely_types,
+        shapely_types=shapely_types, combiner=combiner,
         srs_id=target.spatial_reference_system.srs_id)
 # End geometry_config function
 
