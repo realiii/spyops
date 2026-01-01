@@ -31,8 +31,8 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 
 
 @validate_result()
-@validate_table(TARGET, exists=False)
 @validate_table(SOURCE)
+@validate_table(TARGET, exists=False)
 def table_select(source: Table, target: Table, *,
                  where_clause: str = '') -> Table:
     """
@@ -46,8 +46,8 @@ def table_select(source: Table, target: Table, *,
 
 
 @validate_result()
-@validate_feature_class(TARGET, exists=False)
 @validate_feature_class(SOURCE)
+@validate_feature_class(TARGET, exists=False)
 def select(source: FeatureClass, target: FeatureClass, *,
            where_clause: str = '') -> FeatureClass:
     """
@@ -61,10 +61,10 @@ def select(source: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_geopackage()
+@validate_element(SOURCE)
 @validate_field(GROUP_FIELDS, data_types=TEXT_AND_NUMBERS,
                 element_name=SOURCE, exclude_primary=False)
-@validate_element(SOURCE)
+@validate_geopackage()
 def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
                         geopackage: GPKG) -> list[ELEMENT]:
     """
@@ -79,12 +79,12 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 
 
 @validate_result()
-@validate_same_crs(SOURCE, OPERATOR)
-@validate_xy_tolerance()
-@validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_feature_class(TARGET, exists=False)
-@validate_feature_class(OPERATOR)
 @validate_feature_class(SOURCE)
+@validate_feature_class(OPERATOR)
+@validate_feature_class(TARGET, exists=False)
+@validate_geometry_dimension(SOURCE, OPERATOR)
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
@@ -99,12 +99,12 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_same_crs(SOURCE, OPERATOR)
-@validate_xy_tolerance()
-@validate_geopackage()
-@validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
+@validate_geopackage()
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
 def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
           geopackage: GPKG, *, xy_tolerance: XY_TOL = None) -> list[FeatureClass]:
     """

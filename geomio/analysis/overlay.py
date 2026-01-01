@@ -26,11 +26,11 @@ from geomio.shared.validation import (
 
 
 @validate_result()
-@validate_same_crs(SOURCE, OPERATOR)
-@validate_xy_tolerance()
-@validate_feature_class(TARGET, exists=False)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(TARGET, exists=False)
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
 def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
           xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
@@ -72,13 +72,13 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_same_crs(SOURCE, OPERATOR)
-@validate_xy_tolerance()
-@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
-@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
-@validate_feature_class(TARGET, exists=False)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(SOURCE)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(TARGET, exists=False)
+@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
 def intersect(source: FeatureClass, operator: FeatureClass,
               target: FeatureClass, *,
               attribute_option: AttributeOption = AttributeOption.ALL,
