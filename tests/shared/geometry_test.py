@@ -3,12 +3,12 @@
 Tests for Geometry Module
 """
 
-
 from fudgeo.geometry.point import Point
 from pytest import approx, mark, raises
 from shapely import (
-    MultiPolygon, MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint,
-    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon)
+    MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint,
+    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon,
+    MultiLineString as ShapelyMultiLineString)
 
 from geomio.shared.exception import OperationsError
 from geomio.shared.geometry import (
@@ -27,10 +27,34 @@ def test_build_multi_polygon(inputs):
     fc = inputs['updater_a']
     assert len(fc) == 5
     polygon = build_multi(fc)
-    assert isinstance(polygon, MultiPolygon)
+    assert isinstance(polygon, ShapelyMultiPolygon)
     assert approx(polygon.bounds, abs=0.0001) == (
         6.74573, 46.13702, 16.47727, 52.52511)
 # End test_build_multi_polygon function
+
+
+def test_build_multi_line_string(world_features):
+    """
+    Test build multi line string
+    """
+    fc = world_features['rivers_l']
+    assert len(fc) == 136
+    line = build_multi(fc)
+    assert isinstance(line, ShapelyMultiLineString)
+    assert approx(line.bounds, abs=0.0001) == (-164.88743, -36.96944, 160.76359, 71.39248)
+# End test_build_multi_line_string function
+
+
+def test_build_multi_point(world_features):
+    """
+    Test build multi point
+    """
+    fc = world_features['airports_p']
+    assert len(fc) == 3500
+    line = build_multi(fc)
+    assert isinstance(line, ShapelyMultiPoint)
+    assert approx(line.bounds, abs=0.0001) == (-177.38063, -54.84327, 178.55922, 78.24611)
+# End test_build_multi_line_string function
 
 
 def test_overlay_config(inputs, world_features):
