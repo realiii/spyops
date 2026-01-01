@@ -245,6 +245,58 @@ def test_clip_sans_attributes(inputs, world_features, mem_gpkg):
 # End test_clip_sans_attributes function
 
 
+@mark.parametrize('xy_tolerance, count', [
+    (None, 195),
+    (0.001, 209),
+])
+def test_clip_line_on_line(world_features, inputs, mem_gpkg, xy_tolerance, count):
+    """
+    Test clipping using a line feature class as the operator on a line feature class
+    """
+    clipper = inputs['rivers_portion_l']
+    source = world_features['rivers_l']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_clip_line_on_line function
+
+
+@mark.parametrize('xy_tolerance, count', [
+    (None, 7398),
+    (0, 7398),
+    (0.0000000001, 3),
+    (0.1, 0),
+])
+def test_clip_line_on_point(inputs, mem_gpkg, xy_tolerance, count):
+    """
+    Test clipping using a line feature class as the operator on a point feature class
+    """
+    clipper = inputs['rivers_portion_l']
+    source = inputs['river_p']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_clip_line_on_point function
+
+
+@mark.parametrize('xy_tolerance, count', [
+    (None, 100),
+    (0, 100),
+    (0.001, 100),
+])
+def test_clip_point_on_point(inputs, mem_gpkg, xy_tolerance, count):
+    """
+    Test clipping using a point feature class as the operator on a point feature class
+    """
+    clipper = inputs['river_p'].copy(name='river_p_clipper', where_clause='fid <= 100', geopackage=mem_gpkg)
+    assert len(clipper) == 100
+    source = inputs['river_p']
+    target = FeatureClass(geopackage=mem_gpkg, name='riv')
+    result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+    assert len(result) == count
+# End test_clip_point_on_point function
+
+
 @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
     ('admin_a', None, 4, 114),
     ('airports_p', None, 4, 40),
