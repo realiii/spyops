@@ -94,11 +94,12 @@ def extend_records(results: list[tuple], records: list[tuple],
     """
     Extend Records
     """
-    shapely_types = config.shapely_types
-    multi_cls = config.shapely_multi_cls
+    srs_id = config.srs_id
     cls = config.fudgeo_cls
     srs_id = config.srs_id
     is_multi = config.is_multi
+    multi_cls = config.shapely_multi_cls
+    shapely_types = config.shapely_types
     for result, attrs in results:
         if result.is_empty:
             continue
