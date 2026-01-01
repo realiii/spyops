@@ -12,9 +12,9 @@ from shapely import (
 
 from geomio.shared.exception import OperationsError
 from geomio.shared.geometry import (
-    build_multi_polygon, check_dimension, check_polygon,
+    build_multi, check_dimension, check_polygon,
     extent_from_feature_class,
-    get_geometry_dimension, overlay_config)
+    get_geometry_dimension, geometry_config)
 
 
 pytestmark = [mark.geometry]
@@ -26,7 +26,7 @@ def test_build_multi_polygon(inputs):
     """
     fc = inputs['updater_a']
     assert len(fc) == 5
-    polygon = build_multi_polygon(fc)
+    polygon = build_multi(fc)
     assert isinstance(polygon, MultiPolygon)
     assert approx(polygon.bounds, abs=0.0001) == (
         6.74573, 46.13702, 16.47727, 52.52511)
@@ -37,14 +37,11 @@ def test_overlay_config(inputs, world_features):
     """
     Test overlay config
     """
-    operator = inputs['updater_a']
     fc = world_features['cities_p']
-    config = overlay_config(fc, target=inputs['eraser_a'], operator=operator)
+    config = geometry_config(fc, target=inputs['eraser_a'])
     assert config.fudgeo_cls is Point
     assert config.is_multi is False
     assert config.shapely_multi_cls is ShapelyMultiPoint
-    assert approx(config.geometry.bounds, abs=0.0001) == (
-        6.74573, 46.13702, 16.47727, 52.52511)
     assert config.shapely_types == (ShapelyPoint, ShapelyMultiPoint)
     assert config.srs_id == 4326
 # End test_overlay_config function

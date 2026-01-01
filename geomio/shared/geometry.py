@@ -5,7 +5,7 @@ Geometry Functionality
 
 
 from math import nan
-from typing import Any
+from typing import Any, Callable, Type
 
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
@@ -22,11 +22,15 @@ from shapely import (
     LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
     MultiPoint as ShapelyMultiPoint, MultiPolygon as ShapelyMultiPolygon,
     Point as ShapelyPoint, Polygon as ShapelyPolygon, make_valid, prepare)
+from shapely.geometry.base import (
+    BaseGeometry as ShapelyGeometry,
+    BaseMultipartGeometry as ShapelyMultipartGeometry)
 from shapely.io import from_wkb
 from shapely.ops import unary_union
 
-from geomio.shared.base import OverlayConfig
-from geomio.shared.constant import GEOMS_ATTR
+from geomio.shared.base import GeometryConfig
+from geomio.shared.constant import (
+    GEOMS_ATTR, LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR)
 from geomio.shared.exception import OperationsError
 from geomio.shared.field import get_geometry_column_name
 from geomio.shared.hint import EXTENT
@@ -75,32 +79,88 @@ FUDGEO_GEOMETRY_LOOKUP: dict[str, dict[tuple[bool, bool], Any]] = {
 }
 
 
-def build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
+def build_multi(feature_class: FeatureClass | None) \
+        -> ShapelyMultiPoint | ShapelyMultiLineString | ShapelyMultiPolygon | None:
     """
-    Build MultiPolygon from Polygon or MultiPolygon Feature Class
+    Build Multi Point, Multi Line or Multi Polygon
     """
-    polygons = []
+    if not feature_class:
+        return None
+    shape_type = feature_class.shape_type
+    if shape_type in (GeometryType.point, GeometryType.multi_point):
+        return _build_multi_point(feature_class)
+    elif shape_type in (GeometryType.linestring, GeometryType.multi_linestring):
+        return _build_multi_linestring(feature_class)
+    elif shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+        return _build_multi_polygon(feature_class)
+    else:
+        raise ValueError(f'Unsupported shape type: {shape_type}')
+# End build_multi function
+
+
+def _get_geoms(feature_class: FeatureClass, attr: str,
+               checker: Callable[[ShapelyGeometry], ShapelyGeometry | None]) \
+        -> list[ShapelyPoint] | list[ShapelyLineString] | list[ShapelyPolygon]:
+    """
+    Get Shapely Geometries from Feature Class
+    """
+    geoms = []
     column_name = get_geometry_column_name(
         feature_class, include_geom_type=True)
-    is_multi = feature_class.is_multi_part
     with feature_class.geopackage.connection as cin:
         cursor = cin.execute(
             f"""SELECT {column_name} 
                 FROM {feature_class.escaped_name}""")
-        while geoms := cursor.fetchmany(FETCH_SIZE):
-            for geom, in geoms:
-                polys = geom.polygons if is_multi else [geom]
-                for poly in polys:
-                    # noinspection PyTypeChecker
-                    polygon: ShapelyPolygon = from_wkb(poly.wkb)
-                    if check_polygon(polygon) is None:  # pragma: no cover
+        while geometries := cursor.fetchmany(FETCH_SIZE):
+            for geometry, in geometries:
+                for geom in getattr(geometry, attr, [geometry]):
+                    g = from_wkb(geom.wkb)
+                    if checker(g) is None:
                         continue
-                    polygons.append(polygon)
+                    geoms.append(g)
+    return geoms
+# End _get_geoms function
+
+
+def _build_multi_polygon(feature_class: FeatureClass) -> ShapelyMultiPolygon:
+    """
+    Build MultiPolygon from Polygon or MultiPolygon Feature Class
+    """
     # noinspection PyTypeChecker
-    multi: ShapelyMultiPolygon = unary_union(polygons)
+    geoms = _get_geoms(feature_class, attr=POLYGONS_ATTR, checker=check_polygon)
+    if not geoms:
+        return ShapelyMultiPolygon()
+    multi = unary_union(geoms)
     prepare(multi)
+    # noinspection PyTypeChecker
     return multi
-# End build_multi_polygon function
+# End _build_multi_polygon function
+
+
+def _build_multi_linestring(feature_class: FeatureClass) -> ShapelyMultiLineString:
+    """
+    Build MultiLineString from LineString or MultiLineString Feature Class
+    """
+    # noinspection PyTypeChecker
+    geoms = _get_geoms(feature_class, attr=LINES_ATTR, checker=check_linestring)
+    multi = ShapelyMultiLineString(geoms)
+    prepare(multi)
+    # noinspection PyTypeChecker
+    return multi
+# End _build_multi_linestring function
+
+
+def _build_multi_point(feature_class: FeatureClass) -> ShapelyMultiPoint:
+    """
+    Build MultiPoint from Point or MultiPoint Feature Class
+    """
+    # noinspection PyTypeChecker
+    geoms = _get_geoms(feature_class, attr=POINTS_ATTR, checker=check_point)
+    multi = ShapelyMultiPoint(geoms)
+    prepare(multi)
+    # noinspection PyTypeChecker
+    return multi
+# End _build_multi_point function
 
 
 def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
@@ -108,39 +168,71 @@ def check_polygon(polygon: ShapelyPolygon | ShapelyMultiPolygon) \
     """
     Check Polygon
     """
-    if polygon.is_valid:
-        return polygon
-    polygon = make_valid(polygon, method='structure')
-    if not polygon.is_valid:
-        return None
-    polygons = [p for p in getattr(polygon, GEOMS_ATTR, [polygon])
-                if p.is_valid and isinstance(p, ShapelyPolygon)]
-    if not polygons:
-        return None
-    if len(polygons) == 1:
-        return polygons[0]
-    return ShapelyMultiPolygon(polygons)
+    return _check_geometry(
+        polygon, method_name='structure', cls=ShapelyPolygon,
+        multi_cls=ShapelyMultiPolygon)
 # End check_polygon function
 
 
-def overlay_config(source: FeatureClass, target: FeatureClass,
-                   operator: FeatureClass | None) -> OverlayConfig:
+def check_linestring(geom: ShapelyLineString | ShapelyMultiLineString) \
+        -> ShapelyLineString | ShapelyMultiLineString | None:
     """
-    Overlay Configuration
+    Check LineString
     """
-    if operator is None:
-        polygon = ShapelyPolygon()
-    else:
-        polygon = build_multi_polygon(operator)
+    return _check_geometry(
+        geom, method_name='linework', cls=ShapelyLineString,
+        multi_cls=ShapelyMultiLineString)
+# End check_linestring function
+
+
+def check_point(geom: ShapelyPoint | ShapelyMultiPoint) \
+        -> ShapelyPoint | ShapelyMultiPoint | None:
+    """
+    Check Point
+    """
+    if geom.is_empty:
+        return None
+    return geom
+# End check_point function
+
+
+def _check_geometry(geom: ShapelyGeometry, method_name: str,
+                    cls: Type[ShapelyGeometry],
+                    multi_cls: Type[ShapelyMultipartGeometry]) \
+        -> ShapelyGeometry | ShapelyMultipartGeometry | None:
+    """
+    Check Geometry (for LineString and Polygon)
+    """
+    if geom.is_valid:
+        return geom
+    # noinspection PyTypeChecker
+    geom = make_valid(geom, method=method_name)
+    if not geom.is_valid:
+        return None
+    geoms = [p for p in getattr(geom, GEOMS_ATTR, [geom])
+             if p.is_valid and isinstance(p, cls)]
+    if not geoms:
+        return None
+    if len(geoms) == 1:
+        return geoms[0]
+    # noinspection PyArgumentList
+    return multi_cls(geoms)
+# End _check_geometry function
+
+
+def geometry_config(source: FeatureClass, target: FeatureClass) -> GeometryConfig:
+    """
+    Geometry Configuration
+    """
     geom_type = source.geometry_type.upper()
     is_multi = source.is_multi_part
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][source.has_z, source.has_m]
     shapely_types = _, multi_cls = SHAPELY_GEOMETRY_LOOKUP.get(geom_type)
-    return OverlayConfig(
+    return GeometryConfig(
         fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
-        geometry=polygon, shapely_types=shapely_types,
+        shapely_types=shapely_types,
         srs_id=target.spatial_reference_system.srs_id)
-# End overlay_config function
+# End geometry_config function
 
 
 def set_extent(feature_class: FeatureClass) -> None:

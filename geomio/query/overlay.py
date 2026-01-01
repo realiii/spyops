@@ -24,7 +24,7 @@ from geomio.query.extract import QueryClip
 from geomio.shared.constant import EMPTY, GEOMS_ATTR
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
-from geomio.shared.geometry import overlay_config
+from geomio.shared.geometry import geometry_config
 from geomio.shared.hint import ELEMENT, FIELDS, POLYGONS, XY_TOL
 from geomio.shared.element import create_feature_class
 from geomio.shared.enumeration import AttributeOption
@@ -134,7 +134,7 @@ class AbstractPlanarizeFeatureClass(AbstractSpatialAttribute, metaclass=ABCMeta)
         records = []
         fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
         planar = self._make_planar_feature_class(feature_class, fields)
-        config = overlay_config(planar, target=planar, operator=None)
+        config = geometry_config(planar, target=planar)
         extend_records(results=results, records=records, config=config)
         insert_sql = self._make_insert_sql(planar, fields=fields)
         with (planar.geopackage.connection as cout,

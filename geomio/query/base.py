@@ -9,16 +9,17 @@ from functools import cache, cached_property
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from shapely import box
+from shapely import MultiLineString, MultiPoint, MultiPolygon, box
 
-from geomio.shared.base import OverlayConfig
+from geomio.shared.base import GeometryConfig
 from geomio.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
 from geomio.shared.element import copy_feature_class, create_feature_class
 from geomio.shared.enumeration import AttributeOption
 from geomio.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
-from geomio.shared.geometry import extent_from_feature_class, overlay_config
+from geomio.shared.geometry import (
+    build_multi, extent_from_feature_class, geometry_config)
 from geomio.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
 from geomio.shared.util import make_unique_name
 
@@ -130,13 +131,20 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End init built-in
 
     @cached_property
-    def config(self) -> OverlayConfig:
+    def config(self) -> GeometryConfig:
         """
         Overlay Configuration
         """
-        return overlay_config(
-            self.source, target=self.target, operator=self.operator)
+        return geometry_config(self.source, target=self.target)
     # End config property
+
+    @cached_property
+    def geometry(self) -> MultiPolygon | MultiLineString | MultiPoint:
+        """
+        Multi-Part Geometry of the Operator Feature Class
+        """
+        return build_multi(self.operator)
+    # End geometry property
 
     @property
     def select(self) -> str:

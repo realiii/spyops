@@ -35,7 +35,7 @@ class PlanarizeResults(NamedTuple):
 # End PlanarizeResults class
 
 
-class OverlayConfig(NamedTuple):
+class GeometryConfig(NamedTuple):
     """
     Overlay Configuration
     """
@@ -43,9 +43,8 @@ class OverlayConfig(NamedTuple):
     is_multi: bool
     shapely_multi_cls: Any
     shapely_types: tuple
-    geometry: ShapelyMultiPolygon | ShapelyPolygon
     srs_id: int
-# End OverlayConfig class
+# End GeometryConfig class
 
 
 if __name__ == '__main__':  # pragma: no cover

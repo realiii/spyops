@@ -43,8 +43,8 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     if not query.has_intersection:
         return query.target_full
     records = []
+    geometry = query.geometry
     insert_sql = query.insert
-    polygon = query.config.geometry
     _process_disjoint(query, xy_tolerance=xy_tolerance)
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
@@ -52,7 +52,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
-            intersects = polygon.intersects(geometries)
+            intersects = geometry.intersects(geometries)
             keepers = [f for f, i in zip(features, intersects) if not i]
             geoms = [g for g, i in zip(geometries, intersects) if not i]
             if xy_tolerance is not None:
@@ -62,7 +62,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
             extend_records(results, records=records, config=query.config)
             changers = [f for f, i in zip(features, intersects) if i]
             geoms = [g for g, i in zip(geometries, intersects) if i]
-            results = [(geom.difference(polygon, grid_size=xy_tolerance), attrs)
+            results = [(geom.difference(geometry, grid_size=xy_tolerance), attrs)
                        for geom, (_, *attrs) in zip(geoms, changers)]
             extend_records(results, records=records, config=query.config)
             executor(sql=insert_sql, data=records)

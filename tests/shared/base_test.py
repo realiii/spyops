@@ -10,8 +10,7 @@ from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 
 from geomio.shared.base import (
-    AnalysisComponents, OverlayConfig,
-    PlanarizeResults)
+    AnalysisComponents, GeometryConfig, PlanarizeResults)
 
 pytestmark = [mark.utility]
 
@@ -33,17 +32,16 @@ def test_analysis_components_creation():
 
 def test_overlay_config_creation():
     """
-    Test OverlayConfig
+    Test GeometryConfig
     """
-    oc = OverlayConfig(
+    oc = GeometryConfig(
         fudgeo_cls=PointZM, is_multi=False, shapely_multi_cls=MultiPoint,
-        shapely_types=(Point, MultiPoint), geometry=Polygon(), srs_id=4326
+        shapely_types=(Point, MultiPoint), srs_id=4326
     )
     assert oc.fudgeo_cls is PointZM
     assert oc.is_multi is False
     assert oc.shapely_multi_cls is MultiPoint
     assert oc.shapely_types == (Point, MultiPoint)
-    assert oc.geometry.is_empty
     assert oc.srs_id == 4326
 # End test_overlay_config_creation function
 

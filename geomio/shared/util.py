@@ -11,7 +11,7 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from geomio.shared.base import OverlayConfig
+from geomio.shared.base import GeometryConfig
 from geomio.shared.constant import (
     DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
 from geomio.shared.enumeration import Setting
@@ -90,7 +90,7 @@ def expand_extent(extent: EXTENT) -> EXTENT:
 
 
 def extend_records(results: list[tuple], records: list[tuple],
-                   config: OverlayConfig) -> None:
+                   config: GeometryConfig) -> None:
     """
     Extend Records
     """

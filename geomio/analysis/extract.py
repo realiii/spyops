@@ -145,7 +145,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
     if not query.has_intersection:
         return query.target_empty
     records = []
-    polygon = query.config.geometry
+    geometry = query.geometry
     insert_sql = query.insert
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
@@ -153,11 +153,11 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
-            intersects = polygon.intersects(geometries)
+            intersects = geometry.intersects(geometries)
             if not intersects.any():
                 continue
             keepers = [f for f, keep in zip(features, intersects) if keep]
-            geoms = polygon.intersection(
+            geoms = geometry.intersection(
                 [g for g, keep in zip(geometries, intersects) if keep],
                 grid_size=xy_tolerance)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]

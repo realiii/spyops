@@ -10,7 +10,7 @@ from fudgeo.enumeration import SQLFieldType
 from pytest import approx, mark, raises
 
 from geomio.query.extract import QueryClip, QuerySplitByAttributes
-from geomio.shared.base import OverlayConfig
+from geomio.shared.base import GeometryConfig
 
 pytestmark = [mark.extract, mark.query]
 
@@ -50,7 +50,7 @@ def test_query_clip(world_features, inputs, mem_gpkg):
     assert query.insert.strip().startswith('INSERT INTO test_target')
     assert query.select_disjoint
     assert query.operator is operator
-    assert isinstance(query.config, OverlayConfig)
+    assert isinstance(query.config, GeometryConfig)
     with raises(ValueError):
         _ = query.target_full
     assert 'FROM clipper_a' in query.select_operator
