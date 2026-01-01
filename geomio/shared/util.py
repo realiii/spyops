@@ -99,7 +99,7 @@ def extend_records(results: list[tuple], records: list[tuple],
     cls = config.fudgeo_cls
     srs_id = config.srs_id
     is_multi = config.is_multi
-    for result, attributes in results:
+    for result, attrs in results:
         if result.is_empty:
             continue
         if isinstance(result, GeometryCollection):
@@ -110,12 +110,10 @@ def extend_records(results: list[tuple], records: list[tuple],
         if is_multi:
             if not hasattr(result, GEOMS_ATTR):
                 result = multi_cls([result])
-            records.append((cls.from_wkb(
-                result.wkb, srs_id=srs_id), *attributes))
+            records.append((cls.from_wkb(result.wkb, srs_id=srs_id), *attrs))
         else:
-            records.extend([(cls.from_wkb(
-                part.wkb, srs_id=srs_id), *attributes)
-                for part in getattr(result, GEOMS_ATTR, [result])])
+            records.extend([(cls.from_wkb(part.wkb, srs_id=srs_id), *attrs)
+                            for part in getattr(result, GEOMS_ATTR, [result])])
 # End extend_records function
 
 
