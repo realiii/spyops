@@ -404,7 +404,7 @@ class QueryIntersectClassic(QueryIntersectPairwise):
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the AbstractSpatialAttribute class
+        Initialize the QueryIntersectClassic class
         """
         source, operator = _planarize_factory(
             source, operator=operator, xy_tolerance=xy_tolerance)
