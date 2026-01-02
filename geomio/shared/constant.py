@@ -46,6 +46,7 @@ GEOPACKAGE: str = 'geopackage'
 GROUP_FIELDS: str = 'group_fields'
 ATTRIBUTE_OPTION: str = 'attribute_option'
 ALGORITHM_OPTION: str = 'algorithm_option'
+OUTPUT_TYPE_OPTION: str = 'output_type_option'
 
 ROWID: str = 'ROWID'
 SQL_EMPTY: str = f"""{ROWID} <= -1"""
