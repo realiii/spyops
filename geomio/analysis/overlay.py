@@ -17,7 +17,6 @@ from geomio.query.overlay import (
 from geomio.shared.constant import (
     ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET)
 from geomio.shared.enumeration import AlgorithmOption, AttributeOption
-from geomio.shared.field import GEOM_TYPE_POLYGONS
 from geomio.shared.hint import XY_TOL
 from geomio.shared.util import extend_records
 from geomio.shared.validation import (
@@ -27,7 +26,7 @@ from geomio.shared.validation import (
 
 @validate_result()
 @validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(OPERATOR)
 @validate_feature_class(TARGET, exists=False)
 @validate_xy_tolerance()
 @validate_same_crs(SOURCE, OPERATOR)
