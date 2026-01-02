@@ -99,72 +99,60 @@ class TestErase:
         assert len(result) == count
     # End test_erase method
 
+    @mark.parametrize('xy_tolerance, count', [
+        (None, 191),
+        (0.001, 204),
+    ])
+    def test_erase_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
+        """
+        Test erase using a line feature class as the operator on a line feature class
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['rivers_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='riv')
+        result = erase(source=source, operator=operator, target=target,
+                       xy_tolerance=xy_tolerance)
+        assert len(result) == count
+    # End test_erase_line_on_line method
 
-@mark.parametrize('option, xy_tolerance, count', [
-    (AlgorithmOption.CLASSIC, None, 195),
-    (AlgorithmOption.CLASSIC, 0.001, 209),
-    (AlgorithmOption.PAIRWISE, None, 195),
-    (AlgorithmOption.PAIRWISE, 0.001, 209),
-])
-def test_intersect_line_on_line(world_features, inputs, mem_gpkg, option, xy_tolerance, count):
-    """
-    Test intersect using a line feature class as the operator on a line feature class
-    """
-    operator = inputs['rivers_portion_l']
-    source = world_features['rivers_l']
-    target = FeatureClass(geopackage=mem_gpkg, name='riv')
-    result = intersect(source=source, operator=operator, target=target,
-                       algorithm_option=option, xy_tolerance=xy_tolerance)
-    assert len(result) == count
-# End test_intersect_line_on_line function
+    @mark.parametrize('xy_tolerance, count', [
+        (None, 13_958),
+        (0, 13_958),
+        (0.0000000001, 21_353),
+        (0.1, 21_356),
+    ])
+    def test_erase_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+        """
+        Test erase using a line feature class as the operator on a point feature class
+        """
+        operator = inputs['rivers_portion_l']
+        source = inputs['river_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='riv')
+        result = erase(source=source, operator=operator, target=target,
+                       xy_tolerance=xy_tolerance)
+        assert len(result) == count
+    # End test_erase_line_on_point method
 
-
-@mark.parametrize('option, xy_tolerance, count', [
-    (AlgorithmOption.CLASSIC, None, 7524),
-    (AlgorithmOption.CLASSIC, 0, 7524),
-    (AlgorithmOption.CLASSIC, 0.0000000001, 3),
-    (AlgorithmOption.CLASSIC, 0.1, 0),
-    (AlgorithmOption.PAIRWISE, None, 7524),
-    (AlgorithmOption.PAIRWISE, 0, 7524),
-    (AlgorithmOption.PAIRWISE, 0.0000000001, 3),
-    (AlgorithmOption.PAIRWISE, 0.1, 0),
-])
-def test_intersect_line_on_point(inputs, mem_gpkg, option, xy_tolerance, count):
-    """
-    Test intersect using a line feature class as the operator on a point feature class
-    """
-    operator = inputs['rivers_portion_l']
-    source = inputs['river_p']
-    target = FeatureClass(geopackage=mem_gpkg, name='riv')
-    result = intersect(source=source, operator=operator, target=target,
-                       algorithm_option=option, xy_tolerance=xy_tolerance)
-    assert len(result) == count
-# End test_intersect_line_on_point function
-
-
-@mark.parametrize('option, xy_tolerance, count', [
-    (AlgorithmOption.CLASSIC, None, 100),
-    (AlgorithmOption.CLASSIC, 0, 100),
-    (AlgorithmOption.CLASSIC, 0.001, 100),
-    (AlgorithmOption.PAIRWISE, None, 100),
-    (AlgorithmOption.PAIRWISE, 0, 100),
-    (AlgorithmOption.PAIRWISE, 0.001, 100),
-])
-def test_intersect_point_on_point(inputs, mem_gpkg, option, xy_tolerance, count):
-    """
-    Test intersect using a point feature class as the operator on a point feature class
-    """
-    operator = inputs['river_p']
-    operator = operator.copy(
-        name='river_p_operator', where_clause='fid <= 100', geopackage=mem_gpkg)
-    assert len(operator) == 100
-    source = inputs['river_p']
-    target = FeatureClass(geopackage=mem_gpkg, name='riv')
-    result = intersect(source=source, operator=operator, target=target,
-                       algorithm_option=option, xy_tolerance=xy_tolerance)
-    assert len(result) == count
-# End test_intersect_point_on_point function
-
+    @mark.parametrize('xy_tolerance, count', [
+        (None, 21_256),
+        (0, 21_256),
+        (0.001, 21_256),
+    ])
+    def test_erase_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+        """
+        Test erase using a point feature class as the operator on a point feature class
+        """
+        operator = inputs['river_p']
+        operator = operator.copy(
+            name='river_p_operator', where_clause='fid <= 100',
+            geopackage=mem_gpkg)
+        assert len(operator) == 100
+        source = inputs['river_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='riv')
+        result = erase(source=source, operator=operator, target=target,
+                       xy_tolerance=xy_tolerance)
+        assert len(result) == count
+    # End test_erase_point_on_point method
 
     @mark.benchmark
     @mark.parametrize('name, count', [
