@@ -100,7 +100,9 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     else:
         cls = QueryIntersectPairwise
     query = cls(source=source, target=target, operator=operator,
-                attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+                attribute_option=attribute_option,
+                output_type_option=output_type_option,
+                xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_empty
     op_geoms = []

@@ -22,7 +22,7 @@ from geomio.query.base import AbstractSpatialAttribute
 from geomio.query.extract import QueryClip
 from geomio.shared.constant import EMPTY, GEOMS_ATTR
 from geomio.shared.element import create_feature_class
-from geomio.shared.enumeration import AttributeOption
+from geomio.shared.enumeration import AttributeOption, OutputTypeOption
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import geometry_config
@@ -35,13 +35,6 @@ class QueryErase(QueryClip):
     Queries for Erase
     """
 # End QueryErase class
-
-
-class QueryIntersectPairwise(AbstractSpatialAttribute):
-    """
-    Queries for Intersect (Pairwise)
-    """
-# End QueryIntersectPairwise class
 
 
 def _planarize_factory(source: FeatureClass, operator: FeatureClass,
@@ -383,21 +376,42 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
 # End PlanarizeGeneralOperator class
 
 
-class QueryIntersectClassic(AbstractSpatialAttribute):
+class QueryIntersectPairwise(AbstractSpatialAttribute):
+    """
+    Queries for Intersect (Pairwise)
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
+                 operator: FeatureClass, attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryIntersectPairwise class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+        self._output_type_option: OutputTypeOption = output_type_option
+    # End init built-in
+# End QueryIntersectPairwise class
+
+
+class QueryIntersectClassic(QueryIntersectPairwise):
     """
     Queries for Intersect (Classic)
     """
     def __init__(self, source: FeatureClass, target: FeatureClass,
                  operator: FeatureClass, attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
         source, operator = _planarize_factory(
             source, operator=operator, xy_tolerance=xy_tolerance)
-        super().__init__(source=source, target=target, operator=operator,
-                         attribute_option=attribute_option,
-                         xy_tolerance=xy_tolerance)
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option,
+            output_type_option=output_type_option, xy_tolerance=xy_tolerance)
     # End init built-in
 
     def _get_unique_fields(self) -> FIELDS:
