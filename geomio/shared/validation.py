@@ -14,15 +14,15 @@ from warnings import warn
 
 from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
 from fudgeo.constant import MEMORY
+from fudgeo.enumeration import GeometryType
 
 from geomio.crs.util import check_same_crs, get_crs_from_source
 from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
-from geomio.shared.enumeration import Setting
-from geomio.shared.exception import OperationsWarning
+from geomio.shared.enumeration import OutputTypeOption, Setting
+from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
 from geomio.shared.geometry import (
-    check_dimension, get_geometry_dimension,
-    set_extent)
+    check_dimension, get_geometry_dimension, set_extent)
 from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from geomio.shared.setting import ANALYSIS_SETTINGS
 from geomio.shared.util import safe_float
@@ -289,6 +289,43 @@ class ValidateGeometryDimension(AbstractValidate):
         return wrapper
     # End call built-in
 # End ValidateGeometryDimension class
+
+
+class ValidateOutputType(AbstractValidate):
+    """
+    Validate Output Type
+    """
+    def __init__(self, enum_name: str, name: str) -> None:
+        """
+        Initialize the ValidateOutputType class
+        """
+        super().__init__()
+        self._enum_name: str = enum_name
+        self._name: str = name
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            if kwargs[self._enum_name] != OutputTypeOption.LINE:
+                return func(**kwargs)
+            if not get_geometry_dimension(kwargs[self._name]):
+                raise OperationsError(
+                    f'{self._name} must be a {GeometryType.linestring} or '
+                    f'{GeometryType.polygon} for {OutputTypeOption.LINE}')
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+# End ValidateOutputType class
 
 
 class ValidateXYTolerance(AbstractValidate):
@@ -717,6 +754,7 @@ validate_feature_class = ValidateFeatureClass
 validate_field = ValidateField
 validate_geometry_dimension = ValidateGeometryDimension
 validate_geopackage = ValidateGeopackage
+validate_output_type = ValidateOutputType
 validate_result = ValidateResult
 validate_same_crs = ValidateSameCRS
 validate_table = ValidateTable

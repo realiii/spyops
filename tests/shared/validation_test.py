@@ -14,7 +14,7 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from geomio.shared.enumeration import AttributeOption, Setting
+from geomio.shared.enumeration import AttributeOption, OutputTypeOption, Setting
 from geomio.shared.exception import OperationsError, OperationsWarning
 from geomio.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
@@ -26,7 +26,8 @@ from geomio.shared.validation import (
     _check_output, validate_element, validate_enumeration,
     validate_feature_class, validate_field, validate_geometry_dimension,
     validate_geopackage,
-    validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
+    validate_output_type, validate_result, validate_same_crs, validate_table,
+    validate_xy_tolerance)
 
 
 pytestmark = [mark.validation]
@@ -446,6 +447,44 @@ def test_validate_geometry_dimension(world_features, source_name, operator_name,
     else:
         assert geom_function(source, operator) == expected
 # End test_validate_geometry_dimension function
+
+
+@mark.parametrize('source_name, operator_name, option, throws', [
+    ('admin_a', 'intersect_a', OutputTypeOption.SAME, False),
+    ('rivers_l', 'intersect_a', OutputTypeOption.SAME, False),
+    ('airports_p', 'intersect_a', OutputTypeOption.SAME, False),
+    ('rivers_l', 'rivers_portion_l', OutputTypeOption.SAME, False),
+    ('airports_p', 'rivers_portion_l', OutputTypeOption.SAME, False),
+    ('airports_p', 'river_p', OutputTypeOption.SAME, False),
+    ('admin_a', 'intersect_a', OutputTypeOption.LINE, False),
+    ('rivers_l', 'intersect_a', OutputTypeOption.LINE, False),
+    ('airports_p', 'intersect_a', OutputTypeOption.LINE, True),
+    ('rivers_l', 'rivers_portion_l', OutputTypeOption.LINE, False),
+    ('airports_p', 'rivers_portion_l', OutputTypeOption.LINE, True),
+    ('airports_p', 'river_p', OutputTypeOption.LINE, True),
+    ('admin_a', 'intersect_a', OutputTypeOption.POINT, False),
+    ('rivers_l', 'intersect_a', OutputTypeOption.POINT, False),
+    ('airports_p', 'intersect_a', OutputTypeOption.POINT, False),
+    ('rivers_l', 'rivers_portion_l', OutputTypeOption.POINT, False),
+    ('airports_p', 'rivers_portion_l', OutputTypeOption.POINT, False),
+    ('airports_p', 'river_p', OutputTypeOption.POINT, False),
+])
+def test_validate_output_type(inputs, world_features, source_name, operator_name, option, throws):
+    """
+    Test validate output type
+    """
+    source = world_features[source_name]
+    operator = inputs[operator_name]
+    @validate_output_type('option', 's')
+    def geom_function(s, o, option):
+        return option
+
+    if throws:
+        with raises(OperationsError):
+            geom_function(source, operator, option)
+    else:
+        assert geom_function(source, operator, option) == option
+# End test_validate_output_type function
 
 
 if __name__ == '__main__':  # pragma: no cover
