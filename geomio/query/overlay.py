@@ -42,11 +42,12 @@ def _planarize_factory(source: FeatureClass, operator: FeatureClass,
     """
     Planarize Feature Class
     """
-    if source.shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    polygons = GeometryType.polygon, GeometryType.multi_polygon
+    if source.shape_type in polygons:
         src_cls = PlanarizePolygonSource
     else:
         src_cls = PlanarizeGeneralSource
-    if operator.shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    if operator.shape_type in polygons:
         op_cls = PlanarizePolygonOperator
     else:
         op_cls = PlanarizeGeneralOperator
