@@ -30,7 +30,7 @@ def test_analysis_components_creation():
 # End test_analysis_components_creation function
 
 
-def test_overlay_config_creation():
+def test_geometry_config_creation():
     """
     Test GeometryConfig
     """
@@ -43,7 +43,7 @@ def test_overlay_config_creation():
     assert oc.shapely_multi_cls is MultiPoint
     assert oc.shapely_types == (Point, MultiPoint)
     assert oc.srs_id == 4326
-# End test_overlay_config_creation function
+# End test_geometry_config_creation function
 
 
 def test_planarize_results():
