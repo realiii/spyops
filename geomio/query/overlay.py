@@ -390,7 +390,7 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
 # End QueryIntersectPairwise class
 
 
-class QueryIntersectClassic(QueryIntersectPairwise):
+class QueryIntersectClassic(AbstractSpatialAttribute):
     """
     Queries for Intersect (Classic)
     """
