@@ -10,7 +10,7 @@ from pytest import mark
 from geomio.query.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
     PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise)
-from geomio.shared.enumeration import AttributeOption
+from geomio.shared.enumeration import AttributeOption, OutputTypeOption
 
 pytestmark = [mark.overlay, mark.query]
 
@@ -33,7 +33,8 @@ class TestQueryIntersectPairwise:
         target = FeatureClass(geopackage=mem_gpkg, name='cities_1234_p')
         query = QueryIntersectPairwise(
             source=cites, target=target, operator=operator,
-            attribute_option=option, xy_tolerance=None)
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
         *_, select = query._field_names_and_count(operator)
         assert select == names
     # End test_field_names_and_count method
@@ -61,7 +62,8 @@ class TestQueryIntersectPairwise:
         target = FeatureClass(geopackage=mem_gpkg, name='adminaaaaaa')
         query = QueryIntersectPairwise(
             source=admin, target=target, operator=operator,
-            attribute_option=option, xy_tolerance=None)
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
         fields = query._get_unique_fields()
 
         assert [f.name for f in fields] == names
@@ -82,7 +84,8 @@ class TestQueryIntersectPairwise:
         target = FeatureClass(geopackage=mem_gpkg, name='adminaaaaaa')
         query = QueryIntersectPairwise(
             source=admin, target=target, operator=operator,
-            attribute_option=option, xy_tolerance=None)
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
         fields = query._get_unique_fields()
 
         assert [f.name for f in fields] == names
@@ -97,7 +100,8 @@ class TestQueryIntersectPairwise:
         target = FeatureClass(geopackage=mem_gpkg, name='cities_____p')
         query = QueryIntersectPairwise(
             source=cites, target=target, operator=operator,
-            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
         assert isinstance(query.target_empty, FeatureClass)
         assert query.target_empty
         assert not len(query.target_empty)
@@ -215,7 +219,8 @@ class TestQueryIntersectClassic:
         query = QueryIntersectClassic(
             inputs['int_flavor_a'], target=None,
             operator=inputs['intersect_a'],
-            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
         source = query.source
         assert len(source) == 268
         operator = query.operator
@@ -235,7 +240,8 @@ class TestQueryIntersectClassic:
         query = QueryIntersectClassic(
             inputs['int_flavor_a'], target=target,
             operator=inputs['intersect_a'],
-            attribute_option=option, xy_tolerance=None)
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
         assert query.target.field_names == names
     # End test_target_fields method
 # End TestQueryIntersectClassic class
