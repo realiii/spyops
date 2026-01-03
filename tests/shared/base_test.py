@@ -35,10 +35,10 @@ def test_geometry_config_creation():
     Test GeometryConfig
     """
     oc = GeometryConfig(
-        fudgeo_cls=PointZM, is_multi=False,
+        geometry_cls=PointZM, is_multi=False,
         filter_types=(Point, MultiPoint), srs_id=4326, combiner=lambda x: x
     )
-    assert oc.fudgeo_cls is PointZM
+    assert oc.geometry_cls is PointZM
     assert oc.is_multi is False
     assert oc.filter_types == (Point, MultiPoint)
     assert oc.srs_id == 4326

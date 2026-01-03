@@ -95,7 +95,7 @@ def extend_records(results: list[tuple], records: list[tuple],
     Extend Records
     """
     srs_id = config.srs_id
-    cls = config.fudgeo_cls
+    cls = config.geometry_cls
     combiner = config.combiner
     is_multi = config.is_multi
     filter_types = _, multi_cls = config.filter_types

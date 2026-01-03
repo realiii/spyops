@@ -41,7 +41,7 @@ class GeometryConfig(NamedTuple):
     """
     Geometry Configuration
     """
-    fudgeo_cls: Any
+    geometry_cls: Any
     is_multi: bool
     filter_types: tuple[Type[ShapelyGeometry], Type[ShapelyMultipartGeometry]]
     srs_id: int

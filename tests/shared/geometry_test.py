@@ -65,7 +65,7 @@ def test_geometry_config(inputs, world_features):
     """
     fc = world_features['cities_p']
     config = geometry_config(fc)
-    assert config.fudgeo_cls is Point
+    assert config.geometry_cls is Point
     assert config.is_multi is False
     assert config.filter_types == (ShapelyPoint, ShapelyMultiPoint)
     assert config.srs_id == 4326

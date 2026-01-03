@@ -304,7 +304,7 @@ def geometry_config(target: FeatureClass) -> GeometryConfig:
     filter_types = SHAPELY_GEOMETRY_LOOKUP[shape_type]
     combiner = _get_combiner(filter_types)
     return GeometryConfig(
-        fudgeo_cls=cls, is_multi=target.is_multi_part,
+        geometry_cls=cls, is_multi=target.is_multi_part,
         filter_types=filter_types, combiner=combiner,
         srs_id=target.spatial_reference_system.srs_id)
 # End geometry_config function
