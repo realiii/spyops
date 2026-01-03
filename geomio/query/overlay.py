@@ -133,7 +133,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         records = []
         fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
         planar = self._make_planar_feature_class(feature_class, fields=fields)
-        config = geometry_config(planar, target=planar)
+        config = geometry_config(planar)
         extend_records(results=results, records=records, config=config)
         insert_sql = self._make_insert_sql(planar, fields=fields)
         with (planar.geopackage.connection as cout,

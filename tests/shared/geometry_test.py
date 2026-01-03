@@ -57,18 +57,17 @@ def test_build_multi_point(world_features):
 # End test_build_multi_line_string function
 
 
-def test_overlay_config(inputs, world_features):
+def test_geometry_config(inputs, world_features):
     """
-    Test overlay config
+    Test geometry config
     """
     fc = world_features['cities_p']
-    config = geometry_config(fc, target=inputs['eraser_a'])
+    config = geometry_config(fc)
     assert config.fudgeo_cls is Point
     assert config.is_multi is False
-    assert config.shapely_multi_cls is ShapelyMultiPoint
-    assert config.shapely_types == (ShapelyPoint, ShapelyMultiPoint)
+    assert config.filter_types == (ShapelyPoint, ShapelyMultiPoint)
     assert config.srs_id == 4326
-# End test_overlay_config function
+# End test_geometry_config function
 
 
 @mark.parametrize('name, expected', [

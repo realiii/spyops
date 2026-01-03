@@ -240,23 +240,31 @@ def _combine_lines(value: ShapelyLineString | ShapelyMultiLineString) \
 # End _combine_lines function
 
 
-def geometry_config(source: FeatureClass, target: FeatureClass) -> GeometryConfig:
+
+
+def geometry_config(target: FeatureClass) -> GeometryConfig:
     """
     Geometry Configuration
     """
-    is_multi = source.is_multi_part
-    geom_type = source.geometry_type.upper()
-    cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][source.has_z, source.has_m]
-    shapely_types = _, multi_cls = SHAPELY_GEOMETRY_LOOKUP.get(geom_type)
-    if ShapelyLineString in shapely_types:
-        combiner = _combine_lines
-    else:
-        combiner = _nada
+    shape_type = target.shape_type
+    cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][target.has_z, target.has_m]
+    filter_types = SHAPELY_GEOMETRY_LOOKUP[shape_type]
+    combiner = _get_combiner(filter_types)
     return GeometryConfig(
-        fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
-        shapely_types=shapely_types, combiner=combiner,
+        fudgeo_cls=cls, is_multi=target.is_multi_part,
+        filter_types=filter_types, combiner=combiner,
         srs_id=target.spatial_reference_system.srs_id)
 # End geometry_config function
+
+
+def _get_combiner(filter_types: tuple) -> Callable:
+    """
+    Get Combiner Function
+    """
+    if ShapelyLineString in filter_types:
+        return _combine_lines
+    return _nada
+# End _get_combiner function
 
 
 def set_extent(feature_class: FeatureClass) -> None:

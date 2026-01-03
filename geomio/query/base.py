@@ -135,7 +135,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Overlay Configuration
         """
-        return geometry_config(self.source, target=self.target)
+        return geometry_config(self.target)
     # End config property
 
     @cached_property

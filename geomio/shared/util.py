@@ -98,15 +98,14 @@ def extend_records(results: list[tuple], records: list[tuple],
     cls = config.fudgeo_cls
     combiner = config.combiner
     is_multi = config.is_multi
-    multi_cls = config.shapely_multi_cls
-    shapely_types = config.shapely_types
+    filter_types = _, multi_cls = config.filter_types
     for result, attrs in results:
         if result.is_empty:
             continue
         if isinstance(result, GeometryCollection):
             result = multi_cls([r for r in getattr(result, GEOMS_ATTR)
-                                if isinstance(r, shapely_types)])
-        elif not isinstance(result, shapely_types):
+                                if isinstance(r, filter_types)])
+        elif not isinstance(result, filter_types):
             continue
         result = combiner(result)
         if is_multi:
