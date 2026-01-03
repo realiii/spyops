@@ -405,8 +405,8 @@ class QueryIntersectClassic(AbstractSpatialAttribute):
             source, operator=operator, xy_tolerance=xy_tolerance)
         super().__init__(
             source=source, target=target, operator=operator,
-            attribute_option=attribute_option,
-            output_type_option=output_type_option, xy_tolerance=xy_tolerance)
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+        self._output_type_option: OutputTypeOption = output_type_option
     # End init built-in
 
     def _get_unique_fields(self) -> FIELDS:
