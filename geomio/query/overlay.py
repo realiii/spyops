@@ -40,7 +40,7 @@ class QueryErase(QueryClip):
 def _planarize_factory(source: FeatureClass, operator: FeatureClass,
                        xy_tolerance: XY_TOL) -> tuple[FeatureClass, FeatureClass]:
     """
-    Planarize Feature Class
+    Planarize Feature Class Factory
     """
     polygons = GeometryType.polygon, GeometryType.multi_polygon
     if source.shape_type in polygons:
