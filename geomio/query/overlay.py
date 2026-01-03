@@ -239,13 +239,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         """
         Make Planarized Geometry
         """
-        rings = []
-        for geom in geoms:
-            polygons = getattr(geom, GEOMS_ATTR, [geom])
-            for polygon in polygons:
-                rings.append(polygon.exterior)
-                rings.extend(polygon.interiors)
-        lines = union_all(rings)
+        lines = union_all([geom.boundary for geom in geoms])
         lines = getattr(lines, GEOMS_ATTR, [lines])
         collections = polygonize(lines)
         if isinstance(collections, GeometryCollection):
