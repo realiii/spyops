@@ -49,5 +49,18 @@ class GeometryConfig(NamedTuple):
 # End GeometryConfig class
 
 
+class QueryConfig(NamedTuple):
+    """
+    Query Config
+    """
+    source: FeatureClass
+    target: FeatureClass
+    select: str
+    disjoint: str
+    insert: str
+    config: GeometryConfig
+# End QueryConfig class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

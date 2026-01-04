@@ -49,7 +49,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     records = []
     geometry = query.geometry
     insert_sql = query.insert
-    _process_disjoint(query, xy_tolerance=xy_tolerance)
+    query.process_disjoint(xy_tolerance)
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -154,32 +154,6 @@ def intersect(source: FeatureClass, operator: FeatureClass,
             records.clear()
     return query.target
 # End intersect function
-
-
-def _process_disjoint(query: QueryErase, xy_tolerance: XY_TOL) -> None:
-    """
-    Process Disjoint Features
-    """
-    if not query.select_disjoint:
-        return
-    records = []
-    insert_sql = query.insert
-    with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.select_disjoint)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if xy_tolerance is None:
-                executor(sql=insert_sql, data=features)
-            else:
-                geometries = [from_wkb(g.wkb) for g, *_ in features]
-                geometries = set_precision(geometries, grid_size=xy_tolerance)
-                results = [(geom, attrs) for geom, (_, *attrs) in
-                           zip(geometries, features)]
-                extend_records(results, records=records, config=query.config)
-                executor(sql=insert_sql, data=records)
-                records.clear()
-# End _process_disjoint function
 
 
 if __name__ == '__main__':  # pragma: no cover
