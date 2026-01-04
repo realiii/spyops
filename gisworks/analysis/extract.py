@@ -82,8 +82,8 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_feature_class(SOURCE)
 @validate_feature_class(OPERATOR)
 @validate_feature_class(TARGET, exists=False)
-@validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_xy_tolerance()
+@validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          xy_tolerance: XY_TOL = None) -> FeatureClass:
