@@ -15,13 +15,16 @@ from shapely.io import from_wkb
 from geomio.query.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise)
 from geomio.shared.constant import (
-    ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, SOURCE, TARGET)
-from geomio.shared.enumeration import AlgorithmOption, AttributeOption
+    ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, OUTPUT_TYPE_OPTION, SOURCE,
+    TARGET)
+from geomio.shared.enumeration import (
+    AlgorithmOption, AttributeOption, OutputTypeOption)
+from geomio.shared.geometry import get_geometry_converters
 from geomio.shared.hint import XY_TOL
 from geomio.shared.util import extend_records
 from geomio.shared.validation import (
-    validate_enumeration, validate_feature_class, validate_result,
-    validate_same_crs, validate_xy_tolerance)
+    validate_enumeration, validate_feature_class, validate_output_type,
+    validate_result, validate_same_crs, validate_xy_tolerance)
 
 
 @validate_result()
@@ -75,12 +78,15 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_feature_class(OPERATOR)
 @validate_feature_class(TARGET, exists=False)
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_enumeration(OUTPUT_TYPE_OPTION, OutputTypeOption)
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_same_crs(SOURCE, OPERATOR)
+@validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
 def intersect(source: FeatureClass, operator: FeatureClass,
               target: FeatureClass, *,
               attribute_option: AttributeOption = AttributeOption.ALL,
+              output_type_option: OutputTypeOption = OutputTypeOption.SAME,
               algorithm_option: AlgorithmOption = AlgorithmOption.PAIRWISE,
               xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
@@ -95,16 +101,21 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     else:
         cls = QueryIntersectPairwise
     query = cls(source=source, target=target, operator=operator,
-                attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+                attribute_option=attribute_option,
+                output_type_option=output_type_option,
+                xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_empty
     op_geoms = []
     op_features = []
+    src_convert, op_convert = get_geometry_converters(
+        source, operator=operator, output_type_option=output_type_option)
     with query.operator.geopackage.connection as cin:
         cursor = cin.execute(query.select_operator)
         while features := cursor.fetchmany(FETCH_SIZE):
             op_features.extend(features)
             op_geoms.extend([from_wkb(g.wkb) for g, *_ in op_features])
+    op_geoms = op_convert(op_geoms)
     records = []
     insert_sql = query.insert
     tree = STRtree(op_geoms)
@@ -113,7 +124,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = [from_wkb(g.wkb) for g, *_ in features]
+            geometries = src_convert([from_wkb(g.wkb) for g, *_ in features])
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 continue

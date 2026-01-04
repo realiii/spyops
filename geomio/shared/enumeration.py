@@ -48,5 +48,15 @@ class AlgorithmOption(StrEnum):
 # End AlgorithmOption class
 
 
+class OutputTypeOption(StrEnum,):
+    """
+    Output Type Option
+    """
+    SAME = auto()
+    LINE = auto()
+    POINT = auto()
+# End OutputTypeOption class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

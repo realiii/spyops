@@ -135,7 +135,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Overlay Configuration
         """
-        return geometry_config(self.source, target=self.target)
+        return geometry_config(self.target)
     # End config property
 
     @cached_property
@@ -420,17 +420,13 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             field_count=len(fields) + 1)
     # End insert property
 
-    @cached_property
-    def target_empty(self) -> FeatureClass:
+    @property
+    @abstractmethod
+    def target_empty(self) -> FeatureClass:  # pragma: no cover
         """
         Build the structure needed for the output feature class
         """
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=self.source.shape_type,
-            srs=self.source.spatial_reference_system,
-            fields=self._get_unique_fields(),
-            z_enabled=self.source.has_z, m_enabled=self.source.has_m)
+        pass
     # End target_empty property
 # End AbstractSpatialAttribute class
 

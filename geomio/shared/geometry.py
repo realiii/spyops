@@ -21,7 +21,9 @@ from numpy import isfinite
 from shapely import (
     LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
     MultiPoint as ShapelyMultiPoint, MultiPolygon as ShapelyMultiPolygon,
-    Point as ShapelyPoint, Polygon as ShapelyPolygon, make_valid, prepare)
+    Point as ShapelyPoint, Polygon as ShapelyPolygon)
+from shapely.constructive import boundary, make_valid
+from shapely.creation import prepare
 from shapely.geometry.base import (
     BaseGeometry as ShapelyGeometry,
     BaseMultipartGeometry as ShapelyMultipartGeometry)
@@ -32,6 +34,7 @@ from shapely.ops import unary_union
 from geomio.shared.base import GeometryConfig
 from geomio.shared.constant import (
     GEOMS_ATTR, LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR)
+from geomio.shared.enumeration import OutputTypeOption
 from geomio.shared.exception import OperationsError
 from geomio.shared.field import get_geometry_column_name
 from geomio.shared.hint import EXTENT
@@ -229,6 +232,16 @@ def _nada(value: Any) -> Any:
 # End _nada function
 
 
+def _as_lines(geoms: list[ShapelyPolygon] | list[ShapelyMultiPolygon]) \
+        -> list[ShapelyLineString | ShapelyMultiLineString]:
+    """
+    Convert Polygons to LineStrings
+    """
+    # noinspection PyTypeChecker
+    return boundary(geoms)
+# End _as_lines function
+
+
 def _combine_lines(value: ShapelyLineString | ShapelyMultiLineString) \
         -> ShapelyLineString | ShapelyMultiLineString:
     """
@@ -240,23 +253,71 @@ def _combine_lines(value: ShapelyLineString | ShapelyMultiLineString) \
 # End _combine_lines function
 
 
-def geometry_config(source: FeatureClass, target: FeatureClass) -> GeometryConfig:
+def _use_boundary_factory(source_shape_type: str, operator_shape_type: str,
+                          output_type_option: OutputTypeOption) \
+        -> tuple[bool, bool]:
+    """
+    Factory function to determine if boundary should be used during overlay
+    operation.  Based on output type option and shape types of source and
+    operator feature classes.
+    """
+    points = GeometryType.point, GeometryType.multi_point
+    polygons = GeometryType.polygon, GeometryType.multi_polygon
+    lines = GeometryType.linestring, GeometryType.multi_linestring
+    if (output_type_option == OutputTypeOption.SAME or
+            source_shape_type in points):
+        return False, False
+    if source_shape_type in polygons and operator_shape_type in polygons:
+        return True, True
+    if output_type_option == OutputTypeOption.POINT:
+        if source_shape_type in lines and operator_shape_type in polygons:
+            return False, True
+    return False, False
+# End _use_boundary_factory function
+
+
+def get_geometry_converters(source: FeatureClass, operator: FeatureClass,
+                            output_type_option: OutputTypeOption) \
+        -> tuple[Callable, Callable]:
+    """
+    Get Geometry Converters based on Source and Operator Shape Types and
+    the requested output type option.
+    """
+    convert_src, convert_op = _use_boundary_factory(
+        source.shape_type, operator_shape_type=operator.shape_type,
+        output_type_option=output_type_option)
+    src_converter = op_converter = _nada
+    if convert_src:
+        src_converter = _as_lines
+    if convert_op:
+        op_converter = _as_lines
+    return src_converter, op_converter
+# End get_geometry_converters function
+
+
+def geometry_config(target: FeatureClass) -> GeometryConfig:
     """
     Geometry Configuration
     """
-    is_multi = source.is_multi_part
-    geom_type = source.geometry_type.upper()
-    cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][source.has_z, source.has_m]
-    shapely_types = _, multi_cls = SHAPELY_GEOMETRY_LOOKUP.get(geom_type)
-    if ShapelyLineString in shapely_types:
-        combiner = _combine_lines
-    else:
-        combiner = _nada
+    shape_type = target.shape_type
+    cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][target.has_z, target.has_m]
+    filter_types = SHAPELY_GEOMETRY_LOOKUP[shape_type]
+    combiner = _get_combiner(filter_types)
     return GeometryConfig(
-        fudgeo_cls=cls, is_multi=is_multi, shapely_multi_cls=multi_cls,
-        shapely_types=shapely_types, combiner=combiner,
+        geometry_cls=cls, is_multi=target.is_multi_part,
+        filter_types=filter_types, combiner=combiner,
         srs_id=target.spatial_reference_system.srs_id)
 # End geometry_config function
+
+
+def _get_combiner(filter_types: tuple) -> Callable:
+    """
+    Get Combiner Function
+    """
+    if ShapelyLineString in filter_types:
+        return _combine_lines
+    return _nada
+# End _get_combiner function
 
 
 def set_extent(feature_class: FeatureClass) -> None:

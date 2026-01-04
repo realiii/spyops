@@ -22,7 +22,7 @@ from geomio.query.base import AbstractSpatialAttribute
 from geomio.query.extract import QueryClip
 from geomio.shared.constant import EMPTY, GEOMS_ATTR
 from geomio.shared.element import create_feature_class
-from geomio.shared.enumeration import AttributeOption
+from geomio.shared.enumeration import AttributeOption, OutputTypeOption
 from geomio.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from geomio.shared.geometry import geometry_config
@@ -37,23 +37,17 @@ class QueryErase(QueryClip):
 # End QueryErase class
 
 
-class QueryIntersectPairwise(AbstractSpatialAttribute):
-    """
-    Queries for Intersect (Pairwise)
-    """
-# End QueryIntersectPairwise class
-
-
 def _planarize_factory(source: FeatureClass, operator: FeatureClass,
                        xy_tolerance: XY_TOL) -> tuple[FeatureClass, FeatureClass]:
     """
-    Planarize Feature Class
+    Planarize Feature Class Factory
     """
-    if source.shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    polygons = GeometryType.polygon, GeometryType.multi_polygon
+    if source.shape_type in polygons:
         src_cls = PlanarizePolygonSource
     else:
         src_cls = PlanarizeGeneralSource
-    if operator.shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    if operator.shape_type in polygons:
         op_cls = PlanarizePolygonOperator
     else:
         op_cls = PlanarizeGeneralOperator
@@ -78,7 +72,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End init built-in
 
     @abstractmethod
-    def __call__(self) -> FeatureClass:
+    def __call__(self) -> FeatureClass:  # pragma: no cover
         """
         Make Class Callable
         """
@@ -87,7 +81,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def _shape_type(self) -> str:
+    def _shape_type(self) -> str:  # pragma: no cover
         """
         Shape Type
         """
@@ -96,7 +90,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def temporary_fid_field(self) -> Field:
+    def temporary_fid_field(self) -> Field:  # pragma: no cover
         """
         Temporary FID Field
         """
@@ -104,7 +98,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End temporary_fid_field property
 
     @abstractmethod
-    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
+    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:  # pragma: no cover
         """
         Planarized Feature Class
         """
@@ -139,7 +133,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         records = []
         fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
         planar = self._make_planar_feature_class(feature_class, fields=fields)
-        config = geometry_config(planar, target=planar)
+        config = geometry_config(planar)
         extend_records(results=results, records=records, config=config)
         insert_sql = self._make_insert_sql(planar, fields=fields)
         with (planar.geopackage.connection as cout,
@@ -197,6 +191,14 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
     # End _field_names_and_count method
+
+    @property
+    def target_empty(self) -> None:  # pragma: no cover
+        """
+        Minimal implementation for Abstract Class
+        """
+        return
+    # End target_empty property
 # End AbstractPlanarize class
 
 
@@ -246,13 +248,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         """
         Make Planarized Geometry
         """
-        rings = []
-        for geom in geoms:
-            polygons = getattr(geom, GEOMS_ATTR, [geom])
-            for polygon in polygons:
-                rings.append(polygon.exterior)
-                rings.extend(polygon.interiors)
-        lines = union_all(rings)
+        lines = union_all([geom.boundary for geom in geoms])
         lines = getattr(lines, GEOMS_ATTR, [lines])
         collections = polygonize(lines)
         if isinstance(collections, GeometryCollection):
@@ -383,21 +379,70 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
 # End PlanarizeGeneralOperator class
 
 
-class QueryIntersectClassic(AbstractSpatialAttribute):
+class QueryIntersectPairwise(AbstractSpatialAttribute):
+    """
+    Queries for Intersect (Pairwise)
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
+                 operator: FeatureClass, attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryIntersectPairwise class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+        self._output_type_option: OutputTypeOption = output_type_option
+    # End init built-in
+
+    @cached_property
+    def target_empty(self) -> FeatureClass:
+        """
+        Target Empty
+        """
+        shape_type = self._get_target_shape_type()
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=shape_type, fields=self._get_unique_fields(),
+            srs=self.source.spatial_reference_system,
+            z_enabled=self.source.has_z, m_enabled=self.source.has_m)
+    # End target_empty property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        if self._output_type_option == OutputTypeOption.LINE:
+            if self.source.is_multi_part:
+                return GeometryType.multi_linestring
+            return GeometryType.linestring
+        elif self._output_type_option == OutputTypeOption.POINT:
+            if self.source.is_multi_part:
+                return GeometryType.multi_point
+            return GeometryType.point
+        return self.source.shape_type
+    # End _get_target_shape_type method
+# End QueryIntersectPairwise class
+
+
+class QueryIntersectClassic(QueryIntersectPairwise):
     """
     Queries for Intersect (Classic)
     """
     def __init__(self, source: FeatureClass, target: FeatureClass,
                  operator: FeatureClass, attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the AbstractSpatialAttribute class
+        Initialize the QueryIntersectClassic class
         """
         source, operator = _planarize_factory(
             source, operator=operator, xy_tolerance=xy_tolerance)
-        super().__init__(source=source, target=target, operator=operator,
-                         attribute_option=attribute_option,
-                         xy_tolerance=xy_tolerance)
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
+            output_type_option=output_type_option)
     # End init built-in
 
     def _get_unique_fields(self) -> FIELDS:
