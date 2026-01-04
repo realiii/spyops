@@ -319,8 +319,9 @@ class ValidateOutputType(AbstractValidate):
                 return func(**kwargs)
             if not get_geometry_dimension(kwargs[self._name]):
                 raise OperationsError(
-                    f'{self._name} must be a {GeometryType.linestring} or '
-                    f'{GeometryType.polygon} for {OutputTypeOption.LINE}')
+                    f'{self._name} features class must be a '
+                    f'{GeometryType.linestring} or {GeometryType.polygon} '
+                    f'shape type for Output Type "{OutputTypeOption.LINE}"')
             return func(**kwargs)
         # End wrapper function
         return wrapper
