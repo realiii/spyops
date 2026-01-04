@@ -21,7 +21,9 @@ from numpy import isfinite
 from shapely import (
     LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
     MultiPoint as ShapelyMultiPoint, MultiPolygon as ShapelyMultiPolygon,
-    Point as ShapelyPoint, Polygon as ShapelyPolygon, make_valid, prepare)
+    Point as ShapelyPoint, Polygon as ShapelyPolygon)
+from shapely.constructive import boundary, make_valid
+from shapely.creation import prepare
 from shapely.geometry.base import (
     BaseGeometry as ShapelyGeometry,
     BaseMultipartGeometry as ShapelyMultipartGeometry)
@@ -230,12 +232,13 @@ def _nada(value: Any) -> Any:
 # End _nada function
 
 
-def _as_lines(geom: ShapelyPolygon | ShapelyMultiPolygon) \
-        -> ShapelyLineString | ShapelyMultiLineString:
+def _as_lines(geoms: list[ShapelyPolygon] | list[ShapelyMultiPolygon]) \
+        -> list[ShapelyLineString | ShapelyMultiLineString]:
     """
     Convert Polygons to LineStrings
     """
-    return geom.boundary
+    # noinspection PyTypeChecker
+    return boundary(geoms)
 # End _as_lines function
 
 
