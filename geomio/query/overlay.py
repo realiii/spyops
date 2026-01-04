@@ -387,6 +387,34 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
             attribute_option=attribute_option, xy_tolerance=xy_tolerance)
         self._output_type_option: OutputTypeOption = output_type_option
     # End init built-in
+
+    @cached_property
+    def target_empty(self) -> FeatureClass:
+        """
+        Target Empty
+        """
+        shape_type = self._get_target_shape_type()
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=shape_type, fields=self._get_unique_fields(),
+            srs=self.source.spatial_reference_system,
+            z_enabled=self.source.has_z, m_enabled=self.source.has_m)
+    # End target_empty property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        if self._output_type_option == OutputTypeOption.LINE:
+            if self.source.is_multi_part:
+                return GeometryType.multi_linestring
+            return GeometryType.linestring
+        elif self._output_type_option == OutputTypeOption.POINT:
+            if self.source.is_multi_part:
+                return GeometryType.multi_point
+            return GeometryType.point
+        return self.source.shape_type
+    # End _get_target_shape_type method
 # End QueryIntersectPairwise class
 
 
