@@ -260,12 +260,13 @@ class ValidateGeometryDimension(AbstractValidate):
     """
     Validate Geometry Dimension
     """
-    def __init__(self, *names) -> None:
+    def __init__(self, *names, same_dimension: bool = False) -> None:
         """
         Initialize the ValidateGeometryDimension class
         """
         super().__init__()
         self._names: NAMES = names
+        self._same_dimension: bool = same_dimension
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -283,7 +284,8 @@ class ValidateGeometryDimension(AbstractValidate):
             a = get_geometry_dimension(kwargs[first])
             for other in others:
                 b = get_geometry_dimension(kwargs[other])
-                check_dimension(a=a, name_a=first, b=b, name_b=other)
+                check_dimension(a=a, name_a=first, b=b, name_b=other,
+                                same_dimension=self._same_dimension)
             return func(**kwargs)
         # End wrapper function
         return wrapper

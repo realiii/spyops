@@ -131,16 +131,27 @@ def test_get_geometry_dimension(world_features, name, dimension):
 # End test_get_geometry_dimension function
 
 
-def test_check_dimension():
+@mark.parametrize('a, b, is_same, throws', [
+    (0, 1, False, False),
+    (1, 1, False, False),
+    (1, 2, False, False),
+    (2, 2, False, False),
+    (2, 1, False, True),
+    (0, 1, True, True),
+    (1, 1, True, False),
+    (1, 2, True, True),
+    (2, 2, True, False),
+    (2, 1, True, True),
+])
+def test_check_dimension(a, b, is_same, throws):
     """
     Test check_dimension
     """
-    assert check_dimension(0, name_a='aa', b=1, name_b='bb') is None
-    assert check_dimension(1, name_a='aa', b=1, name_b='bb') is None
-    assert check_dimension(1, name_a='aa', b=2, name_b='bb') is None
-    assert check_dimension(2, name_a='aa', b=2, name_b='bb') is None
-    with raises(OperationsError):
-        check_dimension(2, name_a='aa', b=1, name_b='bb')
+    if throws:
+        with raises(OperationsError):
+            check_dimension(a, name_a='aa', b=b, name_b='bb', same_dimension=is_same)
+    else:
+        assert check_dimension(a, name_a='aa', b=b, name_b='bb', same_dimension=is_same) is None
 # End test_check_dimension function
 
 

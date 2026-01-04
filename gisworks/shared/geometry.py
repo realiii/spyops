@@ -5,6 +5,7 @@ Geometry Functionality
 
 
 from math import nan
+from operator import eq, ge
 from typing import Any, Callable, Type
 
 from fudgeo import FeatureClass
@@ -398,13 +399,22 @@ def get_geometry_dimension(feature_class: FeatureClass) -> int:
 # End get_geometry_dimension function
 
 
-def check_dimension(a: int, name_a: str, b: int, name_b: str) -> None:
+def check_dimension(a: int, name_a: str, b: int, name_b: str,
+                    same_dimension: bool = False) -> None:
     """
-    Check integers representing geometry dimension, current implementation
-    is that b must be same or higher dimension than a, or in more concrete
-    terms, the operator must have same or higher dimension than source.
+    Check integers representing geometry dimension,
+
+    Default implementation (same_dimension=False) is that b must be same or
+    higher dimension than a, or in more concrete terms, the operator must
+    have same or higher dimension than source.
+
+    When same_dimension=True, the operator must have same dimension as source.
     """
-    if b >= a:
+    if same_dimension:
+        op = eq
+    else:
+        op = ge
+    if op(b, a):
         return
     dim_type = {0: GeometryType.point,
                 1: GeometryType.linestring,
