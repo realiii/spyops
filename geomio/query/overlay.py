@@ -191,6 +191,14 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
     # End _field_names_and_count method
+
+    @property
+    def target_empty(self) -> None:  # pragma: no cover
+        """
+        Minimal implementation for Abstract Class
+        """
+        return
+    # End target_empty property
 # End AbstractPlanarize class
 
 
