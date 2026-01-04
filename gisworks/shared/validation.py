@@ -128,7 +128,7 @@ class AbstractValidateTypeExists(AbstractValidateType):
     """
     Abstract Validate Type and Object Exists
     """
-    def __init__(self, name: str, exists: bool = True) -> None:
+    def __init__(self, name: str, *, exists: bool = True) -> None:
         """
         Initialize the ValidateContent class
         """
@@ -443,7 +443,7 @@ class ValidateGeopackage(AbstractValidateTypeExists):
     """
     _types: ClassVar[tuple[type, ...]] = GeoPackage, MemoryGeoPackage
 
-    def __init__(self, name: str = GEOPACKAGE, exists: bool = True) -> None:
+    def __init__(self, name: str = GEOPACKAGE, *, exists: bool = True) -> None:
         """
         Initialize the ValidateGeopackage class
         """
@@ -487,7 +487,7 @@ class ValidateContent(AbstractValidateTypeExists):
     """
     Validate Content
     """
-    def __init__(self, name: str, exists: bool = True,
+    def __init__(self, name: str, *, exists: bool = True,
                  has_content: bool = True) -> None:
         """
         Initialize the ValidateContent class
@@ -546,9 +546,10 @@ class ValidateFeatureClass(ValidateContent):
     """
     _types: ClassVar[tuple[type, ...]] = FeatureClass,
 
-    def __init__(self, name: str, exists: bool = True, has_content: bool = True,
-                 geometry_types: NAMES = (), has_z: bool = False,
-                 has_m: bool = False, add_index: bool = True) -> None:
+    def __init__(self, name: str, *, exists: bool = True,
+                 has_content: bool = True, geometry_types: NAMES = (),
+                 has_z: bool = False, has_m: bool = False,
+                 add_index: bool = True) -> None:
         """
         Initialize the ValidateFeatureClass class
         """
@@ -610,7 +611,7 @@ class ValidateField(AbstractValidateType):
     """
     _types: ClassVar[tuple[type, ...]] = Field,
 
-    def __init__(self, name: str, data_types: NAMES = (),
+    def __init__(self, name: str, *, data_types: NAMES = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
                  exclude_primary: bool = True) -> None:
