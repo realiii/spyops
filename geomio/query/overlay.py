@@ -72,7 +72,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End init built-in
 
     @abstractmethod
-    def __call__(self) -> FeatureClass:
+    def __call__(self) -> FeatureClass:  # pragma: no cover
         """
         Make Class Callable
         """
@@ -81,7 +81,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def _shape_type(self) -> str:
+    def _shape_type(self) -> str:  # pragma: no cover
         """
         Shape Type
         """
@@ -90,7 +90,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def temporary_fid_field(self) -> Field:
+    def temporary_fid_field(self) -> Field:  # pragma: no cover
         """
         Temporary FID Field
         """
@@ -98,7 +98,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End temporary_fid_field property
 
     @abstractmethod
-    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
+    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:  # pragma: no cover
         """
         Planarized Feature Class
         """

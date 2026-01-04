@@ -420,7 +420,7 @@ class ValidateResult(AbstractValidate):
             """
             Handler for the arguments and keyword arguments.
             """
-            if not (result := func(*args, **kwargs)):
+            if not (result := func(*args, **kwargs)):  # pragma: no cover
                 return result
             for element in self._make_iterable(result):
                 if isinstance(element, Table):
