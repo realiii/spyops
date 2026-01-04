@@ -14,9 +14,8 @@ from geomio.shared.enumeration import OutputTypeOption
 from geomio.shared.exception import OperationsError
 from geomio.shared.geometry import (
     _use_boundary_factory, _as_lines, _nada, build_multi, check_dimension,
-    check_polygon,
-    extent_from_feature_class, geometry_config, get_geometry_converters,
-    get_geometry_dimension)
+    check_polygon, extent_from_feature_class, geometry_config,
+    get_geometry_converters, get_geometry_dimension)
 
 
 pytestmark = [mark.geometry]

@@ -115,8 +115,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
         while features := cursor.fetchmany(FETCH_SIZE):
             op_features.extend(features)
             op_geoms.extend([from_wkb(g.wkb) for g, *_ in op_features])
-    if op_convert:
-        op_geoms = op_convert(op_geoms)
+    op_geoms = op_convert(op_geoms)
     records = []
     insert_sql = query.insert
     tree = STRtree(op_geoms)
@@ -125,9 +124,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = [from_wkb(g.wkb) for g, *_ in features]
-            if src_convert:
-                geometries = src_convert(geometries)
+            geometries = src_convert([from_wkb(g.wkb) for g, *_ in features])
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 continue

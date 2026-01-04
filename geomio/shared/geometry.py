@@ -286,14 +286,11 @@ def get_geometry_converters(source: FeatureClass, operator: FeatureClass,
     convert_src, convert_op = _use_boundary_factory(
         source.shape_type, operator_shape_type=operator.shape_type,
         output_type_option=output_type_option)
+    src_converter = op_converter = _nada
     if convert_src:
         src_converter = _as_lines
-    else:
-        src_converter = _nada
     if convert_op:
         op_converter = _as_lines
-    else:
-        op_converter = _nada
     return src_converter, op_converter
 # End get_geometry_converters function
 
