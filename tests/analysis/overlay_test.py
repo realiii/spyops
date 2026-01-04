@@ -5,11 +5,14 @@ Tests for Overlay
 
 
 from fudgeo import FeatureClass
-from pytest import mark, param
+from fudgeo.enumeration import GeometryType
+from pytest import mark, param, raises
 
 from geomio.analysis.overlay import erase, intersect
-from geomio.shared.enumeration import AlgorithmOption, AttributeOption, Setting
+from geomio.shared.enumeration import (
+    AlgorithmOption, AttributeOption, OutputTypeOption, Setting)
 from geomio.query.overlay import QueryErase
+from geomio.shared.exception import OperationsError
 from geomio.shared.setting import Swap
 
 
@@ -235,7 +238,8 @@ class TestIntersect:
     def test_intersect_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
                                option, feature_count, field_count):
         """
-        Test intersect using analysis settings
+        Test intersect using analysis settings for XY tolerance
+        and varying attribute option
         """
         operator = inputs['intersect_a']
         assert len(operator) == 5
@@ -248,6 +252,57 @@ class TestIntersect:
         assert len(result) == feature_count
         assert len(result.fields) == field_count
     # End test_intersect_setting method
+
+    @mark.parametrize('fc_name, algorithm_option, output_option, feature_count, throws', [
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0, False),
+        ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, None, True),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 1659, False),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0, False),
+        ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, None, True),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 14, False),
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 318, False),
+        ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 26, False),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 436, False),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 55, False),
+        ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 8, False),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, False),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, False),
+        ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, None, True),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1709, False),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, False),
+        ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, None, True),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 24, False),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, False),
+        ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 26, False),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, False),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, False),
+        ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13, False),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, False),
+    ])
+    def test_intersect_output_type(self, inputs, world_features, mem_gpkg, fc_name,
+                                   algorithm_option, output_option, feature_count, throws):
+        """
+        Test intersect varying output types for each algorithm option
+        """
+        operator = inputs['intersect_holes_a']
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        if throws:
+            with raises(OperationsError):
+                intersect(source=source, operator=operator,
+                          algorithm_option=algorithm_option,
+                          target=target, output_type_option=output_option)
+        else:
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=algorithm_option,
+                               output_type_option=output_option)
+            if output_option == OutputTypeOption.LINE:
+                assert GeometryType.linestring in result.shape_type
+            else:
+                assert GeometryType.point in result.shape_type
+            assert len(result) < len(source)
+            assert len(result) == feature_count
+    # End test_intersect_output_type method
 
     @mark.parametrize('fc_name, xy_tolerance, option, feature_count, field_count', [
         ('admin_a', None, AttributeOption.ALL, 128, 25),
