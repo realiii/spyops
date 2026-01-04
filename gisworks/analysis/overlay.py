@@ -12,17 +12,17 @@ from fudgeo.context import ExecuteMany
 from shapely import STRtree, set_precision
 from shapely.io import from_wkb
 
-from geomio.query.overlay import (
+from gisworks.query.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise)
-from geomio.shared.constant import (
+from gisworks.shared.constant import (
     ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, OUTPUT_TYPE_OPTION, SOURCE,
     TARGET)
-from geomio.shared.enumeration import (
+from gisworks.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
-from geomio.shared.geometry import get_geometry_converters
-from geomio.shared.hint import XY_TOL
-from geomio.shared.util import extend_records
-from geomio.shared.validation import (
+from gisworks.shared.geometry import get_geometry_converters
+from gisworks.shared.hint import XY_TOL
+from gisworks.shared.util import extend_records
+from gisworks.shared.validation import (
     validate_enumeration, validate_feature_class, validate_output_type,
     validate_result, validate_same_crs, validate_xy_tolerance)
 

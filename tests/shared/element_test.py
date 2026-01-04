@@ -8,9 +8,9 @@ from fudgeo.enumeration import GeometryType
 from pyproj import CRS
 from pytest import mark
 
-from geomio.crs.util import from_crs, validate_srs
-from geomio.shared.constant import CUSTOM_UPPER
-from geomio.shared.element import copy_element, create_feature_class
+from gisworks.crs.util import from_crs, validate_srs
+from gisworks.shared.constant import CUSTOM_UPPER
+from gisworks.shared.element import copy_element, create_feature_class
 from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY, CUSTOM_THIRD_PARTY_AUTHORITY_60000,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,

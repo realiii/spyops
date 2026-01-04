@@ -14,15 +14,15 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from geomio.shared.enumeration import AttributeOption, OutputTypeOption, Setting
-from geomio.shared.exception import OperationsError, OperationsWarning
-from geomio.shared.field import (
+from gisworks.shared.enumeration import AttributeOption, OutputTypeOption, Setting
+from gisworks.shared.exception import OperationsError, OperationsWarning
+from gisworks.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
     GEOM_TYPE_POLYGONS, REALS, TEXT_AND_NUMBERS)
-from geomio.shared.geometry import get_geometry_dimension
-from geomio.shared.setting import Swap
-from geomio.shared.util import element_names, make_unique_name
-from geomio.shared.validation import (
+from gisworks.shared.geometry import get_geometry_dimension
+from gisworks.shared.setting import Swap
+from gisworks.shared.util import element_names, make_unique_name
+from gisworks.shared.validation import (
     _check_output, validate_element, validate_enumeration,
     validate_feature_class, validate_field, validate_geometry_dimension,
     validate_geopackage,

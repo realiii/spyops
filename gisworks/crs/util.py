@@ -8,15 +8,15 @@ from pyproj import CRS
 from pyproj.enums import WktVersion
 from pyproj.exceptions import CRSError
 
-from geomio.crs.authority import Authority, authorities, to_authority
-from geomio.shared.constant import (
+from gisworks.crs.authority import Authority, authorities, to_authority
+from gisworks.shared.constant import (
     BAD_SRS_DEFINITIONS, CUSTOM, CUSTOM_RANGE_START, CUSTOM_UPPER, EMPTY, NONE,
     UNABLE_TO_USE_CRS, UNDEFINED, UNSUPPORTED_WKT)
-from geomio.shared.enumeration import InfoOption
-from geomio.shared.exception import (
+from gisworks.shared.enumeration import InfoOption
+from gisworks.shared.exception import (
     CoordinateSystemNotSupportedError, OperationsError)
-from geomio.shared.hint import GPKG
-from geomio.shared.util import safe_int
+from gisworks.shared.hint import GPKG
+from gisworks.shared.util import safe_int
 
 
 def get_crs_from_source(source: CRS | FeatureClass) -> CRS:

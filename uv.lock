@@ -182,7 +182,7 @@ wheels = [
 ]
 
 [[package]]
-name = "geomio"
+name = "gisworks"
 version = "0.0.1"
 source = { virtual = "." }
 dependencies = [

@@ -5,8 +5,8 @@ Test for Setting
 from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import mark, raises
 
-from geomio.shared.enumeration import Setting
-from geomio.shared.setting import ANALYSIS_SETTINGS, Swap, _Workspace
+from gisworks.shared.enumeration import Setting
+from gisworks.shared.setting import ANALYSIS_SETTINGS, Swap, _Workspace
 
 pytestmark = [mark.settings]
 

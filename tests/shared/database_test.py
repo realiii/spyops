@@ -8,7 +8,7 @@ from sqlite3 import connect
 
 from pytest import mark
 
-from geomio.shared.database import (
+from gisworks.shared.database import (
     _is_sqlite, _is_geopackage, get_table_names,
     has_table, is_geopackage)
 

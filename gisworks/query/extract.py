@@ -4,10 +4,10 @@ Query Classes for analysis.extract module
 """
 
 
-from geomio.query.base import AbstractQuery, AbstractSpatialQuery
-from geomio.shared.constant import EMPTY
-from geomio.shared.field import make_field_names
-from geomio.shared.hint import ELEMENT, FIELDS
+from gisworks.query.base import AbstractQuery, AbstractSpatialQuery
+from gisworks.shared.constant import EMPTY
+from gisworks.shared.field import make_field_names
+from gisworks.shared.hint import ELEMENT, FIELDS
 
 
 class QuerySplitByAttributes(AbstractQuery):

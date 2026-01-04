@@ -8,12 +8,12 @@ from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
 from pytest import mark, param, raises
 
-from geomio.analysis.overlay import erase, intersect
-from geomio.shared.enumeration import (
+from gisworks.analysis.overlay import erase, intersect
+from gisworks.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption, Setting)
-from geomio.query.overlay import QueryErase
-from geomio.shared.exception import OperationsError
-from geomio.shared.setting import Swap
+from gisworks.query.overlay import QueryErase
+from gisworks.shared.exception import OperationsError
+from gisworks.shared.setting import Swap
 
 
 pytestmark = [mark.overlay, mark.query]

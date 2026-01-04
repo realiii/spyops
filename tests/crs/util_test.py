@@ -12,10 +12,10 @@ from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
     NAD_1983_StatePlane_Texas_North_Central_FIPS_4202, NAD_1983_UTM_Zone_15N)
-from geomio.crs.util import (
+from gisworks.crs.util import (
     _equals, check_same_crs, from_authority, from_crs, get_crs_from_source,
     _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs)
-from geomio.shared.exception import OperationsError
+from gisworks.shared.exception import OperationsError
 
 
 pytestmark = [mark.crs]

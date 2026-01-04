@@ -11,16 +11,16 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from shapely.io import from_wkb
 
-from geomio.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
-from geomio.shared.constant import (
+from gisworks.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
+from gisworks.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
-from geomio.shared.element import copy_element
-from geomio.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
-from geomio.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
-from geomio.shared.setting import ANALYSIS_SETTINGS
-from geomio.shared.util import (
+from gisworks.shared.element import copy_element
+from gisworks.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
+from gisworks.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
+from gisworks.shared.setting import ANALYSIS_SETTINGS
+from gisworks.shared.util import (
     element_names, extend_records, make_unique_name, make_valid_name)
-from geomio.shared.validation import (
+from gisworks.shared.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geometry_dimension, validate_geopackage, validate_result,
     validate_same_crs, validate_table, validate_xy_tolerance)

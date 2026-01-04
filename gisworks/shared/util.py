@@ -11,11 +11,11 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from geomio.shared.base import GeometryConfig
-from geomio.shared.constant import (
+from gisworks.shared.base import GeometryConfig
+from gisworks.shared.constant import (
     DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
-from geomio.shared.enumeration import Setting
-from geomio.shared.hint import EXTENT, GPKG
+from gisworks.shared.enumeration import Setting
+from gisworks.shared.hint import EXTENT, GPKG
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub

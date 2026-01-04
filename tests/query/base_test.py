@@ -7,7 +7,7 @@ from pytest import mark
 from fudgeo import Field
 from fudgeo.enumeration import SQLFieldType
 
-from geomio.query.extract import QuerySplitByAttributes
+from gisworks.query.extract import QuerySplitByAttributes
 
 
 pytestmark = [mark.query]

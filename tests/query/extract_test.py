@@ -9,8 +9,8 @@ from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import SQLFieldType
 from pytest import approx, mark, raises
 
-from geomio.query.extract import QueryClip, QuerySplitByAttributes
-from geomio.shared.base import GeometryConfig
+from gisworks.query.extract import QueryClip, QuerySplitByAttributes
+from gisworks.shared.base import GeometryConfig
 
 pytestmark = [mark.extract, mark.query]
 

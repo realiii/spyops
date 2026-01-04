@@ -1,7 +1,7 @@
 [project]
-name = "geomio"
+name = "gisworks"
 version = "0.0.1"
-description = "Geometry Analysis, Operations, and Management for GeoPackages"
+description = "GIS Analysis, Operations, and Spatial Data Management"
 readme = "README.md"
 authors = [{ name = "Integrated Informatics (USA) Inc.", email = "contact@integrated-informatics.com" }]
 license = "MIT"
@@ -15,7 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
-keywords = ["geopackage", "geometry", "gis", "spatial", "analysis"]
+keywords = ["geopackage", "geometry", "gis", "spatial", "operations", "analysis"]
 requires-python = ">=3.11"
 dependencies = [
     "fudgeo==1.5.0",

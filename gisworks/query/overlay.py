@@ -18,16 +18,16 @@ from shapely.constructive import polygonize
 from shapely.io import from_wkb
 from shapely.set_operations import union_all
 
-from geomio.query.base import AbstractSpatialAttribute
-from geomio.query.extract import QueryClip
-from geomio.shared.constant import EMPTY, GEOMS_ATTR
-from geomio.shared.element import create_feature_class
-from geomio.shared.enumeration import AttributeOption, OutputTypeOption
-from geomio.shared.field import (
+from gisworks.query.base import AbstractSpatialAttribute
+from gisworks.query.extract import QueryClip
+from gisworks.shared.constant import EMPTY, GEOMS_ATTR
+from gisworks.shared.element import create_feature_class
+from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
+from gisworks.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
-from geomio.shared.geometry import geometry_config
-from geomio.shared.hint import ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL
-from geomio.shared.util import element_names, extend_records, make_unique_name
+from gisworks.shared.geometry import geometry_config
+from gisworks.shared.hint import ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL
+from gisworks.shared.util import element_names, extend_records, make_unique_name
 
 
 class QueryErase(QueryClip):

@@ -8,7 +8,7 @@ from typing import Self
 
 from pyproj import CRS
 
-from geomio.shared.constant import (
+from gisworks.shared.constant import (
     AUTHORITY_KEY, CODE_KEY, COLON, CUSTOM_UPPER, EMPTY, EPSG, ESRI, ID_KEY,
     NONE, PLUS, UNKNOWN, ZERO_STR)
 

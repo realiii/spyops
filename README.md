@@ -1,15 +1,15 @@
-# geomio
+# GIS Works
 
-Geometry Operations, Analysis, and Management for GeoPackages.
+GIS Analysis, Operations, and Spatial Data Management.
 
 ## Installation
 
-`geomio` is available from the [Python Package Index](https://pypi.org/project/geomio/).
+`gisworks` is available from the [Python Package Index](https://pypi.org/project/gisworks/).
 
 
 ## Python Compatibility
 
-The `geomio` library is compatible with Python 3.11 to 3.13.  Developed and 
+The `gisworks` library is compatible with Python 3.11 to 3.14.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 

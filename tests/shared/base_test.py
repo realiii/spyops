@@ -9,7 +9,7 @@ from shapely import MultiPoint
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 
-from geomio.shared.base import (
+from gisworks.shared.base import (
     AnalysisComponents, GeometryConfig, PlanarizeResults)
 
 pytestmark = [mark.utility]

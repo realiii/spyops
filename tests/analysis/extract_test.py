@@ -8,12 +8,12 @@ from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import SQLFieldType
 from pytest import mark, raises
 
-from geomio.analysis.extract import (
+from gisworks.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from geomio.shared.enumeration import Setting
-from geomio.shared.exception import OperationsError
-from geomio.shared.setting import Swap
-from geomio.shared.util import element_names, make_unique_name
+from gisworks.shared.enumeration import Setting
+from gisworks.shared.exception import OperationsError
+from gisworks.shared.setting import Swap
+from gisworks.shared.util import element_names, make_unique_name
 
 
 pytestmark = [mark.extract]

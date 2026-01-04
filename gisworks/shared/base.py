@@ -14,7 +14,7 @@ from shapely.geometry.base import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from geomio.query.base import AbstractQuery, AbstractSpatialQuery
+    from gisworks.query.base import AbstractQuery, AbstractSpatialQuery
 
 
 class AnalysisComponents(NamedTuple):

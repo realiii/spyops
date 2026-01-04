@@ -31,13 +31,13 @@ from shapely.io import from_wkb
 from shapely.linear import line_merge
 from shapely.ops import unary_union
 
-from geomio.shared.base import GeometryConfig
-from geomio.shared.constant import (
+from gisworks.shared.base import GeometryConfig
+from gisworks.shared.constant import (
     GEOMS_ATTR, LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR)
-from geomio.shared.enumeration import OutputTypeOption
-from geomio.shared.exception import OperationsError
-from geomio.shared.field import get_geometry_column_name
-from geomio.shared.hint import EXTENT
+from gisworks.shared.enumeration import OutputTypeOption
+from gisworks.shared.exception import OperationsError
+from gisworks.shared.field import get_geometry_column_name
+from gisworks.shared.hint import EXTENT
 
 SHAPELY_GEOMETRY_LOOKUP: dict[str, tuple[Any, Any]] = {
     GeometryType.point: (ShapelyPoint, ShapelyMultiPoint),

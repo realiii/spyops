@@ -11,17 +11,17 @@ from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from shapely import MultiLineString, MultiPoint, MultiPolygon, box
 
-from geomio.shared.base import GeometryConfig
-from geomio.shared.constant import (
+from gisworks.shared.base import GeometryConfig
+from gisworks.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
-from geomio.shared.element import copy_feature_class, create_feature_class
-from geomio.shared.enumeration import AttributeOption
-from geomio.shared.field import (
+from gisworks.shared.element import copy_feature_class, create_feature_class
+from gisworks.shared.enumeration import AttributeOption
+from gisworks.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
-from geomio.shared.geometry import (
+from gisworks.shared.geometry import (
     build_multi, extent_from_feature_class, geometry_config)
-from geomio.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
-from geomio.shared.util import make_unique_name
+from gisworks.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
+from gisworks.shared.util import make_unique_name
 
 
 class AbstractQuery(metaclass=ABCMeta):

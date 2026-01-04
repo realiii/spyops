@@ -7,7 +7,7 @@ Database Functionality
 from pathlib import Path
 from sqlite3 import Connection, DatabaseError, OperationalError, connect
 
-from geomio.shared.constant import BASE_TABLES
+from gisworks.shared.constant import BASE_TABLES
 
 
 def is_geopackage(path: Path | str) -> bool:

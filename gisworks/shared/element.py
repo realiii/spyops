@@ -8,10 +8,10 @@ from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
 
-from geomio.crs.util import validate_srs
-from geomio.shared.exception import OperationsError
-from geomio.shared.hint import ELEMENT, FIELDS, GPKG
-from geomio.shared.setting import ANALYSIS_SETTINGS
+from gisworks.crs.util import validate_srs
+from gisworks.shared.exception import OperationsError
+from gisworks.shared.hint import ELEMENT, FIELDS, GPKG
+from gisworks.shared.setting import ANALYSIS_SETTINGS
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,

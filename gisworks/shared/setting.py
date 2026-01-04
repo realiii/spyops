@@ -10,10 +10,10 @@ from typing import Any, Self
 from fudgeo import GeoPackage, MemoryGeoPackage
 from fudgeo.constant import MEMORY
 
-from geomio.shared.database import is_geopackage
-from geomio.shared.enumeration import Setting
-from geomio.shared.hint import GPKG, XY_TOL
-from geomio.shared.util import as_title, safe_float
+from gisworks.shared.database import is_geopackage
+from gisworks.shared.enumeration import Setting
+from gisworks.shared.hint import GPKG, XY_TOL
+from gisworks.shared.util import as_title, safe_float
 
 
 __all__ = ['ANALYSIS_SETTINGS', 'Swap']

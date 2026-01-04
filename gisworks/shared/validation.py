@@ -16,16 +16,16 @@ from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
 from fudgeo.constant import MEMORY
 from fudgeo.enumeration import GeometryType
 
-from geomio.crs.util import check_same_crs, get_crs_from_source
-from geomio.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
-from geomio.shared.enumeration import OutputTypeOption, Setting
-from geomio.shared.exception import OperationsError, OperationsWarning
-from geomio.shared.field import TYPE_ALIAS_LUT, validate_fields
-from geomio.shared.geometry import (
+from gisworks.crs.util import check_same_crs, get_crs_from_source
+from gisworks.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
+from gisworks.shared.enumeration import OutputTypeOption, Setting
+from gisworks.shared.exception import OperationsError, OperationsWarning
+from gisworks.shared.field import TYPE_ALIAS_LUT, validate_fields
+from gisworks.shared.geometry import (
     check_dimension, get_geometry_dimension, set_extent)
-from geomio.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
-from geomio.shared.setting import ANALYSIS_SETTINGS
-from geomio.shared.util import safe_float
+from gisworks.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
+from gisworks.shared.setting import ANALYSIS_SETTINGS
+from gisworks.shared.util import safe_float
 
 
 class AbstractValidate(metaclass=ABCMeta):

@@ -7,10 +7,10 @@ Test for Overlay Query Classes
 from fudgeo import FeatureClass
 from pytest import mark
 
-from geomio.query.overlay import (
+from gisworks.query.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
     PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise)
-from geomio.shared.enumeration import AttributeOption, OutputTypeOption
+from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
 
 pytestmark = [mark.overlay, mark.query]
 

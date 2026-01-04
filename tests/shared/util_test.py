@@ -6,8 +6,8 @@ Test Utilities
 
 from pytest import approx, mark
 
-from geomio.shared.enumeration import Setting
-from geomio.shared.util import (
+from gisworks.shared.enumeration import Setting
+from gisworks.shared.util import (
     as_title, element_names, expand_extent, make_unique_name, make_valid_name,
     _replace_double_under, safe_float, safe_int)
 
