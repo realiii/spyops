@@ -320,6 +320,7 @@ def test_validate_table_with_setting(world_tables, world_features):
     (Field('asdf', data_type=SQLFieldType.text), False, True),
     ('asdf', True, True),
     ('NAME', True, False),
+    (('NAME', 'ANOTHER_NAME'), True, True),
 ])
 def test_validate_field_multiple_fields(world_tables, fld, exists, throws):
     """
