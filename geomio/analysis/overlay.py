@@ -19,6 +19,7 @@ from geomio.shared.constant import (
     TARGET)
 from geomio.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
+from geomio.shared.geometry import get_geometry_converters
 from geomio.shared.hint import XY_TOL
 from geomio.shared.util import extend_records
 from geomio.shared.validation import (
@@ -107,11 +108,15 @@ def intersect(source: FeatureClass, operator: FeatureClass,
         return query.target_empty
     op_geoms = []
     op_features = []
+    src_convert, op_convert = get_geometry_converters(
+        source, operator=operator, output_type_option=output_type_option)
     with query.operator.geopackage.connection as cin:
         cursor = cin.execute(query.select_operator)
         while features := cursor.fetchmany(FETCH_SIZE):
             op_features.extend(features)
             op_geoms.extend([from_wkb(g.wkb) for g, *_ in op_features])
+    if op_convert:
+        op_geoms = op_convert(op_geoms)
     records = []
     insert_sql = query.insert
     tree = STRtree(op_geoms)
@@ -121,6 +126,8 @@ def intersect(source: FeatureClass, operator: FeatureClass,
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             geometries = [from_wkb(g.wkb) for g, *_ in features]
+            if src_convert:
+                geometries = src_convert(geometries)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 continue
