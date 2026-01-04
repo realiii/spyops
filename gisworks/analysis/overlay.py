@@ -23,8 +23,9 @@ from gisworks.shared.geometry import get_geometry_converters
 from gisworks.shared.hint import XY_TOL
 from gisworks.shared.util import extend_records
 from gisworks.shared.validation import (
-    validate_enumeration, validate_feature_class, validate_output_type,
-    validate_result, validate_same_crs, validate_xy_tolerance)
+    validate_enumeration, validate_feature_class, validate_geometry_dimension,
+    validate_output_type, validate_result, validate_same_crs,
+    validate_xy_tolerance)
 
 
 @validate_result()
@@ -32,6 +33,7 @@ from gisworks.shared.validation import (
 @validate_feature_class(OPERATOR)
 @validate_feature_class(TARGET, exists=False)
 @validate_xy_tolerance()
+@validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
 def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
           xy_tolerance: XY_TOL = None) -> FeatureClass:
@@ -81,6 +83,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_enumeration(OUTPUT_TYPE_OPTION, OutputTypeOption)
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
+@validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
 def intersect(source: FeatureClass, operator: FeatureClass,
