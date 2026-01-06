@@ -264,17 +264,17 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         return self._make_intersection_query(self.source)
     # End select_intersect property
 
-    def _make_intersection_query(self, elm: FeatureClass) -> str:
+    def _make_intersection_query(self, element: FeatureClass) -> str:
         """
         Make Intersection Query
         """
-        if where := self._spatial_index_where(elm, extent=self.shared_extent):
+        if where := self._spatial_index_where(element, extent=self.shared_extent):
             where = where.format(IN)
         else:  # pragma: no cover
             where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(elm)
+        *_, select_field_names = self._field_names_and_count(element)
         return self._make_select(
-            elm, field_names=select_field_names, where_clause=where)
+            element, field_names=select_field_names, where_clause=where)
     # End _make_intersection_query method
 
     @property
