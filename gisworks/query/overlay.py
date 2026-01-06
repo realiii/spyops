@@ -13,8 +13,7 @@ from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
 from shapely import (
-    GeometryCollection, Polygon as ShapelyPolygon, coverage_simplify,
-    set_precision)
+    GeometryCollection, Polygon as ShapelyPolygon, coverage_simplify)
 from shapely.constructive import polygonize
 from shapely.io import from_wkb
 from shapely.strtree import STRtree
@@ -22,7 +21,8 @@ from shapely.set_operations import union_all
 
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
-from gisworks.shared.base import QueryConfig
+from gisworks.query.util import process_disjoint
+from gisworks.shared.base import GeometryConfig, QueryConfig
 from gisworks.shared.constant import EMPTY, GEOMS_ATTR
 from gisworks.shared.element import create_feature_class
 from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
@@ -31,32 +31,6 @@ from gisworks.shared.field import (
 from gisworks.shared.geometry import geometry_config
 from gisworks.shared.hint import ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL
 from gisworks.shared.util import element_names, extend_records, make_unique_name
-
-
-def _process_disjoint(query: QueryConfig, xy_tolerance: XY_TOL) -> None:
-    """
-    Process Disjoint Features
-    """
-    if not query.disjoint:
-        return
-    records = []
-    insert_sql = query.insert
-    with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.disjoint)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if xy_tolerance is None:
-                executor(sql=insert_sql, data=features)
-            else:
-                geometries = [from_wkb(g.wkb) for g, *_ in features]
-                geometries = set_precision(geometries, grid_size=xy_tolerance)
-                results = [(geom, attrs) for geom, (_, *attrs) in
-                           zip(geometries, features)]
-                extend_records(results, records=records, config=query.config)
-                executor(sql=insert_sql, data=records)
-                records.clear()
-# End _process_disjoint function
 
 
 class QueryErase(QueryClip):
@@ -68,10 +42,10 @@ class QueryErase(QueryClip):
         Process Disjoint
         """
         query = QueryConfig(
-            source=self.source, target=self.target, select=EMPTY,
+            source=self.source, target=self.target,
             disjoint=self.select_disjoint, insert=self.insert,
             config=self.config)
-        _process_disjoint(query=query, xy_tolerance=xy_tolerance)
+        process_disjoint(query=query, xy_tolerance=xy_tolerance)
     # End process_disjoint method
 # End QueryErase class
 
