@@ -282,15 +282,21 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Selection query for disjoint
         """
-        elm = self.source
-        if not (where := self._spatial_index_where(
-                elm, extent=self.shared_extent)):  # pragma: no cover
-            return EMPTY
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=where.format(NOT_IN))
+        return self._make_disjoint_select(self.source)
     # End select_disjoint property
+
+    def _make_disjoint_select(self, element: FeatureClass) -> str:
+        """
+        Make Disjoint Select Statement using the input Element
+        """
+        if not (where := self._spatial_index_where(
+                element, extent=self.shared_extent)):  # pragma: no cover
+            return EMPTY
+        *_, select_field_names = self._field_names_and_count(element)
+        return self._make_select(
+            element, field_names=select_field_names,
+            where_clause=where.format(NOT_IN))
+    # End _make_disjoint_select method
 # End AbstractSpatialQuery class
 
 
