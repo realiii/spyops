@@ -408,17 +408,17 @@ def get_geometry_zm(feature_class: FeatureClass) -> tuple[bool, bool]:
 
 
 def check_dimension(a: int, name_a: str, b: int, name_b: str,
-                    same_dimension: bool = False) -> None:
+                    same: bool = False) -> None:
     """
-    Check integers representing geometry dimension,
+    Check integers representing geometry dimension
 
-    Default implementation (same_dimension=False) is that b must be same or
-    higher dimension than a, or in more concrete terms, the operator must
-    have same or higher dimension than source.
+    The default implementation is that b must be same or higher dimension
+    than a, or in more concrete terms, the operator must have same or higher
+    dimension than the source.
 
-    When same_dimension=True, the operator must have same dimension as source.
+    When same=True, the operator must have same dimension as source.
     """
-    if same_dimension:
+    if same:
         op = eq
     else:
         op = ge

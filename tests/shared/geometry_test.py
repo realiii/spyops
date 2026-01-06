@@ -166,9 +166,9 @@ def test_check_dimension(a, b, is_same, throws):
     """
     if throws:
         with raises(OperationsError):
-            check_dimension(a, name_a='aa', b=b, name_b='bb', same_dimension=is_same)
+            check_dimension(a, name_a='aa', b=b, name_b='bb', same=is_same)
     else:
-        assert check_dimension(a, name_a='aa', b=b, name_b='bb', same_dimension=is_same) is None
+        assert check_dimension(a, name_a='aa', b=b, name_b='bb', same=is_same) is None
 # End test_check_dimension function
 
 

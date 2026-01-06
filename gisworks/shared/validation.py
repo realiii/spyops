@@ -22,7 +22,8 @@ from gisworks.shared.enumeration import OutputTypeOption, Setting
 from gisworks.shared.exception import OperationsError, OperationsWarning
 from gisworks.shared.field import TYPE_ALIAS_LUT, validate_fields
 from gisworks.shared.geometry import (
-    check_dimension, get_geometry_dimension, set_extent)
+    check_dimension, check_zm, get_geometry_dimension, get_geometry_zm,
+    set_extent)
 from gisworks.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from gisworks.shared.setting import ANALYSIS_SETTINGS
 from gisworks.shared.util import safe_float
@@ -260,13 +261,14 @@ class ValidateGeometryDimension(AbstractValidate):
     """
     Validate Geometry Dimension
     """
-    def __init__(self, *names, same_dimension: bool = False) -> None:
+    def __init__(self, *names, same: bool = False, strict: bool = False) -> None:
         """
         Initialize the ValidateGeometryDimension class
         """
         super().__init__()
         self._names: NAMES = names
-        self._same_dimension: bool = same_dimension
+        self._same: bool = same
+        self._strict: bool = strict
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -280,16 +282,37 @@ class ValidateGeometryDimension(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            first, *others = self._names
-            a = get_geometry_dimension(kwargs[first])
-            for other in others:
-                b = get_geometry_dimension(kwargs[other])
-                check_dimension(a=a, name_a=first, b=b, name_b=other,
-                                same_dimension=self._same_dimension)
+            self._validate_dimension(kwargs)
+            self._validate_extended(kwargs)
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    def _validate_dimension(self, kwargs: dict[str, Any]) -> None:
+        """
+        Validate Dimension
+        """
+        first, *others = self._names
+        a = get_geometry_dimension(kwargs[first])
+        for other in others:
+            b = get_geometry_dimension(kwargs[other])
+            check_dimension(a=a, name_a=first, b=b, name_b=other,
+                            same=self._same)
+    # End _validate_dimension method
+
+    def _validate_extended(self, kwargs: dict[str, Any]) -> None:
+        """
+        Validate Extended Geometry Type (Z and M) when same dimension required
+        """
+        if not self._same and not self._strict:
+            return
+        first, *others = self._names
+        a = get_geometry_zm(kwargs[first])
+        for other in others:
+            b = get_geometry_zm(kwargs[other])
+            check_zm(a=a, name_a=first, b=b, name_b=other)
+    # End _validate_extended method
 # End ValidateGeometryDimension class
 
 

@@ -427,18 +427,21 @@ def test_validate_result(inputs):
 # End test_validate_result function
 
 
-@mark.parametrize('source_name, operator_name, throws, expected', [
-    ('admin_a', 'admin_mp_a', False, (2, 2)),
-    ('admin_a', 'airports_p', True, ()),
-    ('airports_p', 'admin_a', False, (0, 2)),
+@mark.parametrize('source_name, operator_name, same, throws, expected', [
+    ('admin_a', 'admin_mp_a', False, False, (2, 2)),
+    ('admin_a', 'airports_p', False, True, ()),
+    ('airports_p', 'admin_a', False, False, (0, 2)),
+    ('admin_a', 'admin_mp_a', True, False, (2, 2)),
+    ('admin_a', 'airports_p', True, True, ()),
+    ('airports_p', 'admin_a', True, True, ()),
 ])
-def test_validate_geometry_dimension(world_features, source_name, operator_name, throws, expected):
+def test_validate_geometry_dimension(world_features, source_name, operator_name, same, throws, expected):
     """
     Test validate geometry dimension
     """
     source = world_features[source_name]
     operator = world_features[operator_name]
-    @validate_geometry_dimension('s', 'o')
+    @validate_geometry_dimension('s', 'o', same=same, strict=True)
     def geom_function(s, o):
         return get_geometry_dimension(s), get_geometry_dimension(o)
 
