@@ -14,7 +14,7 @@ from shapely import MultiLineString, MultiPoint, MultiPolygon, box
 from gisworks.shared.base import GeometryConfig
 from gisworks.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
-from gisworks.shared.element import copy_feature_class, create_feature_class
+from gisworks.shared.element import copy_feature_class
 from gisworks.shared.enumeration import AttributeOption
 from gisworks.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
