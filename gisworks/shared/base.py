@@ -55,7 +55,6 @@ class QueryConfig(NamedTuple):
     """
     source: FeatureClass
     target: FeatureClass
-    select: str
     disjoint: str
     insert: str
     config: GeometryConfig
