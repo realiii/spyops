@@ -14,8 +14,8 @@ from gisworks.shared.enumeration import OutputTypeOption
 from gisworks.shared.exception import OperationsError
 from gisworks.shared.geometry import (
     _use_boundary_factory, _as_lines, _nada, build_multi, check_dimension,
-    check_polygon, extent_from_feature_class, geometry_config,
-    get_geometry_converters, get_geometry_dimension)
+    check_polygon, check_zm, extent_from_feature_class, geometry_config,
+    get_geometry_converters, get_geometry_dimension, get_geometry_zm)
 
 
 pytestmark = [mark.geometry]
@@ -131,6 +131,23 @@ def test_get_geometry_dimension(world_features, name, dimension):
 # End test_get_geometry_dimension function
 
 
+@mark.parametrize('name, zm', [
+    ('airports_p', (False, False)),
+    ('airports_mp_p', (False, False)),
+    ('roads_l', (False, False)),
+    ('roads_mp_l', (False, False)),
+    ('admin_a', (False, False)),
+    ('admin_mp_a', (False, False)),
+])
+def test_get_geometry_zm(world_features, name, zm):
+    """
+    Test get_geometry_zm
+    """
+    fc = world_features[name]
+    assert get_geometry_zm(fc) == zm
+# End test_get_geometry_zm function
+
+
 @mark.parametrize('a, b, is_same, throws', [
     (0, 1, False, False),
     (1, 1, False, False),
@@ -153,6 +170,22 @@ def test_check_dimension(a, b, is_same, throws):
     else:
         assert check_dimension(a, name_a='aa', b=b, name_b='bb', same_dimension=is_same) is None
 # End test_check_dimension function
+
+
+@mark.parametrize('a, b, throws', [
+    ((True, False), (True, False), False),
+    ((True, False), (False, False), True),
+])
+def test_check_zm(a, b, throws):
+    """
+    Test check_zm
+    """
+    if throws:
+        with raises(OperationsError):
+            check_zm(a=a, name_a='aa', b=b, name_b='bb')
+    else:
+        assert check_zm(a=a, name_a='aa', b=b, name_b='bb') is None
+# End test_check_zm function
 
 
 @mark.parametrize('output_type_option, source_name, operator_name, expected', [

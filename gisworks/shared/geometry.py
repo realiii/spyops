@@ -399,6 +399,14 @@ def get_geometry_dimension(feature_class: FeatureClass) -> int:
 # End get_geometry_dimension function
 
 
+def get_geometry_zm(feature_class: FeatureClass) -> tuple[bool, bool]:
+    """
+    Get Geometry Dimension
+    """
+    return feature_class.has_z, feature_class.has_m
+# End get_geometry_zm function
+
+
 def check_dimension(a: int, name_a: str, b: int, name_b: str,
                     same_dimension: bool = False) -> None:
     """
@@ -423,6 +431,22 @@ def check_dimension(a: int, name_a: str, b: int, name_b: str,
         f'Geometry dimension mismatch, cannot overlay '
         f'{name_a} {dim_type[a]} with {name_b} {dim_type[b]}')
 # End check_dimension function
+
+
+def check_zm(a: tuple[bool, bool], name_a: str,
+             b: tuple[bool, bool], name_b: str) -> None:
+    """
+    Check extended geometry properties ZM, ensure match.
+    """
+    if a == b:
+        return
+    stub = 'has_z=%s / has_m=%s'
+    props_a = stub % a
+    props_b = stub % b
+    raise OperationsError(
+        f'Geometry ZM mismatch, cannot overlay '
+        f'{name_a} {props_a} with {name_b} {props_b}')
+# End check_zm function
 
 
 if __name__ == '__main__':  # pragma: no cover
