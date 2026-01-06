@@ -417,14 +417,20 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Insert Query
         """
-        fields = self._get_unique_fields()
+        return self._build_insert(self.target, fields=self._get_unique_fields())
+    # End insert property
+
+    def _build_insert(self, element: FeatureClass, fields: FIELDS) -> str:
+        """
+        Build Insert Statement from Fields
+        """
         names = make_field_names(fields)
-        geom_name = get_geometry_column_name(self.target)
+        geom_name = get_geometry_column_name(element)
         return self._make_insert(
-            self.target.escaped_name,
+            element.escaped_name,
             field_names=self._concatenate(geom_name, names),
             field_count=len(fields) + 1)
-    # End insert property
+    # End _build_insert method
 
     @property
     @abstractmethod
