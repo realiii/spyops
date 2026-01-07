@@ -5,7 +5,7 @@ Validation
 
 
 from abc import ABCMeta, abstractmethod
-from enum import Enum
+from enum import StrEnum
 from functools import wraps
 from inspect import signature
 from pathlib import Path
@@ -26,7 +26,7 @@ from gisworks.shared.geometry import (
     set_extent)
 from gisworks.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from gisworks.shared.setting import ANALYSIS_SETTINGS
-from gisworks.shared.util import safe_float
+from gisworks.shared.util import check_enumeration, safe_float
 
 
 class AbstractValidate(metaclass=ABCMeta):
@@ -183,12 +183,12 @@ class ValidateEnumeration(AbstractValidateArgument):
     """
     Validate Item is of the expected Enumeration
     """
-    def __init__(self, name: str, enum: Type[Enum]) -> None:
+    def __init__(self, name: str, enum: Type[StrEnum]) -> None:
         """
         Initialize the ValidateEnumeration class
         """
         super().__init__(name)
-        self._enum: Type[Enum] = enum
+        self._enum: Type[StrEnum] = enum
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -214,11 +214,7 @@ class ValidateEnumeration(AbstractValidateArgument):
         """
         Validate Value
         """
-        if isinstance(obj, self._enum):
-            return obj
-        if isinstance(obj, str):
-            obj = self._enum(obj.casefold())
-        return self._enum(obj)
+        return check_enumeration(obj, enum=self._enum)
     # End _validate_value method
 # End ValidateEnumeration class
 
