@@ -4,6 +4,7 @@ Shared Settings for Analysis
 """
 
 
+from math import nan
 from pathlib import Path
 from typing import Any, Self
 
@@ -11,9 +12,9 @@ from fudgeo import GeoPackage, MemoryGeoPackage
 from fudgeo.constant import MEMORY
 
 from gisworks.shared.database import is_geopackage
-from gisworks.shared.enumeration import Setting
+from gisworks.shared.enumeration import OutputMOption, OutputZOption, Setting
 from gisworks.shared.hint import GPKG, XY_TOL
-from gisworks.shared.util import as_title, safe_float
+from gisworks.shared.util import as_title, check_enumeration, safe_float
 
 
 __all__ = ['ANALYSIS_SETTINGS', 'Swap']
@@ -58,6 +59,42 @@ class _AnalysisSettings:
     def xy_tolerance(self, value: XY_TOL) -> None:
         self._dimensions.xy_tolerance = value
     # End xy_tolerance property
+
+    @property
+    def output_z_option(self) -> OutputZOption:
+        """
+        Output Z Option
+        """
+        return self._dimensions.output_z_option
+
+    @output_z_option.setter
+    def output_z_option(self, value: OutputZOption) -> None:
+        self._dimensions.output_z_option = value
+    # End output_z_option property
+
+    @property
+    def z_value(self) -> float:
+        """
+        Z Value
+        """
+        return self._dimensions.z_value
+
+    @z_value.setter
+    def z_value(self, value: float) -> None:
+        self._dimensions.z_value = value
+    # End z_value property
+
+    @property
+    def output_m_option(self) -> OutputMOption:
+        """
+        Output M Option
+        """
+        return self._dimensions.output_m_option
+
+    @output_m_option.setter
+    def output_m_option(self, value: OutputMOption) -> None:
+        self._dimensions.output_m_option = value
+    # End output_m_option property
 
     @property
     def current_workspace(self) -> GPKG | None:
@@ -158,6 +195,9 @@ class _GeometryDimensions:
         """
         super().__init__()
         self._xy: XY_TOL = None
+        self._z_option: OutputZOption = OutputZOption.SAME
+        self._z_value: float = nan
+        self._m_option: OutputMOption = OutputMOption.SAME
     # End init built-in
 
     @property
@@ -171,6 +211,44 @@ class _GeometryDimensions:
     def xy_tolerance(self, value: XY_TOL) -> None:
         self._xy = safe_float(value)
     # End xy_tolerance property
+
+    @property
+    def output_z_option(self) -> OutputZOption:
+        """
+        Output Z Option
+        """
+        return self._z_option
+
+    @output_z_option.setter
+    def output_z_option(self, value: OutputZOption) -> None:
+        self._z_option = check_enumeration(value, enum=OutputZOption)
+    # End output_z_option property
+
+    @property
+    def output_m_option(self) -> OutputMOption:
+        """
+        Output M Option
+        """
+        return self._m_option
+
+    @output_m_option.setter
+    def output_m_option(self, value: OutputMOption) -> None:
+        self._m_option = check_enumeration(value, enum=OutputMOption)
+    # End output_m_option property
+
+    @property
+    def z_value(self) -> float:
+        """
+        Z Value
+        """
+        return self._z_value
+
+    @z_value.setter
+    def z_value(self, value: float) -> None:
+        if value is None:
+            value = nan
+        self._z_value = safe_float(value)
+    # End z_value property
 # End _GeometryDimensions class
 
 
