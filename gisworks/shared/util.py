@@ -12,7 +12,7 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from gisworks.shared.base import GeometryConfig
+from gisworks.geometry.config import GeometryConfig
 from gisworks.shared.constant import (
     DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
 from gisworks.shared.enumeration import Setting

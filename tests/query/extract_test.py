@@ -10,7 +10,7 @@ from fudgeo.enumeration import SQLFieldType
 from pytest import approx, mark, raises
 
 from gisworks.query.extract import QueryClip, QuerySplitByAttributes
-from gisworks.shared.base import GeometryConfig
+from gisworks.geometry.config import GeometryConfig
 
 pytestmark = [mark.extract, mark.query]
 

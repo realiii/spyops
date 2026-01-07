@@ -17,13 +17,13 @@ from fudgeo.constant import MEMORY
 from fudgeo.enumeration import GeometryType
 
 from gisworks.crs.util import check_same_crs, get_crs_from_source
+from gisworks.geometry.extent import set_extent
+from gisworks.geometry.validate import (
+    check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
 from gisworks.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
 from gisworks.shared.enumeration import OutputTypeOption, Setting
 from gisworks.shared.exception import OperationsError, OperationsWarning
 from gisworks.shared.field import TYPE_ALIAS_LUT, validate_fields
-from gisworks.shared.geometry import (
-    check_dimension, check_zm, get_geometry_dimension, get_geometry_zm,
-    set_extent)
 from gisworks.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
 from gisworks.shared.setting import ANALYSIS_SETTINGS
 from gisworks.shared.util import check_enumeration, safe_float
