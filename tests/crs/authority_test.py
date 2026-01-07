@@ -14,7 +14,7 @@ from constants import (
 from gisworks.crs.authority import Authority, authorities
 from gisworks.crs.util import _get_crs_component, get_crs_authority
 from gisworks.shared.constant import CUSTOM_UPPER, EPSG, ESRI
-from gisworks.shared.enumeration import InfoOption
+from gisworks.crs.enumeration import InfoOption
 
 pytestmark = [mark.crs]
 
