@@ -11,15 +11,15 @@ from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from shapely import MultiLineString, MultiPoint, MultiPolygon, box
 
-from gisworks.shared.base import GeometryConfig
+from gisworks.geometry.config import GeometryConfig, geometry_config
+from gisworks.geometry.extent import extent_from_feature_class
+from gisworks.geometry.multi import build_multi
 from gisworks.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
 from gisworks.shared.element import copy_feature_class
 from gisworks.shared.enumeration import AttributeOption
 from gisworks.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
-from gisworks.shared.geometry import (
-    build_multi, extent_from_feature_class, geometry_config)
 from gisworks.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
 from gisworks.shared.util import make_unique_name
 

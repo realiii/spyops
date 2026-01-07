@@ -8,9 +8,7 @@ from typing import TypeAlias
 
 from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
 from shapely.geometry import (
-    LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
-    MultiPoint as ShapelyMultiPoint, MultiPolygon as ShapelyMultiPolygon,
-    Point as ShapelyPoint, Polygon as ShapelyPolygon)
+    LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
 
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
@@ -23,9 +21,9 @@ FIELDS: TypeAlias = list[Field] | tuple[Field, ...]
 GPKG: TypeAlias = GeoPackage | MemoryGeoPackage
 
 
-POLYGONS: TypeAlias = list[ShapelyPolygon] | list[ShapelyMultiPolygon]
-LINES: TypeAlias = list[ShapelyLineString] | list[ShapelyMultiLineString]
-POINTS: TypeAlias = list[ShapelyPoint] | list[ShapelyMultiPoint]
+POLYGONS: TypeAlias = list[Polygon] | list[MultiPolygon]
+LINES: TypeAlias = list[LineString] | list[MultiLineString]
+POINTS: TypeAlias = list[Point] | list[MultiPoint]
 
 
 if __name__ == '__main__':  # pragma: no cover

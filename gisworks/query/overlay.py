@@ -12,24 +12,24 @@ from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
-from shapely import (
-    GeometryCollection, Polygon as ShapelyPolygon, coverage_simplify)
+from shapely import GeometryCollection, Polygon, coverage_simplify
 from shapely.constructive import polygonize
 from shapely.io import from_wkb
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
+from gisworks.geometry.config import GeometryConfig, geometry_config
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
 from gisworks.query.util import process_disjoint
-from gisworks.shared.base import GeometryConfig, QueryConfig
+from gisworks.shared.base import QueryConfig
 from gisworks.shared.constant import EMPTY, GEOMS_ATTR
 from gisworks.shared.element import create_feature_class
 from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
 from gisworks.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
-from gisworks.shared.geometry import geometry_config
-from gisworks.shared.hint import ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL
+from gisworks.shared.hint import (
+    ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
 from gisworks.shared.util import element_names, extend_records, make_unique_name
 
 
@@ -239,7 +239,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     # End _planarize method
 
     @staticmethod
-    def _build_planar_results(planarized: list[ShapelyPolygon], geoms: POLYGONS,
+    def _build_planar_results(planarized: list[Polygon], geoms: POLYGONS,
                               attributes: list[tuple]) -> list[tuple]:
         """
         Build Planar Results
@@ -257,7 +257,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         return results
     # End _build_planar_results method
 
-    def _make_planarized_geometry(self, geoms: POLYGONS) -> list[ShapelyPolygon]:
+    def _make_planarized_geometry(self, geoms: POLYGONS) -> list[Polygon]:
         """
         Make Planarized Geometry
         """
@@ -489,6 +489,137 @@ class QueryIntersectClassic(QueryIntersectPairwise):
         return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
 # End QueryIntersectClassic class
+
+
+class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
+    """
+    Query Symmetrical Difference Pairwise
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
+                 operator: FeatureClass, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QuerySymmetricalDifferencePairwise class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
+            output_type_option=OutputTypeOption.SAME)
+    # End init built-in
+
+    @property
+    def _disjoint_source(self) -> str:
+        """
+        Select Disjoint Features from Source (already available, this is
+        just an alias)
+        """
+        return self.select_disjoint
+    # End _disjoint_source property
+
+    @property
+    def _disjoint_operator(self) -> str:
+        """
+        Select Disjoint Features from Operator
+        """
+        return self._make_disjoint_select(self.operator)
+    # End _disjoint_operator property
+
+    def _get_insert_fields(self, is_source: bool) -> FIELDS:
+        """
+        Get Fields for Disjoint Insert Statements
+        """
+        if self._attr_option == AttributeOption.ALL:
+            _, *src_fields = self._get_fields(self.source)
+            _, *op_fields = self._get_fields(self.operator)
+            src_fields = [self.output_fid_source, *src_fields]
+            if is_source:
+                return src_fields
+            else:
+                op_fields = self._make_unique_fields(src_fields, op_fields)
+                return [self.output_fid_operator, *op_fields]
+        elif self._attr_option == AttributeOption.ONLY_FID:
+            if is_source:
+                return self.output_fid_source,
+            else:
+                return self.output_fid_operator,
+        else:
+            src_fields = self._get_fields(self.source)
+            if is_source:
+                return src_fields
+            else:
+                op_fields = self._get_fields(self.operator)
+                return self._make_unique_fields(src_fields, op_fields)
+    # End _get_insert_fields method
+
+    @property
+    def _insert_source(self) -> str:
+        """
+        Insert statement for use with Disjoint Source Features and Target
+        """
+        return self._build_insert(
+            self.target_empty, fields=self._get_insert_fields(is_source=True))
+    # End _insert_source property
+
+    @property
+    def _insert_operator(self) -> str:
+        """
+        Insert statement for use with Disjoint Operator Features and Target
+        """
+        return self._build_insert(
+            self.target_empty, fields=self._get_insert_fields(is_source=False))
+    # End _insert_operator property
+
+    @cached_property
+    def config(self) -> GeometryConfig:
+        """
+        Overlay Configuration
+        """
+        return geometry_config(self.target_empty)
+    # End config property
+
+    @property
+    def target(self) -> FeatureClass:
+        """
+        Target
+        """
+        return self.target_full
+    # End target property
+
+    @cached_property
+    def target_full(self) -> FeatureClass:
+        """
+        Target Full
+        """
+        target = self.target_empty
+        query = QueryConfig(
+            source=self.source, target=target, config=self.config,
+            disjoint=self._disjoint_source, insert=self._insert_source)
+        process_disjoint(query, xy_tolerance=self._xy_tolerance)
+        query = QueryConfig(
+            source=self.operator, target=target, config=self.config,
+            disjoint=self._disjoint_operator,  insert=self._insert_operator)
+        process_disjoint(query, xy_tolerance=self._xy_tolerance)
+        return target
+    # End target_full property
+# End QuerySymmetricalDifferencePairwise class
+
+
+class QuerySymmetricalDifferenceClassic(QueryIntersectClassic):
+    """
+    Query Symmetrical Difference Classic
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
+                 operator: FeatureClass, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QuerySymmetricalDifferenceClassic class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
+            output_type_option=OutputTypeOption.SAME)
+    # End init built-in
+# End QuerySymmetricalDifferenceClassic class
 
 
 if __name__ == '__main__':  # pragma: no cover
