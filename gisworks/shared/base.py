@@ -4,14 +4,12 @@ Types
 """
 
 
-from typing import Any, Callable, NamedTuple, TYPE_CHECKING, Type, Union
+from typing import NamedTuple, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass
-from shapely import Polygon as ShapelyPolygon
-from shapely.geometry.base import (
-    BaseGeometry as ShapelyGeometry,
-    BaseMultipartGeometry as ShapelyMultipartGeometry)
+from shapely import Polygon
 
+from gisworks.geometry.config import GeometryConfig
 
 if TYPE_CHECKING:  # pragma: no cover
     from gisworks.query.base import AbstractQuery, AbstractSpatialQuery
@@ -31,22 +29,10 @@ class PlanarizeResults(NamedTuple):
     """
     Planarize Results
     """
-    planarized: list[ShapelyPolygon]
-    polygons: list[ShapelyPolygon]
+    planarized: list[Polygon]
+    polygons: list[Polygon]
     ids: list[int]
 # End PlanarizeResults class
-
-
-class GeometryConfig(NamedTuple):
-    """
-    Geometry Configuration
-    """
-    geometry_cls: Any
-    is_multi: bool
-    filter_types: tuple[Type[ShapelyGeometry], Type[ShapelyMultipartGeometry]]
-    srs_id: int
-    combiner: Callable
-# End GeometryConfig class
 
 
 class QueryConfig(NamedTuple):

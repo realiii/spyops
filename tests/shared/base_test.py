@@ -3,14 +3,11 @@
 Tests for Base
 """
 
-from fudgeo.geometry.point import PointZM
 from pytest import mark
-from shapely import MultiPoint
-from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 
 from gisworks.shared.base import (
-    AnalysisComponents, GeometryConfig, PlanarizeResults)
+    AnalysisComponents, PlanarizeResults)
 
 pytestmark = [mark.utility]
 
@@ -28,21 +25,6 @@ def test_analysis_components_creation():
     assert qc.query is None
     assert qc.target is None
 # End test_analysis_components_creation function
-
-
-def test_geometry_config_creation():
-    """
-    Test GeometryConfig
-    """
-    oc = GeometryConfig(
-        geometry_cls=PointZM, is_multi=False,
-        filter_types=(Point, MultiPoint), srs_id=4326, combiner=lambda x: x
-    )
-    assert oc.geometry_cls is PointZM
-    assert oc.is_multi is False
-    assert oc.filter_types == (Point, MultiPoint)
-    assert oc.srs_id == 4326
-# End test_geometry_config_creation function
 
 
 def test_planarize_results():

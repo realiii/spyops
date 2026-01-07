@@ -2,12 +2,12 @@
 """
 Config tests
 """
-
+from fudgeo.geometry import PointZM
 from fudgeo.geometry.point import Point
 from pytest import mark
-from shapely import MultiPoint, Point as ShapelyPoint
+from shapely import MultiPoint, Point as ShapelyPoint, Point
 
-from gisworks.geometry.config import geometry_config
+from gisworks.geometry.config import GeometryConfig, geometry_config
 
 pytestmark = [mark.geometry]
 
@@ -23,6 +23,21 @@ def test_geometry_config(inputs, world_features):
     assert config.filter_types == (ShapelyPoint, MultiPoint)
     assert config.srs_id == 4326
 # End test_geometry_config function
+
+
+def test_geometry_config_creation():
+    """
+    Test GeometryConfig
+    """
+    oc = GeometryConfig(
+        geometry_cls=PointZM, is_multi=False,
+        filter_types=(Point, MultiPoint), srs_id=4326, combiner=lambda x: x
+    )
+    assert oc.geometry_cls is PointZM
+    assert oc.is_multi is False
+    assert oc.filter_types == (Point, MultiPoint)
+    assert oc.srs_id == 4326
+# End test_geometry_config_creation function
 
 
 if __name__ == '__main__':  # pragma: no cover
