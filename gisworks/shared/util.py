@@ -4,6 +4,7 @@ Utilities
 """
 
 
+from enum import StrEnum
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
@@ -150,6 +151,18 @@ def as_title(setting: Setting | str | None) -> str:
         return 'XY Tolerance'
     return str(setting).replace(UNDERSCORE, SPACE).title()
 # End as_title function
+
+
+def check_enumeration(value: Any, enum: type[StrEnum]) -> Any:
+    """
+    Check Enumeration
+    """
+    if isinstance(value, enum):
+        return value
+    if isinstance(value, str):
+        return enum(value.casefold())
+    return enum(value)
+# End check_enumeration function
 
 
 if __name__ == '__main__':  # pragma: no cover
