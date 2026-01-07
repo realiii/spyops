@@ -38,7 +38,7 @@ class AlgorithmOption(StrEnum):
 # End AlgorithmOption class
 
 
-class OutputTypeOption(StrEnum,):
+class OutputTypeOption(StrEnum):
     """
     Output Type Option
     """
