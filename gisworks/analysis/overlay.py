@@ -10,8 +10,9 @@ from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from shapely import STRtree, set_precision
-from shapely.io import from_wkb
 
+from gisworks.geometry.convert import get_geometry_converters
+from gisworks.geometry.util import filter_features, to_shapely
 from gisworks.query.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise)
 from gisworks.shared.constant import (
@@ -19,7 +20,6 @@ from gisworks.shared.constant import (
     TARGET)
 from gisworks.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
-from gisworks.shared.geometry import get_geometry_converters
 from gisworks.shared.hint import XY_TOL
 from gisworks.shared.util import extend_records
 from gisworks.shared.validation import (
@@ -55,7 +55,9 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = [from_wkb(g.wkb) for g, *_ in features]
+            if not (features := filter_features(features)):
+                continue
+            geometries = to_shapely(features)
             intersects = geometry.intersects(geometries)
             keepers = [f for f, i in zip(features, intersects) if not i]
             geoms = [g for g, i in zip(geometries, intersects) if not i]
@@ -116,8 +118,10 @@ def intersect(source: FeatureClass, operator: FeatureClass,
     with query.operator.geopackage.connection as cin:
         cursor = cin.execute(query.select_operator)
         while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
             op_features.extend(features)
-            op_geoms.extend([from_wkb(g.wkb) for g, *_ in op_features])
+            op_geoms.extend(to_shapely(features))
     op_geoms = op_convert(op_geoms)
     records = []
     insert_sql = query.insert
@@ -127,7 +131,9 @@ def intersect(source: FeatureClass, operator: FeatureClass,
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = src_convert([from_wkb(g.wkb) for g, *_ in features])
+            if not (features := filter_features(features)):
+                continue
+            geometries = src_convert(to_shapely(features))
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 continue

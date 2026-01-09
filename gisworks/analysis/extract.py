@@ -9,8 +9,8 @@ from typing import Callable
 from fudgeo import FeatureClass, Table, Field
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from shapely.io import from_wkb
 
+from gisworks.geometry.util import filter_features, to_shapely
 from gisworks.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
 from gisworks.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
@@ -152,7 +152,9 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = [from_wkb(g.wkb) for g, *_ in features]
+            if not (features := filter_features(features)):
+                continue
+            geometries = to_shapely(features)
             intersects = geometry.intersects(geometries)
             if not intersects.any():
                 continue
