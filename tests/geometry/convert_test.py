@@ -4,7 +4,7 @@ Tests for Geometry Convert Module
 """
 
 
-from math import isnan
+from math import nan
 
 from fudgeo.constant import WGS84
 from fudgeo.geometry.linestring import (
@@ -16,21 +16,30 @@ from fudgeo.geometry.point import (
 from fudgeo.geometry.polygon import (
     MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
-from pytest import mark
-from shapely import (
-    LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString,
-    Point as ShapelyPoint, MultiPoint as ShapelyMultiPoint,
-    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon)
-from shapely.coordinates import get_coordinates
+from numpy import array, isnan, ndarray
+from pytest import approx, mark
 from shapely.io import from_wkb
 
 from gisworks.geometry.convert import (
-    _as_lines, _use_boundary_factory, get_geometry_converters)
+    _as_lines, _use_boundary_factory, cast_line_strings,
+    cast_multi_line_strings, cast_multi_points, cast_multi_polygons,
+    cast_points, cast_polygons, get_geometry_converters, _find_slice_indexes,
+    _update_z_values)
 from gisworks.geometry.util import nada
-from gisworks.shared.enumeration import OutputTypeOption
-
+from gisworks.shared.enumeration import OutputTypeOption, Setting
+from gisworks.shared.setting import Swap
 
 pytestmark = [mark.geometry]
+
+
+def _summer(values: list | ndarray):
+    """
+    Sum list
+    """
+    if hasattr(values, 'tolist'):
+        values = values.tolist()
+    return sum(values, [])
+# End _summer function
 
 
 @mark.parametrize('output_type_option, source_name, operator_name, expected', [
@@ -93,218 +102,302 @@ def test_get_geometry_converters(inputs, output_type_option, source_name, operat
 # End test_get_geometry_converters function
 
 
-@mark.parametrize('pt, values', [
-    (Point(x=1, y=2, srs_id=WGS84), (1, 2)),
-    (Point.from_tuple((1, 2), srs_id=WGS84), (1, 2)),
-    (PointZ(x=1, y=2, z=3, srs_id=WGS84), (1, 2, 3)),
-    (PointZ.from_tuple((1, 2, 3), srs_id=WGS84), (1, 2, 3)),
-    (PointM(x=1, y=2, m=3, srs_id=WGS84), (1, 2, 3)),
-    (PointM.from_tuple((1, 2, 3), srs_id=WGS84), (1, 2, 3)),
-    (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), (1, 2, 3, 4)),
-    (PointZM.from_tuple((1, 2, 3, 4), srs_id=WGS84), (1, 2, 3, 4)),
+@mark.parametrize('indexes, expected', [
+    ([], ()),
+    ([0, 0, 1, 1], (0, 2, 4)),
+    ([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2], (0, 3, 8, 12)),
 ])
-def test_point(pt, values):
+def test_find_slice_indexes(indexes, expected):
     """
-    Test Point
+    Test _find_slice_indexes
     """
-    assert pt.as_tuple() == values
-    shapely_geom = from_wkb(pt.wkb)
-    assert isinstance(shapely_geom, ShapelyPoint)
-    coords, = get_coordinates(shapely_geom, include_z=True, include_m=True)
-    assert tuple(c for c in coords if not isnan(c)) == values
-# End test_point function
+    assert _find_slice_indexes(array(indexes, dtype=int)) == expected
+# End test_find_slice_indexes function
 
 
-@mark.parametrize('cls, values', [
-    (MultiPoint, [(0, 1), (10, 11)]),
-    (MultiPointZ, [(0, 1, 2), (10, 11, 12)]),
-    (MultiPointM, [(0, 1, 2), (10, 11, 12)]),
-    (MultiPointZM, [(0, 1, 2, 3), (10, 11, 12, 13)]),
+@mark.parametrize('has_z, z_value, expected', [
+    (False, nan, True),
+    (True, nan, True),
+    (False, 1, True),
+    (True, 1, False),
 ])
-def test_multi_point(cls, values):
+def test_update_z_values(has_z, z_value, expected):
     """
-    Test multi point
+    Test update z value
     """
-    fudgeo_geom = cls(values, srs_id=WGS84)
-    assert (fudgeo_geom.coordinates == values).all()
-    shapely_geom = from_wkb(fudgeo_geom.wkb)
-    assert isinstance(shapely_geom, ShapelyMultiPoint)
-    first, second = get_coordinates(shapely_geom, include_z=True, include_m=True)
-    assert tuple(c for c in first if not isnan(c)) == values[0]
-    assert tuple(c for c in second if not isnan(c)) == values[1]
+    data = array([(1, 2, nan), (3, 4, nan), (5, 6, nan)], dtype=float)
+    with Swap(Setting.Z_VALUE, z_value):
+        _update_z_values(data, has_z=has_z)
+    assert bool(isnan(data[:, 2]).all()) is expected
+# End test_update_z_value function
+
+
+@mark.parametrize('pt, has_z, has_m, values', [
+    (Point(x=1, y=2, srs_id=WGS84), False, False, (1, 2)),
+    (Point(x=1, y=2, srs_id=WGS84), True, False, (1, 2, nan)),
+    (Point(x=1, y=2, srs_id=WGS84), False, True, (1, 2, nan)),
+    (Point(x=1, y=2, srs_id=WGS84), True, True, (1, 2, nan, nan)),
+    (PointZ(x=1, y=2, z=3, srs_id=WGS84), False, False, (1, 2)),
+    (PointZ(x=1, y=2, z=3, srs_id=WGS84), True, False, (1, 2, 3)),
+    (PointZ(x=1, y=2, z=3, srs_id=WGS84), False, True, (1, 2, nan)),
+    (PointZ(x=1, y=2, z=3, srs_id=WGS84), True, True, (1, 2, 3, nan)),
+    (PointM(x=1, y=2, m=4, srs_id=WGS84), False, False, (1, 2)),
+    (PointM(x=1, y=2, m=4, srs_id=WGS84), True, False, (1, 2, nan)),
+    (PointM(x=1, y=2, m=4, srs_id=WGS84), False, True, (1, 2, 4)),
+    (PointM(x=1, y=2, m=4, srs_id=WGS84), True, True, (1, 2, nan, 4)),
+    (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), False, False, (1, 2)),
+    (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), True, False, (1, 2, 3)),
+    (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), False, True, (1, 2, 4)),
+    (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), True, True, (1, 2, 3, 4)),
+])
+def test_cast_point(pt, has_z, has_m, values):
+    """
+    Test Point casting
+    """
+    spt = from_wkb(pt.wkb)
+    results = cast_points([spt], srs_id=pt.srs_id, has_z=has_z, has_m=has_m)
+    assert len(results) == 1
+    cpt, = results
+    if has_m:
+        assert 'm' in cpt.__slots__
+    if has_z:
+        assert 'z' in cpt.__slots__
+    coords = cpt.as_tuple()
+    assert len(coords) == len(values)
+    assert approx(coords, nan_ok=True) == values
+# End test_cast_point function
+
+
+@mark.parametrize('cls, values, has_z, has_m, expected', [
+    (MultiPoint, [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]], False, False,
+     [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]]),
+    (MultiPoint, [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]], True, False,
+     [[(0, 1, nan)], [(10, 11, nan), (20, 21, nan)], [(100, 101, nan), (200, 201, nan), (300, 301, nan)]]),
+    (MultiPoint, [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]], False, True,
+     [[(0, 1, nan)], [(10, 11, nan), (20, 21, nan)], [(100, 101, nan), (200, 201, nan), (300, 301, nan)]]),
+    (MultiPoint, [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]], True, True,
+     [[(0, 1, nan, nan)], [(10, 11, nan, nan), (20, 21, nan, nan)], [(100, 101, nan, nan), (200, 201, nan, nan), (300, 301, nan, nan)]]),
+    (MultiPointZ, [[(0, 1, 2)], [(10, 11, 12), (20, 21, 22)], [(100, 101, 102), (200, 201, 202), (300, 301, 302)]], False, False,
+     [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]]),
+    (MultiPointZ, [[(0, 1, 2)], [(10, 11, 12), (20, 21, 22)], [(100, 101, 102), (200, 201, 202), (300, 301, 302)]], True, False,
+     [[(0, 1, 2)], [(10, 11, 12), (20, 21, 22)], [(100, 101, 102), (200, 201, 202), (300, 301, 302)]]),
+    (MultiPointZ, [[(0, 1, 2)], [(10, 11, 12), (20, 21, 22)], [(100, 101, 102), (200, 201, 202), (300, 301, 302)]], False, True,
+     [[(0, 1, nan)], [(10, 11, nan), (20, 21, nan)], [(100, 101, nan), (200, 201, nan), (300, 301, nan)]]),
+    (MultiPointZ, [[(0, 1, 2)], [(10, 11, 12), (20, 21, 22)], [(100, 101, 102), (200, 201, 202), (300, 301, 302)]], True, True,
+     [[(0, 1, 2, nan)], [(10, 11, 12, nan), (20, 21, 22, nan)], [(100, 101, 102, nan), (200, 201, 202, nan), (300, 301, 302, nan)]]),
+    (MultiPointM, [[(0, 1, 3)], [(10, 11, 13), (20, 21, 23)], [(100, 101, 103), (200, 201, 203), (300, 301, 303)]], False, False,
+     [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]]),
+    (MultiPointM, [[(0, 1, 3)], [(10, 11, 13), (20, 21, 23)], [(100, 101, 103), (200, 201, 203), (300, 301, 303)]], True, False,
+     [[(0, 1, nan)], [(10, 11, nan), (20, 21, nan)], [(100, 101, nan), (200, 201, nan), (300, 301, nan)]]),
+    (MultiPointM, [[(0, 1, 3)], [(10, 11, 13), (20, 21, 23)], [(100, 101, 103), (200, 201, 203), (300, 301, 303)]], False, True,
+     [[(0, 1, 3)], [(10, 11, 13), (20, 21, 23)], [(100, 101, 103), (200, 201, 203), (300, 301, 303)]]),
+    (MultiPointM, [[(0, 1, 3)], [(10, 11, 13), (20, 21, 23)], [(100, 101, 103), (200, 201, 203), (300, 301, 303)]], True, True,
+     [[(0, 1, nan, 3)], [(10, 11, nan, 13), (20, 21, nan, 23)], [(100, 101, nan, 103), (200, 201, nan, 203), (300, 301, nan, 303)]]),
+    (MultiPointZM, [[(0, 1, 2, 3)], [(10, 11, 12, 13), (20, 21, 22, 23)], [(100, 101, 102, 103), (200, 201, 202, 203), (300, 301, 302, 303)]], False, False,
+     [[(0, 1)], [(10, 11), (20, 21)], [(100, 101), (200, 201), (300, 301)]]),
+    (MultiPointZM, [[(0, 1, 2, 3)], [(10, 11, 12, 13), (20, 21, 22, 23)], [(100, 101, 102, 103), (200, 201, 202, 203), (300, 301, 302, 303)]], True, False,
+     [[(0, 1, 2)], [(10, 11, 12), (20, 21, 22)], [(100, 101, 102), (200, 201, 202), (300, 301, 302)]]),
+    (MultiPointZM, [[(0, 1, 2, 3)], [(10, 11, 12, 13), (20, 21, 22, 23)], [(100, 101, 102, 103), (200, 201, 202, 203), (300, 301, 302, 303)]], False, True,
+     [[(0, 1, 3)], [(10, 11, 13), (20, 21, 23)], [(100, 101, 103), (200, 201, 203), (300, 301, 303)]]),
+    (MultiPointZM, [[(0, 1, 2, 3)], [(10, 11, 12, 13), (20, 21, 22, 23)], [(100, 101, 102, 103), (200, 201, 202, 203), (300, 301, 302, 303)]], True, True,
+     [[(0, 1, 2, 3)], [(10, 11, 12, 13), (20, 21, 22, 23)], [(100, 101, 102, 103), (200, 201, 202, 203), (300, 301, 302, 303)]]),
+])
+def test_multi_point(cls, values, has_z, has_m, expected):
+    """
+    Test Multi Point Casting
+    """
+    geoms = [from_wkb(cls(coords, srs_id=WGS84).wkb) for coords in values]
+    results = cast_multi_points(geoms, srs_id=WGS84, has_z=has_z, has_m=has_m)
+    assert len(results) == 3
+    multi_first, multi_second, multi_third = results
+    values_first, values_second, values_third = expected
+    assert approx(_summer(multi_first.coordinates), nan_ok=True) == _summer([list(v) for v in values_first])
+    assert approx(_summer(multi_second.coordinates), nan_ok=True) == _summer([list(v) for v in values_second])
+    assert approx(_summer(multi_third.coordinates), nan_ok=True) == _summer([list(v) for v in values_third])
 # End test_multi_point function
 
 
-@mark.parametrize('cls, env_code, data', [
-    (MultiPoint, 1, b'GP\x00\x03\xe6\x10\x00\x00B\xe6\x92\xf6{\xea`\xc0\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@ \xd2|\xf6\xa5&M@\x01\x04\x00\x00\x00\x03\x00\x00\x00\x01\x01\x00\x00\x00B\xe6\x92\xf6{\xea`\xc0P\x9d\x89N\xee\x88L@\x01\x01\x00\x00\x00F/=v\x14\xcd`\xc0 \xd2|\xf6\xa5&M@\x01\x01\x00\x00\x00\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@'),
-    (MultiPoint, 1, b'GP\x00\x03\xe6\x10\x00\x00\xb8\x89x\xf0UD\\\xc0P\xe0`\x19\xe2\x1fU\xc0\x10\xc0@\\n\xa4A@8\r.\xe3\xc7\x07G@\x01\x04\x00\x00\x00\x03\x00\x00\x00\x01\x01\x00\x00\x00\xb8\x89x\xf0UD\\\xc08\r.\xe3\xc7\x07G@\x01\x01\x00\x00\x00\xdcR\x9b&\xf6\x96U\xc0\x10\xc0@\\n\xa4A@\x01\x01\x00\x00\x00P\xe0`\x19\xe2\x1fU\xc0H\x07Z\nS\x06C@'),
-    (MultiPoint, 1, b'GP\x00\x03\xe6\x10\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0\xf4\xa5\x9d\xeb\x92\xecS\xc0\xb0C\t[u)D@@\xfb0f\xfe\x9bN@\x01\x04\x00\x00\x00\x04\x00\x00\x00\x01\x01\x00\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0@\xfb0f\xfe\x9bN@\x01\x01\x00\x00\x00\xa0\x1a\x89\xdfS\x02T\xc0\xb0C\t[u)D@\x01\x01\x00\x00\x00\xd4\x06\x9b\xf8\xb2\xf0S\xc0\xc0d0\x07\x806D@\x01\x01\x00\x00\x00\xf4\xa5\x9d\xeb\x92\xecS\xc0\xe8\x95\x1f\x16\xbc6D@'),
-    (MultiPoint, 1, b'GP\x00\x03\xe6\x10\x00\x00\x1c\x06D\x9f\x07*\\\xc0\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x08K\xddQ\x80\xf3F@\x01\x04\x00\x00\x00\x04\x00\x00\x00\x01\x01\x00\x00\x00\x1c\x06D\x9f\x07*\\\xc0\x08K\xddQ\x80\xf3F@\x01\x01\x00\x00\x00\xf4\x9b\xb4i\xbf\xb1U\xc0\xd8\xd1\xc8\xecN\x15B@\x01\x01\x00\x00\x00\xdc\xc1z\x9c\x9c\xd7T\xc08\x1b\xb6\x90\xb4\xf9@@\x01\x01\x00\x00\x00\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@'),
-    (MultiPoint, 1, b'GP\x00\x03\xe6\x10\x00\x00\x98T4\xd6>{Y\xc0\x10Ov3#wS\xc0P\x890Z\xd4\xe1?@\x002\xfdJ\x9b\x86D@\x01\x04\x00\x00\x00\t\x00\x00\x00\x01\x01\x00\x00\x00\x98T4\xd6>{Y\xc0@$q3u=C@\x01\x01\x00\x00\x00$\x1cz\x8b\x07\x00W\xc0\x002\xfdJ\x9b\x86D@\x01\x01\x00\x00\x00\x90 \\\x01\x05\x18V\xc0PC"\xa7\x8e;D@\x01\x01\x00\x00\x00\xb8\x9d\x0eH\x08\x8aU\xc0`ds\x89.2B@\x01\x01\x00\x00\x00\x88X\xc4\xb0CkU\xc0\xa8\xed\xd8\xd5\xd2\x10C@\x01\x01\x00\x00\x00\xe8\xd2&Q\xc6FU\xc0P\x890Z\xd4\xe1?@\x01\x01\x00\x00\x00<\xb5\x85\xdds1U\xc0\xa0\xb0\xd6S"\'@@\x01\x01\x00\x00\x00\xec\xac\x99YD#U\xc0\xe8\xab\x17\xc2\xf8\x05@@\x01\x01\x00\x00\x00\x10Ov3#wS\xc0Hz_\x9c\x85\xa6C@'),
-    (MultiPointZ, 2, b'GP\x00\x05\xe6\x10\x00\x00B\xe6\x92\xf6{\xea`\xc0\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@ \xd2|\xf6\xa5&M@\x00\x00\x00\x00\x80\x1c\xc8@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xec\x03\x00\x00\x03\x00\x00\x00\x01\xe9\x03\x00\x00B\xe6\x92\xf6{\xea`\xc0P\x9d\x89N\xee\x88L@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00F/=v\x14\xcd`\xc0 \xd2|\xf6\xa5&M@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@\x00\x00\x00\x00\x80\x1c\xc8@'),
-    (MultiPointZ, 2, b'GP\x00\x05\xe6\x10\x00\x00\xb8\x89x\xf0UD\\\xc0P\xe0`\x19\xe2\x1fU\xc0\x10\xc0@\\n\xa4A@8\r.\xe3\xc7\x07G@\x00\x00\x00\x00\x80\x1c\xc8@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xec\x03\x00\x00\x03\x00\x00\x00\x01\xe9\x03\x00\x00\xb8\x89x\xf0UD\\\xc08\r.\xe3\xc7\x07G@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xdcR\x9b&\xf6\x96U\xc0\x10\xc0@\\n\xa4A@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00P\xe0`\x19\xe2\x1fU\xc0H\x07Z\nS\x06C@\x00\x00\x00\x00\x80\x1c\xc8@'),
-    (MultiPointZ, 2, b'GP\x00\x05\xe6\x10\x00\x00\x1c\x06D\x9f\x07*\\\xc0\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x08K\xddQ\x80\xf3F@\x00\x00\x00\x00\x80\x1c\xc8@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xec\x03\x00\x00\x04\x00\x00\x00\x01\xe9\x03\x00\x00\x1c\x06D\x9f\x07*\\\xc0\x08K\xddQ\x80\xf3F@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xf4\x9b\xb4i\xbf\xb1U\xc0\xd8\xd1\xc8\xecN\x15B@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xdc\xc1z\x9c\x9c\xd7T\xc08\x1b\xb6\x90\xb4\xf9@@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x00\x00\x00\x00\x80\x1c\xc8@'),
-    (MultiPointZ, 2, b'GP\x00\x05\xe6\x10\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0\xf4\xa5\x9d\xeb\x92\xecS\xc0\xb0C\t[u)D@@\xfb0f\xfe\x9bN@\x00\x00\x00\x00\x80\x1c\xc8@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xec\x03\x00\x00\x04\x00\x00\x00\x01\xe9\x03\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0@\xfb0f\xfe\x9bN@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xa0\x1a\x89\xdfS\x02T\xc0\xb0C\t[u)D@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xd4\x06\x9b\xf8\xb2\xf0S\xc0\xc0d0\x07\x806D@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xf4\xa5\x9d\xeb\x92\xecS\xc0\xe8\x95\x1f\x16\xbc6D@\x00\x00\x00\x00\x80\x1c\xc8@'),
-    (MultiPointZ, 2, b'GP\x00\x05\xe6\x10\x00\x00\x98T4\xd6>{Y\xc0\x10Ov3#wS\xc0P\x890Z\xd4\xe1?@\x002\xfdJ\x9b\x86D@\x00\x00\x00\x00\x80\x1c\xc8@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xec\x03\x00\x00\t\x00\x00\x00\x01\xe9\x03\x00\x00\x98T4\xd6>{Y\xc0@$q3u=C@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00$\x1cz\x8b\x07\x00W\xc0\x002\xfdJ\x9b\x86D@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\x90 \\\x01\x05\x18V\xc0PC"\xa7\x8e;D@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xb8\x9d\x0eH\x08\x8aU\xc0`ds\x89.2B@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\x88X\xc4\xb0CkU\xc0\xa8\xed\xd8\xd5\xd2\x10C@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xe8\xd2&Q\xc6FU\xc0P\x890Z\xd4\xe1?@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00<\xb5\x85\xdds1U\xc0\xa0\xb0\xd6S"\'@@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\xec\xac\x99YD#U\xc0\xe8\xab\x17\xc2\xf8\x05@@\x00\x00\x00\x00\x80\x1c\xc8@\x01\xe9\x03\x00\x00\x10Ov3#wS\xc0Hz_\x9c\x85\xa6C@\x00\x00\x00\x00\x80\x1c\xc8@'),
-    (MultiPointM, 3, b'GP\x00\x07\xe6\x10\x00\x00B\xe6\x92\xf6{\xea`\xc0\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@ \xd2|\xf6\xa5&M@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd4\x07\x00\x00\x03\x00\x00\x00\x01\xd1\x07\x00\x00B\xe6\x92\xf6{\xea`\xc0P\x9d\x89N\xee\x88L@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00F/=v\x14\xcd`\xc0 \xd2|\xf6\xa5&M@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointM, 3, b'GP\x00\x07\xe6\x10\x00\x00\xb8\x89x\xf0UD\\\xc0P\xe0`\x19\xe2\x1fU\xc0\x10\xc0@\\n\xa4A@8\r.\xe3\xc7\x07G@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd4\x07\x00\x00\x03\x00\x00\x00\x01\xd1\x07\x00\x00\xb8\x89x\xf0UD\\\xc08\r.\xe3\xc7\x07G@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xdcR\x9b&\xf6\x96U\xc0\x10\xc0@\\n\xa4A@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00P\xe0`\x19\xe2\x1fU\xc0H\x07Z\nS\x06C@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointM, 3, b'GP\x00\x07\xe6\x10\x00\x00\x1c\x06D\x9f\x07*\\\xc0\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x08K\xddQ\x80\xf3F@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd4\x07\x00\x00\x04\x00\x00\x00\x01\xd1\x07\x00\x00\x1c\x06D\x9f\x07*\\\xc0\x08K\xddQ\x80\xf3F@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xf4\x9b\xb4i\xbf\xb1U\xc0\xd8\xd1\xc8\xecN\x15B@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xdc\xc1z\x9c\x9c\xd7T\xc08\x1b\xb6\x90\xb4\xf9@@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointM, 3, b'GP\x00\x07\xe6\x10\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0\xf4\xa5\x9d\xeb\x92\xecS\xc0\xb0C\t[u)D@@\xfb0f\xfe\x9bN@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd4\x07\x00\x00\x04\x00\x00\x00\x01\xd1\x07\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0@\xfb0f\xfe\x9bN@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xa0\x1a\x89\xdfS\x02T\xc0\xb0C\t[u)D@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xd4\x06\x9b\xf8\xb2\xf0S\xc0\xc0d0\x07\x806D@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xf4\xa5\x9d\xeb\x92\xecS\xc0\xe8\x95\x1f\x16\xbc6D@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointM, 3, b'GP\x00\x07\xe6\x10\x00\x00\x98T4\xd6>{Y\xc0\x10Ov3#wS\xc0P\x890Z\xd4\xe1?@\x002\xfdJ\x9b\x86D@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd4\x07\x00\x00\t\x00\x00\x00\x01\xd1\x07\x00\x00\x98T4\xd6>{Y\xc0@$q3u=C@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00$\x1cz\x8b\x07\x00W\xc0\x002\xfdJ\x9b\x86D@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\x90 \\\x01\x05\x18V\xc0PC"\xa7\x8e;D@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xb8\x9d\x0eH\x08\x8aU\xc0`ds\x89.2B@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\x88X\xc4\xb0CkU\xc0\xa8\xed\xd8\xd5\xd2\x10C@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xe8\xd2&Q\xc6FU\xc0P\x890Z\xd4\xe1?@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00<\xb5\x85\xdds1U\xc0\xa0\xb0\xd6S"\'@@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\xec\xac\x99YD#U\xc0\xe8\xab\x17\xc2\xf8\x05@@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xd1\x07\x00\x00\x10Ov3#wS\xc0Hz_\x9c\x85\xa6C@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointZM, 4, b'GP\x00\t\xe6\x10\x00\x00B\xe6\x92\xf6{\xea`\xc0\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@ \xd2|\xf6\xa5&M@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xbc\x0b\x00\x00\x03\x00\x00\x00\x01\xb9\x0b\x00\x00B\xe6\x92\xf6{\xea`\xc0P\x9d\x89N\xee\x88L@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00F/=v\x14\xcd`\xc0 \xd2|\xf6\xa5&M@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xe8\xed\xe1(\xaf\x8b`\xc0h\x1aY\x0eA;L@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointZM, 4, b'GP\x00\t\xe6\x10\x00\x00\xb8\x89x\xf0UD\\\xc0P\xe0`\x19\xe2\x1fU\xc0\x10\xc0@\\n\xa4A@8\r.\xe3\xc7\x07G@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xbc\x0b\x00\x00\x03\x00\x00\x00\x01\xb9\x0b\x00\x00\xb8\x89x\xf0UD\\\xc08\r.\xe3\xc7\x07G@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xdcR\x9b&\xf6\x96U\xc0\x10\xc0@\\n\xa4A@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00P\xe0`\x19\xe2\x1fU\xc0H\x07Z\nS\x06C@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointZM, 4, b'GP\x00\t\xe6\x10\x00\x00\x1c\x06D\x9f\x07*\\\xc0\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x08K\xddQ\x80\xf3F@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xbc\x0b\x00\x00\x04\x00\x00\x00\x01\xb9\x0b\x00\x00\x1c\x06D\x9f\x07*\\\xc0\x08K\xddQ\x80\xf3F@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xf4\x9b\xb4i\xbf\xb1U\xc0\xd8\xd1\xc8\xecN\x15B@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xdc\xc1z\x9c\x9c\xd7T\xc08\x1b\xb6\x90\xb4\xf9@@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xbc\xf9\xfb/\xb1~T\xc0P\xdc\x86\xf8\xd7\xbc@@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointZM, 4, b'GP\x00\t\xe6\x10\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0\xf4\xa5\x9d\xeb\x92\xecS\xc0\xb0C\t[u)D@@\xfb0f\xfe\x9bN@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xbc\x0b\x00\x00\x04\x00\x00\x00\x01\xb9\x0b\x00\x00\xa6\xfa\xb4\xdb\xc5\xbbb\xc0@\xfb0f\xfe\x9bN@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xa0\x1a\x89\xdfS\x02T\xc0\xb0C\t[u)D@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xd4\x06\x9b\xf8\xb2\xf0S\xc0\xc0d0\x07\x806D@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xf4\xa5\x9d\xeb\x92\xecS\xc0\xe8\x95\x1f\x16\xbc6D@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
-    (MultiPointZM, 4, b'GP\x00\t\xe6\x10\x00\x00\x98T4\xd6>{Y\xc0\x10Ov3#wS\xc0P\x890Z\xd4\xe1?@\x002\xfdJ\x9b\x86D@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xbc\x0b\x00\x00\t\x00\x00\x00\x01\xb9\x0b\x00\x00\x98T4\xd6>{Y\xc0@$q3u=C@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00$\x1cz\x8b\x07\x00W\xc0\x002\xfdJ\x9b\x86D@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\x90 \\\x01\x05\x18V\xc0PC"\xa7\x8e;D@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xb8\x9d\x0eH\x08\x8aU\xc0`ds\x89.2B@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\x88X\xc4\xb0CkU\xc0\xa8\xed\xd8\xd5\xd2\x10C@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xe8\xd2&Q\xc6FU\xc0P\x890Z\xd4\xe1?@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00<\xb5\x85\xdds1U\xc0\xa0\xb0\xd6S"\'@@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\xec\xac\x99YD#U\xc0\xe8\xab\x17\xc2\xf8\x05@@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f\x01\xb9\x0b\x00\x00\x10Ov3#wS\xc0Hz_\x9c\x85\xa6C@\x00\x00\x00\x00\x00\xd7\xb1@\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+@mark.parametrize('cls, values, has_z, has_m, expected', [
+    (LineString, [(0, 1), (10, 11)], False, False, [(0, 1), (10, 11)]),
+    (LineString, [(0, 1), (10, 11)], True, False, [(0, 1, nan), (10, 11, nan)]),
+    (LineString, [(0, 1), (10, 11)], False, True, [(0, 1, nan), (10, 11, nan)]),
+    (LineString, [(0, 1), (10, 11)], True, True, [(0, 1, nan, nan), (10, 11, nan, nan)]),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], False, False, [(0, 1), (10, 11)]),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], True, False, [(0, 1, 2), (10, 11, 12)]),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], False, True, [(0, 1, nan), (10, 11, nan)]),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], True, True, [(0, 1, 2, nan), (10, 11, 12, nan)]),
+    (LineStringM, [(0, 1, 3), (10, 11, 13)], False, False, [(0, 1), (10, 11)]),
+    (LineStringM, [(0, 1, 3), (10, 11, 13)], True, False, [(0, 1, nan), (10, 11, nan)]),
+    (LineStringM, [(0, 1, 3), (10, 11, 13)], False, True, [(0, 1, 3), (10, 11, 13)]),
+    (LineStringM, [(0, 1, 3), (10, 11, 13)], True, True, [(0, 1, nan, 3), (10, 11, nan, 13)]),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], False, False, [(0, 1), (10, 11)]),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], True, False, [(0, 1, 2), (10, 11, 12)]),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], False, True, [(0, 1, 3), (10, 11, 13)]),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], True, True, [(0, 1, 2, 3), (10, 11, 12, 13)]),
 ])
-def test_multi_point_dimension(cls, env_code, data):
+def test_line_string(cls, values, has_z, has_m, expected):
     """
-    Test Multi Point Envelope
+    Test line string casting
     """
-    pts = cls.from_gpkg(data)
-    assert not pts.is_empty
-
-    spts = from_wkb(pts.wkb)
-    assert isinstance(spts, ShapelyMultiPoint)
-    if env_code == 1:
-        assert not spts.has_z
-        assert not spts.has_m
-    elif env_code == 2:
-        assert spts.has_z
-        assert not spts.has_m
-    elif env_code == 3:
-        assert not spts.has_z
-        assert spts.has_m
-    else:
-        assert spts.has_z
-        assert spts.has_m
-# End test_multi_point_dimension function
-
-
-@mark.parametrize('cls, values', [
-    (LineString, [(0, 1), (10, 11)]),
-    (LineStringZ, [(0, 1, 2), (10, 11, 12)]),
-    (LineStringM, [(0, 1, 2), (10, 11, 12)]),
-    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)]),
-])
-def test_line_string(cls, values):
-    """
-    Test line string wkb
-    """
-    fudgeo_geom = cls(values, srs_id=WGS84)
-    assert (fudgeo_geom.coordinates == values).all()
-    shapely_geom = from_wkb(fudgeo_geom.wkb)
-    assert isinstance(shapely_geom, ShapelyLineString)
-    assert not shapely_geom.is_empty
-    coordinates = get_coordinates(shapely_geom, include_z=True, include_m=True)
-    compares = [tuple(c for c in coords if not isnan(c)) for coords in coordinates]
-    assert compares == values
+    geom = from_wkb(cls(values, srs_id=WGS84).wkb)
+    results = cast_line_strings([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
+    assert len(results) == 1
+    line, = results
+    assert approx(_summer(line.coordinates), nan_ok=True) == _summer([list(v) for v in expected])
 # End test_line_string function
 
 
-@mark.parametrize('cls, values, env_code', [
-    (MultiLineString, [[(0, 0), (1, 1)], [(10, 12), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]], 1),
-    (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 12, 13), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]], 2),
-    (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 12, 13), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]], 3),
-    (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 12, 13, 14), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]], 4),
+@mark.parametrize('cls, values, has_z, has_m, expected', [
+    (MultiLineString, [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]], False, False,
+     [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]]),
+    (MultiLineString, [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]], True, False,
+     [[(0, 0, nan), (1, 1, nan)], [(10, 11, nan), (15, 16, nan)], [(45, 55, nan), (75, 85, nan)], [(4.4, 5.5, nan), (7.7, 8.8, nan)]]),
+    (MultiLineString, [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]], False, True,
+     [[(0, 0, nan), (1, 1, nan)], [(10, 11, nan), (15, 16, nan)], [(45, 55, nan), (75, 85, nan)], [(4.4, 5.5, nan), (7.7, 8.8, nan)]]),
+    (MultiLineString, [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]], True, True,
+     [[(0, 0, nan, nan), (1, 1, nan, nan)], [(10, 11, nan, nan), (15, 16, nan, nan)], [(45, 55, nan, nan), (75, 85, nan, nan)], [(4.4, 5.5, nan, nan), (7.7, 8.8, nan, nan)]]),
+    (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 12), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]], False, False,
+     [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]]),
+    (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 12), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]], True, False,
+     [[(0, 0, 0), (1, 1, 1)], [(10, 11, 12), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]]),
+    (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 12), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]], False, True,
+     [[(0, 0, nan), (1, 1, nan)], [(10, 11, nan), (15, 16, nan)], [(45, 55, nan), (75, 85, nan)], [(4.4, 5.5, nan), (7.7, 8.8, nan)]]),
+    (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 12), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]], True, True,
+     [[(0, 0, 0, nan), (1, 1, 1, nan)], [(10, 11, 12, nan), (15, 16, 17, nan)], [(45, 55, 65, nan), (75, 85, 95, nan)], [(4.4, 5.5, 6.6, nan), (7.7, 8.8, 9.9, nan)]]),
+    (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 13), (15, 16, 18)], [(45, 55, 75), (75, 85, 105)], [(4.4, 5.5, 7.7), (7.7, 8.8, 10.1)]], False, False,
+     [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]]),
+    (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 13), (15, 16, 18)], [(45, 55, 75), (75, 85, 105)], [(4.4, 5.5, 7.7), (7.7, 8.8, 10.1)]], True, False,
+     [[(0, 0, nan), (1, 1, nan)], [(10, 11, nan), (15, 16, nan)], [(45, 55, nan), (75, 85, nan)], [(4.4, 5.5, nan), (7.7, 8.8, nan)]]),
+    (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 13), (15, 16, 18)], [(45, 55, 75), (75, 85, 105)], [(4.4, 5.5, 7.7), (7.7, 8.8, 10.1)]], False, True,
+     [[(0, 0, 0), (1, 1, 1)], [(10, 11, 13), (15, 16, 18)], [(45, 55, 75), (75, 85, 105)], [(4.4, 5.5, 7.7), (7.7, 8.8, 10.1)]]),
+    (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 11, 13), (15, 16, 18)], [(45, 55, 75), (75, 85, 105)], [(4.4, 5.5, 7.7), (7.7, 8.8, 10.1)]], True, True,
+     [[(0, 0, nan, 0), (1, 1, nan, 1)], [(10, 11, nan, 13), (15, 16, nan, 18)], [(45, 55, nan, 75), (75, 85, nan, 105)], [(4.4, 5.5, nan, 7.7), (7.7, 8.8, nan, 10.1)]]),
+    (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 11, 12, 13), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]], False, False,
+     [[(0, 0), (1, 1)], [(10, 11), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]]),
+    (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 11, 12, 13), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]], True, False,
+     [[(0, 0, 0), (1, 1, 1)], [(10, 11, 12), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]]),
+    (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 11, 12, 13), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]], False, True,
+     [[(0, 0, 0), (1, 1, 1)], [(10, 11, 13), (15, 16, 18)], [(45, 55, 75), (75, 85, 105)], [(4.4, 5.5, 7.7), (7.7, 8.8, 10.1)]]),
+    (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 11, 12, 13), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]], True, True,
+     [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 11, 12, 13), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]]),
 ])
-def test_multi_line_string(cls, values, env_code):
+def test_multi_line_string(cls, values, has_z, has_m, expected):
     """
-    Test multi line string wkb
+    Test multi line string casting
     """
-    fudgeo_geom = cls(values, srs_id=WGS84)
-    assert isinstance(fudgeo_geom, cls)
+    geom = from_wkb(cls(values, srs_id=WGS84).wkb)
+    results = cast_multi_line_strings([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
+    assert len(results) == 1
+    multi, = results
+    line1, line2, line3, line4 = multi.lines
+    values1, values2, values3, values4 = expected
 
-    shapely_geom = from_wkb(fudgeo_geom.wkb)
-    assert isinstance(shapely_geom, ShapelyMultiLineString)
-    assert not shapely_geom.is_empty
-
-    if env_code == 1:
-        assert not shapely_geom.has_z
-        assert not shapely_geom.has_m
-    elif env_code == 2:
-        assert shapely_geom.has_z
-        assert not shapely_geom.has_m
-    elif env_code == 3:
-        assert not shapely_geom.has_z
-        assert shapely_geom.has_m
-    else:
-        assert shapely_geom.has_z
-        assert shapely_geom.has_m
-
-    coordinates = get_coordinates(shapely_geom, include_z=True, include_m=True)
-    compares = [tuple(c for c in coords if not isnan(c)) for coords in coordinates]
-    assert compares == sum(values, [])
+    assert approx(_summer(line1.coordinates), nan_ok=True) == _summer([list(v) for v in values1])
+    assert approx(_summer(line2.coordinates), nan_ok=True) == _summer([list(v) for v in values2])
+    assert approx(_summer(line3.coordinates), nan_ok=True) == _summer([list(v) for v in values3])
+    assert approx(_summer(line4.coordinates), nan_ok=True) == _summer([list(v) for v in values4])
 # End test_multi_line_string function
 
 
-@mark.parametrize('cls, values, env_code', [
-    (Polygon, [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], 1),
-    (PolygonZ, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], 2),
-    (PolygonM, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], 3),
-    (PolygonZM, [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]], 4),
+@mark.parametrize('cls, values, has_z, has_m, expected', [
+    (Polygon, [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], False, False,
+     [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]),
+    (Polygon, [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], True, False,
+     [[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)], [(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]),
+    (Polygon, [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], False, True,
+     [[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)], [(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]),
+    (Polygon, [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], True, True,
+     [[(0, 0, nan, nan), (0, 1, nan, nan), (1, 1, nan, nan), (1, 0, nan, nan), (0, 0, nan, nan)], [(5, 5, nan, nan), (5, 15, nan, nan), (15, 15, nan, nan), (15, 5, nan, nan), (5, 5, nan, nan)]]),
+    (PolygonZ, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], False, False,
+     [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]),
+    (PolygonZ, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], True, False,
+     [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]),
+    (PolygonZ, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], False, True,
+     [[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)], [(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]),
+    (PolygonZ, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], True, True,
+     [[(0, 0, 0, nan), (0, 1, 1, nan), (1, 1, 1, nan), (1, 0, 1, nan), (0, 0, 0, nan)], [(5, 5, 5, nan), (5, 15, 10, nan), (15, 15, 15, nan), (15, 5, 20, nan), (5, 5, 5, nan)]]),
+    (PolygonM, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], False, False,
+     [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]),
+    (PolygonM, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], True, False,
+     [[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)], [(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]),
+    (PolygonM, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], False, True,
+     [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]),
+    (PolygonM, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]], True, True,
+     [[(0, 0, nan, 0), (0, 1, nan, 1), (1, 1, nan, 1), (1, 0, nan, 1), (0, 0, nan, 0)], [(5, 5, nan, 5), (5, 15, nan, 10), (15, 15, nan, 15), (15, 5, nan, 20), (5, 5, nan, 5)]]),
+    (PolygonZM, [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]], False, False,
+     [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]),
+    (PolygonZM, [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]], True, False,
+     [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]),
+    (PolygonZM, [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]], False, True,
+     [[(0, 0, 0), (0, 1, 10), (1, 1, 20), (1, 0, 30), (0, 0, 40)], [(5, 5, 50), (5, 15, 60), (15, 15, 70), (15, 5, 80), (5, 5, 90)]]),
+    (PolygonZM, [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]], True, True,
+     [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]]),
 ])
-def test_polygon(cls, values, env_code):
+def test_polygon(cls, values, has_z, has_m, expected):
     """
-    Test polygon wkb
+    Test polygon casting
     """
-    fudgeo_geom = cls(values, srs_id=WGS84)
+    geom = from_wkb(cls(values, srs_id=WGS84).wkb)
+    results = cast_polygons([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
+    assert len(results) == 1
+    poly, = results
+    ring1, ring2 = poly.rings
+    values1, values2 = expected
 
-    shapely_geom = from_wkb(fudgeo_geom.wkb)
-    assert isinstance(shapely_geom, ShapelyPolygon)
-    assert not shapely_geom.is_empty
-
-    coordinates = get_coordinates(shapely_geom, include_z=True, include_m=True)
-    compares = [tuple(c for c in coords if not isnan(c)) for coords in coordinates]
-    assert compares == sum(values, [])
-
-    if env_code == 1:
-        assert not shapely_geom.has_z
-        assert not shapely_geom.has_m
-    elif env_code == 2:
-        assert shapely_geom.has_z
-        assert not shapely_geom.has_m
-    elif env_code == 3:
-        assert not shapely_geom.has_z
-        assert shapely_geom.has_m
-    else:
-        assert shapely_geom.has_z
-        assert shapely_geom.has_m
+    assert approx(_summer(ring1.coordinates), nan_ok=True) == _summer([list(v) for v in values1])
+    assert approx(_summer(ring2.coordinates), nan_ok=True) == _summer([list(v) for v in values2])
 # End test_polygon function
 
 
-@mark.parametrize('cls, values, env_code', [
-    (MultiPolygon, [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], [[(7, 7), (7, 17), (17, 17), (7, 7)]]], 1),
-    (MultiPolygonZ, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], 2),
-    (MultiPolygonM, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], 3),
-    (MultiPolygonZM, [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]], 4),
+@mark.parametrize('cls, values, has_z, has_m, expected', [
+    (MultiPolygon, [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]], False, False,
+     [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]]),
+    (MultiPolygon, [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]], True, False,
+     [[[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)]], [[(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]]),
+    (MultiPolygon, [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]], False, True,
+     [[[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)]], [[(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]]),
+    (MultiPolygon, [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]], True, True,
+     [[[(0, 0, nan, nan), (0, 1, nan, nan), (1, 1, nan, nan), (1, 0, nan, nan), (0, 0, nan, nan)]], [[(5, 5, nan, nan), (5, 15, nan, nan), (15, 15, nan, nan), (15, 5, nan, nan), (5, 5, nan, nan)]]]),
+    (MultiPolygonZ, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], False, False,
+     [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]]),
+    (MultiPolygonZ, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], True, False,
+     [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]),
+    (MultiPolygonZ, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], False, True,
+     [[[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)]], [[(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]]),
+    (MultiPolygonZ, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], True, True,
+     [[[(0, 0, 0, nan), (0, 1, 1, nan), (1, 1, 1, nan), (1, 0, 1, nan), (0, 0, 0, nan)]], [[(5, 5, 5, nan), (5, 15, 10, nan), (15, 15, 15, nan), (15, 5, 20, nan), (5, 5, 5, nan)]]]),
+    (MultiPolygonM, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], False, False,
+     [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]]),
+    (MultiPolygonM, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], True, False,
+     [[[(0, 0, nan), (0, 1, nan), (1, 1, nan), (1, 0, nan), (0, 0, nan)]], [[(5, 5, nan), (5, 15, nan), (15, 15, nan), (15, 5, nan), (5, 5, nan)]]]),
+    (MultiPolygonM, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], False, True,
+     [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]),
+    (MultiPolygonM, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]], True, True,
+     [[[(0, 0, nan, 0), (0, 1, nan, 1), (1, 1, nan, 1), (1, 0, nan, 1), (0, 0, nan, 0)]], [[(5, 5, nan, 5), (5, 15, nan, 10), (15, 15, nan, 15), (15, 5, nan, 20), (5, 5, nan, 5)]]]),
+    (MultiPolygonZM, [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]], False, False,
+     [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]]),
+    (MultiPolygonZM, [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]], True, False,
+     [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]),
+    (MultiPolygonZM, [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]], False, True,
+     [[[(0, 0, 10), (0, 1, 20), (1, 1, 30), (1, 0, 40), (0, 0, 50)]], [[(5, 5, 60), (5, 15, 70), (15, 15, 80), (15, 5, 90), (5, 5, 100)]]]),
+    (MultiPolygonZM, [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]], True, True,
+     [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]]),
 ])
-def test_multi_polygon(cls, values, env_code):
+def test_multi_polygon(cls, values, has_z, has_m, expected):
     """
-    Test multi polygon wkb
+    Test multi polygon casting
     """
-    fudgeo_geom = cls(values, srs_id=WGS84)
+    geom = from_wkb(cls(values, srs_id=WGS84).wkb)
+    results = cast_multi_polygons([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
+    assert len(results) == 1
+    multi, = results
+    poly1, poly2 = multi.polygons
+    ring1, = poly1.rings
+    ring2, = poly2.rings
+    values1, values2 = expected
 
-    shapely_geom = from_wkb(fudgeo_geom.wkb)
-    assert isinstance(shapely_geom, ShapelyMultiPolygon)
-    assert not shapely_geom.is_empty
-
-    coordinates = get_coordinates(shapely_geom, include_z=True, include_m=True)
-    compares = [tuple(c for c in coords if not isnan(c)) for coords in coordinates]
-    assert compares == sum(sum(values, []), [])
-
-    if env_code == 1:
-        assert not shapely_geom.has_z
-        assert not shapely_geom.has_m
-    elif env_code == 2:
-        assert shapely_geom.has_z
-        assert not shapely_geom.has_m
-    elif env_code == 3:
-        assert not shapely_geom.has_z
-        assert shapely_geom.has_m
-    else:
-        assert shapely_geom.has_z
-        assert shapely_geom.has_m
+    assert approx(_summer(ring1.coordinates), nan_ok=True) == sum(_summer([list(v) for v in values1]), ())
+    assert approx(_summer(ring2.coordinates), nan_ok=True) == sum(_summer([list(v) for v in values2]), ())
 # End test_multi_polygon function
 
 
