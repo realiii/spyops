@@ -100,22 +100,22 @@ def extend_records(results: list[tuple], records: list[tuple],
     combiner = config.combiner
     is_multi = config.is_multi
     filter_types = _, multi_cls = config.filter_types
-    for result, attrs in results:
-        if result.is_empty:
+    for geom, attrs in results:
+        if geom.is_empty:
             continue
-        if isinstance(result, GeometryCollection):
-            result = multi_cls([r for r in getattr(result, GEOMS_ATTR)
-                                if isinstance(r, filter_types)])
-        elif not isinstance(result, filter_types):
+        if isinstance(geom, GeometryCollection):
+            geom = multi_cls([r for r in getattr(geom, GEOMS_ATTR)
+                              if isinstance(r, filter_types)])
+        elif not isinstance(geom, filter_types):
             continue
-        result = combiner(result)
+        geom = combiner(geom)
         if is_multi:
-            if not hasattr(result, GEOMS_ATTR):
-                result = multi_cls([result])
-            records.append((cls.from_wkb(result.wkb, srs_id=srs_id), *attrs))
+            if not hasattr(geom, GEOMS_ATTR):
+                geom = multi_cls([geom])
+            records.append((cls.from_wkb(geom.wkb, srs_id=srs_id), *attrs))
         else:
             records.extend([(cls.from_wkb(part.wkb, srs_id=srs_id), *attrs)
-                            for part in getattr(result, GEOMS_ATTR, [result])])
+                            for part in getattr(geom, GEOMS_ATTR, [geom])])
 # End extend_records function
 
 
