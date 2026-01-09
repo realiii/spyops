@@ -21,13 +21,13 @@ from pytest import approx, mark
 from shapely.io import from_wkb
 
 from gisworks.geometry.convert import (
-    _as_lines, _use_boundary_factory, cast_line_strings,
-    cast_multi_line_strings, cast_multi_points, cast_multi_polygons,
-    cast_points, cast_polygons, get_geometry_converters, _find_slice_indexes,
-    _update_z_values)
+    _as_lines, _find_slice_indexes, _update_z_values, _use_boundary_factory,
+    cast_line_strings, cast_multi_line_strings, cast_multi_points,
+    cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
 from gisworks.geometry.util import nada
 from gisworks.shared.enumeration import OutputTypeOption, Setting
 from gisworks.shared.setting import Swap
+
 
 pytestmark = [mark.geometry]
 
@@ -150,7 +150,7 @@ def test_update_z_values(has_z, z_value, expected):
     (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), False, True, (1, 2, 4)),
     (PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84), True, True, (1, 2, 3, 4)),
 ])
-def test_cast_point(pt, has_z, has_m, values):
+def test_cast_points(pt, has_z, has_m, values):
     """
     Test Point casting
     """
@@ -165,7 +165,7 @@ def test_cast_point(pt, has_z, has_m, values):
     coords = cpt.as_tuple()
     assert len(coords) == len(values)
     assert approx(coords, nan_ok=True) == values
-# End test_cast_point function
+# End test_cast_points function
 
 
 @mark.parametrize('cls, values, has_z, has_m, expected', [
