@@ -10,7 +10,12 @@ from fudgeo import FeatureClass, Table, Field
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
-from gisworks.geometry.util import filter_features, to_shapely
+from gisworks.environment.context import Swap
+from gisworks.environment.core import ZMConfig, zm_config
+from gisworks.environment.enumeration import (
+    OutputMOption, OutputZOption, Setting)
+from gisworks.geometry.config import geometry_config
+from gisworks.geometry.util import bulk_insert, filter_features, to_shapely
 from gisworks.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
 from gisworks.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
@@ -73,7 +78,8 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     Split an input table or feature class by groups of attributes.
     """
     results = _split_by_attributes(
-        source=source, group_fields=group_fields, geopackage=geopackage)
+        source=source, group_fields=group_fields, geopackage=geopackage,
+        ignore_zm_settings=False)
     return list(results.values())
 # End split_by_attributes function
 
@@ -119,7 +125,8 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
         return features
     splitters = _split_by_attributes(
         source=operator, group_fields=[field],
-        geopackage=ANALYSIS_SETTINGS.scratch_workspace)
+        geopackage=ANALYSIS_SETTINGS.scratch_workspace,
+        ignore_zm_settings=True)
     for (value,), s in splitters.items():
         name = make_valid_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
@@ -172,7 +179,8 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
 
 
 def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
-                         geopackage: GPKG) -> dict[tuple, ELEMENT]:
+                         geopackage: GPKG, ignore_zm_settings: bool) \
+        -> dict[tuple, ELEMENT]:
     """
     Internal Split by Attributes
     """
@@ -182,8 +190,20 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     query_select = query.select
     query_insert = query.insert
     source_name = query.source.name
+    if ignore_zm_settings:
+        z_option = OutputZOption.SAME
+        m_option = OutputMOption.SAME
+    else:
+        z_option = ANALYSIS_SETTINGS.output_z_option
+        m_option = ANALYSIS_SETTINGS.output_m_option
     with (geopackage.connection as cout,
-          query.source.geopackage.connection as cin,):
+          query.source.geopackage.connection as cin,
+          Swap(Setting.OUTPUT_Z_OPTION, z_option),
+          Swap(Setting.OUTPUT_M_OPTION, m_option)):
+        if isinstance(source, FeatureClass):
+            zm = zm_config(has_z=source.has_z, has_m=source.has_m)
+        else:
+            zm = ZMConfig(is_different=False, z_enabled=False, m_enabled=False)
         cursor = cin.execute(query.groups)
         groups = cursor.fetchall()
         for i, *group in groups:
@@ -194,11 +214,12 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
                 source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
             elements[tuple(group)] = element
+            config = geometry_config(element, cast_geom=zm.is_different)
             cursor = cin.execute(query_select, (i,))
             with ExecuteMany(connection=cout, table=element) as executor:
                 insert_sql = query_insert.format(element.escaped_name)
-                while records := cursor.fetchmany(FETCH_SIZE):
-                    executor(sql=insert_sql, data=records)
+                bulk_insert(cursor, config=config, executor=executor,
+                            insert_sql=insert_sql)
     return elements
 # End _split_by_attributes function
 

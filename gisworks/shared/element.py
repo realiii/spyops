@@ -7,19 +7,18 @@ Feature Class and some Table Functionality
 from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
-from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
+from fudgeo.constant import COMMA_SPACE
 from fudgeo.context import ExecuteMany
 
 from gisworks.crs.util import validate_srs
 from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.environment.core import zm_config
 from gisworks.geometry.config import geometry_config
-from gisworks.geometry.util import filter_features, to_shapely
+from gisworks.geometry.util import bulk_insert
 from gisworks.shared.constant import QUESTION
 from gisworks.shared.exception import OperationsError
 from gisworks.shared.field import get_geometry_column_name, validate_fields
 from gisworks.shared.hint import ELEMENT, FIELDS, GPKG
-from gisworks.shared.util import extend_records
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
@@ -54,20 +53,12 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
             INSERT INTO {target.escaped_name}({field_names}) 
             VALUES ({params})
         """
-        records = []
         config = geometry_config(target, cast_geom=True)
         with (target.geopackage.connection as cout,
               ExecuteMany(connection=cout, table=target) as executor):
             cursor = source.select(fields=fields, where_clause=where_clause)
-            while features := cursor.fetchmany(FETCH_SIZE):
-                if not (features := filter_features(features)):
-                    continue
-                geometries = to_shapely(features)
-                results = [(g, attrs) for g, (_, *attrs)
-                           in zip(geometries, features)]
-                extend_records(results, records=records, config=config)
-                executor(sql=insert_sql, data=records)
-                records.clear()
+            bulk_insert(cursor, config=config, executor=executor,
+                        insert_sql=insert_sql)
     return target
 # End copy_feature_class function
 

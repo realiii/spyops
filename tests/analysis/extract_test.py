@@ -13,6 +13,7 @@ from pytest import approx, mark, raises
 
 from gisworks.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
+from gisworks.environment.core import zm_config
 from gisworks.environment.enumeration import (
     OutputMOption, OutputZOption,
     Setting)
@@ -107,6 +108,33 @@ class TestSelect:
         assert len(result) == count
     # End test_select method
 
+    @mark.parametrize('fc_name, where_clause, output_z_option, output_m_option, count', [
+        ('lakes_a', 'SQKM > 5000', OutputZOption.SAME, OutputMOption.SAME, 28),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.SAME, OutputMOption.SAME, 364),
+        ('cities_p', 'POP IS NULL', OutputZOption.SAME, OutputMOption.SAME, 1377),
+        ('lakes_a', 'SQKM > 5000', OutputZOption.ENABLED, OutputMOption.ENABLED, 28),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.ENABLED, OutputMOption.ENABLED, 364),
+        ('cities_p', 'POP IS NULL', OutputZOption.ENABLED, OutputMOption.ENABLED, 1377),
+        ('lakes_a', 'SQKM > 5000', OutputZOption.DISABLED, OutputMOption.DISABLED, 28),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.DISABLED, OutputMOption.DISABLED, 364),
+        ('cities_p', 'POP IS NULL', OutputZOption.DISABLED, OutputMOption.DISABLED, 1377),
+    ])
+    def test_select_zm(self, world_features, mem_gpkg, fc_name, where_clause, output_z_option, output_m_option, count):
+        """
+        Test select with ZM settings
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
+              Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.Z_VALUE, 123.456)):
+            zm = zm_config(source.has_z, source.has_m)
+            result = select(source=source, target=target, where_clause=where_clause)
+        assert len(result) == count
+        assert target.has_z == zm.z_enabled
+        assert target.has_m == zm.m_enabled
+    # End test_select_zm method
+
     def test_select_sans_attrs(self, inputs, world_features, mem_gpkg):
         """
         Test select sans attributes
@@ -167,6 +195,34 @@ class TestSplitByAttributes:
         assert sum([len(r) for r in results]) == subset
     # End test_split_by_attributes_features method
 
+    @mark.parametrize('fields, output_z_option, output_m_option, count', [
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.SAME, OutputMOption.SAME, 7),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 7),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.DISABLED, OutputMOption.DISABLED, 7),
+    ])
+    def test_split_by_attributes_features_zm(self, world_features, mem_gpkg, fields,
+                                             output_z_option, output_m_option, count):
+        """
+        Test split_by_attributes for feature classes with ZM settings
+        """
+        subset = 120
+        source = world_features['admin_a']
+        names = element_names(world_features)
+        source = source.copy(
+            make_unique_name(source.name, names=names),
+            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
+
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
+              Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.Z_VALUE, 123.456)):
+            zm = zm_config(source.has_z, source.has_m)
+            results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
+        assert len(results) == count
+        assert sum([len(r) for r in results]) == subset
+        assert all([target.has_z == zm.z_enabled for target in results])
+        assert all([target.has_m == zm.m_enabled for target in results])
+    # End test_split_by_attributes_features_zm method
+
     def test_split_by_attributes_features_sans_attributes(self, world_features, mem_gpkg):
         """
         Test split_by_attributes for feature classes sans attributes
@@ -210,7 +266,8 @@ class TestSplitByAttributes:
         ('inputs', 'utmzone_sparse_a', ('ZONE', 'ROW_'), 228),
         ('world_features', 'admin_a', ('COUNTRY', 'ISO_CC', 'ADMINTYPE'), 376),
     ])
-    def test_split_by_attributes_larger_inputs(self, request, inputs, mem_gpkg, fix_name, name, fields, count):
+    def test_split_by_attributes_larger_inputs(self, request, inputs, mem_gpkg,
+                                               fix_name, name, fields, count):
         """
         Test split by attributes using larger inputs
         """
@@ -560,10 +617,52 @@ class TestSplit:
         assert len(splitter) == 5
         source = world_features[fc_name]
         field = Field('NAME', data_type=SQLFieldType.text)
-        results = split(source=source, operator=splitter, field=field, geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
+        results = split(source=source, operator=splitter, field=field,
+                        geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
         assert len(results) == element_count
         assert sum(len(r) for r in results) == record_count
     # End test_split method
+
+    @mark.parametrize('fc_name, xy_tolerance, output_z_option, output_m_option, element_count, record_count', [
+        ('admin_a', None, OutputZOption.SAME, OutputMOption.SAME, 4, 114),
+        ('airports_p', None, OutputZOption.SAME, OutputMOption.SAME, 4, 40),
+        ('roads_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 2514),
+        ('admin_mp_a', None, OutputZOption.SAME, OutputMOption.SAME, 4, 68),
+        ('airports_mp_p', None, OutputZOption.SAME, OutputMOption.SAME, 4, 8),
+        ('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 14),
+        ('admin_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 114),
+        ('airports_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 40),
+        ('roads_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 2514),
+        ('admin_mp_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 68),
+        ('airports_mp_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 8),
+        ('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 14),
+        ('admin_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 114),
+        ('airports_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 40),
+        ('roads_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 2514),
+        ('admin_mp_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 68),
+        ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 8),
+        ('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14),
+    ])
+    def test_split_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
+                      output_z_option, output_m_option, element_count, record_count):
+        """
+        Test split using ZM settings
+        """
+        splitter = inputs['splitter_a']
+        assert len(splitter) == 5
+        source = world_features[fc_name]
+        field = Field('NAME', data_type=SQLFieldType.text)
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
+              Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.Z_VALUE, 123.456)):
+            zm = zm_config(source.has_z, source.has_m)
+            results = split(source=source, operator=splitter, field=field,
+                            geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
+        assert len(results) == element_count
+        assert sum(len(r) for r in results) == record_count
+        assert all([target.has_z == zm.z_enabled for target in results])
+        assert all([target.has_m == zm.m_enabled for target in results])
+    # End test_split_zm method
 
     @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
         ('admin_a', None, 4, 114),
