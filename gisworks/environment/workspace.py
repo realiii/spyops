@@ -13,7 +13,7 @@ from fudgeo.constant import MEMORY
 from gisworks.shared.database import is_geopackage
 from gisworks.environment.enumeration import Setting
 from gisworks.shared.hint import GPKG
-from gisworks.shared.util import as_title
+from gisworks.environment.util import as_title
 
 
 class _Workspace:

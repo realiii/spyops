@@ -11,7 +11,7 @@ from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from shapely import MultiLineString, MultiPoint, MultiPolygon, box
 
-from gisworks.environment.util import ZMConfig, zm_config
+from gisworks.environment.core import ZMConfig, zm_config
 from gisworks.geometry.config import GeometryConfig, geometry_config
 from gisworks.geometry.extent import extent_from_feature_class
 from gisworks.geometry.multi import build_multi

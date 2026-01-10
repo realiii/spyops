@@ -6,9 +6,9 @@ Test Utilities
 
 from pytest import approx, mark, raises
 
-from gisworks.environment.enumeration import OutputMOption, Setting
+from gisworks.environment.enumeration import OutputMOption
 from gisworks.shared.util import (
-    as_title, check_enumeration, element_names, expand_extent, make_unique_name,
+    check_enumeration, element_names, expand_extent, make_unique_name,
     make_valid_name, _replace_double_under, safe_float, safe_int)
 
 
@@ -104,24 +104,6 @@ def test_safe_float(value, expected):
     """
     assert safe_float(value) == expected
 # End test_safe_float function
-
-
-@mark.parametrize('value, expected', [
-    (Setting.XY_TOLERANCE, 'XY Tolerance'),
-    (Setting.OVERWRITE, 'Overwrite'),
-    (Setting.CURRENT_WORKSPACE, 'Current Workspace'),
-    (Setting.OUTPUT_Z_OPTION, 'Output Z Option'),
-    (Setting.Z_VALUE, 'Z Value'),
-    (Setting.OUTPUT_M_OPTION, 'Output M Option'),
-    ('asdf', 'Asdf'),
-    (None, ''),
-])
-def test_as_title(value, expected):
-    """
-    Test as_title
-    """
-    assert as_title(value) == expected
-# End test_as_title function
 
 
 @mark.parametrize('value, enum, expected, throws', [

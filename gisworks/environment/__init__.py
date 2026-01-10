@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Shared Settings for Analysis
+Package Initialization
 """
 
-from gisworks.environment.base import _AnalysisSettings
+
+from gisworks.environment.core import ANALYSIS_SETTINGS
 
 
 __all__ = ['ANALYSIS_SETTINGS']
-
-
-ANALYSIS_SETTINGS: _AnalysisSettings = _AnalysisSettings()
 
 
 if __name__ == '__main__':  # pragma: no cover
