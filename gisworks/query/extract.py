@@ -77,10 +77,10 @@ class QueryClip(AbstractSpatialQuery):
         """
         Insert Query
         """
-        elm = self.source
+        elm = self.target
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert(
-            self.target.escaped_name, field_names=insert_field_names,
+            elm.escaped_name, field_names=insert_field_names,
             field_count=field_count)
     # End insert property
 # End QueryClip class
