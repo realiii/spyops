@@ -47,8 +47,9 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     if not query.has_intersection:
         return query.target_full
     records = []
-    geometry = query.geometry
     insert_sql = query.insert
+    geometry = query.geometry
+    config = query.geometry_config
     query.process_disjoint(xy_tolerance)
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
@@ -65,12 +66,12 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
                 geoms = set_precision(geoms, grid_size=xy_tolerance)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geoms, keepers)]
-            extend_records(results, records=records, config=query.config)
+            extend_records(results, records=records, config=config)
             changers = [f for f, i in zip(features, intersects) if i]
             geoms = [g for g, i in zip(geometries, intersects) if i]
             results = [(geom.difference(geometry, grid_size=xy_tolerance), attrs)
                        for geom, (_, *attrs) in zip(geoms, changers)]
-            extend_records(results, records=records, config=query.config)
+            extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
             records.clear()
     return query.target
@@ -124,8 +125,9 @@ def intersect(source: FeatureClass, operator: FeatureClass,
             op_geoms.extend(to_shapely(features))
     op_geoms = op_convert(op_geoms)
     records = []
-    insert_sql = query.insert
     tree = STRtree(op_geoms)
+    insert_sql = query.insert
+    config = query.geometry_config
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -155,7 +157,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
                 results.extend([
                     (g, (*src_attr, *op_attr))
                     for g, src_attr in zip(intersections, src_attrs)])
-            extend_records(results, records=records, config=query.config)
+            extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
             records.clear()
     return query.target

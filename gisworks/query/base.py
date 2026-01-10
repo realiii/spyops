@@ -11,6 +11,7 @@ from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from shapely import MultiLineString, MultiPoint, MultiPolygon, box
 
+from gisworks.environment.util import ZMConfig, zm_config
 from gisworks.geometry.config import GeometryConfig, geometry_config
 from gisworks.geometry.extent import extent_from_feature_class
 from gisworks.geometry.multi import build_multi
@@ -131,12 +132,21 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End init built-in
 
     @cached_property
-    def config(self) -> GeometryConfig:
+    def zm_config(self) -> ZMConfig:
         """
-        Overlay Configuration
+        ZM Configuration
         """
-        return geometry_config(self.target)
-    # End config property
+        return zm_config(has_z=self.source.has_z, has_m=self.source.has_m)
+    # End zm_config property
+
+    @cached_property
+    def geometry_config(self) -> GeometryConfig:
+        """
+        Geometry Configuration
+        """
+        return geometry_config(
+            self.target, cast_geom=self.zm_config.is_different)
+    # End geometry_config property
 
     @cached_property
     def geometry(self) -> MultiPolygon | MultiLineString | MultiPoint:

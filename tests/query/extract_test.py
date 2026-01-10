@@ -50,7 +50,7 @@ def test_query_clip(world_features, inputs, mem_gpkg):
     assert query.insert.strip().startswith('INSERT INTO test_target')
     assert query.select_disjoint
     assert query.operator is operator
-    assert isinstance(query.config, GeometryConfig)
+    assert isinstance(query.geometry_config, GeometryConfig)
     with raises(ValueError):
         _ = query.target_full
     assert 'FROM clipper_a' in query.select_operator

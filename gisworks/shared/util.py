@@ -6,17 +6,20 @@ Utilities
 
 from enum import StrEnum
 from re import IGNORECASE, compile as recompile
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
-from gisworks.geometry.config import GeometryConfig
 from gisworks.shared.constant import (
     DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
 from gisworks.environment.enumeration import Setting
 from gisworks.shared.hint import EXTENT, GPKG
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from gisworks.geometry.config import GeometryConfig
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub
@@ -91,7 +94,7 @@ def expand_extent(extent: EXTENT) -> EXTENT:
 
 
 def extend_records(results: list[tuple], records: list[tuple],
-                   config: GeometryConfig) -> None:
+                   config: 'GeometryConfig') -> None:
     """
     Extend Records
     """

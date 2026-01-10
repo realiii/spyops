@@ -145,8 +145,9 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
     if not query.has_intersection:
         return query.target_empty
     records = []
-    geometry = query.geometry
     insert_sql = query.insert
+    geometry = query.geometry
+    config = query.geometry_config
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -163,7 +164,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
                 [g for g, keep in zip(geometries, intersects) if keep],
                 grid_size=xy_tolerance)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
-            extend_records(results, records=records, config=query.config)
+            extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
             records.clear()
     return query.target

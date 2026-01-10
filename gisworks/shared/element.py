@@ -7,11 +7,19 @@ Feature Class and some Table Functionality
 from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
+from fudgeo.context import ExecuteMany
 
 from gisworks.crs.util import validate_srs
+from gisworks.environment.util import zm_config
+from gisworks.geometry.config import geometry_config
+from gisworks.geometry.util import filter_features, to_shapely
+from gisworks.shared.constant import QUESTION
 from gisworks.shared.exception import OperationsError
+from gisworks.shared.field import validate_fields
 from gisworks.shared.hint import ELEMENT, FIELDS, GPKG
-from gisworks.shared.setting import ANALYSIS_SETTINGS
+from gisworks.environment import ANALYSIS_SETTINGS
+from gisworks.shared.util import extend_records
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
@@ -40,12 +48,13 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
     FeatureClass with some additional logic for Spatial Reference handling and
     ensuring spatial indexes are present.
     """
-    overwrite = ANALYSIS_SETTINGS.overwrite
     srs = validate_srs(geopackage, srs=srs)
+    zm = zm_config(has_z=z_enabled, has_m=m_enabled)
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
-        z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
-        description=description, overwrite=overwrite, spatial_index=True)
+        z_enabled=zm.z_enabled, m_enabled=zm.m_enabled, fields=fields,
+        description=description, overwrite=ANALYSIS_SETTINGS.overwrite,
+        spatial_index=True)
 # End create_feature_class function
 
 

@@ -18,7 +18,7 @@ from shapely.io import from_wkb
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
-from gisworks.geometry.config import GeometryConfig, geometry_config
+from gisworks.geometry.config import geometry_config
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
 from gisworks.query.util import process_disjoint
@@ -44,7 +44,7 @@ class QueryErase(QueryClip):
         query = QueryConfig(
             source=self.source, target=self.target,
             disjoint=self.select_disjoint, insert=self.insert,
-            config=self.config)
+            config=self.geometry_config)
         process_disjoint(query=query, xy_tolerance=xy_tolerance)
     # End process_disjoint method
 # End QueryErase class
@@ -146,7 +146,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         records = []
         fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
         planar = self._make_planar_feature_class(feature_class, fields=fields)
-        config = geometry_config(planar)
+        # NOTE planarize using same dimensions as incoming feature class
+        config = geometry_config(planar, cast_geom=False)
         extend_records(results=results, records=records, config=config)
         insert_sql = self._make_insert_sql(planar, fields=fields)
         with (planar.geopackage.connection as cout,
@@ -569,14 +570,6 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
             self.target_empty, fields=self._get_insert_fields(is_source=False))
     # End _insert_operator property
 
-    @cached_property
-    def config(self) -> GeometryConfig:
-        """
-        Overlay Configuration
-        """
-        return geometry_config(self.target_empty)
-    # End config property
-
     @property
     def target(self) -> FeatureClass:
         """
@@ -592,11 +585,11 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
         """
         target = self.target_empty
         query = QueryConfig(
-            source=self.source, target=target, config=self.config,
+            source=self.source, target=target, config=self.geometry_config,
             disjoint=self._disjoint_source, insert=self._insert_source)
         process_disjoint(query, xy_tolerance=self._xy_tolerance)
         query = QueryConfig(
-            source=self.operator, target=target, config=self.config,
+            source=self.operator, target=target, config=self.geometry_config,
             disjoint=self._disjoint_operator,  insert=self._insert_operator)
         process_disjoint(query, xy_tolerance=self._xy_tolerance)
         return target
