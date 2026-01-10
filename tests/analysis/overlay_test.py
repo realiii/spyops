@@ -9,9 +9,11 @@ from fudgeo.enumeration import GeometryType
 from pytest import mark, param, raises
 
 from gisworks.analysis.overlay import erase, intersect
+from gisworks.environment.core import zm_config
 from gisworks.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
-from gisworks.environment.enumeration import Setting
+from gisworks.environment.enumeration import (
+    OutputMOption, OutputZOption, Setting)
 from gisworks.query.overlay import QueryErase
 from gisworks.shared.exception import OperationsError
 from gisworks.environment.context import Swap
@@ -64,6 +66,53 @@ class TestErase:
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
     # End test_erase_reduced method
+
+    @mark.parametrize('fc_name, xy_tolerance, output_z_option, output_m_option, count', [
+        ('admin_a', None, OutputZOption.SAME, OutputMOption.SAME, 245),
+        ('airports_p', None, OutputZOption.SAME, OutputMOption.SAME, 29),
+        ('roads_l', None, OutputZOption.SAME, OutputMOption.SAME, 3054),
+        ('admin_mp_a', None, OutputZOption.SAME, OutputMOption.SAME, 217),
+        ('airports_mp_p', None, OutputZOption.SAME, OutputMOption.SAME, 10),
+        ('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 14),
+        ('admin_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 245),
+        ('airports_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 29),
+        ('roads_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 3054),
+        ('admin_mp_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 217),
+        ('airports_mp_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 10),
+        ('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 14),
+        ('admin_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 245),
+        ('airports_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 29),
+        ('roads_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 3054),
+        ('admin_mp_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 217),
+        ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 10),
+        ('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 14),
+    ])
+    def test_erase_reduced_zm(self, inputs, world_features, fresh_gpkg, fc_name,
+                              xy_tolerance, output_z_option, output_m_option, count):
+        """
+        Test erase -- reduced data for faster testing -- with ZM
+        """
+        eraser = inputs['eraser_a']
+        assert len(eraser) == 5
+        source = world_features[fc_name]
+        assert source.is_multi_part == ('mp' in fc_name)
+        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
+        query = QueryErase(source=source, target=target, operator=eraser)
+        _, touches = query.select.split('WHERE', 1)
+        subset = source.copy(f'subset_{fc_name}', where_clause=touches,
+                             geopackage=fresh_gpkg)
+        assert len(subset) <= len(source)
+        target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
+              Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.Z_VALUE, 123.456)):
+            zm = zm_config(source.has_z, source.has_m)
+            result = erase(source=subset, operator=eraser, target=target,
+                           xy_tolerance=xy_tolerance)
+        assert len(result) == count
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
+    # End test_erase_reduced_zm method
 
     def test_erase_reduced_sans_attributes(self, inputs, world_features, fresh_gpkg):
         """
