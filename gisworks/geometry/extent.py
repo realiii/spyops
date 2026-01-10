@@ -64,10 +64,11 @@ def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
     empty = nan, nan, nan, nan
     if not feature_class.has_spatial_index:  # pragma: no cover
         return empty
-    cursor = feature_class.geopackage.connection.execute(f"""
-        SELECT MIN(minx) AS MIN_X, MIN(miny) AS MIN_Y, 
-               MAX(maxx) AS MAX_X, MAX(maxy) AS MAX_Y
-        FROM {feature_class.spatial_index_name}""")
+    with feature_class.geopackage.connection as cin:
+        cursor = cin.execute(f"""
+            SELECT MIN(minx) AS MIN_X, MIN(miny) AS MIN_Y, 
+                   MAX(maxx) AS MAX_X, MAX(maxy) AS MAX_Y
+            FROM {feature_class.spatial_index_name}""")
     extent = cursor.fetchone()
     if not extent:  # pragma: no cover
         return empty
