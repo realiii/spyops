@@ -5,6 +5,7 @@ Test for Base Analysis Settings
 
 from math import isnan
 
+from fudgeo import MemoryGeoPackage
 from pytest import mark
 
 from gisworks.environment.enumeration import (
@@ -22,7 +23,7 @@ def test_analysis_settings_defaults():
     assert ANALYSIS_SETTINGS.overwrite is False
     assert ANALYSIS_SETTINGS.xy_tolerance is None
     assert ANALYSIS_SETTINGS.current_workspace is None
-    assert ANALYSIS_SETTINGS.scratch_workspace is None
+    assert isinstance(ANALYSIS_SETTINGS.scratch_workspace, MemoryGeoPackage)
     assert ANALYSIS_SETTINGS.output_z_option == OutputZOption.SAME
     assert ANALYSIS_SETTINGS.output_m_option == OutputMOption.SAME
     assert isnan(ANALYSIS_SETTINGS.z_value)
