@@ -29,6 +29,15 @@ def inputs(data_path) -> GeoPackage:
 
 
 @fixture(scope='session')
+def ntdb_clipped(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to sixteen 50K tiles around YYC
+    """
+    return GeoPackage(data_path.joinpath('ntdb_clipped.gpkg'))
+# End ntdb_clipped function
+
+
+@fixture(scope='session')
 def world_tables(data_path) -> GeoPackage:
     """
     World Tables
