@@ -101,6 +101,7 @@ def extend_records(results: list[tuple], records: list[tuple],
     combiner = config.combiner
     is_multi = config.is_multi
     filter_types = _, multi_cls = config.filter_types
+    refined = []
     for geom, attrs in results:
         if geom.is_empty:
             continue
@@ -113,10 +114,20 @@ def extend_records(results: list[tuple], records: list[tuple],
         if is_multi:
             if not hasattr(geom, GEOMS_ATTR):
                 geom = multi_cls([geom])
-            records.append((cls.from_wkb(geom.wkb, srs_id=srs_id), *attrs))
+            refined.append((geom, attrs))
         else:
-            records.extend([(cls.from_wkb(part.wkb, srs_id=srs_id), *attrs)
-                            for part in getattr(geom, GEOMS_ATTR, [geom])])
+            refined.extend([(part, attrs) for part in
+                            getattr(geom, GEOMS_ATTR, [geom])])
+    if not refined:
+        return
+    if not config.caster:
+        records.extend([(cls.from_wkb(geom.wkb, srs_id=srs_id), *attrs)
+                        for geom, attrs in refined])
+    else:
+        geoms, attributes = zip(*refined)
+        geoms = config.caster(geoms)
+        records.extend([(geom, *attrs)
+                        for geom, attrs in zip(geoms, attributes)])
 # End extend_records function
 
 
