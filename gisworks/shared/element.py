@@ -11,14 +11,14 @@ from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from gisworks.crs.util import validate_srs
-from gisworks.environment.util import zm_config
+from gisworks.environment import ANALYSIS_SETTINGS
+from gisworks.environment.core import zm_config
 from gisworks.geometry.config import geometry_config
 from gisworks.geometry.util import filter_features, to_shapely
 from gisworks.shared.constant import QUESTION
 from gisworks.shared.exception import OperationsError
-from gisworks.shared.field import validate_fields
+from gisworks.shared.field import get_geometry_column_name, validate_fields
 from gisworks.shared.hint import ELEMENT, FIELDS, GPKG
-from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.shared.util import extend_records
 
 
@@ -28,13 +28,46 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
     Copy Feature Class, accounting for potential Spatial Reference System
     differences across GeoPackages and ensuring the target has a spatial index.
     """
-    overwrite = ANALYSIS_SETTINGS.overwrite
     geopackage = target.geopackage
     srs = validate_srs(geopackage, srs=source.spatial_reference_system)
-    target = source.copy(
-        name=target.name, geopackage=geopackage, where_clause=where_clause,
-        overwrite=overwrite, srs=srs)
-    target.add_spatial_index()
+    if not zm_config(has_z=source.has_z, has_m=source.has_m).is_different:
+        target = source.copy(
+            name=target.name, geopackage=geopackage, where_clause=where_clause,
+            overwrite=ANALYSIS_SETTINGS.overwrite, srs=srs)
+        target.add_spatial_index()
+    else:
+        fields = validate_fields(source, fields=source.fields)
+        # NOTE send in source has_z and has_m, rely on handling of zm in the
+        #  create_feature_class function
+        target = create_feature_class(
+            geopackage, name=target.name, shape_type=source.shape_type, srs=srs,
+            fields=fields, description=target.description,
+            z_enabled=source.has_z, m_enabled=source.has_m)
+        geom_name = get_geometry_column_name(target)
+        if fields:
+            field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
+            field_names = f'{geom_name}{COMMA_SPACE}{field_names}'
+        else:
+            field_names = geom_name
+        params = COMMA_SPACE.join(QUESTION * (len(fields) + 1))
+        insert_sql = f"""
+            INSERT INTO {target.escaped_name}({field_names}) 
+            VALUES ({params})
+        """
+        records = []
+        config = geometry_config(target, cast_geom=True)
+        with (target.geopackage.connection as cout,
+              ExecuteMany(connection=cout, table=target) as executor):
+            cursor = source.select(fields=fields, where_clause=where_clause)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                geometries = to_shapely(features)
+                results = [(g, attrs) for g, (_, *attrs)
+                           in zip(geometries, features)]
+                extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
     return target
 # End copy_feature_class function
 
