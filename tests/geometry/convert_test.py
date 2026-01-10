@@ -22,7 +22,7 @@ from shapely.io import from_wkb
 
 from gisworks.geometry.convert import (
     _as_lines, _find_slice_indexes, _update_z_values, _use_boundary_factory,
-    cast_line_strings, cast_multi_line_strings, cast_multi_points,
+    cast_linestrings, cast_multi_linestrings, cast_multi_points,
     cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
 from gisworks.geometry.util import nada
 from gisworks.shared.enumeration import OutputTypeOption
@@ -241,7 +241,7 @@ def test_line_string(cls, values, has_z, has_m, expected):
     Test line string casting
     """
     geom = from_wkb(cls(values, srs_id=WGS84).wkb)
-    results = cast_line_strings([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
+    results = cast_linestrings([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
     assert len(results) == 1
     line, = results
     assert approx(_summer(line.coordinates), nan_ok=True) == _summer([list(v) for v in expected])
@@ -287,7 +287,7 @@ def test_multi_line_string(cls, values, has_z, has_m, expected):
     Test multi line string casting
     """
     geom = from_wkb(cls(values, srs_id=WGS84).wkb)
-    results = cast_multi_line_strings([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
+    results = cast_multi_linestrings([geom], srs_id=WGS84, has_z=has_z, has_m=has_m)
     assert len(results) == 1
     multi, = results
     line1, line2, line3, line4 = multi.lines

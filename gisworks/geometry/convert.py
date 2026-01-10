@@ -122,19 +122,19 @@ def cast_multi_points(geoms: list[MultiPoint], srs_id: int,
 # End cast_multi_points function
 
 
-def cast_line_strings(geoms: list[LineString], srs_id: int,
-                      has_z: bool, has_m: bool) -> list:
+def cast_linestrings(geoms: list[LineString], srs_id: int,
+                     has_z: bool, has_m: bool) -> list:
     """
     Cast shapely LineStrings to fudgeo LineStrings adjusting by including or
     dropping Z and M values if necessary.
     """
     return _cast_linear(geoms=geoms, has_z=has_z, has_m=has_m, srs_id=srs_id,
                         geom_type=GeometryType.linestring)
-# End cast_line_strings function
+# End cast_linestrings function
 
 
-def cast_multi_line_strings(geoms: list[MultiLineString], srs_id: int,
-                            has_z: bool, has_m: bool) -> list:
+def cast_multi_linestrings(geoms: list[MultiLineString], srs_id: int,
+                           has_z: bool, has_m: bool) -> list:
     """
     Cast shapely MultiLineStrings to fudgeo MultiLineStrings adjusting by
     including or dropping Z and M values if necessary.
@@ -142,7 +142,7 @@ def cast_multi_line_strings(geoms: list[MultiLineString], srs_id: int,
     return _cast_groups(
         geoms, has_z=has_z, has_m=has_m, srs_id=srs_id,
         geom_type=GeometryType.multi_linestring, getter=get_geoms)
-# End cast_multi_line_strings function
+# End cast_multi_linestrings function
 
 
 def cast_polygons(geoms: list[Polygon], srs_id: int,
@@ -211,6 +211,16 @@ def _cast_groups(geoms: list[MultiLineString] | list[Polygon], has_z: bool,
                               zip(ids[:-1], ids[1:])], srs_id=srs_id))
     return converted
 # End _cast_groups function
+
+
+GEOMETRY_CAST: dict[str, Callable] = {
+    GeometryType.point: cast_points,
+    GeometryType.multi_point: cast_multi_points,
+    GeometryType.linestring: cast_linestrings,
+    GeometryType.multi_linestring: cast_multi_linestrings,
+    GeometryType.polygon: cast_polygons,
+    GeometryType.multi_polygon: cast_multi_polygons,
+}
 
 
 if __name__ == '__main__':  # pragma: no cover
