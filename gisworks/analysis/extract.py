@@ -17,7 +17,7 @@ from gisworks.shared.constant import (
 from gisworks.shared.element import copy_element
 from gisworks.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from gisworks.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
-from gisworks.shared.setting import ANALYSIS_SETTINGS
+from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.shared.util import (
     element_names, extend_records, make_unique_name, make_valid_name)
 from gisworks.shared.validation import (

@@ -25,8 +25,9 @@ from gisworks.geometry.convert import (
     cast_line_strings, cast_multi_line_strings, cast_multi_points,
     cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
 from gisworks.geometry.util import nada
-from gisworks.shared.enumeration import OutputTypeOption, Setting
-from gisworks.shared.setting import Swap
+from gisworks.shared.enumeration import OutputTypeOption
+from gisworks.environment.enumeration import Setting
+from gisworks.environment.context import Swap
 
 
 pytestmark = [mark.geometry]

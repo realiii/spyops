@@ -15,12 +15,13 @@ from pytest import mark, raises
 from warnings import catch_warnings, simplefilter
 
 from gisworks.geometry.validate import get_geometry_dimension
-from gisworks.shared.enumeration import AttributeOption, OutputTypeOption, Setting
+from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
+from gisworks.environment.enumeration import Setting
 from gisworks.shared.exception import OperationsError, OperationsWarning
 from gisworks.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
     GEOM_TYPE_POLYGONS, REALS, TEXT_AND_NUMBERS)
-from gisworks.shared.setting import Swap
+from gisworks.environment.context import Swap
 from gisworks.shared.util import element_names, make_unique_name
 from gisworks.shared.validation import (
     _check_output, validate_element, validate_enumeration,

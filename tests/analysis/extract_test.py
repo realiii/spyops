@@ -10,9 +10,11 @@ from pytest import mark, raises
 
 from gisworks.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from gisworks.shared.enumeration import Setting
+from gisworks.environment.enumeration import (
+    OutputMOption, OutputZOption,
+    Setting)
 from gisworks.shared.exception import OperationsError
-from gisworks.shared.setting import Swap
+from gisworks.environment.context import Swap
 from gisworks.shared.util import element_names, make_unique_name
 
 

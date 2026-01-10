@@ -6,7 +6,7 @@ Test Utilities
 
 from pytest import approx, mark, raises
 
-from gisworks.shared.enumeration import OutputMOption, Setting
+from gisworks.environment.enumeration import OutputMOption, Setting
 from gisworks.shared.util import (
     as_title, check_enumeration, element_names, expand_extent, make_unique_name,
     make_valid_name, _replace_double_under, safe_float, safe_int)
@@ -110,9 +110,9 @@ def test_safe_float(value, expected):
     (Setting.XY_TOLERANCE, 'XY Tolerance'),
     (Setting.OVERWRITE, 'Overwrite'),
     (Setting.CURRENT_WORKSPACE, 'Current Workspace'),
-    (Setting.OUTPUT_Z_FLAG, 'Output Z Flag'),
+    (Setting.OUTPUT_Z_OPTION, 'Output Z Option'),
     (Setting.Z_VALUE, 'Z Value'),
-    (Setting.OUTPUT_M_FLAG, 'Output M Flag'),
+    (Setting.OUTPUT_M_OPTION, 'Output M Option'),
     ('asdf', 'Asdf'),
     (None, ''),
 ])

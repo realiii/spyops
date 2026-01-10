@@ -10,10 +10,11 @@ from pytest import mark, param, raises
 
 from gisworks.analysis.overlay import erase, intersect
 from gisworks.shared.enumeration import (
-    AlgorithmOption, AttributeOption, OutputTypeOption, Setting)
+    AlgorithmOption, AttributeOption, OutputTypeOption)
+from gisworks.environment.enumeration import Setting
 from gisworks.query.overlay import QueryErase
 from gisworks.shared.exception import OperationsError
-from gisworks.shared.setting import Swap
+from gisworks.environment.context import Swap
 
 
 pytestmark = [mark.overlay, mark.query]

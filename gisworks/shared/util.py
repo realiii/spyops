@@ -15,7 +15,7 @@ from shapely import GeometryCollection
 from gisworks.geometry.config import GeometryConfig
 from gisworks.shared.constant import (
     DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
-from gisworks.shared.enumeration import Setting
+from gisworks.environment.enumeration import Setting
 from gisworks.shared.hint import EXTENT, GPKG
 
 

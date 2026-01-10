@@ -18,7 +18,7 @@ from shapely.coordinates import get_coordinates
 from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from gisworks.geometry.util import get_geoms, nada
 from gisworks.shared.enumeration import OutputTypeOption
-from gisworks.shared.setting import ANALYSIS_SETTINGS
+from gisworks.environment import ANALYSIS_SETTINGS
 
 
 def get_geometry_converters(source: FeatureClass, operator: FeatureClass,
