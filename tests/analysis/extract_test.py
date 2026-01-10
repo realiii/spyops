@@ -4,9 +4,12 @@ Test Extraction
 """
 
 
+from math import nan
+
 from fudgeo import FeatureClass, Field, GeoPackage, Table
-from fudgeo.enumeration import SQLFieldType
-from pytest import mark, raises
+from fudgeo.enumeration import GeometryType, SQLFieldType
+from numpy import array, isnan
+from pytest import approx, mark, raises
 
 from gisworks.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
@@ -366,6 +369,162 @@ class TestClip:
         result = clip(source=source, operator=operator, target=target)
         assert len(result) == count
     # End test_clip_larger_inputs method
+
+    @mark.parametrize('fc_name, output_z, output_m', [
+        ('CLIP_NTDB_HYDRO_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_M_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_M_MA', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_MA', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_P', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_VCS_Z_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_VCS_Z_MA', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_VCS_ZM_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_VCS_ZM_MA', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_Z_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_Z_MA', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_ZM_A', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_STRUCTURES_ZM_MA', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPOGRAPHY_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPONYMY_MP', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPONYMY_P', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPONYMY_VCS_Z_MP', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPONYMY_VCS_Z_P', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPONYMY_Z_MP', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TOPONYMY_Z_P', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_M_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_ML', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_P', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_VCS_Z_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_VCS_Z_ML', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_VCS_ZM_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_Z_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_TRANSMISSION_ZM_L', OutputZOption.SAME, OutputMOption.SAME),
+        ('CLIP_NTDB_HYDRO_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_M_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_M_MA', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_MA', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_P', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_Z_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_Z_MA', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_ZM_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_ZM_MA', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_Z_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_Z_MA', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_ZM_A', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_STRUCTURES_ZM_MA', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPOGRAPHY_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPONYMY_MP', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPONYMY_P', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPONYMY_VCS_Z_MP', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPONYMY_VCS_Z_P', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPONYMY_Z_MP', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TOPONYMY_Z_P', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_M_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_ML', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_P', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_VCS_Z_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_VCS_Z_ML', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_VCS_ZM_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_Z_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_TRANSMISSION_ZM_L', OutputZOption.ENABLED, OutputMOption.ENABLED),
+        ('CLIP_NTDB_HYDRO_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_M_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_M_MA', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_MA', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_P', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_Z_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_Z_MA', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_ZM_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_VCS_ZM_MA', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_Z_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_Z_MA', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_ZM_A', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_STRUCTURES_ZM_MA', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPOGRAPHY_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPONYMY_MP', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPONYMY_P', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPONYMY_VCS_Z_MP', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPONYMY_VCS_Z_P', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPONYMY_Z_MP', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TOPONYMY_Z_P', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_M_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_ML', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_P', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_VCS_Z_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_VCS_Z_ML', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_VCS_ZM_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_Z_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+        ('CLIP_NTDB_TRANSMISSION_ZM_L', OutputZOption.DISABLED, OutputMOption.DISABLED),
+    ])
+    def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, output_z, output_m):
+        """
+        Test clip using Output ZM settings
+        """
+        op_name = 'ntdb_50k_index_yyc16_a'
+        operator = ntdb_clipped[op_name]
+        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
+        source = ntdb_clipped[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        with Swap(Setting.OUTPUT_Z_OPTION, output_z), Swap(Setting.OUTPUT_M_OPTION, output_m):
+            clipped = clip(source=source, operator=operator, target=target)
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert clipped.has_z == has_z
+        assert clipped.has_m == has_m
+        assert len(clipped) < len(source)
+    # End test_output_zm method
+
+    @mark.parametrize('fc_name, z_value, expected', [
+        ('CLIP_NTDB_HYDRO_A', None, nan),
+        ('CLIP_NTDB_STRUCTURES_P', None, nan),
+        ('CLIP_NTDB_TRANSMISSION_L', None, nan),
+        ('CLIP_NTDB_HYDRO_A', nan, nan),
+        ('CLIP_NTDB_STRUCTURES_P', nan, nan),
+        ('CLIP_NTDB_TRANSMISSION_L', nan, nan),
+        ('CLIP_NTDB_HYDRO_A', 10, 10.),
+        ('CLIP_NTDB_STRUCTURES_P', 20, 20.),
+        ('CLIP_NTDB_TRANSMISSION_L', 30, 30.),
+    ])
+    def test_output_z_value(self, ntdb_clipped, mem_gpkg, fc_name, z_value, expected):
+        """
+        Test clip using output z value
+        """
+        op_name = 'ntdb_50k_index_yyc16_a'
+        operator = ntdb_clipped[op_name]
+        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
+        source = ntdb_clipped[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, z_value)):
+            clipped = clip(source=source, operator=operator, target=target)
+        if source.shape_type == GeometryType.point:
+            z_values = array([pt.z for pt, in clipped.select()], dtype=float)
+        elif source.shape_type == GeometryType.polygon:
+            z_values = []
+            for poly, in clipped.select():
+                for ring in poly.rings:
+                    z_values.extend(ring.coordinates[:, 2])
+        else:
+            z_values = []
+            for line, in clipped.select():
+                z_values.extend(line.coordinates[:, 2])
+        if isnan(expected):
+            assert all(isnan(z_values))
+        else:
+            assert approx(list(set(z_values))) == [expected]
+    # End test_output_z_value method
 # End TestClip class
 
 
