@@ -38,6 +38,10 @@ POLYGONS_ATTR: str = 'polygons'
 LINES_ATTR: str = 'lines'
 POINTS_ATTR: str = 'points'
 
+HAS_Z_KEY: str = 'has_z'
+HAS_M_KEY: str = 'has_m'
+SRS_ID_KEY: str = 'srs_id'
+
 FIELD: str = 'field'
 SOURCE: str = 'source'
 OPERATOR: str = 'operator'
