@@ -42,7 +42,7 @@ def geometry_config(target: FeatureClass, cast_geom: bool) -> GeometryConfig:
     combiner = _get_combiner(filter_types)
     srs_id = target.spatial_reference_system.srs_id
     if cast_geom:
-        caster = GEOMETRY_CAST[target.geometry_type]
+        caster = GEOMETRY_CAST[target.shape_type]
         kwargs = {SRS_ID_KEY: srs_id,
                   HAS_Z_KEY: target.has_z,
                   HAS_M_KEY: target.has_m}
