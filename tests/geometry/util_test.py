@@ -11,7 +11,9 @@ from shapely import (
     Point as ShapelyPoint, LineString, MultiPoint, MultiLineString)
 from shapely.geometry.base import GeometrySequence
 
-from gisworks.geometry.util import get_geoms, get_geoms_iter, nada, to_shapely
+from gisworks.geometry.util import (
+    USE_WORKAROUNDS, get_geoms, get_geoms_iter,
+    nada, to_shapely)
 
 pytestmark = [mark.geometry]
 
@@ -73,6 +75,19 @@ def test_to_shapely(features, expected_count, expected_type):
     assert len(result) == expected_count
     assert all(isinstance(geom, expected_type) for geom in result)
 # End test_to_shapely function
+
+
+def test_use_workarounds():
+    """
+    Test USE_WORKAROUNDS
+    """
+    assert USE_WORKAROUNDS.make_valid is True
+    assert USE_WORKAROUNDS.simplify is True
+    assert USE_WORKAROUNDS.coverage_simplify is True
+    assert USE_WORKAROUNDS.polygonize is True
+    assert USE_WORKAROUNDS.line_merge is True
+    assert USE_WORKAROUNDS.set_precision is True
+# End test_use_workarounds function
 
 
 if __name__ == '__main__':  # pragma: no cover
