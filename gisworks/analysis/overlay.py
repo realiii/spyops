@@ -9,7 +9,8 @@ from collections import defaultdict
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from shapely import STRtree, set_precision
+from shapely import set_precision
+from shapely.strtree import STRtree
 
 from gisworks.geometry.convert import get_geometry_converters
 from gisworks.geometry.util import filter_features, to_shapely

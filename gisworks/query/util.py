@@ -6,7 +6,8 @@ Utilities for Query
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from shapely import from_wkb, set_precision
+from shapely import set_precision
+from shapely.io import from_wkb
 
 from gisworks.shared.base import QueryConfig
 from gisworks.shared.hint import XY_TOL

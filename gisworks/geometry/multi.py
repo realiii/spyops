@@ -4,25 +4,29 @@ Build Multi Geometry
 """
 
 
-from typing import Callable
+from typing import Callable, Optional, TYPE_CHECKING
 
-from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import GeometryType
-from shapely import (
-    LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
-    from_wkb, prepare)
-from shapely.geometry.base import BaseGeometry
+from shapely.creation import prepare
+from shapely import MultiLineString, MultiPoint, MultiPolygon
+from shapely.io import from_wkb
 from shapely.ops import unary_union
 
 from gisworks.shared.constant import LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR
 from gisworks.shared.field import get_geometry_column_name
 from gisworks.geometry.validate import (
-    check_linestring, check_point,
-    check_polygon)
+    check_linestring, check_point, check_polygon)
 
 
-def build_multi(feature_class: FeatureClass | None) \
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from shapely import (
+        LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
+    from shapely.geometry.base import BaseGeometry
+
+
+def build_multi(feature_class: Optional['FeatureClass']) \
         -> MultiPoint | MultiLineString | MultiPolygon | None:
     """
     Build Multi Point, Multi Line or Multi Polygon
@@ -41,9 +45,9 @@ def build_multi(feature_class: FeatureClass | None) \
 # End build_multi function
 
 
-def _get_geoms(feature_class: FeatureClass, attr: str,
-               checker: Callable[[BaseGeometry], BaseGeometry | None]) \
-        -> list[Point] | list[LineString] | list[Polygon]:
+def _get_geoms(feature_class: 'FeatureClass', attr: str,
+               checker: Callable[['BaseGeometry'], Optional['BaseGeometry']]) \
+        -> list['Point'] | list['LineString'] | list['Polygon']:
     """
     Get Shapely Geometries from Feature Class
     """
@@ -65,7 +69,7 @@ def _get_geoms(feature_class: FeatureClass, attr: str,
 # End _get_geoms function
 
 
-def _build_multi_polygon(feature_class: FeatureClass) -> MultiPolygon:
+def _build_multi_polygon(feature_class: 'FeatureClass') -> MultiPolygon:
     """
     Build MultiPolygon from Polygon or MultiPolygon Feature Class
     """
@@ -80,7 +84,7 @@ def _build_multi_polygon(feature_class: FeatureClass) -> MultiPolygon:
 # End _build_multi_polygon function
 
 
-def _build_multi_linestring(feature_class: FeatureClass) -> MultiLineString:
+def _build_multi_linestring(feature_class: 'FeatureClass') -> MultiLineString:
     """
     Build MultiLineString from LineString or MultiLineString Feature Class
     """
@@ -93,7 +97,7 @@ def _build_multi_linestring(feature_class: FeatureClass) -> MultiLineString:
 # End _build_multi_linestring function
 
 
-def _build_multi_point(feature_class: FeatureClass) -> MultiPoint:
+def _build_multi_point(feature_class: 'FeatureClass') -> MultiPoint:
     """
     Build MultiPoint from Point or MultiPoint Feature Class
     """

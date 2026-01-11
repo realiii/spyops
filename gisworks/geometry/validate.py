@@ -5,18 +5,21 @@ Validate Geometry
 
 
 from operator import eq, ge
-from typing import Type
+from typing import TYPE_CHECKING, Type, Optional, Union
 
-from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
 
 from shapely import (
-    LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
-    make_valid)
-from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+    LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
+from shapely.constructive import make_valid
 
 from gisworks.shared.constant import GEOMS_ATTR
 from gisworks.shared.exception import OperationsError
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
 def check_polygon(polygon: Polygon | MultiPolygon) \
@@ -41,8 +44,7 @@ def check_linestring(geom: LineString | MultiLineString) \
 # End check_linestring function
 
 
-def check_point(geom: Point | MultiPoint) \
-        -> Point | MultiPoint | None:
+def check_point(geom: Point | MultiPoint) -> Point | MultiPoint | None:
     """
     Check Point
     """
@@ -52,10 +54,10 @@ def check_point(geom: Point | MultiPoint) \
 # End check_point function
 
 
-def _check_geometry(geom: BaseGeometry, method_name: str,
-                    cls: Type[BaseGeometry],
-                    multi_cls: Type[BaseMultipartGeometry]) \
-        -> BaseGeometry | BaseMultipartGeometry | None:
+def _check_geometry(geom: 'BaseGeometry', method_name: str,
+                    cls: Type['BaseGeometry'],
+                    multi_cls: Type['BaseMultipartGeometry']) \
+        -> Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]:
     """
     Check Geometry (for LineString and Polygon)
     """
@@ -76,7 +78,7 @@ def _check_geometry(geom: BaseGeometry, method_name: str,
 # End _check_geometry function
 
 
-def get_geometry_dimension(feature_class: FeatureClass) -> int:
+def get_geometry_dimension(feature_class: 'FeatureClass') -> int:
     """
     Get Geometry Dimension
     """
@@ -91,7 +93,7 @@ def get_geometry_dimension(feature_class: FeatureClass) -> int:
 # End get_geometry_dimension function
 
 
-def get_geometry_zm(feature_class: FeatureClass) -> tuple[bool, bool]:
+def get_geometry_zm(feature_class: 'FeatureClass') -> tuple[bool, bool]:
     """
     Get Geometry Dimension
     """

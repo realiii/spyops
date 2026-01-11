@@ -6,12 +6,11 @@ Types
 
 from typing import NamedTuple, TYPE_CHECKING, Union
 
-from fudgeo import FeatureClass
-from shapely import Polygon
-
-from gisworks.geometry.config import GeometryConfig
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from shapely import Polygon
+    from gisworks.geometry.config import GeometryConfig
     from gisworks.query.base import AbstractQuery, AbstractSpatialQuery
 
 
@@ -21,7 +20,7 @@ class AnalysisComponents(NamedTuple):
     """
     has_intersection: bool
     query: Union['AbstractQuery', 'AbstractSpatialQuery']
-    target: FeatureClass
+    target: 'FeatureClass'
 # End AnalysisComponents class
 
 
@@ -29,8 +28,8 @@ class PlanarizeResults(NamedTuple):
     """
     Planarize Results
     """
-    planarized: list[Polygon]
-    polygons: list[Polygon]
+    planarized: list['Polygon']
+    polygons: list['Polygon']
     ids: list[int]
 # End PlanarizeResults class
 
@@ -39,11 +38,11 @@ class QueryConfig(NamedTuple):
     """
     Query Config
     """
-    source: FeatureClass
-    target: FeatureClass
+    source: 'FeatureClass'
+    target: 'FeatureClass'
     disjoint: str
     insert: str
-    config: GeometryConfig
+    config: 'GeometryConfig'
 # End QueryConfig class
 
 

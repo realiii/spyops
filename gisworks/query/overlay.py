@@ -7,17 +7,19 @@ Query Classes for analysis.overlay module
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property
+from typing import Optional, TYPE_CHECKING
 
-from fudgeo import FeatureClass, Field, MemoryGeoPackage
+from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
-from shapely import GeometryCollection, Polygon, coverage_simplify
+from shapely import GeometryCollection, coverage_simplify
 from shapely.constructive import polygonize
 from shapely.io import from_wkb
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
+from gisworks.environment.core import zm_config
 from gisworks.geometry.config import geometry_config
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
@@ -31,6 +33,11 @@ from gisworks.shared.field import (
 from gisworks.shared.hint import (
     ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
 from gisworks.shared.util import element_names, extend_records, make_unique_name
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass, Field
+    from shapely import Polygon
 
 
 class QueryErase(QueryClip):
@@ -50,8 +57,8 @@ class QueryErase(QueryClip):
 # End QueryErase class
 
 
-def _planarize_factory(source: FeatureClass, operator: FeatureClass,
-                       xy_tolerance: XY_TOL) -> tuple[FeatureClass, FeatureClass]:
+def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
+                       xy_tolerance: XY_TOL) -> tuple['FeatureClass', 'FeatureClass']:
     """
     Planarize Feature Class Factory
     """
@@ -74,7 +81,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     """
     Abstract Base Class for Planarizing Feature Classes
     """
-    def __init__(self, source: FeatureClass, operator: FeatureClass,
+    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractPlanarize class
@@ -85,7 +92,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End init built-in
 
     @abstractmethod
-    def __call__(self) -> FeatureClass:  # pragma: no cover
+    def __call__(self) -> 'FeatureClass':  # pragma: no cover
         """
         Make Class Callable
         """
@@ -103,7 +110,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def temporary_fid_field(self) -> Field:  # pragma: no cover
+    def temporary_fid_field(self) -> 'Field':  # pragma: no cover
         """
         Temporary FID Field
         """
@@ -111,7 +118,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End temporary_fid_field property
 
     @abstractmethod
-    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:  # pragma: no cover
+    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':  # pragma: no cover
         """
         Planarized Feature Class
         """
@@ -126,7 +133,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         return MemoryGeoPackage.create()
     # End scratch property
 
-    def _make_insert_sql(self, planar: FeatureClass, fields: FIELDS) -> str:
+    def _make_insert_sql(self, planar: 'FeatureClass', fields: FIELDS) -> str:
         """
         Make Insert SQL for the Planar Feature Class
         """
@@ -138,8 +145,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
             field_count=len(fields) + 1)
     # End _make_insert_sql method
 
-    def _save_planarized(self, feature_class: FeatureClass,
-                         results: list[tuple]) -> FeatureClass:
+    def _save_planarized(self, feature_class: 'FeatureClass',
+                         results: list[tuple]) -> 'FeatureClass':
         """
         Save Planarized Feature Class
         """
@@ -164,7 +171,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End _get_fields method
 
     @staticmethod
-    def _fetch_features(feature_class: FeatureClass, sql: str) \
+    def _fetch_features(feature_class: 'FeatureClass', sql: str) \
             -> tuple[POLYGONS | LINES | POINTS, list[tuple]]:
         """
         Fetch Features, return shapely geometries and attributes
@@ -179,8 +186,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         return geoms, attributes
     # End _fetch_features method
 
-    def _make_planar_feature_class(self, feature_class: FeatureClass,
-                                   fields: FIELDS) -> FeatureClass:
+    def _make_planar_feature_class(self, feature_class: 'FeatureClass',
+                                   fields: FIELDS) -> 'FeatureClass':
         """
         Make Planar Feature Class
         """
@@ -228,7 +235,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         return GeometryType.polygon
     # End _shape_type property
 
-    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
+    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':
         """
         Planarized Feature Class
         """
@@ -240,7 +247,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     # End _planarize method
 
     @staticmethod
-    def _build_planar_results(planarized: list[Polygon], geoms: POLYGONS,
+    def _build_planar_results(planarized: list['Polygon'], geoms: POLYGONS,
                               attributes: list[tuple]) -> list[tuple]:
         """
         Build Planar Results
@@ -258,7 +265,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         return results
     # End _build_planar_results method
 
-    def _make_planarized_geometry(self, geoms: POLYGONS) -> list[Polygon]:
+    def _make_planarized_geometry(self, geoms: POLYGONS) -> list['Polygon']:
         """
         Make Planarized Geometry
         """
@@ -282,7 +289,7 @@ class PlanarizePolygonSource(AbstractPlanarizePolygon):
     """
     Planarize a source polygon feature class
     """
-    def __call__(self) -> FeatureClass:
+    def __call__(self) -> 'FeatureClass':
         """
         Make Class Callable
         """
@@ -290,7 +297,7 @@ class PlanarizePolygonSource(AbstractPlanarizePolygon):
     # End call built-in
 
     @property
-    def temporary_fid_field(self) -> Field:
+    def temporary_fid_field(self) -> 'Field':
         """
         Temporary FID Field
         """
@@ -303,7 +310,7 @@ class PlanarizePolygonOperator(AbstractPlanarizePolygon):
     """
     Planarize an operator polygon feature class
     """
-    def __call__(self) -> FeatureClass:
+    def __call__(self) -> 'FeatureClass':
         """
         Make Class Callable
         """
@@ -311,7 +318,7 @@ class PlanarizePolygonOperator(AbstractPlanarizePolygon):
     # End call built-in
 
     @property
-    def temporary_fid_field(self) -> Field:
+    def temporary_fid_field(self) -> 'Field':
         """
         Temporary FID Field
         """
@@ -324,7 +331,7 @@ class AbstractPlanarizeGeneral(AbstractPlanarize, metaclass=ABCMeta):
     """
     Abstract Class for Planarizing a LineString or Point Feature Class
     """
-    def _planarize(self, feature_class: FeatureClass, sql: str) -> FeatureClass:
+    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':
         """
         Planarized Feature Class
         """
@@ -339,7 +346,7 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
     """
     Planarize a source feature class -- handling for FID
     """
-    def __call__(self) -> FeatureClass:
+    def __call__(self) -> 'FeatureClass':
         """
         Make Class Callable
         """
@@ -355,7 +362,7 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
     # End _shape_type property
 
     @property
-    def temporary_fid_field(self) -> Field:
+    def temporary_fid_field(self) -> 'Field':
         """
         Temporary FID Field
         """
@@ -368,7 +375,7 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
     """
     Planarize an operator feature class -- handling for FID
     """
-    def __call__(self) -> FeatureClass:
+    def __call__(self) -> 'FeatureClass':
         """
         Make Class Callable
         """
@@ -384,7 +391,7 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
     # End _shape_type property
 
     @property
-    def temporary_fid_field(self) -> Field:
+    def temporary_fid_field(self) -> 'Field':
         """
         Temporary FID Field
         """
@@ -397,8 +404,8 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
     """
     Queries for Intersect (Pairwise)
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, attribute_option: AttributeOption,
+    def __init__(self, source: 'FeatureClass', target: Optional['FeatureClass'],
+                 operator: 'FeatureClass', attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
@@ -411,7 +418,7 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
     # End init built-in
 
     @cached_property
-    def target_empty(self) -> FeatureClass:
+    def target_empty(self) -> 'FeatureClass':
         """
         Target Empty
         """
@@ -444,8 +451,8 @@ class QueryIntersectClassic(QueryIntersectPairwise):
     """
     Queries for Intersect (Classic)
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
-                 operator: FeatureClass, attribute_option: AttributeOption,
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 operator: 'FeatureClass', attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
@@ -496,8 +503,8 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
     """
     Query Symmetrical Difference Pairwise
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, attribute_option: AttributeOption,
+    def __init__(self, source: 'FeatureClass', target: Optional['FeatureClass'],
+                 operator: 'FeatureClass', attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QuerySymmetricalDifferencePairwise class
@@ -571,7 +578,7 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
     # End _insert_operator property
 
     @property
-    def target(self) -> FeatureClass:
+    def target(self) -> 'FeatureClass':
         """
         Target
         """
@@ -579,7 +586,7 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
     # End target property
 
     @cached_property
-    def target_full(self) -> FeatureClass:
+    def target_full(self) -> 'FeatureClass':
         """
         Target Full
         """
@@ -601,8 +608,8 @@ class QuerySymmetricalDifferenceClassic(QueryIntersectClassic):
     """
     Query Symmetrical Difference Classic
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, attribute_option: AttributeOption,
+    def __init__(self, source: 'FeatureClass', target: Optional['FeatureClass'],
+                 operator: 'FeatureClass', attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QuerySymmetricalDifferenceClassic class

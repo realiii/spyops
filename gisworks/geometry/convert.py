@@ -4,24 +4,29 @@ Convert Geometry
 """
 
 
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
-from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
-from numpy import isnan, ndarray, nonzero, diff
-from shapely import (
-    LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon, Point,
-    get_rings)
+from numpy import isnan, nonzero, diff
+from shapely import get_rings
 from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
 
+from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from gisworks.geometry.util import get_geoms, nada
 from gisworks.shared.enumeration import OutputTypeOption
-from gisworks.environment import ANALYSIS_SETTINGS
+from gisworks.shared.hint import POLYGONS
 
 
-def get_geometry_converters(source: FeatureClass, operator: FeatureClass,
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from numpy import ndarray
+    from shapely import (
+        LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon, Point)
+
+
+def get_geometry_converters(source: 'FeatureClass', operator: 'FeatureClass',
                             output_type_option: OutputTypeOption) \
         -> tuple[Callable, Callable]:
     """
@@ -40,8 +45,7 @@ def get_geometry_converters(source: FeatureClass, operator: FeatureClass,
 # End _use_boundary_factory function
 
 
-def _as_lines(geoms: list[Polygon] | list[MultiPolygon]) \
-        -> list[LineString | MultiLineString]:
+def _as_lines(geoms: POLYGONS) -> POLYGONS:
     """
     Convert Polygons to LineStrings
     """
@@ -73,7 +77,7 @@ def _use_boundary_factory(source_shape_type: str, operator_shape_type: str,
 # End get_geometry_converters function
 
 
-def _find_slice_indexes(indexes: ndarray) -> tuple[int, ...]:
+def _find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
     """
     Find Slice Indexes, include the final index to allow for easier striding
     """
@@ -85,7 +89,7 @@ def _find_slice_indexes(indexes: ndarray) -> tuple[int, ...]:
 # End _find_slice_indexes function
 
 
-def _update_z_values(coords: ndarray, has_z: bool) -> None:
+def _update_z_values(coords: 'ndarray', has_z: bool) -> None:
     """
     Update Z Values if necessary
     """
@@ -99,7 +103,7 @@ def _update_z_values(coords: ndarray, has_z: bool) -> None:
 # End _update_z_values function
 
 
-def cast_points(geoms: list[Point], srs_id: int, has_z: bool, has_m: bool) -> list:
+def cast_points(geoms: list['Point'], srs_id: int, has_z: bool, has_m: bool) -> list:
     """
     Cast shapely Points to fudgeo Points adjusting by including or dropping
     Z and M values if necessary.
@@ -111,7 +115,7 @@ def cast_points(geoms: list[Point], srs_id: int, has_z: bool, has_m: bool) -> li
 # End cast_points function
 
 
-def cast_multi_points(geoms: list[MultiPoint], srs_id: int,
+def cast_multi_points(geoms: list['MultiPoint'], srs_id: int,
                       has_z: bool, has_m: bool) -> list:
     """
     Cast shapely MultiPoints to fudgeo MultiPoints adjusting by including or
@@ -122,7 +126,7 @@ def cast_multi_points(geoms: list[MultiPoint], srs_id: int,
 # End cast_multi_points function
 
 
-def cast_linestrings(geoms: list[LineString], srs_id: int,
+def cast_linestrings(geoms: list['LineString'], srs_id: int,
                      has_z: bool, has_m: bool) -> list:
     """
     Cast shapely LineStrings to fudgeo LineStrings adjusting by including or
@@ -133,7 +137,7 @@ def cast_linestrings(geoms: list[LineString], srs_id: int,
 # End cast_linestrings function
 
 
-def cast_multi_linestrings(geoms: list[MultiLineString], srs_id: int,
+def cast_multi_linestrings(geoms: list['MultiLineString'], srs_id: int,
                            has_z: bool, has_m: bool) -> list:
     """
     Cast shapely MultiLineStrings to fudgeo MultiLineStrings adjusting by
@@ -145,7 +149,7 @@ def cast_multi_linestrings(geoms: list[MultiLineString], srs_id: int,
 # End cast_multi_linestrings function
 
 
-def cast_polygons(geoms: list[Polygon], srs_id: int,
+def cast_polygons(geoms: list['Polygon'], srs_id: int,
                   has_z: bool, has_m: bool) -> list:
     """
     Cast shapely Polygons to fudgeo Polygons adjusting by including or dropping
@@ -157,7 +161,7 @@ def cast_polygons(geoms: list[Polygon], srs_id: int,
 # End cast_polygons function
 
 
-def cast_multi_polygons(geoms: list[MultiPolygon], srs_id: int,
+def cast_multi_polygons(geoms: list['MultiPolygon'], srs_id: int,
                         has_z: bool, has_m: bool) -> list:
     """
     Cast shapely MultiPolygons to fudgeo MultiPolygons adjusting by including or
@@ -179,7 +183,7 @@ def cast_multi_polygons(geoms: list[MultiPolygon], srs_id: int,
 # End cast_multi_polygons function
 
 
-def _cast_linear(geoms: list[MultiPoint] | list[LineString], has_z: bool,
+def _cast_linear(geoms: list['MultiPoint'] | list['LineString'], has_z: bool,
                  has_m: bool, srs_id: int, geom_type: str) -> list:
     """
     Cast Linear Geometry
@@ -193,7 +197,7 @@ def _cast_linear(geoms: list[MultiPoint] | list[LineString], has_z: bool,
 # End _cast_linear function
 
 
-def _cast_groups(geoms: list[MultiLineString] | list[Polygon], has_z: bool,
+def _cast_groups(geoms: list['MultiLineString'] | list['Polygon'], has_z: bool,
                  has_m: bool, srs_id: int, geom_type: str,
                  getter: Callable) -> list:
     """

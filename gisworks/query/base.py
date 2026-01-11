@@ -6,13 +6,14 @@ Abstract Classes in support of Query objects
 
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
+from typing import TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from shapely import MultiLineString, MultiPoint, MultiPolygon, box
+from shapely.creation import box
 
-from gisworks.environment.core import ZMConfig, zm_config
-from gisworks.geometry.config import GeometryConfig, geometry_config
+from gisworks.environment.core import zm_config
+from gisworks.geometry.config import geometry_config
 from gisworks.geometry.extent import extent_from_feature_class
 from gisworks.geometry.multi import build_multi
 from gisworks.shared.constant import (
@@ -23,6 +24,12 @@ from gisworks.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
 from gisworks.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
 from gisworks.shared.util import make_unique_name
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from shapely import MultiLineString, MultiPoint, MultiPolygon
+    from gisworks.environment.core import ZMConfig
+    from gisworks.geometry.config import GeometryConfig
 
 
 class AbstractQuery(metaclass=ABCMeta):
@@ -132,7 +139,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End init built-in
 
     @cached_property
-    def zm_config(self) -> ZMConfig:
+    def zm_config(self) -> 'ZMConfig':
         """
         ZM Configuration
         """
@@ -140,7 +147,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End zm_config property
 
     @cached_property
-    def geometry_config(self) -> GeometryConfig:
+    def geometry_config(self) -> 'GeometryConfig':
         """
         Geometry Configuration
         """
@@ -149,7 +156,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End geometry_config property
 
     @cached_property
-    def geometry(self) -> MultiPolygon | MultiLineString | MultiPoint:
+    def geometry(self) -> Union['MultiPolygon', 'MultiLineString', 'MultiPoint']:
         """
         Multi-Part Geometry of the Operator Feature Class
         """

@@ -4,19 +4,19 @@ Utility Functions
 """
 
 
-from sqlite3 import Cursor
 from typing import Any, TYPE_CHECKING
 
 from fudgeo.constant import FETCH_SIZE
-from fudgeo.context import ExecuteMany
-from shapely.geometry.base import (
-    BaseGeometry, BaseMultipartGeometry, GeometrySequence)
 from shapely.io import from_wkb
 
 from gisworks.shared.constant import GEOMS_ATTR
 from gisworks.shared.util import extend_records
 
+
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo.context import ExecuteMany
+    from shapely.geometry.base import BaseMultipartGeometry, GeometrySequence
+    from sqlite3 import Cursor
     from gisworks.geometry.config import GeometryConfig
 
 
@@ -28,7 +28,7 @@ def nada(value: Any) -> Any:
 # End nada function
 
 
-def get_geoms(geom: BaseGeometry | BaseMultipartGeometry) -> GeometrySequence:
+def get_geoms(geom: 'BaseMultipartGeometry') -> 'GeometrySequence':
     """
     Get Geometries
     """
@@ -52,8 +52,8 @@ def to_shapely(features: list[tuple]) -> list:
 # End to_shapely function
 
 
-def bulk_insert(cursor: Cursor, config: GeometryConfig,
-                executor: ExecuteMany, insert_sql: str) -> None:
+def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
+                executor: 'ExecuteMany', insert_sql: str) -> None:
     """
     Bulk Insert
     """
