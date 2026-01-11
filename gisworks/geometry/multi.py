@@ -9,6 +9,7 @@ from typing import Callable, Optional, TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import GeometryType
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
+from shapely.constructive import normalize
 from shapely.creation import prepare
 from shapely.ops import unary_union
 
@@ -68,8 +69,7 @@ def _build_multi_polygon(feature_class: 'FeatureClass') -> MultiPolygon:
     geoms = _get_validated_geoms_2d(feature_class, checker=check_polygon)
     if not geoms:
         return MultiPolygon()
-    multi = unary_union(geoms)
-    multi = multi.normalize()
+    multi = unary_union(normalize(geoms)).normalize()
     prepare(multi)
     # noinspection PyTypeChecker
     return multi
