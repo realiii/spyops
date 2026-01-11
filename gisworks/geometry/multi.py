@@ -8,22 +8,18 @@ from typing import Callable, Optional, TYPE_CHECKING
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import GeometryType
+from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.creation import prepare
-from shapely import MultiLineString, MultiPoint, MultiPolygon
-from shapely.io import from_wkb
 from shapely.ops import unary_union
 
-from gisworks.shared.constant import LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR
-from gisworks.shared.field import get_geometry_column_name
+from gisworks.geometry.util import get_geoms_iter, to_shapely
 from gisworks.geometry.validate import (
     check_linestring, check_point, check_polygon)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
-    from shapely import (
-        LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
-    from shapely.geometry.base import BaseGeometry
+    from shapely import MultiLineString, MultiPoint, MultiPolygon
 
 
 def build_multi(feature_class: Optional['FeatureClass']) \
@@ -45,36 +41,31 @@ def build_multi(feature_class: Optional['FeatureClass']) \
 # End build_multi function
 
 
-def _get_geoms(feature_class: 'FeatureClass', attr: str,
-               checker: Callable[['BaseGeometry'], Optional['BaseGeometry']]) \
-        -> list['Point'] | list['LineString'] | list['Polygon']:
+def _get_validated_geoms_2d(feature_class: 'FeatureClass',
+                            checker: Callable) -> list:
     """
     Get Shapely Geometries from Feature Class
     """
     geoms = []
-    column_name = get_geometry_column_name(
-        feature_class, include_geom_type=True)
-    with feature_class.geopackage.connection as cin:
-        cursor = cin.execute(
-            f"""SELECT {column_name} 
-                FROM {feature_class.escaped_name}""")
-        while geometries := cursor.fetchmany(FETCH_SIZE):
-            for geometry, in geometries:
-                for geom in getattr(geometry, attr, [geometry]):
-                    g = from_wkb(geom.wkb)
-                    if checker(g) is None:
-                        continue
-                    geoms.append(g)
+    cursor = feature_class.select()
+    while features := cursor.fetchmany(FETCH_SIZE):
+        geometries = to_shapely(features)
+        if feature_class.has_z or feature_class.has_m:
+            geometries = force_2d(geometries)
+        for geometry in geometries:
+            for geom in get_geoms_iter(geometry):
+                if checker(geom) is None:
+                    continue
+                geoms.append(geom)
     return geoms
-# End _get_geoms function
+# End _get_validated_geoms_2d function
 
 
 def _build_multi_polygon(feature_class: 'FeatureClass') -> MultiPolygon:
     """
     Build MultiPolygon from Polygon or MultiPolygon Feature Class
     """
-    # noinspection PyTypeChecker
-    geoms = _get_geoms(feature_class, attr=POLYGONS_ATTR, checker=check_polygon)
+    geoms = _get_validated_geoms_2d(feature_class, checker=check_polygon)
     if not geoms:
         return MultiPolygon()
     multi = unary_union(geoms)
@@ -88,11 +79,9 @@ def _build_multi_linestring(feature_class: 'FeatureClass') -> MultiLineString:
     """
     Build MultiLineString from LineString or MultiLineString Feature Class
     """
-    # noinspection PyTypeChecker
-    geoms = _get_geoms(feature_class, attr=LINES_ATTR, checker=check_linestring)
+    geoms = _get_validated_geoms_2d(feature_class, checker=check_linestring)
     multi = MultiLineString(geoms)
     prepare(multi)
-    # noinspection PyTypeChecker
     return multi
 # End _build_multi_linestring function
 
@@ -101,11 +90,9 @@ def _build_multi_point(feature_class: 'FeatureClass') -> MultiPoint:
     """
     Build MultiPoint from Point or MultiPoint Feature Class
     """
-    # noinspection PyTypeChecker
-    geoms = _get_geoms(feature_class, attr=POINTS_ATTR, checker=check_point)
+    geoms = _get_validated_geoms_2d(feature_class, checker=check_point)
     multi = MultiPoint(geoms)
     prepare(multi)
-    # noinspection PyTypeChecker
     return multi
 # End _build_multi_point function
 
