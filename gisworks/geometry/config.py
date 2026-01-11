@@ -71,11 +71,11 @@ def _combine_lines(value: Union['LineString', 'MultiLineString']) \
 # End _combine_lines function
 
 
-def _get_combiner(filter_types: tuple) -> Callable:
+def _get_combiner(shape_type: str) -> Callable:
     """
     Get Combiner Function
     """
-    if LineString in filter_types:
+    if GeometryType.linestring in shape_type:
         return _combine_lines
     return nada
 # End _get_combiner function
