@@ -85,7 +85,7 @@ def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
 # End bulk_insert function
 
 
-class UseWorkarounds:
+class _UseWorkarounds:
     """
     Use Workarounds for Shapely / GEOS
     """
@@ -128,6 +128,7 @@ class UseWorkarounds:
         Use workaround for coverage_simplify?
         """
         a = from_wkt('Polygon ((0 0 0 0, 0 1 1 1, 1 1 2 3, 1 0 4 5, 0 0 6 7))')
+        # noinspection PyTypeChecker
         result = coverage_simplify(a, tolerance=0.001)
         return not result.has_m
     # End coverage_simplify property
@@ -152,10 +153,56 @@ class UseWorkarounds:
         result = polygonize([a])
         return not result.has_m
     # End polygonize property
-# End UseWorkarounds class
+
+    @cached_property
+    def point_intersection(self) -> bool:
+        """
+        Use workaround for Point / Point Z not getting M during intersect?
+        """
+        a = from_wkt('LineString (0 0 100 200, 10 0 300 400)')
+        p = from_wkt('Point (2 0)')
+        return not p.intersection(a).has_m
+    # End point_intersection property
+
+    @cached_property
+    def point_interpolation(self) -> bool:
+        """
+        Use workaround for Point getting bad Z value during intersect?
+        """
+        a = from_wkt('LineString (0 0 100 200, 10 0 300 400)')
+        b = from_wkt('Point (2 0)')
+        # noinspection PyUnresolvedReferences
+        return a.intersection(b).z != 140
+    # End point_interpolation property
+
+    @cached_property
+    def geometry_order_interpolation(self) -> bool:
+        """
+        Use workaround for Geometry Order affecting ZM interpolation?
+        """
+        a = from_wkt('LineString (0 0 100 200, 10 0 300 400)')
+        b = from_wkt('LineString (2 0, 5 0, 8 0)')
+        result = b.intersection(a)
+        coords = get_coordinates(result, include_m=True)
+        return bool(isnan(coords[:, 2]).any())
+    # End geometry_order_interpolation property
+
+    @cached_property
+    def inconsistent_zm_source(self) -> bool:
+        """
+        Use workaround for ZM values sourced from both inputs?
+        """
+        from shapely import from_wkt
+        a = from_wkt('LineString (2 0 1111 2222, 5 0 3333 4444, 8 0 5555 6666)')
+        b = from_wkt('LineString (0 0 1 2, 3 0 3 4, 6 0 5 6, 8 0 7 8)')
+        bad = from_wkt('LineString (2 0 1111 2222, 3 0 3 4)')
+        result = a.intersection(b)
+        return bad in set(get_geoms(result))
+    # End inconsistent_zm_source property
+# End _UseWorkarounds class
 
 
-USE_WORKAROUNDS: UseWorkarounds = UseWorkarounds()
+USE_WORKAROUNDS: _UseWorkarounds = _UseWorkarounds()
 
 
 if __name__ == '__main__':  # pragma: no cover

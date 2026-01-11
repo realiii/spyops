@@ -87,6 +87,10 @@ def test_use_workarounds():
     assert USE_WORKAROUNDS.polygonize is True
     assert USE_WORKAROUNDS.line_merge is True
     assert USE_WORKAROUNDS.set_precision is True
+    assert USE_WORKAROUNDS.inconsistent_zm_source is True
+    assert USE_WORKAROUNDS.point_intersection is True
+    assert USE_WORKAROUNDS.point_interpolation is True
+    assert USE_WORKAROUNDS.geometry_order_interpolation is True
 # End test_use_workarounds function
 
 
