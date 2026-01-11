@@ -24,7 +24,6 @@ from gisworks.geometry.config import geometry_config
 from gisworks.geometry.util import get_geoms_iter
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
-from gisworks.query.util import process_disjoint
 from gisworks.shared.base import QueryConfig
 from gisworks.shared.constant import EMPTY
 from gisworks.shared.element import create_feature_class
@@ -33,7 +32,8 @@ from gisworks.shared.field import (
     get_geometry_column_name, make_field_names, validate_fields)
 from gisworks.shared.hint import (
     ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
-from gisworks.shared.util import element_names, extend_records, make_unique_name
+from gisworks.shared.util import element_names, make_unique_name
+from gisworks.shared.records import extend_records, process_disjoint
 
 
 if TYPE_CHECKING:  # pragma: no cover

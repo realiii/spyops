@@ -7,24 +7,22 @@ Utility Functions
 from functools import cached_property
 from typing import Any, TYPE_CHECKING, Union
 
-from fudgeo.constant import FETCH_SIZE
 from numpy import isnan
-from shapely import MultiLineString, set_precision, coverage_simplify
+from shapely import (
+    MultiLineString, set_precision, coverage_simplify, force_2d, force_3d)
 from shapely.constructive import make_valid, polygonize
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb, from_wkt
 from shapely.linear import line_merge
 
+from gisworks.geometry.enumeration import DimensionOption
 from gisworks.shared.constant import GEOMS_ATTR
-from gisworks.shared.util import extend_records
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo.context import ExecuteMany
+    from numpy import ndarray
     from shapely.geometry.base import (
         BaseMultipartGeometry, BaseGeometry, GeometrySequence)
-    from sqlite3 import Cursor
-    from gisworks.geometry.config import GeometryConfig
 
 
 def nada(value: Any) -> Any:
@@ -60,29 +58,19 @@ def filter_features(features: list[tuple]) -> list[tuple]:
 # End filter_features function
 
 
-def to_shapely(features: list[tuple]) -> list:
+def to_shapely(features: list[tuple], option: DimensionOption = DimensionOption.SAME) -> Union[list, 'ndarray']:
     """
     To Shapely Geometry from Fudgeo
     """
-    return [from_wkb(g.wkb) for g, *_ in features]
+    geometries = [from_wkb(g.wkb) for g, *_ in features]
+    if option == DimensionOption.TWO_D:
+        # noinspection PyTypeChecker
+        return force_2d(geometries)
+    elif option == DimensionOption.THREE_D:
+        # noinspection PyTypeChecker
+        return force_3d(geometries)
+    return geometries
 # End to_shapely function
-
-
-def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
-                executor: 'ExecuteMany', insert_sql: str) -> None:
-    """
-    Bulk Insert
-    """
-    records = []
-    while features := cursor.fetchmany(FETCH_SIZE):
-        if not (features := filter_features(features)):
-            continue
-        geometries = to_shapely(features)
-        results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
-        extend_records(results, records=records, config=config)
-        executor(sql=insert_sql, data=records)
-        records.clear()
-# End bulk_insert function
 
 
 class _UseWorkarounds:

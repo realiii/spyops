@@ -14,11 +14,11 @@ from gisworks.crs.util import validate_srs
 from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.environment.core import zm_config
 from gisworks.geometry.config import geometry_config
-from gisworks.geometry.util import bulk_insert
 from gisworks.shared.constant import QUESTION
 from gisworks.shared.exception import OperationsError
 from gisworks.shared.field import get_geometry_column_name, validate_fields
 from gisworks.shared.hint import ELEMENT, FIELDS, GPKG
+from gisworks.shared.records import bulk_insert
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,

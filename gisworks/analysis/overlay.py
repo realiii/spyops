@@ -22,7 +22,7 @@ from gisworks.shared.constant import (
 from gisworks.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
 from gisworks.shared.hint import XY_TOL
-from gisworks.shared.util import extend_records
+from gisworks.shared.records import extend_records
 from gisworks.shared.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
     validate_output_type, validate_result, validate_same_crs,

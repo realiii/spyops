@@ -10,21 +10,22 @@ from fudgeo import FeatureClass, Table, Field
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
+from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.environment.context import Swap
 from gisworks.environment.core import ZMConfig, zm_config
 from gisworks.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from gisworks.geometry.config import geometry_config
-from gisworks.geometry.util import bulk_insert, filter_features, to_shapely
+from gisworks.geometry.util import filter_features, to_shapely
 from gisworks.query.extract import QueryClip, QuerySplit, QuerySplitByAttributes
 from gisworks.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, SQL_EMPTY, TARGET, UNDERSCORE)
 from gisworks.shared.element import copy_element
 from gisworks.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from gisworks.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
-from gisworks.environment import ANALYSIS_SETTINGS
+from gisworks.shared.records import bulk_insert, extend_records
 from gisworks.shared.util import (
-    element_names, extend_records, make_unique_name, make_valid_name)
+    element_names, make_unique_name, make_valid_name)
 from gisworks.shared.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geometry_dimension, validate_geopackage, validate_result,

@@ -8,12 +8,13 @@ from typing import Callable, Optional, TYPE_CHECKING
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import GeometryType
-from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
+from shapely import MultiLineString, MultiPoint, MultiPolygon
 from shapely.constructive import normalize
 from shapely.creation import prepare
 from shapely.ops import unary_union
 
-from gisworks.geometry.util import get_geoms_iter, to_shapely
+from gisworks.geometry.enumeration import DimensionOption
+from gisworks.geometry.util import USE_WORKAROUNDS, get_geoms_iter, to_shapely
 from gisworks.geometry.validate import (
     check_linestring, check_point, check_polygon)
 
@@ -42,31 +43,33 @@ def build_multi(feature_class: Optional['FeatureClass']) \
 # End build_multi function
 
 
-def _get_validated_geoms_2d(feature_class: 'FeatureClass',
-                            checker: Callable) -> list:
+def _get_validated_geoms(feature_class: 'FeatureClass',
+                         checker: Callable) -> list:
     """
     Get Shapely Geometries from Feature Class
     """
     geoms = []
     cursor = feature_class.select()
+    if USE_WORKAROUNDS.make_valid:
+        option = DimensionOption.TWO_D
+    else:
+        option = DimensionOption.SAME
     while features := cursor.fetchmany(FETCH_SIZE):
-        geometries = to_shapely(features)
-        if feature_class.has_z or feature_class.has_m:
-            geometries = force_2d(geometries)
+        geometries = to_shapely(features, option=option)
         for geometry in geometries:
             for geom in get_geoms_iter(geometry):
                 if checker(geom) is None:
                     continue
                 geoms.append(geom)
     return geoms
-# End _get_validated_geoms_2d function
+# End _get_validated_geoms function
 
 
 def _build_multi_polygon(feature_class: 'FeatureClass') -> MultiPolygon:
     """
     Build MultiPolygon from Polygon or MultiPolygon Feature Class
     """
-    geoms = _get_validated_geoms_2d(feature_class, checker=check_polygon)
+    geoms = _get_validated_geoms(feature_class, checker=check_polygon)
     if not geoms:
         return MultiPolygon()
     multi = unary_union(normalize(geoms)).normalize()
@@ -80,7 +83,7 @@ def _build_multi_linestring(feature_class: 'FeatureClass') -> MultiLineString:
     """
     Build MultiLineString from LineString or MultiLineString Feature Class
     """
-    geoms = _get_validated_geoms_2d(feature_class, checker=check_linestring)
+    geoms = _get_validated_geoms(feature_class, checker=check_linestring)
     if not geoms:
         return MultiLineString()
     multi = MultiLineString(geoms)
@@ -93,7 +96,7 @@ def _build_multi_point(feature_class: 'FeatureClass') -> MultiPoint:
     """
     Build MultiPoint from Point or MultiPoint Feature Class
     """
-    geoms = _get_validated_geoms_2d(feature_class, checker=check_point)
+    geoms = _get_validated_geoms(feature_class, checker=check_point)
     if not geoms:
         return MultiPoint()
     multi = MultiPoint(geoms)

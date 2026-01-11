@@ -6,19 +6,13 @@ Utilities
 
 from enum import StrEnum
 from re import IGNORECASE, compile as recompile
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable
 
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
-from shapely import GeometryCollection
 
-from gisworks.geometry.util import get_geoms, get_geoms_iter
-from gisworks.shared.constant import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
+from gisworks.shared.constant import DOUBLE_UNDER, UNDERSCORE
 from gisworks.shared.hint import EXTENT, GPKG
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from gisworks.geometry.config import GeometryConfig
 
 
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub
@@ -90,44 +84,6 @@ def expand_extent(extent: EXTENT) -> EXTENT:
     min_x, min_y, max_x, max_y = extent
     return min_x * down, min_y * down, max_x * up, max_y * up
 # End expand_extent function
-
-
-def extend_records(results: list[tuple], records: list[tuple],
-                   config: 'GeometryConfig') -> None:
-    """
-    Extend Records
-    """
-    srs_id = config.srs_id
-    cls = config.geometry_cls
-    combiner = config.combiner
-    is_multi = config.is_multi
-    types = _, multi_cls = config.filter_types
-    refined = []
-    for geom, attrs in results:
-        if geom.is_empty:
-            continue
-        if isinstance(geom, GeometryCollection):
-            geom = multi_cls([g for g in get_geoms(geom) if isinstance(g, types)])
-        elif not isinstance(geom, types):
-            continue
-        geom = combiner(geom)
-        if is_multi:
-            if not hasattr(geom, GEOMS_ATTR):
-                geom = multi_cls([geom])
-            refined.append((geom, attrs))
-        else:
-            refined.extend([(part, attrs) for part in get_geoms_iter(geom)])
-    if not refined:
-        return
-    if not config.caster:
-        records.extend([(cls.from_wkb(geom.wkb, srs_id=srs_id), *attrs)
-                        for geom, attrs in refined])
-    else:
-        geoms, attributes = zip(*refined)
-        geoms = config.caster(geoms)
-        records.extend([(geom, *attrs)
-                        for geom, attrs in zip(geoms, attributes)])
-# End extend_records function
 
 
 def safe_int(value: Any) -> int | None:
