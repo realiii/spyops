@@ -4,7 +4,7 @@ Utility Functions
 """
 
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Union
 
 from fudgeo.constant import FETCH_SIZE
 from shapely.io import from_wkb
@@ -15,7 +15,8 @@ from gisworks.shared.util import extend_records
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.context import ExecuteMany
-    from shapely.geometry.base import BaseMultipartGeometry, GeometrySequence
+    from shapely.geometry.base import (
+        BaseMultipartGeometry, BaseGeometry, GeometrySequence)
     from sqlite3 import Cursor
     from gisworks.geometry.config import GeometryConfig
 
@@ -34,6 +35,15 @@ def get_geoms(geom: 'BaseMultipartGeometry') -> 'GeometrySequence':
     """
     return getattr(geom, GEOMS_ATTR)
 # End get_geoms function
+
+
+def get_geoms_iter(geom: Union['BaseGeometry', 'BaseMultipartGeometry']) \
+        -> Union['GeometrySequence', list['BaseGeometry']]:
+    """
+    Get Geometries for Iteration
+    """
+    return getattr(geom, GEOMS_ATTR, [geom,])
+# End get_geoms_iter function
 
 
 def filter_features(features: list[tuple]) -> list[tuple]:
