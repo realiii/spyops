@@ -81,6 +81,8 @@ def _build_multi_linestring(feature_class: 'FeatureClass') -> MultiLineString:
     Build MultiLineString from LineString or MultiLineString Feature Class
     """
     geoms = _get_validated_geoms_2d(feature_class, checker=check_linestring)
+    if not geoms:
+        return MultiLineString()
     multi = MultiLineString(geoms)
     prepare(multi)
     return multi
@@ -92,6 +94,8 @@ def _build_multi_point(feature_class: 'FeatureClass') -> MultiPoint:
     Build MultiPoint from Point or MultiPoint Feature Class
     """
     geoms = _get_validated_geoms_2d(feature_class, checker=check_point)
+    if not geoms:
+        return MultiPoint()
     multi = MultiPoint(geoms)
     prepare(multi)
     return multi
