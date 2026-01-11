@@ -187,6 +187,20 @@ class _UseWorkarounds:
         result = a.intersection(b)
         return bad in set(get_geoms(result))
     # End inconsistent_zm_source property
+
+    @cached_property
+    def dropped_nan_measures(self) -> bool:
+        """
+        Use workaround for NaN measures completely dropped when intersecting
+        LineString and MultiLineString with ZM values
+        """
+        line_a = from_wkt('LineString (0 0 0 NaN, 10 0 123 NaN)')
+        line_b = from_wkt('LineString (4 -5 999 NaN, 5 5 456 NaN, 6 -6 678 NaN)')
+        # noinspection PyTypeChecker
+        line_b = MultiLineString([line_b])
+        result = line_a.intersection(line_b)
+        return not result.has_m
+    # End dropped_nan_measures property
 # End _UseWorkarounds class
 
 

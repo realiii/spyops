@@ -91,6 +91,7 @@ def test_use_workarounds():
     assert USE_WORKAROUNDS.point_intersection is True
     assert USE_WORKAROUNDS.point_interpolation is True
     assert USE_WORKAROUNDS.geometry_order_interpolation is True
+    assert USE_WORKAROUNDS.dropped_nan_measures is True
 # End test_use_workarounds function
 
 
