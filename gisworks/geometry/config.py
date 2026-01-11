@@ -65,7 +65,7 @@ def _combine_lines(value: Union['LineString', 'MultiLineString']) \
     """
     Combine Lines using Directed Line Merge
     """
-    if isinstance(value, MultiLineString):
+    if hasattr(value, GEOMS_ATTR):
         return line_merge(value, directed=True)
     return value
 # End _combine_lines function
