@@ -69,6 +69,7 @@ def _build_multi_polygon(feature_class: 'FeatureClass') -> MultiPolygon:
     if not geoms:
         return MultiPolygon()
     multi = unary_union(geoms)
+    multi = multi.normalize()
     prepare(multi)
     # noinspection PyTypeChecker
     return multi
