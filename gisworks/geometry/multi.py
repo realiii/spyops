@@ -29,7 +29,7 @@ if TYPE_CHECKING:  # pragma: no cover
 def build_multi(feature_class: Optional['FeatureClass']) \
         -> MultiPoint | MultiLineString | MultiPolygon | None:
     """
-    Build Multi Point, Multi Line or Multi Polygon
+    Build MultiPoint, MultiLine or MultiPolygon
     """
     if not feature_class:
         return None
