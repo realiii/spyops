@@ -48,7 +48,7 @@ def get_geoms_iter(geom: Union['BaseGeometry', 'BaseMultipartGeometry']) \
     """
     Get Geometries for Iteration
     """
-    return getattr(geom, GEOMS_ATTR, [geom,])
+    return getattr(geom, GEOMS_ATTR, [geom])
 # End get_geoms_iter function
 
 
