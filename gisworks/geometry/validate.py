@@ -13,7 +13,7 @@ from shapely import (
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
 from shapely.constructive import make_valid
 
-from gisworks.shared.constant import GEOMS_ATTR
+from gisworks.geometry.util import get_geoms_iter
 from gisworks.shared.exception import OperationsError
 
 
@@ -67,7 +67,7 @@ def _check_geometry(geom: 'BaseGeometry', method_name: str,
     geom = make_valid(geom, method=method_name)
     if not geom.is_valid:
         return None
-    geoms = [p for p in getattr(geom, GEOMS_ATTR, [geom])
+    geoms = [p for p in get_geoms_iter(geom)
              if p.is_valid and isinstance(p, cls)]
     if not geoms:
         return None

@@ -21,11 +21,12 @@ from shapely.set_operations import union_all
 
 from gisworks.environment.core import zm_config
 from gisworks.geometry.config import geometry_config
+from gisworks.geometry.util import get_geoms_iter
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
 from gisworks.query.util import process_disjoint
 from gisworks.shared.base import QueryConfig
-from gisworks.shared.constant import EMPTY, GEOMS_ATTR
+from gisworks.shared.constant import EMPTY
 from gisworks.shared.element import create_feature_class
 from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
 from gisworks.shared.field import (
@@ -270,13 +271,13 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         Make Planarized Geometry
         """
         lines = union_all([geom.boundary for geom in geoms])
-        lines = getattr(lines, GEOMS_ATTR, [lines])
+        lines = get_geoms_iter(lines)
         collections = polygonize(lines)
         if isinstance(collections, GeometryCollection):
             collections = [collections]
         planarized = []
         for collection in collections:
-            planarized.extend(getattr(collection, GEOMS_ATTR, [collection]))
+            planarized.extend(get_geoms_iter(collection))
         if self._xy_tolerance is None:
             return planarized
         simplified = coverage_simplify(planarized, tolerance=self._xy_tolerance)

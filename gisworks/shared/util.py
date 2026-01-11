@@ -12,6 +12,7 @@ from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 from shapely import GeometryCollection
 
+from gisworks.geometry.util import get_geoms, get_geoms_iter
 from gisworks.shared.constant import DOUBLE_UNDER, GEOMS_ATTR, UNDERSCORE
 from gisworks.shared.hint import EXTENT, GPKG
 
@@ -100,15 +101,14 @@ def extend_records(results: list[tuple], records: list[tuple],
     cls = config.geometry_cls
     combiner = config.combiner
     is_multi = config.is_multi
-    filter_types = _, multi_cls = config.filter_types
+    types = _, multi_cls = config.filter_types
     refined = []
     for geom, attrs in results:
         if geom.is_empty:
             continue
         if isinstance(geom, GeometryCollection):
-            geom = multi_cls([r for r in getattr(geom, GEOMS_ATTR)
-                              if isinstance(r, filter_types)])
-        elif not isinstance(geom, filter_types):
+            geom = multi_cls([g for g in get_geoms(geom) if isinstance(g, types)])
+        elif not isinstance(geom, types):
             continue
         geom = combiner(geom)
         if is_multi:
@@ -116,8 +116,7 @@ def extend_records(results: list[tuple], records: list[tuple],
                 geom = multi_cls([geom])
             refined.append((geom, attrs))
         else:
-            refined.extend([(part, attrs) for part in
-                            getattr(geom, GEOMS_ATTR, [geom])])
+            refined.extend([(part, attrs) for part in get_geoms_iter(geom)])
     if not refined:
         return
     if not config.caster:
