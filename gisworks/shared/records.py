@@ -70,7 +70,7 @@ def extend_records(results: list[tuple], records: list[tuple],
                 geom = multi_cls([geom])
             refined.append((geom, attrs))
         else:
-            refined.extend([(part, attrs) for part in get_geoms_iter(geom)])
+            refined.extend([(g, attrs) for g in get_geoms_iter(geom)])
     if not refined:
         return
     if not config.caster:
