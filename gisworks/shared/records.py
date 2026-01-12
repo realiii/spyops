@@ -12,11 +12,12 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.geometry import PointM, PointZM
 from fudgeo.geometry.point import MultiPointM, MultiPointZM
-from shapely import GeometryCollection, from_wkb, set_precision
+from shapely import GeometryCollection, from_wkb
 from shapely.coordinates import get_coordinates
 
 from gisworks.geometry.util import (
-    USE_WORKAROUNDS, filter_features, get_geoms, get_geoms_iter, to_shapely)
+    USE_WORKAROUNDS, filter_features, get_geoms, get_geoms_iter, set_precision,
+    to_shapely)
 from gisworks.shared.constant import (
     GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, X_ATTR, Y_ATTR,Z_ATTR)
 from gisworks.shared.hint import XY_TOL

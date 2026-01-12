@@ -6,10 +6,12 @@ Utility Functions
 
 from functools import cached_property
 from typing import Any, TYPE_CHECKING, Union
+from warnings import warn
 
-from numpy import isnan
+from numpy import isnan, ndarray
 from shapely import (
-    MultiLineString, set_precision, coverage_simplify, force_2d, force_3d)
+    MultiLineString, MultiPolygon, Polygon, set_precision as _set_precision,
+    coverage_simplify, force_2d, force_3d)
 from shapely.constructive import make_valid, polygonize
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb, from_wkt
@@ -17,10 +19,9 @@ from shapely.linear import line_merge
 
 from gisworks.geometry.enumeration import DimensionOption
 from gisworks.shared.constant import GEOMS_ATTR
-
+from gisworks.shared.exception import OperationsWarning
 
 if TYPE_CHECKING:  # pragma: no cover
-    from numpy import ndarray
     from shapely.geometry.base import (
         BaseMultipartGeometry, BaseGeometry, GeometrySequence)
 
@@ -71,6 +72,30 @@ def to_shapely(features: list[tuple], option: DimensionOption = DimensionOption.
         return force_3d(geometries)
     return geometries
 # End to_shapely function
+
+
+def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
+    """
+    Set Precision
+    """
+    if USE_WORKAROUNDS.set_precision and grid_size > 0:
+        if isinstance(geometry, (list, tuple, ndarray)):
+            if not len(geometry):
+                is_polygon = has_m = False
+            else:
+                sniff = min(25, len(geometry))
+                is_polygon = any(isinstance(g, (Polygon, MultiPolygon))
+                                 for g in geometry[:sniff])
+                has_m = any(g.has_m for g in geometry[:sniff])
+        else:
+            is_polygon = isinstance(geometry, (Polygon, MultiPolygon))
+            has_m = geometry.has_m
+        if is_polygon and has_m:
+            warn(f'Setting precision on measured polygons changes the measure '
+                 f'value for the last point in the polygon. '
+                 f'ref shapely/shapely#2402', OperationsWarning)
+    return _set_precision(geometry, grid_size=grid_size, mode=mode, **kwargs)
+# End set_precision function
 
 
 class _UseWorkarounds:
@@ -127,7 +152,7 @@ class _UseWorkarounds:
         Use workaround for set_precision?
         """
         a = from_wkt('Polygon ((0 0 0 0, 0 1 1 1, 1 1 2 3, 1 0 4 5, 0 0 6 7))')
-        result = set_precision(a, grid_size=0.001)
+        result = _set_precision(a, grid_size=0.001)
         coords = get_coordinates(result, include_m=True)
         return bool(isnan(coords[:, 2]).any())
     # End set_precision property
