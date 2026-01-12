@@ -4,20 +4,27 @@ Records Helper Functions
 """
 
 
-from typing import TYPE_CHECKING
+from math import nan
+from operator import attrgetter
+from typing import TYPE_CHECKING, Type
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from fudgeo.geometry import PointM, PointZM
+from fudgeo.geometry.point import MultiPointM, MultiPointZM
 from shapely import GeometryCollection, from_wkb, set_precision
+from shapely.coordinates import get_coordinates
 
 from gisworks.geometry.util import (
-    filter_features, get_geoms, get_geoms_iter, to_shapely)
-from gisworks.shared.constant import GEOMS_ATTR
+    USE_WORKAROUNDS, filter_features, get_geoms, get_geoms_iter, to_shapely)
+from gisworks.shared.constant import (
+    GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, X_ATTR, Y_ATTR,Z_ATTR)
 from gisworks.shared.hint import XY_TOL
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Cursor
+    from fudgeo.geometry.base import AbstractGeometry
     from gisworks.geometry.config import GeometryConfig
     from gisworks.shared.base import QueryConfig
 
@@ -67,6 +74,7 @@ def extend_records(results: list[tuple], records: list[tuple],
     if not refined:
         return
     if not config.caster:
+        refined = _extend_measures(refined, cls)
         records.extend([(cls.from_wkb(geom.wkb, srs_id=srs_id), *attrs)
                         for geom, attrs in refined])
     else:
@@ -75,6 +83,40 @@ def extend_records(results: list[tuple], records: list[tuple],
         records.extend([(geom, *attrs)
                         for geom, attrs in zip(geoms, attributes)])
 # End extend_records function
+
+
+def _extend_measures(refined: list, cls: Type[AbstractGeometry]) -> list:
+    """
+    Extend shapely PointZ / MultiPointZ with Measures (when needed)
+    """
+    if cls not in (PointM, PointZM, MultiPointM, MultiPointZM):
+        return refined
+    if not USE_WORKAROUNDS.dropped_nan_measures:
+        return refined
+    corrected = []
+    if cls in (PointM, PointZM):
+        if cls is PointM:
+            getter = attrgetter(X_ATTR, Y_ATTR)
+        else:
+            getter = attrgetter(X_ATTR, Y_ATTR, Z_ATTR)
+        for geom, attrs in refined:
+            if not geom.has_m:
+                # NOTE srs_id value does not matter, only dealing with WKB
+                # noinspection PyUnresolvedReferences
+                geom = from_wkb(
+                    cls.from_tuple((*getter(geom), nan), srs_id=-1).wkb)
+            corrected.append((geom, attrs))
+    else:
+        kwargs = {INCLUDE_Z: cls is MultiPointZM, INCLUDE_M: True}
+        for geom, attrs in refined:
+            if not geom.has_m:
+                coords = get_coordinates(geom, **kwargs)
+                # NOTE srs_id value does not matter, only dealing with WKB
+                # noinspection PyArgumentList
+                geom = from_wkb(cls(coords, srs_id=-1).wkb)
+            corrected.append((geom, attrs))
+    return corrected
+# End _extend_measures function
 
 
 def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:

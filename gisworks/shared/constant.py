@@ -37,6 +37,13 @@ NAME_ATTR: str = 'name'
 POLYGONS_ATTR: str = 'polygons'
 LINES_ATTR: str = 'lines'
 POINTS_ATTR: str = 'points'
+X_ATTR: str = 'x'
+Y_ATTR: str = 'y'
+Z_ATTR: str = 'z'
+M_ATTR: str = 'm'
+
+INCLUDE_Z: str = 'include_z'
+INCLUDE_M: str = 'include_m'
 
 HAS_Z_KEY: str = 'has_z'
 HAS_M_KEY: str = 'has_m'

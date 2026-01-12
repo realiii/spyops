@@ -354,6 +354,94 @@ class TestIntersect:
             assert len(result) == feature_count
     # End test_intersect_output_type method
 
+    @mark.parametrize('fc_name, algorithm_option, output_option, output_z_option, output_m_option, feature_count', [
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 0),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 1659),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 0),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 14),
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 318),
+        ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 26),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 436),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 55),
+        ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 8),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 12),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 0),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 1709),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 0),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 24),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 358),
+        ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 26),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 536),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 358),
+        ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 13),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.SAME, OutputMOption.SAME, 22),
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 0),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 1659),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 0),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 14),
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 318),
+        ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 26),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 436),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 55),
+        ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 8),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 12),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 0),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 1709),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 0),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.ENABLED, OutputMOption.ENABLED, 24),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 358),
+        ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 26),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 536),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 358),
+        ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 13),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.ENABLED, OutputMOption.ENABLED, 22),
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 0),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 1659),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 0),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 14),
+        ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 318),
+        ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 26),
+        ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 436),
+        ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 55),
+        ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 8),
+        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 12),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 0),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 1709),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 0),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, OutputZOption.DISABLED, OutputMOption.DISABLED, 24),
+        ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 358),
+        ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 26),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 536),
+        ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 358),
+        ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 13),
+        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, OutputZOption.DISABLED, OutputMOption.DISABLED, 22),
+    ])
+    def test_intersect_output_type_zm(self, inputs, world_features, mem_gpkg, fc_name,
+                                      algorithm_option, output_option, output_z_option,
+                                      output_m_option, feature_count):
+        """
+        Test intersect varying output types for each algorithm option and zm
+        """
+        operator = inputs['intersect_holes_a']
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
+              Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.Z_VALUE, 123.456)):
+            zm = zm_config(source.has_z, source.has_m)
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=algorithm_option,
+                               output_type_option=output_option)
+        if output_option == OutputTypeOption.LINE:
+            assert GeometryType.linestring in result.shape_type
+        else:
+            assert GeometryType.point in result.shape_type
+        assert len(result) < len(source)
+        assert len(result) == feature_count
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
+    # End test_intersect_output_type_zm method
+
     @mark.parametrize('fc_name, xy_tolerance, option, feature_count, field_count', [
         ('admin_a', None, AttributeOption.ALL, 128, 25),
         ('airports_p', None, AttributeOption.ALL, 40, 14),
