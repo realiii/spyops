@@ -108,6 +108,7 @@ class TestSelect:
         assert len(result) == count
     # End test_select method
 
+    @mark.zm
     @mark.parametrize('fc_name, where_clause, output_z_option, output_m_option, count', [
         ('lakes_a', 'SQKM > 5000', OutputZOption.SAME, OutputMOption.SAME, 28),
         ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.SAME, OutputMOption.SAME, 364),
@@ -195,6 +196,7 @@ class TestSplitByAttributes:
         assert sum([len(r) for r in results]) == subset
     # End test_split_by_attributes_features method
 
+    @mark.zm
     @mark.parametrize('fields, output_z_option, output_m_option, count', [
         (('ISO_CC', 'LAND_TYPE'), OutputZOption.SAME, OutputMOption.SAME, 7),
         (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 7),

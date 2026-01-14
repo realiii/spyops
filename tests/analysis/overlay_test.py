@@ -67,6 +67,7 @@ class TestErase:
         assert len(result) == count
     # End test_erase_reduced method
 
+    @mark.zm
     @mark.parametrize('fc_name, xy_tolerance, output_z_option, output_m_option, count', [
         ('admin_a', None, OutputZOption.SAME, OutputMOption.SAME, 245),
         ('airports_p', None, OutputZOption.SAME, OutputMOption.SAME, 29),
@@ -354,6 +355,7 @@ class TestIntersect:
             assert len(result) == feature_count
     # End test_intersect_output_type method
 
+    @mark.zm
     @mark.parametrize('fc_name, algorithm_option, output_option, output_z_option, output_m_option, feature_count', [
         ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 0),
         ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, OutputZOption.SAME, OutputMOption.SAME, 1659),
@@ -428,7 +430,7 @@ class TestIntersect:
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456)):
-            zm = zm_config(source.has_z, source.has_m)
+            zm = zm_config(source, operator)
             result = intersect(source=source, operator=operator, target=target,
                                algorithm_option=algorithm_option,
                                output_type_option=output_option)
