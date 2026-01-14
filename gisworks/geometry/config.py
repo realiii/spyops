@@ -20,7 +20,8 @@ from shapely.linear import line_merge
 from gisworks.geometry.constant import (
     FUDGEO_GEOMETRY_LOOKUP, SHAPELY_GEOMETRY_LOOKUP)
 from gisworks.geometry.convert import GEOMETRY_CAST
-from gisworks.geometry.util import USE_WORKAROUNDS, get_geoms, nada
+from gisworks.geometry.util import get_geoms, nada
+from gisworks.geometry.wa import USE_WORKAROUNDS
 from gisworks.shared.constant import (
     GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY)
 

@@ -16,8 +16,8 @@ from shapely import GeometryCollection, from_wkb
 from shapely.coordinates import get_coordinates
 
 from gisworks.geometry.util import (
-    USE_WORKAROUNDS, filter_features, get_geoms, get_geoms_iter, set_precision,
-    to_shapely)
+    filter_features, get_geoms, get_geoms_iter, to_shapely)
+from gisworks.geometry.wa import USE_WORKAROUNDS, set_precision
 from gisworks.shared.constant import (
     GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, X_ATTR, Y_ATTR,Z_ATTR)
 from gisworks.shared.hint import XY_TOL

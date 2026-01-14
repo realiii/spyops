@@ -7,14 +7,14 @@ Convert Geometry
 from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import GeometryType
-from numpy import isnan, nonzero, diff
+from numpy import isnan
 from shapely import get_rings
 from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
 
 from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
-from gisworks.geometry.util import get_geoms, nada
+from gisworks.geometry.util import find_slice_indexes, get_geoms, nada
 from gisworks.shared.enumeration import OutputTypeOption
 from gisworks.shared.hint import POLYGONS
 
@@ -75,18 +75,6 @@ def _use_boundary_factory(source_shape_type: str, operator_shape_type: str,
             return False, True
     return False, False
 # End get_geometry_converters function
-
-
-def _find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
-    """
-    Find Slice Indexes, include the final index to allow for easier striding
-    """
-    if not len(indexes):
-        return ()
-    ids, = nonzero(diff(indexes))
-    ids += 1
-    return 0, *[int(i) for i in ids], len(indexes)
-# End _find_slice_indexes function
 
 
 def _update_z_values(coords: 'ndarray', has_z: bool) -> None:
@@ -175,7 +163,7 @@ def cast_multi_polygons(geoms: list['MultiPolygon'], srs_id: int,
             coords, indexes = get_coordinates(
                 get_rings(part), include_z=has_z, include_m=has_m,
                 return_index=True)
-            ids = _find_slice_indexes(indexes)
+            ids = find_slice_indexes(indexes)
             _update_z_values(coords, has_z=has_z)
             poly_coords.append([coords[b:e] for b, e in zip(ids[:-1], ids[1:])])
         converted.append(cls(poly_coords, srs_id=srs_id))
@@ -191,7 +179,7 @@ def _cast_linear(geoms: list['MultiPoint'] | list['LineString'], has_z: bool,
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
     coords, indexes = get_coordinates(
         geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = _find_slice_indexes(indexes)
+    ids = find_slice_indexes(indexes)
     _update_z_values(coords, has_z=has_z)
     return [cls(coords[b:e], srs_id=srs_id) for b, e in zip(ids[:-1], ids[1:])]
 # End _cast_linear function
@@ -209,7 +197,7 @@ def _cast_groups(geoms: list['MultiLineString'] | list['Polygon'], has_z: bool,
         # noinspection PyTypeChecker
         coords, indexes = get_coordinates(
             getter(geom), include_z=has_z, include_m=has_m, return_index=True)
-        ids = _find_slice_indexes(indexes)
+        ids = find_slice_indexes(indexes)
         _update_z_values(coords, has_z=has_z)
         converted.append(cls([coords[b:e] for b, e in
                               zip(ids[:-1], ids[1:])], srs_id=srs_id))

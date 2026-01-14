@@ -11,9 +11,9 @@ from fudgeo.enumeration import GeometryType
 
 from shapely import (
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
-from shapely.constructive import make_valid
 
 from gisworks.geometry.util import get_geoms_iter
+from gisworks.geometry.wa import make_valid
 from gisworks.shared.exception import OperationsError
 
 
