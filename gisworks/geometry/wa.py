@@ -86,7 +86,7 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
     """
     has_z = geometry.has_z
     has_m = geometry.has_m
-    # NOTE use results because we could change from single to multi part
+    # NOTE use result because we could change from single to multi part
     shape_type = _get_shape_type(result)
     lookup = defaultdict(list)
     for *key, m in get_coordinates(geometry, include_z=has_z, include_m=has_m):
