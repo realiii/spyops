@@ -97,22 +97,24 @@ def _combine_lines_workaround(geom: Union[LineString, MultiLineString]) \
     for *key, m in get_coordinates(geom, include_z=has_z, include_m=True):
         measures[tuple(key)].append(m)
     if isinstance(result, LineString):
-        return _make_measured_line(result, cls=cls, measures=measures)
+        return _make_measured_line(
+            result, has_z=has_z, cls=cls, measures=measures)
     else:
-        lines = [_make_measured_line(line, cls=cls, measures=measures)
-                 for line in get_geoms(result)]
+        lines = []
+        for line in get_geoms(result):
+            lines.append(_make_measured_line(
+                line, has_z=has_z, cls=cls, measures=measures))
         return MultiLineString(lines)
 # End _combine_lines_workaround function
 
 
-def _make_measured_line(geom: LineString, cls: Type[LineStringZM | LineStringM],
+def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | LineStringM],
                         measures: defaultdict[tuple[float, ...], list[float]]) -> LineString:
     """
     Make a Measured Line from a Shapely LineString, looking up measures
     based on the coordinates.
     """
     coords = []
-    has_z = geom.has_z
     coordinates = get_coordinates(geom, include_z=has_z)
     for key in coordinates:
         m = nanmean(measures.get(tuple(key), [nan]))
