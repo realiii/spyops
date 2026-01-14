@@ -129,7 +129,7 @@ class TestSelect:
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456)):
-            zm = zm_config(source.has_z, source.has_m)
+            zm = zm_config(source)
             result = select(source=source, target=target, where_clause=where_clause)
         assert len(result) == count
         assert target.has_z == zm.z_enabled
@@ -217,7 +217,7 @@ class TestSplitByAttributes:
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456)):
-            zm = zm_config(source.has_z, source.has_m)
+            zm = zm_config(source)
             results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
         assert len(results) == count
         assert sum([len(r) for r in results]) == subset
@@ -568,6 +568,8 @@ class TestClip:
         with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, z_value)):
             clipped = clip(source=source, operator=operator, target=target)
+        assert clipped.has_z is True
+        assert clipped.has_m == source.has_z or operator.has_m
         if source.shape_type == GeometryType.point:
             z_values = array([pt.z for pt, in clipped.select()], dtype=float)
         elif source.shape_type == GeometryType.polygon:
@@ -657,7 +659,7 @@ class TestSplit:
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456)):
-            zm = zm_config(source.has_z, source.has_m)
+            zm = zm_config(source, splitter)
             results = split(source=source, operator=splitter, field=field,
                             geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
         assert len(results) == element_count
