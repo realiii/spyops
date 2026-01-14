@@ -21,7 +21,7 @@ from pytest import approx, mark
 from shapely.io import from_wkb
 
 from gisworks.geometry.convert import (
-    _as_lines, _find_slice_indexes, _update_z_values, _use_boundary_factory,
+    _as_lines, _update_z_values, _use_boundary_factory,
     cast_linestrings, cast_multi_linestrings, cast_multi_points,
     cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
 from gisworks.geometry.util import nada
@@ -101,19 +101,6 @@ def test_get_geometry_converters(inputs, output_type_option, source_name, operat
     operator = inputs[operator_name]
     assert get_geometry_converters(source, operator=operator, output_type_option=output_type_option) == expected
 # End test_get_geometry_converters function
-
-
-@mark.parametrize('indexes, expected', [
-    ([], ()),
-    ([0, 0, 1, 1], (0, 2, 4)),
-    ([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2], (0, 3, 8, 12)),
-])
-def test_find_slice_indexes(indexes, expected):
-    """
-    Test _find_slice_indexes
-    """
-    assert _find_slice_indexes(array(indexes, dtype=int)) == expected
-# End test_find_slice_indexes function
 
 
 @mark.parametrize('has_z, z_value, expected', [

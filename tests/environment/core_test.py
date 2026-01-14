@@ -12,7 +12,7 @@ from gisworks.environment.context import Swap
 from gisworks.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from gisworks.environment import ANALYSIS_SETTINGS
-from gisworks.environment.core import ZMConfig, zm_config
+from gisworks.environment.core import ZMConfig, zm_config, HasZM
 
 pytestmark = [mark.environment]
 
@@ -51,7 +51,7 @@ def test_zm_config(has_z, has_m, output_z_option, output_m_option, expected):
     """
     with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
           Swap(Setting.OUTPUT_M_OPTION, output_m_option)):
-        assert zm_config(has_z, has_m) == expected
+        assert zm_config(HasZM(has_z=has_z, has_m=has_m)) == expected
 # End test_zm_config function
 
 

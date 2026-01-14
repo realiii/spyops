@@ -6,7 +6,7 @@ Tests for Geometry Util Module
 
 from fudgeo.constant import WGS84
 from fudgeo.geometry.point import Point
-from numpy import isnan
+from numpy import array, isnan
 from warnings import simplefilter, catch_warnings
 from pytest import mark
 from shapely import (
@@ -15,12 +15,37 @@ from shapely import (
 from shapely.geometry.base import GeometrySequence
 
 from gisworks.geometry.util import (
-    USE_WORKAROUNDS, get_geoms, get_geoms_iter,
-    nada, set_precision, to_shapely)
+    find_slice_indexes, get_geoms, get_geoms_iter,
+    nada, to_shapely)
+from gisworks.geometry.wa import USE_WORKAROUNDS, make_valid, set_precision
 from gisworks.shared.exception import OperationsWarning
 
 
 pytestmark = [mark.geometry]
+
+
+@mark.parametrize('indexes, expected', [
+    ([], ()),
+    ([0, 0, 0, 0], (0, 4)),
+    ([0, 0, 1, 1], (0, 2, 4)),
+    ([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2], (0, 3, 8, 12)),
+])
+def test_find_slice_indexes(indexes, expected):
+    """
+    Test find_slice_indexes
+    """
+    assert find_slice_indexes(array(indexes, dtype=int)) == expected
+# End test_find_slice_indexes function
+
+
+def test_make_valid():
+    """
+    Test Make Valid
+    """
+    a = from_wkt('Polygon ((0 0 0 0, 1 1 1 1, 0 1 2 3, 1 0 4 5, 0 0 0 0))')
+    result = make_valid(a)
+    assert result.has_m
+# End test_make_valid function
 
 
 @mark.parametrize('value, expected', [

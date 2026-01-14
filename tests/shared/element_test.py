@@ -129,8 +129,9 @@ def test_copy_feature_class_zm(world_features, mem_gpkg, name, where_clause, out
     source = world_features[name]
     target = FeatureClass(geopackage=mem_gpkg, name=name)
     with Swap(Setting.OUTPUT_Z_OPTION, output_z_option), Swap(Setting.OUTPUT_M_OPTION, output_m_option):
-        config = zm_config(source.has_z, source.has_m)
-        target = copy_feature_class(source, target=target, where_clause=where_clause)
+        config = zm_config(source)
+        target = copy_feature_class(
+            source, target=target, where_clause=where_clause, config=config)
     assert len(target) == count
     assert target.has_z == config.z_enabled
     assert target.has_m == config.m_enabled
