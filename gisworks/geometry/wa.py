@@ -16,7 +16,8 @@ from numpy import isnan, ndarray
 from shapely import (
     LineString, MultiLineString, MultiPolygon, Polygon, coverage_simplify,
     from_wkb, from_wkt, get_coordinates, get_rings, line_merge,
-    make_valid as _make_valid, polygonize, set_precision as _set_precision)
+    make_valid as _make_valid, polygonize as _polygonize,
+    set_precision as _set_precision)
 
 from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from gisworks.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
@@ -25,6 +26,19 @@ from gisworks.shared.exception import OperationsWarning
 
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry
+
+
+def polygonize(geometries, **kwargs):
+    """
+    Polygonize Workaround
+    """
+    result = _polygonize(geometries, **kwargs)
+    if not any(geometries.has_m for geometries in geometries):
+        return result
+    if result.is_empty:
+        return result
+    return result
+# End polygonize function
 
 
 def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
@@ -214,7 +228,7 @@ class _UseWorkarounds:
         Use workaround for polygonize?
         """
         a = from_wkt('LINESTRING (0 0 0 0, 0 1 1 1, 1 1 2 3, 1 0 4 5, 0 0 6 7)')
-        result = polygonize([a])
+        result = _polygonize([a])
         return not result.has_m
     # End polygonize property
 
