@@ -5,7 +5,6 @@ Records Helper Functions
 
 
 from math import nan
-from operator import attrgetter
 from typing import TYPE_CHECKING, Type
 
 from fudgeo.constant import FETCH_SIZE
@@ -18,8 +17,7 @@ from shapely.coordinates import get_coordinates
 from gisworks.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
 from gisworks.geometry.wa import USE_WORKAROUNDS, set_precision
-from gisworks.shared.constant import (
-    GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, X_ATTR, Y_ATTR,Z_ATTR)
+from gisworks.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z
 from gisworks.shared.hint import XY_TOL
 
 
@@ -96,16 +94,13 @@ def _extend_measures(refined: list, cls: Type[AbstractGeometry]) -> list:
         return refined
     corrected = []
     if cls in (PointM, PointZM):
-        if cls is PointM:
-            getter = attrgetter(X_ATTR, Y_ATTR)
-        else:
-            getter = attrgetter(X_ATTR, Y_ATTR, Z_ATTR)
+        kwargs = {INCLUDE_Z: cls is PointZM}
         for geom, attrs in refined:
             if not geom.has_m:
+                values, = get_coordinates(geom, **kwargs)
                 # NOTE srs_id value does not matter, only dealing with WKB
                 # noinspection PyUnresolvedReferences
-                geom = from_wkb(
-                    cls.from_tuple((*getter(geom), nan), srs_id=-1).wkb)
+                geom = from_wkb(cls.from_tuple((*values, nan), srs_id=-1).wkb)
             corrected.append((geom, attrs))
     else:
         kwargs = {INCLUDE_Z: cls is MultiPointZM, INCLUDE_M: True}
