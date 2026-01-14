@@ -14,7 +14,7 @@ from shapely.creation import prepare
 from shapely.ops import unary_union
 
 from gisworks.geometry.enumeration import DimensionOption
-from gisworks.geometry.util import USE_WORKAROUNDS, get_geoms_iter, to_shapely
+from gisworks.geometry.util import get_geoms_iter, to_shapely
 from gisworks.geometry.validate import (
     check_linestring, check_point, check_polygon)
 
@@ -46,16 +46,12 @@ def build_multi(feature_class: Optional['FeatureClass']) \
 def _get_validated_geoms(feature_class: 'FeatureClass',
                          checker: Callable) -> list:
     """
-    Get Shapely Geometries from Feature Class
+    Get Shapely Geometries from Feature Class, forcing to 2D.
     """
     geoms = []
     cursor = feature_class.select()
-    if USE_WORKAROUNDS.make_valid:
-        option = DimensionOption.TWO_D
-    else:
-        option = DimensionOption.SAME
     while features := cursor.fetchmany(FETCH_SIZE):
-        geometries = to_shapely(features, option=option)
+        geometries = to_shapely(features, option=DimensionOption.TWO_D)
         for geometry in geometries:
             for geom in get_geoms_iter(geometry):
                 if checker(geom) is None:
