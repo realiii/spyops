@@ -14,7 +14,6 @@ from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
 from shapely import GeometryCollection, coverage_simplify
-from shapely.constructive import polygonize
 from shapely.io import from_wkb
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
@@ -22,6 +21,7 @@ from shapely.set_operations import union_all
 from gisworks.environment.core import zm_config
 from gisworks.geometry.config import geometry_config
 from gisworks.geometry.util import get_geoms_iter
+from gisworks.geometry.wa import polygonize
 from gisworks.query.base import AbstractSpatialAttribute
 from gisworks.query.extract import QueryClip
 from gisworks.shared.base import QueryConfig
