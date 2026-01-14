@@ -152,10 +152,10 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         Save Planarized Feature Class
         """
         records = []
+        zm = zm_config(self.source, self.operator)
         fields = [self.temporary_fid_field, *self._get_fields(feature_class)]
         planar = self._make_planar_feature_class(feature_class, fields=fields)
-        # NOTE planarize using same dimensions as incoming feature class
-        config = geometry_config(planar, cast_geom=False)
+        config = geometry_config(planar, cast_geom=zm.is_different)
         extend_records(results=results, records=records, config=config)
         insert_sql = self._make_insert_sql(planar, fields=fields)
         with (planar.geopackage.connection as cout,
@@ -424,11 +424,13 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
         Target Empty
         """
         shape_type = self._get_target_shape_type()
+        has_z = self.source.has_z or self.operator.has_z
+        has_m = self.source.has_m or self.operator.has_m
         return create_feature_class(
             geopackage=self._target.geopackage, name=self._target.name,
             shape_type=shape_type, fields=self._get_unique_fields(),
             srs=self.source.spatial_reference_system,
-            z_enabled=self.source.has_z, m_enabled=self.source.has_m)
+            z_enabled=has_z, m_enabled=has_m)
     # End target_empty property
 
     def _get_target_shape_type(self) -> str:

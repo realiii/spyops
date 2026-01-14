@@ -143,7 +143,7 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         ZM Configuration
         """
-        return zm_config(has_z=self.source.has_z, has_m=self.source.has_m)
+        return zm_config(self.source, self.operator)
     # End zm_config property
 
     @cached_property
@@ -253,7 +253,8 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         Only the Structure of the Source copied to the Target Feature Class
         """
         return copy_feature_class(
-            self.source, target=self._target, where_clause=SQL_EMPTY)
+            self.source, target=self._target, where_clause=SQL_EMPTY,
+            config=self.zm_config)
     # End target_empty property
 
     @cached_property
@@ -262,7 +263,8 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         Full Copy of the Source Feature Class
         """
         return copy_feature_class(
-            self.source, target=self._target, where_clause=SQL_FULL)
+            self.source, target=self._target, where_clause=SQL_FULL,
+            config=self.zm_config)
     # End target_full property
 
     @property

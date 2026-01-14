@@ -2,12 +2,18 @@
 """
 Environment / Analysis Settings
 """
-from typing import NamedTuple
+
+
+from typing import NamedTuple, TYPE_CHECKING
 
 from gisworks.environment.workspace import _Workspace
 from gisworks.environment.geometry import _GeometryDimensions
 from gisworks.environment.enumeration import OutputMOption, OutputZOption
 from gisworks.shared.hint import GPKG, XY_TOL
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
 
 
 class _AnalysisSettings:
@@ -115,6 +121,15 @@ class _AnalysisSettings:
 ANALYSIS_SETTINGS: _AnalysisSettings = _AnalysisSettings()
 
 
+class HasZM(NamedTuple):
+    """
+    Has ZM
+    """
+    has_z: bool
+    has_m: bool
+# End HasZM class
+
+
 class ZMConfig(NamedTuple):
     """
     ZM Configuration
@@ -125,15 +140,17 @@ class ZMConfig(NamedTuple):
 # End ZMConfig class
 
 
-def zm_config(has_z: bool, has_m: bool) -> ZMConfig:
+def zm_config(*feature_classes: FeatureClass | HasZM | None) -> ZMConfig:
     """
     Get ZM Configuration
     """
+    has_z = any(fc.has_z for fc in feature_classes if fc is not None)
+    has_m = any(fc.has_m for fc in feature_classes if fc is not None)
     z_enabled = _z_enabled(has_z)
     m_enabled = _m_enabled(has_m)
-    is_different = z_enabled != has_z or m_enabled != has_m
-    return ZMConfig(
-        is_different=is_different, z_enabled=z_enabled, m_enabled=m_enabled)
+    diff_z = any(fc.has_z != z_enabled for fc in feature_classes if fc is not None)
+    diff_m = any(fc.has_m != m_enabled for fc in feature_classes if fc is not None)
+    return ZMConfig(is_different=diff_z or diff_m, z_enabled=z_enabled, m_enabled=m_enabled)
 # End zm_config function
 
 

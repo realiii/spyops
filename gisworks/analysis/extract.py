@@ -12,7 +12,7 @@ from fudgeo.context import ExecuteMany
 
 from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.environment.context import Swap
-from gisworks.environment.core import ZMConfig, zm_config
+from gisworks.environment.core import zm_config
 from gisworks.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from gisworks.geometry.config import geometry_config
@@ -202,9 +202,9 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
           Swap(Setting.OUTPUT_Z_OPTION, z_option),
           Swap(Setting.OUTPUT_M_OPTION, m_option)):
         if isinstance(source, FeatureClass):
-            zm = zm_config(has_z=source.has_z, has_m=source.has_m)
+            is_different = zm_config(source).is_different
         else:
-            zm = ZMConfig(is_different=False, z_enabled=False, m_enabled=False)
+            is_different = False
         cursor = cin.execute(query.groups)
         groups = cursor.fetchall()
         for i, *group in groups:
@@ -215,7 +215,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
                 source=source, where_clause=SQL_EMPTY,
                 target=FeatureClass(geopackage=geopackage, name=name))
             elements[tuple(group)] = element
-            config = geometry_config(element, cast_geom=zm.is_different)
+            config = geometry_config(element, cast_geom=is_different)
             cursor = cin.execute(query_select, (i,))
             with ExecuteMany(connection=cout, table=element) as executor:
                 insert_sql = query_insert.format(element.escaped_name)

@@ -12,7 +12,7 @@ from fudgeo.context import ExecuteMany
 
 from gisworks.crs.util import validate_srs
 from gisworks.environment import ANALYSIS_SETTINGS
-from gisworks.environment.core import zm_config
+from gisworks.environment.core import HasZM, ZMConfig, zm_config
 from gisworks.geometry.config import geometry_config
 from gisworks.shared.constant import QUESTION
 from gisworks.shared.exception import OperationsError
@@ -22,14 +22,14 @@ from gisworks.shared.records import bulk_insert
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
-                       where_clause: str = '') -> FeatureClass:
+                       where_clause: str = '', config: ZMConfig) -> FeatureClass:
     """
     Copy Feature Class, accounting for potential Spatial Reference System
     differences across GeoPackages and ensuring the target has a spatial index.
     """
     geopackage = target.geopackage
     srs = validate_srs(geopackage, srs=source.spatial_reference_system)
-    if not zm_config(has_z=source.has_z, has_m=source.has_m).is_different:
+    if not config.is_different:
         target = source.copy(
             name=target.name, geopackage=geopackage, where_clause=where_clause,
             overwrite=ANALYSIS_SETTINGS.overwrite, srs=srs)
@@ -41,7 +41,7 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
         target = create_feature_class(
             geopackage, name=target.name, shape_type=source.shape_type, srs=srs,
             fields=fields, description=target.description,
-            z_enabled=source.has_z, m_enabled=source.has_m)
+            z_enabled=config.z_enabled, m_enabled=config.m_enabled)
         geom_name = get_geometry_column_name(target)
         if fields:
             field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
@@ -73,7 +73,7 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
     ensuring spatial indexes are present.
     """
     srs = validate_srs(geopackage, srs=srs)
-    zm = zm_config(has_z=z_enabled, has_m=m_enabled)
+    zm = zm_config(HasZM(has_z=z_enabled, has_m=m_enabled))
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
         z_enabled=zm.z_enabled, m_enabled=zm.m_enabled, fields=fields,
@@ -89,8 +89,10 @@ def copy_element(source: ELEMENT, target: ELEMENT, *,
     """
     try:
         if isinstance(source, FeatureClass):
+            config = zm_config(source)
             element = copy_feature_class(
-                source=source, target=target, where_clause=where_clause)
+                source=source, target=target, where_clause=where_clause,
+                config=config)
         else:
             overwrite = ANALYSIS_SETTINGS.overwrite
             element = source.copy(
