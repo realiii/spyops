@@ -129,7 +129,7 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
         result, has_z=has_z, slicer=slicer, lookup=lookup)
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
     # NOTE srs_id value does not matter, we are only dealing with WKB
-    return from_wkb(cls(_adjust_coords(coords, shape_type), srs_id=-1).wkb)
+    return from_wkb(cls(coords, srs_id=-1).wkb)
 # End _reapply_measures function
 
 
