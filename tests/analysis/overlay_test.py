@@ -1342,7 +1342,7 @@ class TestIntersect:
         ('roads_mp_l', None, AttributeOption.ALL, 21, 11),
         ('admin_a', 0.001, AttributeOption.ALL, 125, 25),
         ('airports_p', 0.001, AttributeOption.ALL, 40, 14),
-        ('roads_l', 0.001, AttributeOption.ALL, 2725, 22),
+        ('roads_l', 0.001, AttributeOption.ALL, 2729, 22),
         ('admin_mp_a', 0.001, AttributeOption.ALL, 125, 23),
         ('airports_mp_p', 0.001, AttributeOption.ALL, 12, 11),
         ('roads_mp_l', 0.001, AttributeOption.ALL, 21, 11),
@@ -1354,7 +1354,7 @@ class TestIntersect:
         ('roads_mp_l', None, AttributeOption.ONLY_FID, 21, 4),
         ('admin_a', 0.001, AttributeOption.ONLY_FID, 125, 4),
         ('airports_p', 0.001, AttributeOption.ONLY_FID, 40, 4),
-        ('roads_l', 0.001, AttributeOption.ONLY_FID, 2725, 4),
+        ('roads_l', 0.001, AttributeOption.ONLY_FID, 2729, 4),
         ('admin_mp_a', 0.001, AttributeOption.ONLY_FID, 125, 4),
         ('airports_mp_p', 0.001, AttributeOption.ONLY_FID, 12, 4),
         ('roads_mp_l', 0.001, AttributeOption.ONLY_FID, 21, 4),
@@ -1366,7 +1366,7 @@ class TestIntersect:
         ('roads_mp_l', None, AttributeOption.SANS_FID, 21, 9),
         ('admin_a', 0.001, AttributeOption.SANS_FID, 125, 23),
         ('airports_p', 0.001, AttributeOption.SANS_FID, 40, 12),
-        ('roads_l', 0.001, AttributeOption.SANS_FID, 2725, 20),
+        ('roads_l', 0.001, AttributeOption.SANS_FID, 2729, 20),
         ('admin_mp_a', 0.001, AttributeOption.SANS_FID, 125, 21),
         ('airports_mp_p', 0.001, AttributeOption.SANS_FID, 12, 9),
         ('roads_mp_l', 0.001, AttributeOption.SANS_FID, 21, 9),
@@ -1436,7 +1436,7 @@ class TestIntersect:
     @mark.parametrize('xy_tolerance, feature_count', [
         (None, 380),
         (0.001, 379),
-        (0.05, 352),
+        (0.05, 369),
     ])
     def test_intersect_classic_xy_tolerance(self, inputs, mem_gpkg, xy_tolerance, feature_count):
         """

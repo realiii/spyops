@@ -13,7 +13,7 @@ from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
-from shapely import GeometryCollection, coverage_simplify
+from shapely import GeometryCollection
 from shapely.io import from_wkb
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
@@ -266,7 +266,8 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         return results
     # End _build_planar_results method
 
-    def _make_planarized_geometry(self, geoms: POLYGONS) -> list['Polygon']:
+    @staticmethod
+    def _make_planarized_geometry(geoms: POLYGONS) -> list['Polygon']:
         """
         Make Planarized Geometry
         """
@@ -278,10 +279,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         planarized = []
         for collection in collections:
             planarized.extend(get_geoms_iter(collection))
-        if self._xy_tolerance is None:
-            return planarized
-        simplified = coverage_simplify(planarized, tolerance=self._xy_tolerance)
-        return simplified.tolist()
+        return planarized
     # End _make_planarized_geometry method
 # End AbstractPlanarizePolygon class
 
