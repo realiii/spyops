@@ -5,8 +5,9 @@ Workarounds for Shapely / GEOS
 
 
 from collections import defaultdict
-from functools import cached_property
-from typing import TYPE_CHECKING
+from functools import cache, cached_property
+from operator import itemgetter
+from typing import Callable, TYPE_CHECKING
 from warnings import warn
 from math import nan
 
@@ -78,6 +79,15 @@ def make_valid(geometry, *, method='linework', keep_collapsed=True, **kwargs):
         return result
     return _reapply_measures(geometry, result)
 # End make_valid function
+
+
+@cache
+def _get_slicer(*, has_z: bool, has_m: bool) -> itemgetter:
+    """
+    Get Slicer
+    """
+    return itemgetter(*range(2 + has_z + has_m))
+# End _get_slicer function
 
 
 def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
