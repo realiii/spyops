@@ -87,7 +87,7 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
     has_z = geometry.has_z
     has_m = geometry.has_m
     # NOTE use result because we could change from single to multi part
-    shape_type = _get_shape_type(result)
+    shape_type = result.geom_type.upper()
     lookup = defaultdict(list)
     for *key, m in get_coordinates(geometry, include_z=has_z, include_m=has_m):
         lookup[tuple(key)].append(m)
@@ -147,20 +147,6 @@ def _adjust_coords(coords: list, shape_type: str) -> list:
         coords = [coords]
     return coords
 # End _adjust_coords function
-
-
-def _get_shape_type(geometry: 'BaseGeometry') -> str:
-    """
-    Get Shape Type from Geometry
-    """
-    if isinstance(geometry, Polygon):
-        return GeometryType.polygon
-    elif isinstance(geometry, MultiPolygon):
-        return GeometryType.multi_polygon
-    elif isinstance(geometry, MultiLineString):
-        return GeometryType.multi_linestring
-    return GeometryType.linestring
-# End _get_shape_type function
 
 
 class _UseWorkarounds:
