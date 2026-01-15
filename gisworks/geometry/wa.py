@@ -15,9 +15,9 @@ from bottleneck import nanmean
 from fudgeo.enumeration import GeometryType
 from numpy import isnan, ndarray
 from shapely import (
-    LineString, MultiLineString, MultiPolygon, Polygon, coverage_simplify,
-    from_wkb, from_wkt, get_coordinates, get_rings, line_merge,
-    make_valid as _make_valid, polygonize as _polygonize,
+    GeometryCollection, LineString, LinearRing, MultiLineString, MultiPolygon,
+    Polygon, coverage_simplify, from_wkb, from_wkt, get_coordinates, get_rings,
+    line_merge, make_valid as _make_valid, polygonize as _polygonize,
     set_precision as _set_precision)
 
 from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
@@ -29,16 +29,39 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry
 
 
-def polygonize(geometries, **kwargs):
+def polygonize(geometries, **kwargs) -> GeometryCollection:
     """
-    Polygonize Workaround
+    Polygonize Workaround -- ensures measures are present
     """
-    result = _polygonize(geometries, **kwargs)
-    if not any(geometries.has_m for geometries in geometries):
-        return result
-    if result.is_empty:
-        return result
-    return result
+    collections = _polygonize(geometries, **kwargs)
+    if not USE_WORKAROUNDS.polygonize:
+        return collections
+    if collections.is_empty:
+        return collections
+    has_z = any(geometries.has_z for geometries in geometries)
+    has_m = any(geometries.has_m for geometries in geometries)
+    if not has_z and not has_m:
+        return collections
+    lookup = defaultdict(list)
+    for geometry in geometries:
+        for geom in get_geoms_iter(geometry):
+            for *key, m in get_coordinates(
+                    geom, include_z=has_z, include_m=True):
+                lookup[tuple(key)].append(m)
+    if isinstance(collections, GeometryCollection):
+        collections = [collections]
+    planarized = []
+    slicer = _get_slicer(has_z=has_z, has_m=has_m)
+    for collections in collections:
+        for geom in get_geoms_iter(collections):
+            coords = _build_coordinates(
+                geom, has_z=has_z, slicer=slicer, lookup=lookup)
+            shape_type = geom.geom_type.upper()
+            cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
+            # NOTE srs_id value does not matter, we are only dealing with WKB
+            planarized.append(from_wkb(cls(_adjust_coords(
+                coords, shape_type=shape_type), srs_id=-1).wkb))
+    return GeometryCollection(planarized)
 # End polygonize function
 
 
