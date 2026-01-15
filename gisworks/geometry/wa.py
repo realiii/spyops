@@ -101,50 +101,56 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
     lookup = defaultdict(list)
     for *key, m in get_coordinates(geometry, include_z=has_z, include_m=has_m):
         lookup[tuple(key)].append(m)
-    if not (coords := _build_coordinates(result, lookup)):
-        return result
+    slicer = _get_slicer(has_z=has_z, has_m=has_m)
+    coords = _build_coordinates(
+        result, has_z=has_z, slicer=slicer, lookup=lookup)
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
     # NOTE srs_id value does not matter, we are only dealing with WKB
     return from_wkb(cls(_adjust_coords(coords, shape_type), srs_id=-1).wkb)
 # End _reapply_measures function
 
 
-def _build_coordinates(result: BaseGeometry,
+def _build_coordinates(result: BaseGeometry, has_z: bool, slicer: itemgetter,
                        lookup: defaultdict[tuple[float, ...], list[float]]) -> list:
     """
     Build Coordinates
     """
-    has_z = result.has_z
     if isinstance(result, LineString):
         coordinates = get_coordinates(result, include_z=has_z)
-        return [(*key, nanmean(lookup.get(tuple(key), [nan])))
+        return [slicer((*key, nanmean(lookup.get(tuple(key), [nan]))))
                 for key in coordinates]
     elif isinstance(result, (Polygon, MultiLineString)):
         if isinstance(result, Polygon):
             getter = get_rings
         else:
             getter = get_geoms_iter
-        coordinates, indexes = get_coordinates(
-            getter(result), include_z=has_z, return_index=True)
-        ids = find_slice_indexes(indexes)
-        coords = []
-        for begin, end in zip(ids[:-1], ids[1:]):
-            coords.append([(*key, nanmean(lookup.get(tuple(key), [nan])))
-                           for key in coordinates[begin:end]])
-        return coords
+        return _build_linear_coordinates(
+            result, getter=getter, has_z=has_z, slicer=slicer, lookup=lookup)
     else:
         coords = []
+        getter = get_rings
         for part in get_geoms(result):
-            coordinates, indexes = get_coordinates(
-                get_rings(part), include_z=has_z, return_index=True)
-            ids = find_slice_indexes(indexes)
-            part_coords = []
-            for begin, end in zip(ids[:-1], ids[1:]):
-                coords.append([(*key, nanmean(lookup.get(tuple(key), [nan])))
-                               for key in coordinates[begin:end]])
-            coords.append(part_coords)
+            coords.append(_build_linear_coordinates(
+                part, getter=getter, has_z=has_z, slicer=slicer, lookup=lookup))
         return coords
 # End _build_coordinates function
+
+
+def _build_linear_coordinates(geom: Polygon | MultiLineString | LinearRing,
+                              getter: Callable, has_z: bool, slicer: itemgetter,
+                              lookup: defaultdict[tuple[float, ...], list[float]]) -> list:
+    """
+    Build Coordinates for Linear Geometry
+    """
+    coords = []
+    coordinates, indexes = get_coordinates(
+        getter(geom), include_z=has_z, return_index=True)
+    ids = find_slice_indexes(indexes)
+    for begin, end in zip(ids[:-1], ids[1:]):
+        coords.append([slicer((*key, nanmean(lookup.get(tuple(key), [nan]))))
+                       for key in coordinates[begin:end]])
+    return coords
+# End _build_linear_coordinates function
 
 
 def _adjust_coords(coords: list, shape_type: str) -> list:
