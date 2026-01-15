@@ -248,13 +248,31 @@ class _UseWorkarounds:
     # End set_precision property
 
     @cached_property
-    def polygonize(self) -> bool:
+    def polygonize_drop_m(self) -> bool:
         """
-        Use workaround for polygonize?
+        Use workaround for polygonize when it drops M values?
         """
         a = from_wkt('LINESTRING (0 0 0 0, 0 1 1 1, 1 1 2 3, 1 0 4 5, 0 0 6 7)')
         result = _polygonize([a])
         return not result.has_m
+    # End polygonize_drop_m property
+
+    @cached_property
+    def polygonize_drop_z_nan(self) -> bool:
+        """
+        Use workaround for polygonize when it drops Z values if all nan?
+        """
+        a = from_wkt('LINESTRING (0 0 NaN, 0 1 NaN, 1 1 NaN, 1 0 NaN, 0 0 NaN)')
+        result = _polygonize([a])
+        return not result.has_z
+    # End polygonize_drop_z_nan property
+
+    @property
+    def polygonize(self) -> bool:
+        """
+        Use workaround for any polygonize issue?
+        """
+        return any((self.polygonize_drop_m, self.polygonize_drop_z_nan))
     # End polygonize property
 
     @cached_property

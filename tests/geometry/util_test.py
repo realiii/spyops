@@ -114,6 +114,8 @@ def test_use_workarounds():
     assert USE_WORKAROUNDS.make_valid is True
     assert USE_WORKAROUNDS.simplify is True
     assert USE_WORKAROUNDS.coverage_simplify is True
+    assert USE_WORKAROUNDS.polygonize_drop_m is True
+    assert USE_WORKAROUNDS.polygonize_drop_z_nan is True
     assert USE_WORKAROUNDS.polygonize is True
     assert USE_WORKAROUNDS.line_merge is True
     assert USE_WORKAROUNDS.set_precision is True
