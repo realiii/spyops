@@ -252,9 +252,9 @@ class TestErase:
         OutputZOption.DISABLED,
     ])
     @mark.parametrize('output_m', [
-        OutputZOption.SAME,
-        OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
     ])
     def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
@@ -626,9 +626,9 @@ class TestIntersect:
         OutputZOption.DISABLED,
     ])
     @mark.parametrize('output_m', [
-        OutputZOption.SAME,
-        OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
     ])
     def test_output_zm_pairwise(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
