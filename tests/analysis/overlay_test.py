@@ -246,10 +246,15 @@ class TestErase:
         'ntdb_50k_index_yyc16_zm_nan_a',
         'ntdb_50k_index_yyc16_zm_a',
     ])
-    @mark.parametrize('output_z, output_m', [
-        (OutputZOption.SAME, OutputMOption.SAME),
-        (OutputZOption.ENABLED, OutputMOption.ENABLED),
-        (OutputZOption.DISABLED, OutputMOption.DISABLED),
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
     ])
     def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
@@ -577,7 +582,6 @@ class TestIntersect:
         assert intersected.has_m == has_m
     # End test_output_zm_classic method
 
-
     @mark.zm
     @mark.parametrize('fc_name', [
         'CLIP_NTDB_HYDRO_A',
@@ -616,10 +620,15 @@ class TestIntersect:
         'ntdb_50k_index_yyc16_zm_nan_a',
         'ntdb_50k_index_yyc16_zm_a',
     ])
-    @mark.parametrize('output_z, output_m', [
-        (OutputZOption.SAME, OutputMOption.SAME),
-        (OutputZOption.ENABLED, OutputMOption.ENABLED),
-        (OutputZOption.DISABLED, OutputMOption.DISABLED),
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
     ])
     def test_output_zm_pairwise(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
         """

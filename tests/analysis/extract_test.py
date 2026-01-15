@@ -467,10 +467,15 @@ class TestClip:
         'ntdb_50k_index_yyc16_zm_nan_a',
         'ntdb_50k_index_yyc16_zm_a',
     ])
-    @mark.parametrize('output_z, output_m', [
-        (OutputZOption.SAME, OutputMOption.SAME),
-        (OutputZOption.ENABLED, OutputMOption.ENABLED),
-        (OutputZOption.DISABLED, OutputMOption.DISABLED),
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
     ])
     def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
@@ -712,10 +717,15 @@ class TestSplit:
         'ntdb_50k_index_yyc16_zm_nan_a',
         'ntdb_50k_index_yyc16_zm_a',
     ])
-    @mark.parametrize('output_z, output_m', [
-        (OutputZOption.SAME, OutputMOption.SAME),
-        (OutputZOption.ENABLED, OutputMOption.ENABLED),
-        (OutputZOption.DISABLED, OutputMOption.DISABLED),
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
     ])
     def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
