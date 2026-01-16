@@ -5,6 +5,7 @@ Fixtures
 
 
 from pathlib import Path
+from typing import Generator
 
 from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import fixture
@@ -76,11 +77,13 @@ def fresh_gpkg(tmp_path) -> GeoPackage:
 
 
 @fixture(scope='function')
-def mem_gpkg(tmp_path) -> MemoryGeoPackage:
+def mem_gpkg(tmp_path) -> Generator[MemoryGeoPackage, None, None]:
     """
     Fresh MemoryGeoPackage
     """
-    return MemoryGeoPackage.create()
+    gpkg = MemoryGeoPackage.create()
+    yield gpkg
+    gpkg.connection.close()
 # End mem_gpkg function
 
 
