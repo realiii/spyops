@@ -431,41 +431,41 @@ class TestClip:
 
     @mark.zm
     @mark.parametrize('fc_name', [
-        'CLIP_NTDB_HYDRO_A',
-        'CLIP_NTDB_STRUCTURES_A',
-        'CLIP_NTDB_STRUCTURES_M_A',
-        'CLIP_NTDB_STRUCTURES_M_MA',
-        'CLIP_NTDB_STRUCTURES_MA',
-        'CLIP_NTDB_STRUCTURES_P',
-        'CLIP_NTDB_STRUCTURES_VCS_Z_A',
-        'CLIP_NTDB_STRUCTURES_VCS_Z_MA',
-        'CLIP_NTDB_STRUCTURES_VCS_ZM_A',
-        'CLIP_NTDB_STRUCTURES_VCS_ZM_MA',
-        'CLIP_NTDB_STRUCTURES_Z_A',
-        'CLIP_NTDB_STRUCTURES_Z_MA',
-        'CLIP_NTDB_STRUCTURES_ZM_A',
-        'CLIP_NTDB_STRUCTURES_ZM_MA',
-        'CLIP_NTDB_TOPOGRAPHY_L',
-        'CLIP_NTDB_TOPONYMY_MP',
-        'CLIP_NTDB_TOPONYMY_P',
-        'CLIP_NTDB_TOPONYMY_VCS_Z_MP',
-        'CLIP_NTDB_TOPONYMY_VCS_Z_P',
-        'CLIP_NTDB_TOPONYMY_Z_MP',
-        'CLIP_NTDB_TOPONYMY_Z_P',
-        'CLIP_NTDB_TRANSMISSION_L',
-        'CLIP_NTDB_TRANSMISSION_M_L',
-        'CLIP_NTDB_TRANSMISSION_ML',
-        'CLIP_NTDB_TRANSMISSION_P',
-        'CLIP_NTDB_TRANSMISSION_VCS_Z_L',
-        'CLIP_NTDB_TRANSMISSION_VCS_Z_ML',
-        'CLIP_NTDB_TRANSMISSION_VCS_ZM_L',
-        'CLIP_NTDB_TRANSMISSION_Z_L',
-        'CLIP_NTDB_TRANSMISSION_ZM_L',
+        'hydro_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_ma',
+        'structures_p',
+        'structures_vcs_z_a',
+        'structures_vcs_z_ma',
+        'structures_vcs_zm_a',
+        'structures_vcs_zm_ma',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'topography_l',
+        'toponymy_mp',
+        'toponymy_p',
+        'toponymy_vcs_z_mp',
+        'toponymy_vcs_z_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_ml',
+        'transmission_p',
+        'transmission_vcs_z_l',
+        'transmission_vcs_z_ml',
+        'transmission_vcs_zm_l',
+        'transmission_z_l',
+        'transmission_zm_l',
     ])
     @mark.parametrize('op_name', [
-        'ntdb_50k_index_yyc16_a',
-        'ntdb_50k_index_yyc16_zm_nan_a',
-        'ntdb_50k_index_yyc16_zm_a',
+        'index_a',
+        'index_zm_nan_a',
+        'index_zm_a',
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -477,13 +477,13 @@ class TestClip:
         OutputMOption.ENABLED,
         OutputMOption.DISABLED,
     ])
-    def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
         Test clip using Output ZM settings, 2D operator
         """
-        operator = ntdb_clipped[op_name]
+        operator = ntdb_zm_meh[op_name]
         operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_clipped[fc_name]
+        source = ntdb_zm_meh[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with Swap(Setting.OUTPUT_Z_OPTION, output_z), Swap(Setting.OUTPUT_M_OPTION, output_m):
             clipped = clip(source=source, operator=operator, target=target)
@@ -502,41 +502,41 @@ class TestClip:
 
     @mark.zm
     @mark.parametrize('fc_name, op_name, z_value, expected', [
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_a', None, nan),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_a', None, nan),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_a', None, nan),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_a', nan, nan),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_a', nan, nan),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_a', nan, nan),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_a', 123, 123.),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_a', 234, 234.),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_a', 345, 345.),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_zm_nan_a', None, nan),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_zm_nan_a', None, nan),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_zm_nan_a', None, nan),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_zm_nan_a', nan, nan),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_zm_nan_a', nan, nan),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_zm_nan_a', nan, nan),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_zm_nan_a', 123, 123.),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_zm_nan_a', 234, 234.),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_zm_nan_a', 345, 345.),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_zm_a', None, nan),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_zm_a', None, nan),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_zm_a', None, nan),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_zm_a', nan, nan),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_zm_a', nan, nan),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_zm_a', nan, nan),
-        ('CLIP_NTDB_HYDRO_A', 'ntdb_50k_index_yyc16_zm_a', 123, 123.),
-        ('CLIP_NTDB_STRUCTURES_P', 'ntdb_50k_index_yyc16_zm_a', 234, 234.),
-        ('CLIP_NTDB_TRANSMISSION_L', 'ntdb_50k_index_yyc16_zm_a', 345, 345.),
+        ('hydro_a', 'index_a', None, nan),
+        ('structures_p', 'index_a', None, nan),
+        ('transmission_l', 'index_a', None, nan),
+        ('hydro_a', 'index_a', nan, nan),
+        ('structures_p', 'index_a', nan, nan),
+        ('transmission_l', 'index_a', nan, nan),
+        ('hydro_a', 'index_a', 123, 123.),
+        ('structures_p', 'index_a', 234, 234.),
+        ('transmission_l', 'index_a', 345, 345.),
+        ('hydro_a', 'index_zm_nan_a', None, nan),
+        ('structures_p', 'index_zm_nan_a', None, nan),
+        ('transmission_l', 'index_zm_nan_a', None, nan),
+        ('hydro_a', 'index_zm_nan_a', nan, nan),
+        ('structures_p', 'index_zm_nan_a', nan, nan),
+        ('transmission_l', 'index_zm_nan_a', nan, nan),
+        ('hydro_a', 'index_zm_nan_a', 123, 123.),
+        ('structures_p', 'index_zm_nan_a', 234, 234.),
+        ('transmission_l', 'index_zm_nan_a', 345, 345.),
+        ('hydro_a', 'index_zm_a', None, nan),
+        ('structures_p', 'index_zm_a', None, nan),
+        ('transmission_l', 'index_zm_a', None, nan),
+        ('hydro_a', 'index_zm_a', nan, nan),
+        ('structures_p', 'index_zm_a', nan, nan),
+        ('transmission_l', 'index_zm_a', nan, nan),
+        ('hydro_a', 'index_zm_a', 123, 123.),
+        ('structures_p', 'index_zm_a', 234, 234.),
+        ('transmission_l', 'index_zm_a', 345, 345.),
     ])
-    def test_output_z_value(self, ntdb_clipped, mem_gpkg, fc_name, op_name, z_value, expected):
+    def test_output_z_value(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, z_value, expected):
         """
         Test clip using output z value
         """
-        operator = ntdb_clipped[op_name]
+        operator = ntdb_zm_meh[op_name]
         operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_clipped[fc_name]
+        source = ntdb_zm_meh[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, z_value)):
@@ -681,41 +681,41 @@ class TestSplit:
 
     @mark.zm
     @mark.parametrize('fc_name', [
-        'CLIP_NTDB_HYDRO_A',
-        'CLIP_NTDB_STRUCTURES_A',
-        'CLIP_NTDB_STRUCTURES_M_A',
-        'CLIP_NTDB_STRUCTURES_M_MA',
-        'CLIP_NTDB_STRUCTURES_MA',
-        'CLIP_NTDB_STRUCTURES_P',
-        'CLIP_NTDB_STRUCTURES_VCS_Z_A',
-        'CLIP_NTDB_STRUCTURES_VCS_Z_MA',
-        'CLIP_NTDB_STRUCTURES_VCS_ZM_A',
-        'CLIP_NTDB_STRUCTURES_VCS_ZM_MA',
-        'CLIP_NTDB_STRUCTURES_Z_A',
-        'CLIP_NTDB_STRUCTURES_Z_MA',
-        'CLIP_NTDB_STRUCTURES_ZM_A',
-        'CLIP_NTDB_STRUCTURES_ZM_MA',
-        'CLIP_NTDB_TOPOGRAPHY_L',
-        'CLIP_NTDB_TOPONYMY_MP',
-        'CLIP_NTDB_TOPONYMY_P',
-        'CLIP_NTDB_TOPONYMY_VCS_Z_MP',
-        'CLIP_NTDB_TOPONYMY_VCS_Z_P',
-        'CLIP_NTDB_TOPONYMY_Z_MP',
-        'CLIP_NTDB_TOPONYMY_Z_P',
-        'CLIP_NTDB_TRANSMISSION_L',
-        'CLIP_NTDB_TRANSMISSION_M_L',
-        'CLIP_NTDB_TRANSMISSION_ML',
-        'CLIP_NTDB_TRANSMISSION_P',
-        'CLIP_NTDB_TRANSMISSION_VCS_Z_L',
-        'CLIP_NTDB_TRANSMISSION_VCS_Z_ML',
-        'CLIP_NTDB_TRANSMISSION_VCS_ZM_L',
-        'CLIP_NTDB_TRANSMISSION_Z_L',
-        'CLIP_NTDB_TRANSMISSION_ZM_L',
+        'hydro_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_ma',
+        'structures_p',
+        'structures_vcs_z_a',
+        'structures_vcs_z_ma',
+        'structures_vcs_zm_a',
+        'structures_vcs_zm_ma',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'topography_l',
+        'toponymy_mp',
+        'toponymy_p',
+        'toponymy_vcs_z_mp',
+        'toponymy_vcs_z_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_ml',
+        'transmission_p',
+        'transmission_vcs_z_l',
+        'transmission_vcs_z_ml',
+        'transmission_vcs_zm_l',
+        'transmission_z_l',
+        'transmission_zm_l',
     ])
     @mark.parametrize('op_name', [
-        'ntdb_50k_index_yyc16_a',
-        'ntdb_50k_index_yyc16_zm_nan_a',
-        'ntdb_50k_index_yyc16_zm_a',
+        'index_a',
+        'index_zm_nan_a',
+        'index_zm_a',
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -727,15 +727,15 @@ class TestSplit:
         OutputMOption.ENABLED,
         OutputMOption.DISABLED,
     ])
-    def test_output_zm(self, ntdb_clipped, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
         Test split using Output ZM settings
         """
-        operator = ntdb_clipped[op_name]
+        operator = ntdb_zm_meh[op_name]
         operator = operator.copy(
             name=op_name, where_clause="""DATANAME IN ('082O01', '082I14', '082J09')""",
             geopackage=mem_gpkg)
-        source = ntdb_clipped[fc_name]
+        source = ntdb_zm_meh[fc_name]
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
             results = split(source=source, operator=operator, field='DATANAME', geopackage=mem_gpkg)

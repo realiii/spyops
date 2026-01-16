@@ -29,12 +29,14 @@ def inputs(data_path) -> GeoPackage:
 
 
 @fixture(scope='session')
-def ntdb_clipped(data_path) -> GeoPackage:
+def ntdb_zm_meh(data_path) -> GeoPackage:
     """
-    NTDB Clipped to sixteen 50K tiles around YYC
+    NTDB Clipped to sixteen 50K tiles around YYC, Z values in these
+    features are either NaN or a single value (123.456) and most (if not all)
+    of the M values are empty (NaN).
     """
-    return GeoPackage(data_path.joinpath('ntdb_clipped.gpkg'))
-# End ntdb_clipped function
+    return GeoPackage(data_path.joinpath('ntdb_zm_meh.gpkg'))
+# End ntdb_zm_meh function
 
 
 @fixture(scope='session')
