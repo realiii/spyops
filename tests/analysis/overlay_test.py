@@ -6,7 +6,7 @@ Tests for Overlay
 
 from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
-from pytest import mark, param, raises
+from pytest import mark, raises
 
 from gisworks.analysis.overlay import erase, intersect
 from gisworks.environment.core import zm_config
@@ -38,7 +38,7 @@ class TestErase:
         ('roads_l', 0.001, 3054),
         ('admin_mp_a', 0.001, 217),
         ('airports_mp_p', 0.001, 10),
-        param('roads_mp_l', 0.001, 14, marks=mark.slow),
+        ('roads_mp_l', 0.001, 14),
         ('admin_a', 1, 41),
         ('airports_p', 1, 33),
         ('roads_l', 1, 337),
