@@ -279,9 +279,9 @@ class TestQuerySymmetricalDifferencePairwise:
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = inputs['clipper_a']
+        operator = inputs['intersect_a']
         query = QuerySymmetricalDifferencePairwise(
-            source, target=target,
-            operator=inputs['intersect_a'],
+            source, target=target, operator=operator,
             attribute_option=option, xy_tolerance=None)
         disjoint = query._disjoint_source
         assert sql in disjoint
@@ -298,10 +298,10 @@ class TestQuerySymmetricalDifferencePairwise:
         Test SQl from Disjoint Operator
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
         operator = inputs['intersect_a']
         query = QuerySymmetricalDifferencePairwise(
-            inputs['clipper_a'], target=target,
-            operator=operator,
+            source, target=target, operator=operator,
             attribute_option=option, xy_tolerance=None)
         disjoint = query._disjoint_operator
         assert sql in disjoint
@@ -318,10 +318,10 @@ class TestQuerySymmetricalDifferencePairwise:
         Test SQl from Insert Source
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
         operator = inputs['intersect_a']
         query = QuerySymmetricalDifferencePairwise(
-            inputs['clipper_a'], target=target,
-            operator=operator,
+            source, target=target, operator=operator,
             attribute_option=option, xy_tolerance=None)
         insert = query._insert_source
         assert sql in insert
@@ -338,10 +338,10 @@ class TestQuerySymmetricalDifferencePairwise:
         Test SQl from Insert Operator
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
         operator = inputs['intersect_a']
         query = QuerySymmetricalDifferencePairwise(
-            inputs['clipper_a'], target=target,
-            operator=operator,
+            source, target=target, operator=operator,
             attribute_option=option, xy_tolerance=None)
         insert = query._insert_operator
         assert sql in insert
