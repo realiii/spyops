@@ -592,12 +592,13 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
         Target Full
         """
         target = self.target_empty
+        config = geometry_config(target, cast_geom=self.zm_config.is_different)
         query = QueryConfig(
-            source=self.source, target=target, config=self.geometry_config,
+            source=self.source, target=target, config=config,
             disjoint=self._disjoint_source, insert=self._insert_source)
         process_disjoint(query, xy_tolerance=self._xy_tolerance)
         query = QueryConfig(
-            source=self.operator, target=target, config=self.geometry_config,
+            source=self.operator, target=target, config=config,
             disjoint=self._disjoint_operator,  insert=self._insert_operator)
         process_disjoint(query, xy_tolerance=self._xy_tolerance)
         return target
