@@ -27,7 +27,7 @@ pytestmark = [mark.extract]
 
 class TestSelect:
     """
-    Test Select and Tabl Select
+    Test Select and Table Select
     """
     @mark.parametrize('table_name, where_clause, count', [
         ('admin', None, 5824),
@@ -481,13 +481,14 @@ class TestClip:
     ])
     def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
-        Test clip using Output ZM settings, 2D operator
+        Test clip using Output ZM settings
         """
         operator = ntdb_zm_meh[op_name]
         operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
         source = ntdb_zm_meh[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        with Swap(Setting.OUTPUT_Z_OPTION, output_z), Swap(Setting.OUTPUT_M_OPTION, output_m):
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
             clipped = clip(source=source, operator=operator, target=target)
         if output_z == OutputZOption.SAME:
             has_z = source.has_z or operator.has_z
@@ -501,6 +502,90 @@ class TestClip:
         assert clipped.has_m == has_m
         assert len(clipped) < len(source)
     # End test_output_zm method
+
+    @mark.zm
+    @mark.parametrize('fc_name', [
+        'hydro_a',
+        'hydro_m_a',
+        'hydro_z_a',
+        'hydro_zm_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_m_p',
+        'structures_p',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_z_p',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'structures_zm_p',
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+        'toponymy_m_mp',
+        'toponymy_m_p',
+        'toponymy_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'toponymy_zm_mp',
+        'toponymy_zm_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_m_ml',
+        'transmission_m_mp',
+        'transmission_m_p',
+        'transmission_p',
+        'transmission_z_l',
+        'transmission_z_ml',
+        'transmission_z_mp',
+        'transmission_z_p',
+        'transmission_zm_l',
+        'transmission_zm_ml',
+        'transmission_zm_mp',
+        'transmission_zm_p',
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+        'index_zm_nan_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_output_zm_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+        """
+        Test clip using Output ZM settings using cleaner inputs
+        """
+        operator = ntdb_zm[op_name]
+        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
+        source = ntdb_zm[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            clipped = clip(source=source, operator=operator, target=target)
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert clipped.has_z == has_z
+        assert clipped.has_m == has_m
+        assert len(clipped) < len(source)
+    # End test_output_zm_cleaner method
 
     @mark.zm
     @mark.parametrize('fc_name, op_name, z_value, expected', [
@@ -756,6 +841,92 @@ class TestSplit:
         assert result.has_z == has_z
         assert result.has_m == has_m
     # End test_output_zm method
+
+    @mark.zm
+    @mark.parametrize('fc_name', [
+        'hydro_a',
+        'hydro_m_a',
+        'hydro_z_a',
+        'hydro_zm_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_m_p',
+        'structures_p',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_z_p',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'structures_zm_p',
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+        'toponymy_m_mp',
+        'toponymy_m_p',
+        'toponymy_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'toponymy_zm_mp',
+        'toponymy_zm_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_m_ml',
+        'transmission_m_mp',
+        'transmission_m_p',
+        'transmission_p',
+        'transmission_z_l',
+        'transmission_z_ml',
+        'transmission_z_mp',
+        'transmission_z_p',
+        'transmission_zm_l',
+        'transmission_zm_ml',
+        'transmission_zm_mp',
+        'transmission_zm_p',
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+        'index_zm_nan_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_output_zm_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+        """
+        Test split using Output ZM settings using cleaner inputs
+        """
+        operator = ntdb_zm[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME IN ('082O01', '082I14', '082J09')""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm[fc_name]
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            results = split(source=source, operator=operator, field='DATANAME', geopackage=mem_gpkg)
+        assert len(results) == 3
+        result, *_ = results
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert result.has_z == has_z
+        assert result.has_m == has_m
+    # End test_output_zm_cleaner method
 
     @mark.benchmark
     @mark.parametrize('name, count', [

@@ -41,6 +41,17 @@ def ntdb_zm_meh(data_path) -> GeoPackage:
 
 
 @fixture(scope='session')
+def ntdb_zm(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to sixteen 50K tiles around YYC, Z and M values in these
+    features are fully populated, albeit with bogus-ish values but at least
+    varying per vertex.
+    """
+    return GeoPackage(data_path.joinpath('ntdb_zm.gpkg'))
+# End ntdb_zm function
+
+
+@fixture(scope='session')
 def world_tables(data_path) -> GeoPackage:
     """
     World Tables

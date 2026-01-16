@@ -282,6 +282,90 @@ class TestErase:
         assert len(erased) <= len(source)
     # End test_output_zm method
 
+    @mark.zm
+    @mark.parametrize('fc_name', [
+        'hydro_a',
+        'hydro_m_a',
+        'hydro_z_a',
+        'hydro_zm_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_m_p',
+        'structures_p',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_z_p',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'structures_zm_p',
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+        'toponymy_m_mp',
+        'toponymy_m_p',
+        'toponymy_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'toponymy_zm_mp',
+        'toponymy_zm_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_m_ml',
+        'transmission_m_mp',
+        'transmission_m_p',
+        'transmission_p',
+        'transmission_z_l',
+        'transmission_z_ml',
+        'transmission_z_mp',
+        'transmission_z_p',
+        'transmission_zm_l',
+        'transmission_zm_ml',
+        'transmission_zm_mp',
+        'transmission_zm_p',
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+        'index_zm_nan_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_output_zm_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+        """
+        Test erase using Output ZM settings using cleaner inputs
+        """
+        operator = ntdb_zm[op_name]
+        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
+        source = ntdb_zm[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_erased')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            erased = erase(source=source, operator=operator, target=target)
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert erased.has_z == has_z
+        assert erased.has_m == has_m
+        assert len(erased) <= len(source)
+    # End test_output_zm_cleaner method
+
     @mark.benchmark
     @mark.parametrize('name, count', [
         ('utmzone_continentish_a', 11_046),
@@ -594,6 +678,89 @@ class TestIntersect:
     @mark.zm
     @mark.parametrize('fc_name', [
         'hydro_a',
+        'hydro_m_a',
+        'hydro_z_a',
+        'hydro_zm_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_m_p',
+        'structures_p',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_z_p',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'structures_zm_p',
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+        'toponymy_m_mp',
+        'toponymy_m_p',
+        'toponymy_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'toponymy_zm_mp',
+        'toponymy_zm_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_m_ml',
+        'transmission_m_mp',
+        'transmission_m_p',
+        'transmission_p',
+        'transmission_z_l',
+        'transmission_z_ml',
+        'transmission_z_mp',
+        'transmission_z_p',
+        'transmission_zm_l',
+        'transmission_zm_ml',
+        'transmission_zm_mp',
+        'transmission_zm_p',
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+        'index_zm_nan_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_output_zm_classic_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+        """
+        Test intersect using Output ZM settings and classic algorithm using cleaner inputs
+        """
+        operator = ntdb_zm[op_name]
+        source = ntdb_zm[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_intersected')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            intersected = intersect(source=source, operator=operator,
+                                    target=target, algorithm_option=AlgorithmOption.CLASSIC)
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert intersected.has_z == has_z
+        assert intersected.has_m == has_m
+    # End test_output_zm_classic_cleaner method
+
+    @mark.zm
+    @mark.parametrize('fc_name', [
+        'hydro_a',
         'structures_a',
         'structures_m_a',
         'structures_m_ma',
@@ -663,6 +830,89 @@ class TestIntersect:
         assert intersected.has_z == has_z
         assert intersected.has_m == has_m
     # End test_output_zm_pairwise method
+
+    @mark.zm
+    @mark.parametrize('fc_name', [
+        'hydro_a',
+        'hydro_m_a',
+        'hydro_z_a',
+        'hydro_zm_a',
+        'structures_a',
+        'structures_m_a',
+        'structures_m_ma',
+        'structures_m_p',
+        'structures_p',
+        'structures_z_a',
+        'structures_z_ma',
+        'structures_z_p',
+        'structures_zm_a',
+        'structures_zm_ma',
+        'structures_zm_p',
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+        'toponymy_m_mp',
+        'toponymy_m_p',
+        'toponymy_p',
+        'toponymy_z_mp',
+        'toponymy_z_p',
+        'toponymy_zm_mp',
+        'toponymy_zm_p',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_m_ml',
+        'transmission_m_mp',
+        'transmission_m_p',
+        'transmission_p',
+        'transmission_z_l',
+        'transmission_z_ml',
+        'transmission_z_mp',
+        'transmission_z_p',
+        'transmission_zm_l',
+        'transmission_zm_ml',
+        'transmission_zm_mp',
+        'transmission_zm_p',
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+        'index_zm_nan_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_output_zm_pairwise_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+        """
+        Test intersect using Output ZM settings using pairwise algorithm using cleaner inputs
+        """
+        operator = ntdb_zm[op_name]
+        source = ntdb_zm[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_intersected')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            intersected = intersect(source=source, operator=operator,
+                                    target=target, algorithm_option=AlgorithmOption.PAIRWISE)
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert intersected.has_z == has_z
+        assert intersected.has_m == has_m
+    # End test_output_zm_pairwise_cleaner method
 
     @mark.parametrize('fc_name, xy_tolerance, option, feature_count, field_count', [
         ('admin_a', None, AttributeOption.ALL, 128, 25),
