@@ -11,8 +11,9 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.geometry import PointM, PointZM
 from fudgeo.geometry.point import MultiPointM, MultiPointZM
-from shapely import GeometryCollection, from_wkb
+from shapely import GeometryCollection
 from shapely.coordinates import get_coordinates
+from shapely.io import from_wkb
 
 from gisworks.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
@@ -131,7 +132,7 @@ def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
             if xy_tolerance is None:
                 executor(sql=insert_sql, data=features)
             else:
-                geometries = [from_wkb(g.wkb) for g, *_ in features]
+                geometries = to_shapely(features)
                 geometries = set_precision(geometries, grid_size=xy_tolerance)
                 results = [(geom, attrs) for geom, (_, *attrs) in
                            zip(geometries, features)]
