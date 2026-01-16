@@ -7,7 +7,7 @@ Workarounds for Shapely / GEOS
 from collections import defaultdict
 from functools import cache, cached_property
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 from warnings import warn
 from math import nan
 
@@ -26,7 +26,7 @@ from gisworks.shared.exception import OperationsWarning
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from shapely.geometry.base import BaseGeometry
+    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
 def polygonize(geometries, **kwargs) -> GeometryCollection:
@@ -133,7 +133,8 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
 # End _reapply_measures function
 
 
-def _build_coordinates(result: BaseGeometry, has_z: bool, slicer: itemgetter,
+def _build_coordinates(result: Union['BaseGeometry', 'BaseMultipartGeometry'],
+                       has_z: bool, slicer: itemgetter,
                        lookup: defaultdict[tuple[float, ...], list[float]]) -> list:
     """
     Build Coordinates
