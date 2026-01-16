@@ -209,6 +209,7 @@ class TestErase:
     # End test_erase_point_on_point method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'structures_a',
@@ -283,6 +284,7 @@ class TestErase:
     # End test_output_zm method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'hydro_m_a',
@@ -603,6 +605,7 @@ class TestIntersect:
     # End test_intersect_output_type_zm method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'structures_a',
@@ -676,6 +679,7 @@ class TestIntersect:
     # End test_output_zm_classic method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'hydro_m_a',
@@ -759,6 +763,7 @@ class TestIntersect:
     # End test_output_zm_classic_cleaner method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'structures_a',
@@ -832,6 +837,7 @@ class TestIntersect:
     # End test_output_zm_pairwise method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'hydro_m_a',

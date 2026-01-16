@@ -430,6 +430,7 @@ class TestClip:
     # End test_clip_larger_inputs method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'structures_a',
@@ -504,6 +505,7 @@ class TestClip:
     # End test_output_zm method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'hydro_m_a',
@@ -767,6 +769,7 @@ class TestSplit:
     # End test_split_setting method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'structures_a',
@@ -843,6 +846,7 @@ class TestSplit:
     # End test_output_zm method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
         'hydro_m_a',
