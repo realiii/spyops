@@ -243,8 +243,10 @@ class TestErase:
     ])
     @mark.parametrize('op_name', [
         'index_a',
-        'index_zm_nan_a',
+        'index_m_a',
+        'index_z_a',
         'index_zm_a',
+        'index_zm_nan_a',
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -551,8 +553,10 @@ class TestIntersect:
     ])
     @mark.parametrize('op_name', [
         'index_a',
-        'index_zm_nan_a',
+        'index_m_a',
+        'index_z_a',
         'index_zm_a',
+        'index_zm_nan_a',
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -622,8 +626,10 @@ class TestIntersect:
     ])
     @mark.parametrize('op_name', [
         'index_a',
-        'index_zm_nan_a',
+        'index_m_a',
+        'index_z_a',
         'index_zm_a',
+        'index_zm_nan_a',
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
