@@ -392,7 +392,8 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Make FID Field
         """
-        return clone_field(field, name=f'{field.name}{UNDERSCORE}{element.name}')
+        name = f'{field.name}{UNDERSCORE}{element.name}'
+        return clone_field(field, name=name, allow_null=True)
     # End _make_fid_field method
 
     @cached_property
