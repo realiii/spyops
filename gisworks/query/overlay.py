@@ -197,7 +197,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         return create_feature_class(
             geopackage=self.scratch, name=name, shape_type=self._shape_type,
             srs=feature_class.spatial_reference_system, fields=fields,
-            z_enabled=feature_class.has_z, m_enabled=feature_class.has_m)
+            z_enabled=feature_class.has_z, m_enabled=feature_class.has_m,
+            override_zm=True)
     # End _make_planar_feature_class method
 
     @cache

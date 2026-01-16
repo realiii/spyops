@@ -66,14 +66,17 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
 def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
                          srs: SpatialReferenceSystem, *, fields: FIELDS = (),
                          z_enabled: bool = False, m_enabled: bool = False,
-                         description: str = '') -> FeatureClass:
+                         description: str = '', override_zm: bool = False) -> FeatureClass:
     """
     Create Feature Class, a light wrapper around the create method of
     FeatureClass with some additional logic for Spatial Reference handling and
     ensuring spatial indexes are present.
     """
     srs = validate_srs(geopackage, srs=srs)
-    zm = zm_config(HasZM(has_z=z_enabled, has_m=m_enabled))
+    if override_zm:
+        zm = ZMConfig(is_different=False, z_enabled=z_enabled, m_enabled=m_enabled)
+    else:
+        zm = zm_config(HasZM(has_z=z_enabled, has_m=m_enabled))
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
         z_enabled=zm.z_enabled, m_enabled=zm.m_enabled, fields=fields,
