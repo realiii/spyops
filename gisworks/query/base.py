@@ -308,10 +308,14 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Make Disjoint Select Statement using the input Element
         """
+        *_, select_field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=select_field_names,
+                where_clause=SQL_FULL)
         if not (where := self._spatial_index_where(
                 element, extent=self.shared_extent)):  # pragma: no cover
             return EMPTY
-        *_, select_field_names = self._field_names_and_count(element)
         return self._make_select(
             element, field_names=select_field_names,
             where_clause=where.format(NOT_IN))
