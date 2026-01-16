@@ -85,6 +85,7 @@ def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
             warn(f'Setting precision on measured polygons changes the measure '
                  f'value for the last point in the polygon. '
                  f'ref shapely/shapely#2402', OperationsWarning)
+    # noinspection PyTypeChecker
     return _set_precision(geometry, grid_size=grid_size, mode=mode, **kwargs)
 # End set_precision function
 
@@ -93,6 +94,7 @@ def make_valid(geometry, *, method='linework', keep_collapsed=True, **kwargs):
     """
     Make Valid Workaround
     """
+    # noinspection PyTypeChecker
     result = _make_valid(
         geometry, method=method, keep_collapsed=keep_collapsed, **kwargs)
     has_m = geometry.has_m
@@ -319,6 +321,7 @@ class _UseWorkarounds:
         b = from_wkt('LineString (0 0 1 2, 3 0 3 4, 6 0 5 6, 8 0 7 8)')
         bad = from_wkt('LineString (2 0 1111 2222, 3 0 3 4)')
         result = a.intersection(b)
+        # noinspection PyTypeChecker
         return bad in set(get_geoms(result))
     # End inconsistent_zm_source property
 
