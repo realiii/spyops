@@ -99,7 +99,7 @@ def test_clone_field():
     Clone a Field, changing its name
     """
     fld = Field(name='asdf', data_type=SQLFieldType.text, size=50,
-              is_nullable=False, default='ABCDEFG')
+                is_nullable=False, default='ABCDEFG')
     cloned = clone_field(fld, 'qwer')
     assert fld != cloned
     assert fld is not cloned
@@ -107,6 +107,8 @@ def test_clone_field():
         name='qwer', data_type=SQLFieldType.text, size=50,
         is_nullable=False, default='ABCDEFG'
     )
+    cloned = clone_field(fld, 'qwer', allow_null=True)
+    assert cloned.is_nullable
 # End test_clone_field function
 
 

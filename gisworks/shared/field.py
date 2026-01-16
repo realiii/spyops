@@ -144,12 +144,16 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
 # End _field_name_type function
 
 
-def clone_field(field: Field, name: str) -> Field:
+def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:
     """
     Clone Field
     """
+    if allow_null:
+        is_nullable = True
+    else:
+        is_nullable = field.is_nullable
     return Field(name=name, data_type=field.data_type, size=field.size,
-                 is_nullable=field.is_nullable, default=field.default)
+                 is_nullable=is_nullable, default=field.default)
 # End clone_field method
 
 
