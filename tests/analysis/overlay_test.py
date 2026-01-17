@@ -1138,6 +1138,145 @@ class TestSymmetricDifference:
         cursor = target.select(where_clause="""fid_intersect_holes_shifted_a IS NULL""")
         assert len(cursor.fetchall()) == 18
     # End test_holes_and_shifted method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_a', 5215, 24),
+        ('hydro_a', 'hydro_zm_a', 5215, 25),
+        ('hydro_zm_a', 'hydro_zm_a', 5215, 26),
+        ('structures_a', 'structures_a', 2854, 24),
+        ('structures_a', 'structures_zm_a', 2854, 25),
+        ('structures_zm_a', 'structures_zm_a', 2854, 26),
+        ('structures_p', 'structures_p', 11512, 20),
+        ('structures_p', 'structures_zm_p', 11512, 20),
+        ('structures_zm_p', 'structures_zm_p', 11512, 20),
+        ('toponymy_mp', 'toponymy_mp', 6, 22),
+        ('toponymy_mp', 'toponymy_zm_mp', 6, 22),
+        ('toponymy_zm_mp', 'toponymy_zm_mp', 6, 22),
+        ('transmission_l', 'transmission_l', 135, 24),
+        ('transmission_l', 'transmission_zm_l', 135, 25),
+        ('transmission_zm_l', 'transmission_zm_l', 135, 26),
+    ])
+    @mark.parametrize('xy_tolerance', [
+        None,
+        0.00001,
+    ])
+    def test_sym_diff_setting(self, inputs, ntdb_zm, mem_gpkg, source_name, operator_name,
+                              feature_count, field_count, xy_tolerance):
+        """
+        Test sym diff using analysis settings for XY tolerance
+        """
+        source = ntdb_zm[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082I13', '082O01', '082J16', '082P04')""")
+        operator = ntdb_zm[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082I13', '082I12', '082I14', '082I11')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.XY_TOLERANCE, xy_tolerance):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_sym_diff_setting method
+
+    @mark.zm
+    @mark.large
+    @mark.parametrize('source_name, operator_name', [
+        ('hydro_a', 'hydro_a'),
+        ('hydro_a', 'hydro_z_a'),
+        ('hydro_m_a', 'hydro_z_a'),
+        ('structures_a', 'structures_a'),
+        ('structures_a', 'structures_m_a'),
+        ('structures_m_a', 'structures_z_a'),
+        ('structures_p', 'structures_p'),
+        ('structures_p', 'structures_m_p'),
+        ('structures_m_p', 'structures_z_p'),
+        ('transmission_l', 'transmission_l'),
+        ('transmission_l', 'transmission_z_l'),
+        ('transmission_l', 'transmission_m_l'),
+        ('transmission_zm_l', 'transmission_m_l'),
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_output_zm_pairwise_cleaner(self, ntdb_zm, mem_gpkg, source_name, operator_name, output_z, output_m):
+        """
+        Test sym diff using Output ZM settings using pairwise algorithm using cleaner inputs
+        """
+        source = ntdb_zm[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082I13', '082O01')""")
+        operator = ntdb_zm[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082I13', '082I12')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
+            result = symmetrical_difference(
+                source=source, operator=operator,
+                target=target, algorithm_option=AlgorithmOption.PAIRWISE)
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
+    # End test_output_zm_pairwise_cleaner method
+
+    def test_sans_attributes(self, inputs, world_features, fresh_gpkg):
+        """
+        Test sym diff -- reduced data for faster testing -- sans attributes
+        """
+        eraser = inputs['intersect_sans_attr_a']
+        assert len(eraser) == 5
+        source = world_features['admin_sans_attr_a']
+        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
+        query = QueryErase(source=source, target=target, operator=eraser)
+        _, touches = query.select.split('WHERE', 1)
+        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
+                             geopackage=fresh_gpkg)
+
+        assert len(subset) <= len(source)
+        target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
+        result = symmetrical_difference(source=subset, operator=eraser, target=target)
+        assert len(result) == 245
+        assert len(result.fields) == 4
+    # End test_sans_attributes method
+
+    @mark.parametrize('source_name, operator_name, option, field_count', [
+        ('hydro_a', 'hydro_a', AttributeOption.SANS_FID, 22),
+        ('structures_a', 'structures_a', AttributeOption.SANS_FID, 22),
+        ('structures_p', 'structures_p', AttributeOption.SANS_FID, 18),
+        ('toponymy_mp', 'toponymy_mp', AttributeOption.SANS_FID, 20),
+        ('transmission_l', 'transmission_l', AttributeOption.SANS_FID, 22),
+        ('hydro_a', 'hydro_a', AttributeOption.ONLY_FID, 4),
+        ('structures_a', 'structures_a', AttributeOption.ONLY_FID, 4),
+        ('structures_p', 'structures_p', AttributeOption.ONLY_FID, 4),
+        ('toponymy_mp', 'toponymy_mp', AttributeOption.ONLY_FID, 4),
+        ('transmission_l', 'transmission_l', AttributeOption.ONLY_FID, 4),
+    ])
+    def test_sym_diff_attribute_option(self, inputs, ntdb_zm, mem_gpkg, source_name, operator_name, option, field_count):
+        """
+        Test sym diff using analysis settings for XY tolerance
+        and varying attribute option
+        """
+        source = ntdb_zm[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082I13', '082O01')""")
+        operator = ntdb_zm[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082I13', '082I12')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        result = symmetrical_difference(
+            source=source, operator=operator, target=target,
+            attribute_option=option)
+        assert len(result.fields) == field_count
+    # End test_sym_diff_attribute_option method
 # End TestSymmetricDifference class
 
 
