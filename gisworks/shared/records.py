@@ -129,16 +129,14 @@ def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.disjoint)
         while features := cursor.fetchmany(FETCH_SIZE):
-            if xy_tolerance is None:
-                executor(sql=insert_sql, data=features)
-            else:
-                geometries = to_shapely(features)
+            geometries = to_shapely(features)
+            if xy_tolerance is not None:
                 geometries = set_precision(geometries, grid_size=xy_tolerance)
-                results = [(geom, attrs) for geom, (_, *attrs) in
-                           zip(geometries, features)]
-                extend_records(results, records=records, config=query.config)
-                executor(sql=insert_sql, data=records)
-                records.clear()
+            results = [(geom, attrs) for geom, (_, *attrs) in
+                       zip(geometries, features)]
+            extend_records(results, records=records, config=query.config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
 # End process_disjoint function
 
 
