@@ -302,7 +302,7 @@ class ValidateGeometryDimension(AbstractValidate):
         """
         Validate Extended Geometry Type (Z and M) when same dimension required
         """
-        if not self._same and not self._strict:
+        if not self._strict:
             return
         first, *others = self._names
         a = get_geometry_zm(kwargs[first])
