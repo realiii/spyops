@@ -1,0 +1,109 @@
+# -*- coding: utf-8 -*-
+"""
+Internal functions for analysis module
+"""
+
+
+from fudgeo import FeatureClass
+from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
+
+from gisworks.environment import ANALYSIS_SETTINGS
+from gisworks.environment.context import Swap
+from gisworks.environment.core import zm_config
+from gisworks.environment.enumeration import (
+    OutputMOption, OutputZOption, Setting)
+from gisworks.geometry.config import geometry_config
+from gisworks.geometry.util import filter_features, to_shapely
+from gisworks.query.extract import QueryClip, QuerySplitByAttributes
+from gisworks.shared.constant import SQL_EMPTY, UNDERSCORE
+from gisworks.shared.element import copy_element
+from gisworks.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
+from gisworks.shared.records import bulk_insert, extend_records
+from gisworks.shared.util import (
+    element_names, make_unique_name, make_valid_name)
+
+
+def _clip(*, source: FeatureClass, operator: FeatureClass,
+          target: FeatureClass, xy_tolerance: XY_TOL) -> FeatureClass:
+    """
+    Internal Clip
+    """
+    query = QueryClip(source=source, target=target, operator=operator)
+    if not query.has_intersection:
+        return query.target_empty
+    records = []
+    insert_sql = query.insert
+    geometry = query.geometry
+    config = query.geometry_config
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            geometries = to_shapely(features)
+            intersects = geometry.intersects(geometries)
+            if not intersects.any():
+                continue
+            keepers = [f for f, keep in zip(features, intersects) if keep]
+            geoms = geometry.intersection(
+                [g for g, keep in zip(geometries, intersects) if keep],
+                grid_size=xy_tolerance)
+            results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End _clip function
+
+
+def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
+                         geopackage: GPKG, ignore_zm_settings: bool) \
+        -> dict[tuple, ELEMENT]:
+    """
+    Internal Split by Attributes
+    """
+    elements = {}
+    target_names = element_names(geopackage)
+    query = QuerySplitByAttributes(element=source, fields=group_fields)
+    query_select = query.select
+    query_insert = query.insert
+    source_name = query.source.name
+    if ignore_zm_settings:
+        z_option = OutputZOption.SAME
+        m_option = OutputMOption.SAME
+    else:
+        z_option = ANALYSIS_SETTINGS.output_z_option
+        m_option = ANALYSIS_SETTINGS.output_m_option
+    with (geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          Swap(Setting.OUTPUT_Z_OPTION, z_option),
+          Swap(Setting.OUTPUT_M_OPTION, m_option)):
+        if isinstance(source, FeatureClass):
+            is_different = zm_config(source).is_different
+        else:
+            is_different = False
+        cursor = cin.execute(query.groups)
+        groups = cursor.fetchall()
+        for i, *group in groups:
+            name = UNDERSCORE.join([str(g).strip() for g in group])
+            name = make_valid_name(name, prefix=source_name)
+            name = make_unique_name(name, names=target_names)
+            element = copy_element(
+                source=source, where_clause=SQL_EMPTY,
+                target=FeatureClass(geopackage=geopackage, name=name))
+            elements[tuple(group)] = element
+            config = geometry_config(element, cast_geom=is_different)
+            cursor = cin.execute(query_select, (i,))
+            with ExecuteMany(connection=cout, table=element) as executor:
+                insert_sql = query_insert.format(element.escaped_name)
+                bulk_insert(cursor, config=config, executor=executor,
+                            insert_sql=insert_sql)
+    return elements
+# End _split_by_attributes function
+
+
+if __name__ == '__main__':  # pragma: no cover
+    pass
