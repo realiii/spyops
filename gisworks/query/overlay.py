@@ -7,7 +7,7 @@ Query Classes for analysis.overlay module
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
@@ -403,7 +403,7 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
     """
     Queries for Intersect (Pairwise)
     """
-    def __init__(self, source: 'FeatureClass', target: Optional['FeatureClass'],
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
                  operator: 'FeatureClass', attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
