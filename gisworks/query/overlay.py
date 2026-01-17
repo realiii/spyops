@@ -500,22 +500,10 @@ class QueryIntersectClassic(QueryIntersectPairwise):
 # End QueryIntersectClassic class
 
 
-class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
+class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
     """
-    Query Symmetrical Difference Pairwise
+    Base Query Symmetrical Difference
     """
-    def __init__(self, source: 'FeatureClass', target: Optional['FeatureClass'],
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the QuerySymmetricalDifferencePairwise class
-        """
-        super().__init__(
-            source=source, target=target, operator=operator,
-            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
-            output_type_option=OutputTypeOption.SAME)
-    # End init built-in
-
     @property
     def _disjoint_source(self) -> str:
         """
@@ -619,6 +607,27 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
             source=self.operator, target=target, config=config,
             disjoint=self._disjoint_operator, insert=self._insert_operator)
     # End operator_config property
+
+    @cached_property
+    def target_empty(self) -> 'FeatureClass':
+        """
+        Target Empty
+        """
+        has_z = self.source.has_z or self.operator.has_z
+        has_m = self.source.has_m or self.operator.has_m
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=self.source.shape_type, fields=self._get_unique_fields(),
+            srs=self.source.spatial_reference_system,
+            z_enabled=has_z, m_enabled=has_m)
+    # End target_empty property
+# End BaseQuerySymmetricalDifference class
+
+
+class QuerySymmetricalDifferencePairwise(BaseQuerySymmetricalDifference):
+    """
+    Query Symmetrical Difference Pairwise
+    """
 # End QuerySymmetricalDifferencePairwise class
 
 
