@@ -16,8 +16,7 @@ from gisworks.shared.constant import (
 from gisworks.shared.element import copy_element
 from gisworks.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from gisworks.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
-from gisworks.shared.util import (
-    make_valid_name)
+from gisworks.shared.util import make_valid_name
 from gisworks.shared.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geometry_dimension, validate_geopackage, validate_result,
