@@ -169,6 +169,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
 @validate_feature_class(OPERATOR)
 @validate_feature_class(TARGET, exists=False)
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
 @validate_same_crs(SOURCE, OPERATOR)
