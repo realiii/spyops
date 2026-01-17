@@ -4,9 +4,12 @@ Internal functions for analysis module
 """
 
 
+from typing import TYPE_CHECKING
+
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from shapely import STRtree, difference
 
 from gisworks.environment import ANALYSIS_SETTINGS
 from gisworks.environment.context import Swap
@@ -14,7 +17,10 @@ from gisworks.environment.core import zm_config
 from gisworks.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from gisworks.geometry.config import geometry_config
+from gisworks.geometry.multi import build_multi
+
 from gisworks.geometry.util import filter_features, to_shapely
+from gisworks.geometry.wa import set_precision
 from gisworks.query.extract import QueryClip, QuerySplitByAttributes
 from gisworks.shared.constant import SQL_EMPTY, UNDERSCORE
 from gisworks.shared.element import copy_element
@@ -22,6 +28,10 @@ from gisworks.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from gisworks.shared.records import bulk_insert, extend_records
 from gisworks.shared.util import (
     element_names, make_unique_name, make_valid_name)
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from gisworks.geometry.config import GeometryConfig
 
 
 def _clip(*, source: FeatureClass, operator: FeatureClass,
@@ -103,6 +113,50 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
                             insert_sql=insert_sql)
     return elements
 # End _split_by_attributes function
+
+
+def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
+                overlay_geoms: list, target: FeatureClass,
+                config: 'GeometryConfig', xy_tolerance: XY_TOL) -> None:
+    """
+    Internal Difference
+    """
+    records = []
+    tree = STRtree(overlay_geoms)
+    with (target.geopackage.connection as cout,
+          source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=target) as executor):
+        cursor = cin.execute(select_sql)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            geometries = to_shapely(features)
+            intersects = tree.query(geometries, predicate='intersects')
+            if not len(intersects):
+                results = [(g, attr) for g, (_, *attr) in
+                           zip(geometries, features)]
+                extend_records(results, records=records, config=config)
+                continue
+            changer_indexes, indexes = intersects
+            overlay = build_multi([overlay_geoms[i] for i in set(indexes)])
+            changer_indexes = set(changer_indexes)
+            keeper_indexes = set(range(len(geometries))) - changer_indexes
+            keepers = [features[i] for i in keeper_indexes]
+            geoms = [geometries[i] for i in keeper_indexes]
+            if xy_tolerance is not None:
+                geoms = set_precision(geoms, grid_size=xy_tolerance)
+            results = [(geom, attrs) for geom, (_, *attrs) in
+                       zip(geoms, keepers)]
+            extend_records(results, records=records, config=config)
+            changers = [features[i] for i in changer_indexes]
+            geoms = [geometries[i] for i in changer_indexes]
+            differences = difference(geoms, overlay, grid_size=xy_tolerance)
+            results = [(geom, attrs) for geom, (_, *attrs) in
+                       zip(differences, changers)]
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+# End _difference function
 
 
 if __name__ == '__main__':  # pragma: no cover
