@@ -8,7 +8,7 @@ from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
 from pytest import mark, raises
 
-from gisworks.analysis.overlay import erase, intersect
+from gisworks.analysis.overlay import erase, intersect, symmetrical_difference
 from gisworks.environment.core import zm_config
 from gisworks.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
@@ -1118,6 +1118,27 @@ class TestIntersect:
         assert len(result) == count
     # End test_intersect_larger_inputs method
 # End TestIntersect class
+
+
+class TestSymmetricDifference:
+    """
+    Tests for Symmetric Difference
+    """
+    def test_holes_and_shifted(self, inputs, mem_gpkg):
+        """
+        Test for symmetric difference using small datasets
+        """
+        source = inputs['intersect_holes_a']
+        operator = inputs['intersect_holes_shifted_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='sym_diff')
+        symmetrical_difference(source=source, operator=operator, target=target)
+        assert len(target) == 36
+        cursor = target.select(where_clause="""fid_intersect_holes_a IS NULL""")
+        assert len(cursor.fetchall()) == 18
+        cursor = target.select(where_clause="""fid_intersect_holes_shifted_a IS NULL""")
+        assert len(cursor.fetchall()) == 18
+    # End test_holes_and_shifted method
+# End TestSymmetricDifference class
 
 
 if __name__ == '__main__':  # pragma: no cover
