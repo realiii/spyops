@@ -591,18 +591,34 @@ class QuerySymmetricalDifferencePairwise(QueryIntersectPairwise):
         """
         Target Full
         """
+        process_disjoint(self.source_config, xy_tolerance=self._xy_tolerance)
+        process_disjoint(self.operator_config, xy_tolerance=self._xy_tolerance)
+        return self.target_empty
+    # End target_full property
+
+    @property
+    def source_config(self) -> QueryConfig:
+        """
+        Source Query Configuration
+        """
         target = self.target_empty
         config = geometry_config(target, cast_geom=self.zm_config.is_different)
-        query = QueryConfig(
+        return QueryConfig(
             source=self.source, target=target, config=config,
             disjoint=self._disjoint_source, insert=self._insert_source)
-        process_disjoint(query, xy_tolerance=self._xy_tolerance)
-        query = QueryConfig(
+    # End source_config property
+
+    @property
+    def operator_config(self) -> QueryConfig:
+        """
+        Operator Query Configuration
+        """
+        target = self.target_empty
+        config = geometry_config(target, cast_geom=self.zm_config.is_different)
+        return QueryConfig(
             source=self.operator, target=target, config=config,
-            disjoint=self._disjoint_operator,  insert=self._insert_operator)
-        process_disjoint(query, xy_tolerance=self._xy_tolerance)
-        return target
-    # End target_full property
+            disjoint=self._disjoint_operator, insert=self._insert_operator)
+    # End operator_config property
 # End QuerySymmetricalDifferencePairwise class
 
 
