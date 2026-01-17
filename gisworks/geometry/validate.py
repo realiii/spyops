@@ -5,14 +5,17 @@ Validate Geometry
 
 
 from operator import eq, ge
-from typing import TYPE_CHECKING, Type, Optional, Union
+from typing import Callable, TYPE_CHECKING, Type, Optional, Union
 
+from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import GeometryType
+from numpy import ndarray
 
 from shapely import (
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
 
-from gisworks.geometry.util import get_geoms_iter
+from gisworks.geometry.enumeration import DimensionOption
+from gisworks.geometry.util import get_geoms_iter, nada, to_shapely
 from gisworks.geometry.wa import make_valid
 from gisworks.shared.exception import OperationsError
 
@@ -141,6 +144,50 @@ def check_zm(a: tuple[bool, bool], name_a: str,
         f'Geometry ZM mismatch, cannot overlay '
         f'{name_a} {props_a} with {name_b} {props_b}')
 # End check_zm function
+
+
+def get_validated_geometries(feature_class: FeatureClass) -> list:
+    """
+    Get Validated Geometries forced to 2D
+    """
+    shape_type = feature_class.shape_type
+    if shape_type in (GeometryType.point, GeometryType.multi_point):
+        checker = check_point
+    elif shape_type in (GeometryType.linestring, GeometryType.multi_linestring):
+        checker = check_linestring
+    elif shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+        checker = check_polygon
+    else:
+        checker = nada
+    return _get_validated_geoms(feature_class, checker=checker)
+# End get_validated_geometries function
+
+
+def _get_validated_geoms(feature_class: FeatureClass,
+                         checker: Callable) -> list:
+    """
+    Get Shapely Geometries from Feature Class, forcing to 2D.
+    """
+    geoms = []
+    cursor = feature_class.select()
+    while features := cursor.fetchmany(FETCH_SIZE):
+        geometries = to_shapely(features, option=DimensionOption.TWO_D)
+        _check_geometries(geometries, checker=checker, geoms=geoms)
+    return geoms
+# End _get_validated_geoms function
+
+
+def _check_geometries(geometries: Union[list, 'ndarray'],
+                      checker: Callable, geoms: list) -> None:
+    """
+    Check Geometries for validity and fix issues where possible
+    """
+    for geometry in geometries:
+        for geom in get_geoms_iter(geometry):
+            if checker(geom) is None:
+                continue
+            geoms.append(geom)
+# End _check_geometries function
 
 
 if __name__ == '__main__':  # pragma: no cover
