@@ -268,6 +268,14 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End target_full property
 
     @property
+    def select_source(self) -> str:
+        """
+        Selection Query for Source
+        """
+        return self.select
+    # End select_source property
+
+    @property
     def select_operator(self) -> str:
         """
         Selection Query for Operator
