@@ -125,7 +125,7 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -139,7 +139,7 @@ class TestPlanarizePolygons:
         """
         operator = ntdb_zm_meh['index_a']
         source = ntdb_zm_meh['structures_zm_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_structures_zm_a'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -156,7 +156,7 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        po = PlanarizePolygonOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_a'
         fc, fid_field = po()
         assert fid_field.name == 'fid'
@@ -172,7 +172,7 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_holes_a']
         source = inputs['int_flavor_a']
-        po = PlanarizePolygonOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_holes_a'
         fc, fid_field = po()
         assert fid_field.name == 'fid'
@@ -188,7 +188,7 @@ class TestPlanarizePolygons:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['admin_mp_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
 # End TestPlanarizePolygons class
@@ -204,7 +204,7 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['rivers_l']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_rivers_l'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -220,7 +220,7 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['rivers_l']
-        po = PlanarizeGeneralOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizeGeneralOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_rivers_portion_l'
         fc, fid_fld = po()
         assert fid_fld.name == 'fid'
@@ -234,7 +234,7 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = inputs['river_p']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_river_p'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -250,7 +250,7 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['admin_mp_a']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
 # End TestPlanarizeGeneral class
