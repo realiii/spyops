@@ -453,6 +453,24 @@ class ClassicMixin:
     Mixin for Shared Classic Capabilities
     """
     # noinspection PyUnresolvedReferences
+    @property
+    def input_fid_source(self) -> Field:
+        """
+        Input FID for Source
+        """
+        return self._input_fid_source
+    # End input_fid_source property
+
+    # noinspection PyUnresolvedReferences
+    @property
+    def input_fid_operator(self) -> Field:
+        """
+        Input FID for Operator
+        """
+        return self._input_fid_operator
+    # End input_fid_operator property
+
+    # noinspection PyUnresolvedReferences
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields and Rename Primary Key Columns if included

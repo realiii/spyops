@@ -414,12 +414,28 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         return clone_field(field, name=name, allow_null=True)
     # End _make_fid_field method
 
+    @property
+    def input_fid_source(self) -> Field:
+        """
+        Input FID for Source
+        """
+        return self.source.primary_key_field
+    # End input_fid_source property
+
+    @property
+    def input_fid_operator(self) -> Field:
+        """
+        Input FID for Operator
+        """
+        return self.operator.primary_key_field
+    # End input_fid_operator property
+
     @cached_property
     def output_fid_source(self) -> Field:
         """
         Output FID for Source
         """
-        field = self._make_fid_field(self.source.primary_key_field, self.source)
+        field = self._make_fid_field(self.input_fid_source, self.source)
         return self._avoid_name_clash(field)
     # End output_fid_source property
 
@@ -430,8 +446,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         source = self.output_fid_source
         names = {source.name.casefold()}
-        field = self._make_fid_field(
-            self.operator.primary_key_field, element=self.operator)
+        field = self._make_fid_field(self.input_fid_operator, self.operator)
         field.name = make_unique_name(field.name, names=names)
         return self._avoid_name_clash(field)
     # End output_fid_operator property
