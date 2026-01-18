@@ -555,10 +555,11 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         return self._make_disjoint_select(self.operator)
     # End _disjoint_operator property
 
-    def _get_insert_fields(self, is_source: bool) -> FIELDS:
+    def _get_insert_fields(self, element: 'FeatureClass') -> FIELDS:
         """
         Get Fields for Disjoint Insert Statements
         """
+        is_source = element is self.source
         if self._attr_option == AttributeOption.ALL:
             _, *src_fields = self._get_fields(self.source)
             _, *op_fields = self._get_fields(self.operator)
@@ -588,7 +589,7 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         Insert statement for use with Disjoint Source Features and Target
         """
         return self._build_insert(
-            self.target_empty, fields=self._get_insert_fields(is_source=True))
+            self.target_empty, fields=self._get_insert_fields(self.source))
     # End _insert_source property
 
     @property
@@ -597,7 +598,7 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         Insert statement for use with Disjoint Operator Features and Target
         """
         return self._build_insert(
-            self.target_empty, fields=self._get_insert_fields(is_source=False))
+            self.target_empty, fields=self._get_insert_fields(self.operator))
     # End _insert_operator property
 
     @property
