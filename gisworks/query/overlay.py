@@ -458,15 +458,15 @@ class ClassicMixin:
         Get Unique Fields and Rename Primary Key Columns if included
         """
         if self._attr_option == AttributeOption.ALL:
-            _, *src_fields = self._get_fields(self.source)
-            _, *op_fields = self._get_fields(self.operator)
+            src_fields = self._get_fields(self.source)[1:]
+            op_fields = self._get_fields(self.operator)[1:]
             op_fields = self._make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
             return self.output_fid_source, self.output_fid_operator
         else:
-            _, *src_fields = self._get_fields(self.source)
-            _, *op_fields = self._get_fields(self.operator)
+            src_fields = self._get_fields(self.source)[1:]
+            op_fields = self._get_fields(self.operator)[1:]
             op_fields = self._make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
     # End _get_unique_fields method

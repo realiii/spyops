@@ -381,8 +381,8 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         Get Unique Fields and Rename Primary Key Columns if included
         """
         if self._attr_option == AttributeOption.ALL:
-            _, *src_fields = self._get_fields(self.source)
-            _, *op_fields = self._get_fields(self.operator)
+            src_fields = self._get_fields(self.source)[1:]
+            op_fields = self._get_fields(self.operator)[1:]
             src_fields = [self.output_fid_source, *src_fields]
             op_fields = self._make_unique_fields(src_fields, op_fields)
             return [*src_fields, self.output_fid_operator, *op_fields]
