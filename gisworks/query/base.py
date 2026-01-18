@@ -310,6 +310,16 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
             element, field_names=select_field_names, where_clause=where)
     # End _make_intersection_query method
 
+    def _make_full_query(self, element: 'FeatureClass') -> str:
+        """
+        Make Full Query, return all features
+        """
+        where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(element)
+        return self._make_select(
+            element, field_names=select_field_names, where_clause=where)
+    # End _make_full_query method
+
     @property
     def select_disjoint(self) -> str:
         """
