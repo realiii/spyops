@@ -286,7 +286,7 @@ class TestQuerySymmetricalDifferencePairwise:
     ])
     def test_disjoint_source(self, inputs, mem_gpkg, option, sql):
         """
-        Test SQl from Disjoint Source
+        Test SQL from Disjoint Source
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = inputs['clipper_a']
@@ -306,7 +306,7 @@ class TestQuerySymmetricalDifferencePairwise:
     ])
     def test_disjoint_operator(self, inputs, mem_gpkg, option, sql):
         """
-        Test SQl from Disjoint Operator
+        Test SQL from Disjoint Operator
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = inputs['clipper_a']
@@ -326,7 +326,7 @@ class TestQuerySymmetricalDifferencePairwise:
     ])
     def test_insert_source(self, inputs, mem_gpkg, option, sql):
         """
-        Test SQl from Insert Source
+        Test SQL from Insert Source
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = inputs['clipper_a']
@@ -346,7 +346,7 @@ class TestQuerySymmetricalDifferencePairwise:
     ])
     def test_insert_operator(self, inputs, mem_gpkg, option, sql):
         """
-        Test SQl from Insert Operator
+        Test SQL from Insert Operator
         """
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = inputs['clipper_a']
