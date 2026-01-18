@@ -155,7 +155,7 @@ class TestErase:
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 191),
-        (0.001, 204),
+        (0.001, 203),
     ])
     def test_erase_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
         """

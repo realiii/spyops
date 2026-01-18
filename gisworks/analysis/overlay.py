@@ -15,7 +15,6 @@ from gisworks.analysis.util import _difference
 from gisworks.geometry.convert import get_geometry_converters
 from gisworks.geometry.util import filter_features, to_shapely
 from gisworks.geometry.validate import get_validated_geometries
-from gisworks.geometry.wa import set_precision
 from gisworks.query.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
@@ -50,34 +49,12 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
     query = QueryErase(source, target=target, operator=operator)
     if not query.has_intersection:
         return query.target_full
-    records = []
-    insert_sql = query.insert
-    geometry = query.geometry
-    config = query.geometry_config
     query.process_disjoint(xy_tolerance)
-    with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.select)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            geometries = to_shapely(features)
-            intersects = geometry.intersects(geometries)
-            keepers = [f for f, i in zip(features, intersects) if not i]
-            geoms = [g for g, i in zip(geometries, intersects) if not i]
-            if xy_tolerance is not None:
-                geoms = set_precision(geoms, grid_size=xy_tolerance)
-            results = [(geom, attrs) for geom, (_, *attrs) in
-                       zip(geoms, keepers)]
-            extend_records(results, records=records, config=config)
-            changers = [f for f, i in zip(features, intersects) if i]
-            geoms = [g for g, i in zip(geometries, intersects) if i]
-            results = [(geom.difference(geometry, grid_size=xy_tolerance), attrs)
-                       for geom, (_, *attrs) in zip(geoms, changers)]
-            extend_records(results, records=records, config=config)
-            executor(sql=insert_sql, data=records)
-            records.clear()
+    geoms = get_validated_geometries(operator)
+    _difference(source=query.source, select_sql=query.select_source,
+                insert_sql=query.insert, overlay_geoms=geoms,
+                target=query.target, config=query.geometry_config,
+                xy_tolerance=xy_tolerance)
     return query.target
 # End erase function
 
