@@ -448,25 +448,11 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
 # End QueryIntersectPairwise class
 
 
-class QueryIntersectClassic(QueryIntersectPairwise):
+class ClassicMixin:
     """
-    Queries for Intersect (Classic)
+    Mixin for Shared Classic Capabilities
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
-                 output_type_option: OutputTypeOption,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the QueryIntersectClassic class
-        """
-        source, operator = _planarize_factory(
-            source, operator=operator, xy_tolerance=xy_tolerance)
-        super().__init__(
-            source=source, target=target, operator=operator,
-            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
-            output_type_option=output_type_option)
-    # End init built-in
-
+    # noinspection PyUnresolvedReferences
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields and Rename Primary Key Columns if included
@@ -485,6 +471,7 @@ class QueryIntersectClassic(QueryIntersectPairwise):
             return [*src_fields, *op_fields]
     # End _get_unique_fields method
 
+    # noinspection PyUnresolvedReferences
     @cache
     def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
         """
@@ -497,6 +484,27 @@ class QueryIntersectClassic(QueryIntersectPairwise):
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
+# End ClassicMixin class
+
+
+class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
+    """
+    Queries for Intersect (Classic)
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryIntersectClassic class
+        """
+        source, operator = _planarize_factory(
+            source, operator=operator, xy_tolerance=xy_tolerance)
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
+            output_type_option=output_type_option)
+    # End init built-in
 # End QueryIntersectClassic class
 
 
