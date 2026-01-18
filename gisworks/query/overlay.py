@@ -682,7 +682,7 @@ class QuerySymmetricalDifferencePairwise(BaseQuerySymmetricalDifference):
 
 
 class QuerySymmetricalDifferenceClassic(
-        ClassicMixin, AbstractQuerySymmetricalDifference):
+        ClassicMixin, BaseQuerySymmetricalDifference):
     """
     Query Symmetrical Difference Classic
     """
