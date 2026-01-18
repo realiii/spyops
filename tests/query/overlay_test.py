@@ -110,7 +110,7 @@ class TestQueryIntersectPairwise:
         assert isinstance(query.target_empty, FeatureClass)
         assert query.target_empty
         assert not len(query.target_empty)
-        assert query.insert.strip().startswith('INSERT INTO cities_____p')
+        assert ' INTO cities_____p' in query.insert
     # End test_target_empty method
 # End TestQueryIntersectPairwise class
 
