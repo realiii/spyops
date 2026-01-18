@@ -13,7 +13,7 @@ from gisworks.environment.enumeration import (
 from gisworks.query.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
     PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise,
-    QuerySymmetricalDifferencePairwise)
+    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
 from gisworks.shared.element import copy_element
 from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
 
@@ -526,6 +526,172 @@ class TestQuerySymmetricalDifferencePairwise:
         assert full.count == count
     # End test_target_full_disjoint_query method
 # End TestQuerySymmetricalDifferencePairwise class
+
+
+class TestQuerySymmetricalDifferenceClassic:
+    """
+    Test QuerySymmetricalDifferenceClassic
+    """
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_clipper_a, ID'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_clipper_a'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID'),
+    ])
+    def test_disjoint_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Source
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_source
+        assert sql in disjoint
+        assert source.name in disjoint
+    # End test_disjoint_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_intersect_a, ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_intersect_a'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_disjoint_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Operator
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_operator
+        assert sql in disjoint
+        assert operator.name in disjoint
+    # End test_disjoint_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_clipper_a, ID'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_clipper_a'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ID'),
+    ])
+    def test_insert_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Source
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_source
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_intersect_a, ID_1, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_intersect_a'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ID_1, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_insert_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Operator
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_operator
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Point]", fid_cities_p, CITY_NAME, GMI_ADMIN'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Point]", fid_cities_p'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Point]", CITY_NAME, GMI_ADMIN'),
+    ])
+    def test_disjoint_source_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Source where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_source
+        assert sql in disjoint
+        assert source.name in disjoint
+    # End test_disjoint_source_general method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Point]", fid_airports_p, ISO_CC, Name, ICAO,'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Point]", fid_airports_p'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Point]", ISO_CC, Name, ICAO,'),
+    ])
+    def test_disjoint_operator_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Operator where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_operator
+        assert sql in disjoint
+        assert operator.name in disjoint
+    # End test_disjoint_operator_general method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_cities_p, CITY_NAME, GMI_ADMIN'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_cities_p'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, CITY_NAME, GMI_ADMIN'),
+    ])
+    def test_insert_source_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Source where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_source
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_source_general method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_airports_p, ISO_CC, Name, ICAO,'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_airports_p'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ISO_CC, Name, ICAO,'),
+    ])
+    def test_insert_operator_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Operator where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_operator
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_operator_general method
+# End TestQuerySymmetricalDifferenceClassic class
 
 
 if __name__ == '__main__':  # pragma: no cover
