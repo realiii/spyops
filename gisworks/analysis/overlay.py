@@ -168,8 +168,6 @@ def symmetrical_difference(source: FeatureClass, operator: FeatureClass,
         cls = QuerySymmetricalDifferencePairwise
     query = cls(source=source, target=target, operator=operator,
                 attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-    if not query.has_intersection:
-        return query.target
     geoms = get_validated_geometries(operator)
     _difference(source=query.source, select_sql=query.select_source,
                 insert_sql=query.source_config.insert, overlay_geoms=geoms,
