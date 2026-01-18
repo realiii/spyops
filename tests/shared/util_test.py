@@ -4,12 +4,12 @@ Test Utilities
 """
 
 
-from pytest import approx, mark
+from pytest import approx, mark, raises
 
-from gisworks.shared.enumeration import Setting
+from gisworks.environment.enumeration import OutputMOption
 from gisworks.shared.util import (
-    as_title, element_names, expand_extent, make_unique_name, make_valid_name,
-    _replace_double_under, safe_float, safe_int)
+    check_enumeration, element_names, expand_extent, make_unique_name,
+    make_valid_name, _replace_double_under, safe_float, safe_int)
 
 
 pytestmark = [mark.utility]
@@ -106,19 +106,21 @@ def test_safe_float(value, expected):
 # End test_safe_float function
 
 
-@mark.parametrize('value, expected', [
-    (Setting.XY_TOLERANCE, 'XY Tolerance'),
-    (Setting.OVERWRITE, 'Overwrite'),
-    (Setting.CURRENT_WORKSPACE, 'Current Workspace'),
-    ('asdf', 'Asdf'),
-    (None, ''),
+@mark.parametrize('value, enum, expected, throws', [
+    (None, OutputMOption, None, True),
+    ('same', OutputMOption, OutputMOption.SAME, False),
+    (OutputMOption.SAME, OutputMOption, OutputMOption.SAME, False),
 ])
-def test_as_title(value, expected):
+def test_check_enumeration(value, enum, expected, throws):
     """
-    Test as_title
+    Test check_enumeration
     """
-    assert as_title(value) == expected
-# End test_as_title function
+    if throws:
+        with raises(ValueError):
+            check_enumeration(value, enum)
+    else:
+        assert check_enumeration(value, enum) == expected
+# End test_check_enumeration function
 
 
 if __name__ == '__main__':  # pragma: no cover

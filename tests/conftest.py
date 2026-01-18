@@ -5,6 +5,7 @@ Fixtures
 
 
 from pathlib import Path
+from typing import Generator
 
 from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import fixture
@@ -26,6 +27,28 @@ def inputs(data_path) -> GeoPackage:
     """
     return GeoPackage(data_path.joinpath('inputs.gpkg'))
 # End inputs function
+
+
+@fixture(scope='session')
+def ntdb_zm_meh(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to sixteen 50K tiles around YYC, Z values in these
+    features are either NaN or a single value (123.456) and most (if not all)
+    of the M values are empty (NaN).
+    """
+    return GeoPackage(data_path.joinpath('ntdb_zm_meh.gpkg'))
+# End ntdb_zm_meh function
+
+
+@fixture(scope='session')
+def ntdb_zm(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to sixteen 50K tiles around YYC, Z and M values in these
+    features are fully populated, albeit with bogus-ish values but at least
+    varying per vertex.
+    """
+    return GeoPackage(data_path.joinpath('ntdb_zm.gpkg'))
+# End ntdb_zm function
 
 
 @fixture(scope='session')
@@ -65,11 +88,13 @@ def fresh_gpkg(tmp_path) -> GeoPackage:
 
 
 @fixture(scope='function')
-def mem_gpkg(tmp_path) -> MemoryGeoPackage:
+def mem_gpkg(tmp_path) -> Generator[MemoryGeoPackage, None, None]:
     """
     Fresh MemoryGeoPackage
     """
-    return MemoryGeoPackage.create()
+    gpkg = MemoryGeoPackage.create()
+    yield gpkg
+    gpkg.connection.close()
 # End mem_gpkg function
 
 

@@ -6,22 +6,30 @@ Abstract Classes in support of Query objects
 
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
+from typing import TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from shapely import MultiLineString, MultiPoint, MultiPolygon, box
+from shapely.creation import box
 
-from gisworks.shared.base import GeometryConfig
+from gisworks.environment.core import zm_config
+from gisworks.geometry.config import geometry_config
+from gisworks.geometry.extent import extent_from_feature_class
+from gisworks.geometry.multi import build_multi
 from gisworks.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
-from gisworks.shared.element import copy_feature_class, create_feature_class
+from gisworks.shared.element import copy_feature_class
 from gisworks.shared.enumeration import AttributeOption
 from gisworks.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, validate_fields)
-from gisworks.shared.geometry import (
-    build_multi, extent_from_feature_class, geometry_config)
 from gisworks.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
 from gisworks.shared.util import make_unique_name
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from shapely import MultiLineString, MultiPoint, MultiPolygon
+    from gisworks.environment.core import ZMConfig
+    from gisworks.geometry.config import GeometryConfig
 
 
 class AbstractQuery(metaclass=ABCMeta):
@@ -131,15 +139,24 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
     # End init built-in
 
     @cached_property
-    def config(self) -> GeometryConfig:
+    def zm_config(self) -> 'ZMConfig':
         """
-        Overlay Configuration
+        ZM Configuration
         """
-        return geometry_config(self.target)
-    # End config property
+        return zm_config(self.source, self.operator)
+    # End zm_config property
 
     @cached_property
-    def geometry(self) -> MultiPolygon | MultiLineString | MultiPoint:
+    def geometry_config(self) -> 'GeometryConfig':
+        """
+        Geometry Configuration
+        """
+        return geometry_config(
+            self.target, cast_geom=self.zm_config.is_different)
+    # End geometry_config property
+
+    @cached_property
+    def geometry(self) -> Union['MultiPolygon', 'MultiLineString', 'MultiPoint']:
         """
         Multi-Part Geometry of the Operator Feature Class
         """
@@ -236,7 +253,8 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         Only the Structure of the Source copied to the Target Feature Class
         """
         return copy_feature_class(
-            self.source, target=self._target, where_clause=SQL_EMPTY)
+            self.source, target=self._target, where_clause=SQL_EMPTY,
+            config=self.zm_config)
     # End target_empty property
 
     @cached_property
@@ -245,8 +263,17 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         Full Copy of the Source Feature Class
         """
         return copy_feature_class(
-            self.source, target=self._target, where_clause=SQL_FULL)
+            self.source, target=self._target, where_clause=SQL_FULL,
+            config=self.zm_config)
     # End target_full property
+
+    @property
+    def select_source(self) -> str:
+        """
+        Selection Query for Source
+        """
+        return self.select
+    # End select_source property
 
     @property
     def select_operator(self) -> str:
@@ -264,33 +291,59 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         return self._make_intersection_query(self.source)
     # End select_intersect property
 
-    def _make_intersection_query(self, elm: FeatureClass) -> str:
+    def _make_intersection_query(self, element: FeatureClass) -> str:
         """
         Make Intersection Query
         """
-        if where := self._spatial_index_where(elm, extent=self.shared_extent):
+        *_, select_field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=select_field_names,
+                where_clause=SQL_EMPTY)
+        if where := self._spatial_index_where(
+                element, extent=self.shared_extent):
             where = where.format(IN)
         else:  # pragma: no cover
             where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(elm)
+        *_, select_field_names = self._field_names_and_count(element)
         return self._make_select(
-            elm, field_names=select_field_names, where_clause=where)
+            element, field_names=select_field_names, where_clause=where)
     # End _make_intersection_query method
+
+    def _make_full_query(self, element: 'FeatureClass') -> str:
+        """
+        Make Full Query, return all features
+        """
+        where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(element)
+        return self._make_select(
+            element, field_names=select_field_names, where_clause=where)
+    # End _make_full_query method
 
     @property
     def select_disjoint(self) -> str:
         """
         Selection query for disjoint
         """
-        elm = self.source
-        if not (where := self._spatial_index_where(
-                elm, extent=self.shared_extent)):  # pragma: no cover
-            return EMPTY
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=where.format(NOT_IN))
+        return self._make_disjoint_select(self.source)
     # End select_disjoint property
+
+    def _make_disjoint_select(self, element: FeatureClass) -> str:
+        """
+        Make Disjoint Select Statement using the input Element
+        """
+        *_, select_field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=select_field_names,
+                where_clause=SQL_FULL)
+        if not (where := self._spatial_index_where(
+                element, extent=self.shared_extent)):  # pragma: no cover
+            return EMPTY
+        return self._make_select(
+            element, field_names=select_field_names,
+            where_clause=where.format(NOT_IN))
+    # End _make_disjoint_select method
 # End AbstractSpatialQuery class
 
 
@@ -338,8 +391,8 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         Get Unique Fields and Rename Primary Key Columns if included
         """
         if self._attr_option == AttributeOption.ALL:
-            _, *src_fields = self._get_fields(self.source)
-            _, *op_fields = self._get_fields(self.operator)
+            src_fields = self._get_fields(self.source)[1:]
+            op_fields = self._get_fields(self.operator)[1:]
             src_fields = [self.output_fid_source, *src_fields]
             op_fields = self._make_unique_fields(src_fields, op_fields)
             return [*src_fields, self.output_fid_operator, *op_fields]
@@ -367,15 +420,32 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Make FID Field
         """
-        return clone_field(field, name=f'{field.name}{UNDERSCORE}{element.name}')
+        name = f'{field.name}{UNDERSCORE}{element.name}'
+        return clone_field(field, name=name, allow_null=True)
     # End _make_fid_field method
+
+    @property
+    def input_fid_source(self) -> Field:
+        """
+        Input FID for Source
+        """
+        return self.source.primary_key_field
+    # End input_fid_source property
+
+    @property
+    def input_fid_operator(self) -> Field:
+        """
+        Input FID for Operator
+        """
+        return self.operator.primary_key_field
+    # End input_fid_operator property
 
     @cached_property
     def output_fid_source(self) -> Field:
         """
         Output FID for Source
         """
-        field = self._make_fid_field(self.source.primary_key_field, self.source)
+        field = self._make_fid_field(self.input_fid_source, self.source)
         return self._avoid_name_clash(field)
     # End output_fid_source property
 
@@ -386,8 +456,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         source = self.output_fid_source
         names = {source.name.casefold()}
-        field = self._make_fid_field(
-            self.operator.primary_key_field, element=self.operator)
+        field = self._make_fid_field(self.input_fid_operator, self.operator)
         field.name = make_unique_name(field.name, names=names)
         return self._avoid_name_clash(field)
     # End output_fid_operator property
@@ -411,14 +480,20 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Insert Query
         """
-        fields = self._get_unique_fields()
+        return self._build_insert(self.target, fields=self._get_unique_fields())
+    # End insert property
+
+    def _build_insert(self, element: FeatureClass, fields: FIELDS) -> str:
+        """
+        Build Insert Statement from Fields
+        """
         names = make_field_names(fields)
-        geom_name = get_geometry_column_name(self.target)
+        geom_name = get_geometry_column_name(element)
         return self._make_insert(
-            self.target.escaped_name,
+            element.escaped_name,
             field_names=self._concatenate(geom_name, names),
             field_count=len(fields) + 1)
-    # End insert property
+    # End _build_insert method
 
     @property
     @abstractmethod

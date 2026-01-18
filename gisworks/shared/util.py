@@ -4,17 +4,14 @@ Utilities
 """
 
 
+from enum import StrEnum
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
-from shapely import GeometryCollection
 
-from gisworks.shared.base import GeometryConfig
-from gisworks.shared.constant import (
-    DOUBLE_UNDER, EMPTY, GEOMS_ATTR, SPACE, UNDERSCORE)
-from gisworks.shared.enumeration import Setting
+from gisworks.shared.constant import DOUBLE_UNDER, UNDERSCORE
 from gisworks.shared.hint import EXTENT, GPKG
 
 
@@ -89,35 +86,6 @@ def expand_extent(extent: EXTENT) -> EXTENT:
 # End expand_extent function
 
 
-def extend_records(results: list[tuple], records: list[tuple],
-                   config: GeometryConfig) -> None:
-    """
-    Extend Records
-    """
-    srs_id = config.srs_id
-    cls = config.geometry_cls
-    combiner = config.combiner
-    is_multi = config.is_multi
-    filter_types = _, multi_cls = config.filter_types
-    for result, attrs in results:
-        if result.is_empty:
-            continue
-        if isinstance(result, GeometryCollection):
-            result = multi_cls([r for r in getattr(result, GEOMS_ATTR)
-                                if isinstance(r, filter_types)])
-        elif not isinstance(result, filter_types):
-            continue
-        result = combiner(result)
-        if is_multi:
-            if not hasattr(result, GEOMS_ATTR):
-                result = multi_cls([result])
-            records.append((cls.from_wkb(result.wkb, srs_id=srs_id), *attrs))
-        else:
-            records.extend([(cls.from_wkb(part.wkb, srs_id=srs_id), *attrs)
-                            for part in getattr(result, GEOMS_ATTR, [result])])
-# End extend_records function
-
-
 def safe_int(value: Any) -> int | None:
     """
     Simple Conversion to int, None if fails
@@ -140,16 +108,16 @@ def safe_float(value: Any) -> float | None:
 # End safe_float function
 
 
-def as_title(setting: Setting | str | None) -> str:
+def check_enumeration(value: Any, enum: type[StrEnum]) -> Any:
     """
-    Change a setting enumeration value to a title text for exceptions
+    Check Enumeration
     """
-    if setting is None:
-        return EMPTY
-    if setting == Setting.XY_TOLERANCE:
-        return 'XY Tolerance'
-    return str(setting).replace(UNDERSCORE, SPACE).title()
-# End as_title function
+    if isinstance(value, enum):
+        return value
+    if isinstance(value, str):
+        return enum(value.casefold())
+    return enum(value)
+# End check_enumeration function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -7,9 +7,14 @@ Test for Overlay Query Classes
 from fudgeo import FeatureClass
 from pytest import mark
 
+from gisworks.environment.context import Swap
+from gisworks.environment.enumeration import (
+    OutputMOption, OutputZOption, Setting)
 from gisworks.query.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
-    PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise)
+    PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise,
+    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
+from gisworks.shared.element import copy_element
 from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
 
 pytestmark = [mark.overlay, mark.query]
@@ -105,7 +110,7 @@ class TestQueryIntersectPairwise:
         assert isinstance(query.target_empty, FeatureClass)
         assert query.target_empty
         assert not len(query.target_empty)
-        assert query.insert.strip().startswith('INSERT INTO cities_____p')
+        assert ' INTO cities_____p' in query.insert
     # End test_target_empty method
 # End TestQueryIntersectPairwise class
 
@@ -120,12 +125,30 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
-        fc = ps()
+        fc, fid_fld = ps()
+        assert fid_fld.name == 'fid'
         assert fc.field_names == ['fid', 'SHAPE', 'fid_int_flavor_a', 'id']
         assert len(fc) == 268
     # End test_planarize_source method
+
+    def test_planarize_source_zm(self, ntdb_zm_meh, mem_gpkg):
+        """
+        Test Planarize Source
+        """
+        operator = ntdb_zm_meh['index_a']
+        source = ntdb_zm_meh['structures_zm_a']
+        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'fid_structures_zm_a'
+        fc, fid_fld = ps()
+        assert fid_fld.name == 'fid'
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_structures_zm_a', 'OBJECTID',
+            'ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER', 'DATANAME',
+            'ACCURACY', 'FILE_NAME', 'CODE']
+        assert len(fc) == 3523
+    # End test_planarize_source_zm method
 
     def test_planarize_operator(self, inputs, mem_gpkg):
         """
@@ -133,9 +156,10 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        po = PlanarizePolygonOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_a'
-        fc = po()
+        fc, fid_field = po()
+        assert fid_field.name == 'fid'
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_intersect_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
@@ -148,14 +172,25 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_holes_a']
         source = inputs['int_flavor_a']
-        po = PlanarizePolygonOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_holes_a'
-        fc = po()
+        fc, fid_field = po()
+        assert fid_field.name == 'fid'
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_intersect_holes_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 13
     # End test_planarize_operator_holes method
+
+    def test_planarize_source_multi_part(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Source Multi Part on a non FID column
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
+    # End test_planarize_source_multi_part method
 # End TestPlanarizePolygons class
 
 
@@ -169,9 +204,10 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['rivers_l']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_rivers_l'
-        fc = ps()
+        fc, fid_fld = ps()
+        assert fid_fld.name == 'fid'
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_rivers_l', 'FEATURE_ID', 'PART_ID',
             'NAME', 'SYSTEM', 'MILES', 'KILOMETERS']
@@ -184,27 +220,39 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['rivers_l']
-        po = PlanarizeGeneralOperator(source=source, operator=operator, xy_tolerance=None)
+        po = PlanarizeGeneralOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_rivers_portion_l'
-        fc = po()
+        fc, fid_fld = po()
+        assert fid_fld.name == 'fid'
         assert fc.field_names == ['fid', 'SHAPE', 'fid_rivers_portion_l', 'NAME', 'SYSTEM']
         assert len(fc) == 134
     # End test_planarize_operator method
 
-    def test_planarize_source_point(self, inputs, world_features, mem_gpkg):
+    def test_planarize_source_point(self, inputs, mem_gpkg):
         """
         Test Planarize Source Point
         """
         operator = inputs['rivers_portion_l']
         source = inputs['river_p']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_river_p'
-        fc = ps()
+        fc, fid_fld = ps()
+        assert fid_fld.name == 'fid'
         assert fc.field_names == [
             'fid', 'SHAPE', 'fid_river_p', 'NAME', 'SYSTEM', 'vertex_index',
             'vertex_part', 'vertex_part_index', 'distance', 'angle']
         assert len(fc) == 20620
     # End test_planarize_source_point method
+
+    def test_planarize_source_multi_part(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Source Multi Part on a non FID column
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
+    # End test_planarize_source_multi_part method
 # End TestPlanarizeGeneral class
 
 
@@ -227,6 +275,33 @@ class TestQueryIntersectClassic:
         assert len(operator) == 9
     # End test_planarize method
 
+    def test_insert_planarize(self, inputs, mem_gpkg):
+        """
+        Test Planarize
+        """
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'],
+            target=FeatureClass(geopackage=mem_gpkg, name='lmno'),
+            operator=inputs['intersect_a'],
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert 'INTO lmno(SHAPE, fid_int_flavor_a, id, fid_intersect_a,' in query.insert
+    # End test_insert_planarize method
+
+    def test_insert_general_planar(self, world_features, mem_gpkg):
+        """
+        Test insert statement when rolling through general planar
+        """
+        operator = world_features['cities_p']
+        cites = world_features['cities_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='ceetees')
+        query = QueryIntersectClassic(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert ' INTO ceetees(SHAPE, fid_cities_p, CITY_NAME, GMI_ADMIN, ' in query.insert.strip()
+    # End test_insert_general_planar method
+
     @mark.parametrize('option, names', [
         (AttributeOption.ALL, ['fid', 'SHAPE', 'fid_int_flavor_a', 'id', 'fid_intersect_a', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
         (AttributeOption.SANS_FID, ['fid', 'SHAPE', 'id', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
@@ -244,7 +319,447 @@ class TestQueryIntersectClassic:
             output_type_option=OutputTypeOption.SAME)
         assert query.target.field_names == names
     # End test_target_fields method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_int_flavor_a, id'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", id'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_int_flavor_a'),
+    ])
+    def test_select_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test source select sql
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert sql in query.select
+    # End test_select_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_intersect_a, ID, NAME, "WHEN"'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID, NAME, "WHEN"'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_intersect_a'),
+    ])
+    def test_select_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test operator select sql
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert sql in query.select_operator
+    # End test_select_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, ' INTO all_target(SHAPE, fid_int_flavor_a, id, fid_intersect_a, ID_1'),
+        (AttributeOption.SANS_FID, ' INTO sans_fid_target(SHAPE, id, ID_1, '),
+        (AttributeOption.ONLY_FID, ' INTO only_fid_target(SHAPE, fid_int_flavor_a, fid_intersect_a)'),
+    ])
+    def test_insert(self, inputs, mem_gpkg, option, sql):
+        """
+        Test insert sql
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert sql in query.insert
+    # End test_insert method
 # End TestQueryIntersectClassic class
+
+
+class TestQuerySymmetricalDifferencePairwise:
+    """
+    Test QuerySymmetricalDifferencePairwise
+    """
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid, ID'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID'),
+    ])
+    def test_disjoint_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Source
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferencePairwise(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_source
+        assert sql in disjoint
+        assert source.name in disjoint
+    # End test_disjoint_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT geom "[Polygon]", fid, ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'SELECT geom "[Polygon]", fid'),
+        (AttributeOption.SANS_FID, 'SELECT geom "[Polygon]", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_disjoint_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Operator
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferencePairwise(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_operator
+        assert sql in disjoint
+        assert operator.name in disjoint
+    # End test_disjoint_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_clipper_a, ID'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_clipper_a'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ID'),
+    ])
+    def test_insert_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Source
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferencePairwise(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_source
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_intersect_a, ID_1, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_intersect_a'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ID_1, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_insert_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Operator
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferencePairwise(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_operator
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_operator method
+
+    @mark.zm
+    @mark.large
+    @mark.parametrize('fc_name, count, where_clause', [
+        ('hydro_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
+        ('structures_a', 52, """DATANAME = '082O08'"""),
+        ('structures_m_a', 52, """DATANAME = '082O08'"""),
+        ('structures_z_a', 52, """DATANAME = '082O08'"""),
+        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
+        ('structures_m_ma', 4, """CODE = 2010082"""),
+        ('structures_z_ma', 4, """CODE = 2010082"""),
+        ('structures_zm_ma', 4, """CODE = 2010082"""),
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_target_full_disjoint_query(self, ntdb_zm, mem_gpkg, fc_name,
+                                        count, where_clause, op_name,
+                                        output_z, output_m):
+        """
+        Test target full, exercising process disjoint and handling
+        different ZM dimensions
+        """
+        option = AttributeOption.ALL
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = copy_element(
+            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause=where_clause)
+        source.add_spatial_index()
+        operator = copy_element(
+            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082J10'""")
+        operator.add_spatial_index()
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            query = QuerySymmetricalDifferencePairwise(
+                source, target=target, operator=operator,
+                attribute_option=option, xy_tolerance=None)
+            full = query.target_full
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert full.has_z == has_z
+        assert full.has_m == has_m
+        assert full.count == count
+    # End test_target_full_disjoint_query method
+# End TestQuerySymmetricalDifferencePairwise class
+
+
+class TestQuerySymmetricalDifferenceClassic:
+    """
+    Test QuerySymmetricalDifferenceClassic
+    """
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_clipper_a, ID'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_clipper_a'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID'),
+    ])
+    def test_disjoint_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Source
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_source
+        assert sql in disjoint
+        assert source.name in disjoint
+    # End test_disjoint_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_intersect_a, ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_intersect_a'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_disjoint_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Operator
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_operator
+        assert sql in disjoint
+        assert operator.name in disjoint
+    # End test_disjoint_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_clipper_a, ID'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_clipper_a'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ID'),
+    ])
+    def test_insert_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Source
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_source
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_intersect_a, ID_1, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_intersect_a'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ID_1, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
+    ])
+    def test_insert_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Operator
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = inputs['clipper_a']
+        operator = inputs['intersect_a']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_operator
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Point]", fid_cities_p, CITY_NAME, GMI_ADMIN'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Point]", fid_cities_p'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Point]", CITY_NAME, GMI_ADMIN'),
+    ])
+    def test_disjoint_source_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Source where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_source
+        assert sql in disjoint
+        assert source.name in disjoint
+    # End test_disjoint_source_general method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Point]", fid_airports_p, ISO_CC, Name, ICAO,'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Point]", fid_airports_p'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Point]", ISO_CC, Name, ICAO,'),
+    ])
+    def test_disjoint_operator_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Disjoint Operator where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        disjoint = query._disjoint_operator
+        assert sql in disjoint
+        assert operator.name in disjoint
+    # End test_disjoint_operator_general method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_cities_p, CITY_NAME, GMI_ADMIN'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_cities_p'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, CITY_NAME, GMI_ADMIN'),
+    ])
+    def test_insert_source_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Source where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_source
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_source_general method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'all_target(SHAPE, fid_airports_p, ISO_CC, Name, ICAO,'),
+        (AttributeOption.ONLY_FID, 'only_fid_target(SHAPE, fid_airports_p'),
+        (AttributeOption.SANS_FID, 'sans_fid_target(SHAPE, ISO_CC, Name, ICAO,'),
+    ])
+    def test_insert_operator_general(self, world_features, mem_gpkg, option, sql):
+        """
+        Test SQL from Insert Operator where general planar is used
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = world_features['cities_p']
+        operator = world_features['airports_p']
+        query = QuerySymmetricalDifferenceClassic(
+            source, target=target, operator=operator,
+            attribute_option=option, xy_tolerance=None)
+        insert = query._insert_operator
+        assert sql in insert
+        assert target.name in insert
+    # End test_insert_operator_general method
+
+    @mark.zm
+    @mark.large
+    @mark.parametrize('fc_name, count, where_clause', [
+        ('hydro_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
+        ('structures_a', 52, """DATANAME = '082O08'"""),
+        ('structures_m_a', 52, """DATANAME = '082O08'"""),
+        ('structures_z_a', 52, """DATANAME = '082O08'"""),
+        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
+        ('structures_m_ma', 10, """CODE = 2010082"""),
+        ('structures_z_ma', 10, """CODE = 2010082"""),
+        ('structures_zm_ma', 10, """CODE = 2010082"""),
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_target_full_disjoint_query(self, ntdb_zm, mem_gpkg, fc_name,
+                                        count, where_clause, op_name,
+                                        output_z, output_m):
+        """
+        Test target full, exercising process disjoint and handling
+        different ZM dimensions
+        """
+        option = AttributeOption.ALL
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = copy_element(
+            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause=where_clause)
+        source.add_spatial_index()
+        operator = copy_element(
+            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082J10'""")
+        operator.add_spatial_index()
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            query = QuerySymmetricalDifferenceClassic(
+                source, target=target, operator=operator,
+                attribute_option=option, xy_tolerance=None)
+            full = query.target_full
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert full.has_z == has_z
+        assert full.has_m == has_m
+        assert full.count == count
+    # End test_target_full_disjoint_query method
+# End TestQuerySymmetricalDifferenceClassic class
 
 
 if __name__ == '__main__':  # pragma: no cover

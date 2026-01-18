@@ -9,10 +9,10 @@ from pyproj.enums import WktVersion
 from pyproj.exceptions import CRSError
 
 from gisworks.crs.authority import Authority, authorities, to_authority
+from gisworks.crs.enumeration import InfoOption
 from gisworks.shared.constant import (
     BAD_SRS_DEFINITIONS, CUSTOM, CUSTOM_RANGE_START, CUSTOM_UPPER, EMPTY, NONE,
     UNABLE_TO_USE_CRS, UNDEFINED, UNSUPPORTED_WKT)
-from gisworks.shared.enumeration import InfoOption
 from gisworks.shared.exception import (
     CoordinateSystemNotSupportedError, OperationsError)
 from gisworks.shared.hint import GPKG

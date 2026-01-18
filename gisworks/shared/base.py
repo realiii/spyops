@@ -4,16 +4,13 @@ Types
 """
 
 
-from typing import Any, Callable, NamedTuple, TYPE_CHECKING, Type, Union
-
-from fudgeo import FeatureClass
-from shapely import Polygon as ShapelyPolygon
-from shapely.geometry.base import (
-    BaseGeometry as ShapelyGeometry,
-    BaseMultipartGeometry as ShapelyMultipartGeometry)
+from typing import NamedTuple, TYPE_CHECKING, Union
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from shapely import Polygon
+    from gisworks.geometry.config import GeometryConfig
     from gisworks.query.base import AbstractQuery, AbstractSpatialQuery
 
 
@@ -23,7 +20,7 @@ class AnalysisComponents(NamedTuple):
     """
     has_intersection: bool
     query: Union['AbstractQuery', 'AbstractSpatialQuery']
-    target: FeatureClass
+    target: 'FeatureClass'
 # End AnalysisComponents class
 
 
@@ -31,22 +28,22 @@ class PlanarizeResults(NamedTuple):
     """
     Planarize Results
     """
-    planarized: list[ShapelyPolygon]
-    polygons: list[ShapelyPolygon]
+    planarized: list['Polygon']
+    polygons: list['Polygon']
     ids: list[int]
 # End PlanarizeResults class
 
 
-class GeometryConfig(NamedTuple):
+class QueryConfig(NamedTuple):
     """
-    Geometry Configuration
+    Query Config
     """
-    geometry_cls: Any
-    is_multi: bool
-    filter_types: tuple[Type[ShapelyGeometry], Type[ShapelyMultipartGeometry]]
-    srs_id: int
-    combiner: Callable
-# End GeometryConfig class
+    source: 'FeatureClass'
+    target: 'FeatureClass'
+    disjoint: str
+    insert: str
+    config: 'GeometryConfig'
+# End QueryConfig class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -7,28 +7,6 @@ Enumerations
 from enum import StrEnum, auto
 
 
-class InfoOption(StrEnum):
-    """
-    Coordinate Reference System Information Options
-    """
-    ORIGINAL = auto()
-    HORIZONTAL = auto()
-    VERTICAL = auto()
-# End InfoOption class
-
-
-class Setting(StrEnum):
-    """
-    Analysis Settings
-    """
-    OVERWRITE = auto()
-    XY_TOLERANCE = auto()
-
-    CURRENT_WORKSPACE = auto()
-    SCRATCH_WORKSPACE = auto()
-# End Setting class
-
-
 class AttributeOption(StrEnum):
     """
     Attribute Options
@@ -48,7 +26,7 @@ class AlgorithmOption(StrEnum):
 # End AlgorithmOption class
 
 
-class OutputTypeOption(StrEnum,):
+class OutputTypeOption(StrEnum):
     """
     Output Type Option
     """

@@ -4,13 +4,23 @@ Tests for Feature Class Capabilities
 """
 
 
+from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
 from pyproj import CRS
 from pytest import mark
 
+from conftest import world_features
 from gisworks.crs.util import from_crs, validate_srs
+from gisworks.environment.context import Swap
+from gisworks.environment.core import zm_config
+from gisworks.environment.enumeration import (
+    OutputMOption, OutputZOption,
+    Setting)
+from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from gisworks.shared.constant import CUSTOM_UPPER
-from gisworks.shared.element import copy_element, create_feature_class
+from gisworks.shared.element import (
+    copy_element, copy_feature_class,
+    create_feature_class)
 from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY, CUSTOM_THIRD_PARTY_AUTHORITY_60000,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
@@ -90,6 +100,46 @@ def test_copy_element(world_tables, world_features, mem_gpkg, name, where_clause
     result = copy_element(source=source, target=target, where_clause=where_clause)
     assert len(result) == count
 # End test_copy_element function
+
+
+@mark.parametrize('name, where_clause, output_z_option, output_m_option, count', [
+    ('lakes_a', None, OutputZOption.SAME, OutputMOption.SAME, 39),
+    ('lakes_a', 'SQKM > 5000', OutputZOption.SAME, OutputMOption.SAME, 28),
+    ('disputed_boundaries_l', None, OutputZOption.SAME, OutputMOption.SAME, 561),
+    ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.SAME, OutputMOption.SAME, 364),
+    ('cities_p', None, OutputZOption.SAME, OutputMOption.SAME, 2540),
+    ('cities_p', 'POP IS NULL', OutputZOption.SAME, OutputMOption.SAME, 1377),
+    ('lakes_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 39),
+    ('lakes_a', 'SQKM > 5000', OutputZOption.ENABLED, OutputMOption.ENABLED, 28),
+    ('disputed_boundaries_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 561),
+    ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.ENABLED, OutputMOption.ENABLED, 364),
+    ('cities_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 2540),
+    ('cities_p', 'POP IS NULL', OutputZOption.ENABLED, OutputMOption.ENABLED, 1377),
+    ('lakes_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 39),
+    ('lakes_a', 'SQKM > 5000', OutputZOption.DISABLED, OutputMOption.DISABLED, 28),
+    ('disputed_boundaries_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 561),
+    ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.DISABLED, OutputMOption.DISABLED, 364),
+    ('cities_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 2540),
+    ('cities_p', 'POP IS NULL', OutputZOption.DISABLED, OutputMOption.DISABLED, 1377),
+])
+def test_copy_feature_class_zm(world_features, mem_gpkg, name, where_clause, output_z_option, output_m_option, count):
+    """
+    Test Copy Feature Class, change up ZM settings
+    """
+    source = world_features[name]
+    target = FeatureClass(geopackage=mem_gpkg, name=name)
+    with Swap(Setting.OUTPUT_Z_OPTION, output_z_option), Swap(Setting.OUTPUT_M_OPTION, output_m_option):
+        config = zm_config(source)
+        target = copy_feature_class(
+            source, target=target, where_clause=where_clause, config=config)
+    assert len(target) == count
+    assert target.has_z == config.z_enabled
+    assert target.has_m == config.m_enabled
+    cls = FUDGEO_GEOMETRY_LOOKUP[target.shape_type][config.z_enabled, config.m_enabled]
+    cursor = target.select()
+    assert all(isinstance(g, cls) for g, in cursor.fetchall())
+    assert all(not g.is_empty for g, in cursor.fetchall())
+# End test_copy_feature_class_zm function
 
 
 if __name__ == '__main__':  # pragma: no cover

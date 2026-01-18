@@ -5,7 +5,7 @@ Validation
 
 
 from abc import ABCMeta, abstractmethod
-from enum import Enum
+from enum import StrEnum
 from functools import wraps
 from inspect import signature
 from pathlib import Path
@@ -17,15 +17,17 @@ from fudgeo.constant import MEMORY
 from fudgeo.enumeration import GeometryType
 
 from gisworks.crs.util import check_same_crs, get_crs_from_source
+from gisworks.geometry.extent import set_extent
+from gisworks.geometry.validate import (
+    check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
 from gisworks.shared.constant import GEOPACKAGE, NAME_ATTR, PADDED_PIPE
-from gisworks.shared.enumeration import OutputTypeOption, Setting
+from gisworks.shared.enumeration import OutputTypeOption
+from gisworks.environment.enumeration import Setting
 from gisworks.shared.exception import OperationsError, OperationsWarning
 from gisworks.shared.field import TYPE_ALIAS_LUT, validate_fields
-from gisworks.shared.geometry import (
-    check_dimension, get_geometry_dimension, set_extent)
 from gisworks.shared.hint import ELEMENT, GPKG, NAMES, XY_TOL
-from gisworks.shared.setting import ANALYSIS_SETTINGS
-from gisworks.shared.util import safe_float
+from gisworks.environment import ANALYSIS_SETTINGS
+from gisworks.shared.util import check_enumeration, safe_float
 
 
 class AbstractValidate(metaclass=ABCMeta):
@@ -128,7 +130,7 @@ class AbstractValidateTypeExists(AbstractValidateType):
     """
     Abstract Validate Type and Object Exists
     """
-    def __init__(self, name: str, exists: bool = True) -> None:
+    def __init__(self, name: str, *, exists: bool = True) -> None:
         """
         Initialize the ValidateContent class
         """
@@ -182,12 +184,12 @@ class ValidateEnumeration(AbstractValidateArgument):
     """
     Validate Item is of the expected Enumeration
     """
-    def __init__(self, name: str, enum: Type[Enum]) -> None:
+    def __init__(self, name: str, enum: Type[StrEnum]) -> None:
         """
         Initialize the ValidateEnumeration class
         """
         super().__init__(name)
-        self._enum: Type[Enum] = enum
+        self._enum: Type[StrEnum] = enum
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -213,11 +215,7 @@ class ValidateEnumeration(AbstractValidateArgument):
         """
         Validate Value
         """
-        if isinstance(obj, self._enum):
-            return obj
-        if isinstance(obj, str):
-            obj = self._enum(obj.casefold())
-        return self._enum(obj)
+        return check_enumeration(obj, enum=self._enum)
     # End _validate_value method
 # End ValidateEnumeration class
 
@@ -260,12 +258,14 @@ class ValidateGeometryDimension(AbstractValidate):
     """
     Validate Geometry Dimension
     """
-    def __init__(self, *names) -> None:
+    def __init__(self, *names, same: bool = False, strict: bool = False) -> None:
         """
         Initialize the ValidateGeometryDimension class
         """
         super().__init__()
         self._names: NAMES = names
+        self._same: bool = same
+        self._strict: bool = strict
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -279,15 +279,37 @@ class ValidateGeometryDimension(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            first, *others = self._names
-            a = get_geometry_dimension(kwargs[first])
-            for other in others:
-                b = get_geometry_dimension(kwargs[other])
-                check_dimension(a=a, name_a=first, b=b, name_b=other)
+            self._validate_dimension(kwargs)
+            self._validate_extended(kwargs)
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    def _validate_dimension(self, kwargs: dict[str, Any]) -> None:
+        """
+        Validate Dimension
+        """
+        first, *others = self._names
+        a = get_geometry_dimension(kwargs[first])
+        for other in others:
+            b = get_geometry_dimension(kwargs[other])
+            check_dimension(a=a, name_a=first, b=b, name_b=other,
+                            same=self._same)
+    # End _validate_dimension method
+
+    def _validate_extended(self, kwargs: dict[str, Any]) -> None:
+        """
+        Validate Extended Geometry Type (Z and M) when same dimension required
+        """
+        if not self._strict:
+            return
+        first, *others = self._names
+        a = get_geometry_zm(kwargs[first])
+        for other in others:
+            b = get_geometry_zm(kwargs[other])
+            check_zm(a=a, name_a=first, b=b, name_b=other)
+    # End _validate_extended method
 # End ValidateGeometryDimension class
 
 
@@ -441,7 +463,7 @@ class ValidateGeopackage(AbstractValidateTypeExists):
     """
     _types: ClassVar[tuple[type, ...]] = GeoPackage, MemoryGeoPackage
 
-    def __init__(self, name: str = GEOPACKAGE, exists: bool = True) -> None:
+    def __init__(self, name: str = GEOPACKAGE, *, exists: bool = True) -> None:
         """
         Initialize the ValidateGeopackage class
         """
@@ -485,7 +507,7 @@ class ValidateContent(AbstractValidateTypeExists):
     """
     Validate Content
     """
-    def __init__(self, name: str, exists: bool = True,
+    def __init__(self, name: str, *, exists: bool = True,
                  has_content: bool = True) -> None:
         """
         Initialize the ValidateContent class
@@ -544,9 +566,10 @@ class ValidateFeatureClass(ValidateContent):
     """
     _types: ClassVar[tuple[type, ...]] = FeatureClass,
 
-    def __init__(self, name: str, exists: bool = True, has_content: bool = True,
-                 geometry_types: NAMES = (), has_z: bool = False,
-                 has_m: bool = False, add_index: bool = True) -> None:
+    def __init__(self, name: str, *, exists: bool = True,
+                 has_content: bool = True, geometry_types: NAMES = (),
+                 has_z: bool = False, has_m: bool = False,
+                 add_index: bool = True) -> None:
         """
         Initialize the ValidateFeatureClass class
         """
@@ -608,7 +631,7 @@ class ValidateField(AbstractValidateType):
     """
     _types: ClassVar[tuple[type, ...]] = Field,
 
-    def __init__(self, name: str, data_types: NAMES = (),
+    def __init__(self, name: str, *, data_types: NAMES = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
                  exclude_primary: bool = True) -> None:
