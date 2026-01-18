@@ -692,6 +692,73 @@ class TestQuerySymmetricalDifferenceClassic:
         assert sql in insert
         assert target.name in insert
     # End test_insert_operator_general method
+
+    @mark.zm
+    @mark.large
+    @mark.parametrize('fc_name, count, where_clause', [
+        ('hydro_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
+        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
+        ('structures_a', 52, """DATANAME = '082O08'"""),
+        ('structures_m_a', 52, """DATANAME = '082O08'"""),
+        ('structures_z_a', 52, """DATANAME = '082O08'"""),
+        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
+        ('structures_m_ma', 10, """CODE = 2010082"""),
+        ('structures_z_ma', 10, """CODE = 2010082"""),
+        ('structures_zm_ma', 10, """CODE = 2010082"""),
+    ])
+    @mark.parametrize('op_name', [
+        'index_a',
+        'index_m_a',
+        'index_z_a',
+        'index_zm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    def test_target_full_disjoint_query(self, ntdb_zm, mem_gpkg, fc_name,
+                                        count, where_clause, op_name,
+                                        output_z, output_m):
+        """
+        Test target full, exercising process disjoint and handling
+        different ZM dimensions
+        """
+        option = AttributeOption.ALL
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = copy_element(
+            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause=where_clause)
+        source.add_spatial_index()
+        operator = copy_element(
+            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082J10'""")
+        operator.add_spatial_index()
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            query = QuerySymmetricalDifferenceClassic(
+                source, target=target, operator=operator,
+                attribute_option=option, xy_tolerance=None)
+            full = query.target_full
+        if output_z == OutputZOption.SAME:
+            has_z = source.has_z or operator.has_z
+        else:
+            has_z = output_z == OutputZOption.ENABLED
+        if output_m == OutputZOption.SAME:
+            has_m = source.has_m or operator.has_m
+        else:
+            has_m = output_m == OutputMOption.ENABLED
+        assert full.has_z == has_z
+        assert full.has_m == has_m
+        assert full.count == count
+    # End test_target_full_disjoint_query method
 # End TestQuerySymmetricalDifferenceClassic class
 
 
