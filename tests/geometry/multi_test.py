@@ -8,7 +8,7 @@ from shapely import (
     MultiLineString as ShapelyMultiLineString, MultiPoint as ShapelyMultiPoint,
     MultiPolygon as ShapelyMultiPolygon)
 
-from gisworks.geometry.multi import build_multi
+from spyops.geometry.multi import build_multi
 
 
 pytestmark = [mark.geometry]

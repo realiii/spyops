@@ -8,10 +8,10 @@ from math import nan
 
 from pytest import approx, mark
 
-from gisworks.environment.enumeration import (
+from spyops.environment.enumeration import (
     OutputMOption, Setting, OutputZOption)
-from gisworks.environment import ANALYSIS_SETTINGS
-from gisworks.environment.context import Swap
+from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.context import Swap
 
 
 pytestmark = [mark.environment]

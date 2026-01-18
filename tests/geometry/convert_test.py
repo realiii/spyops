@@ -20,14 +20,14 @@ from numpy import array, isnan, ndarray
 from pytest import approx, mark
 from shapely.io import from_wkb
 
-from gisworks.geometry.convert import (
+from spyops.geometry.convert import (
     _as_lines, _update_z_values, _use_boundary_factory,
     cast_linestrings, cast_multi_linestrings, cast_multi_points,
     cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
-from gisworks.geometry.util import nada
-from gisworks.shared.enumeration import OutputTypeOption
-from gisworks.environment.enumeration import Setting
-from gisworks.environment.context import Swap
+from spyops.geometry.util import nada
+from spyops.shared.enumeration import OutputTypeOption
+from spyops.environment.enumeration import Setting
+from spyops.environment.context import Swap
 
 
 pytestmark = [mark.geometry]

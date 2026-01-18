@@ -6,8 +6,8 @@ Test for Utility Functions
 
 from pytest import mark
 
-from gisworks.environment.enumeration import Setting
-from gisworks.environment.util import as_title
+from spyops.environment.enumeration import Setting
+from spyops.environment.util import as_title
 
 
 pytestmark = [mark.environment]

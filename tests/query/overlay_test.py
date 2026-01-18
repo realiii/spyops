@@ -7,15 +7,15 @@ Test for Overlay Query Classes
 from fudgeo import FeatureClass
 from pytest import mark
 
-from gisworks.environment.context import Swap
-from gisworks.environment.enumeration import (
+from spyops.environment.context import Swap
+from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from gisworks.query.overlay import (
+from spyops.query.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
     PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
-from gisworks.shared.element import copy_element
-from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
+from spyops.shared.element import copy_element
+from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 
 pytestmark = [mark.overlay, mark.query]
 

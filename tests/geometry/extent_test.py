@@ -5,7 +5,7 @@ Extent tests
 
 from pytest import approx, mark
 
-from gisworks.geometry.extent import extent_from_feature_class
+from spyops.geometry.extent import extent_from_feature_class
 
 
 pytestmark = [mark.geometry]

@@ -8,7 +8,7 @@ from sqlite3 import connect
 
 from pytest import mark
 
-from gisworks.shared.database import (
+from spyops.shared.database import (
     _is_sqlite, _is_geopackage, get_table_names,
     has_table, is_geopackage)
 

@@ -6,10 +6,10 @@ Tests for Geometry Validation
 from pytest import mark, raises
 from shapely import MultiPolygon, Polygon
 
-from gisworks.geometry.validate import (
+from spyops.geometry.validate import (
     check_dimension, check_polygon, check_zm,
     get_geometry_dimension, get_geometry_zm)
-from gisworks.shared.exception import OperationsError
+from spyops.shared.exception import OperationsError
 
 pytestmark = [mark.geometry]
 

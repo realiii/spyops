@@ -7,10 +7,10 @@ Test for Workspace Settings
 from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import mark, raises
 
-from gisworks.environment.enumeration import Setting
-from gisworks.environment import ANALYSIS_SETTINGS
-from gisworks.environment.context import Swap
-from gisworks.environment.workspace import _Workspace
+from spyops.environment.enumeration import Setting
+from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.context import Swap
+from spyops.environment.workspace import _Workspace
 
 pytestmark = [mark.environment]
 

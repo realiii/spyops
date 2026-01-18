@@ -11,9 +11,9 @@ from shapely import (
     MultiPoint as ShapelyMultiPoint, Point as ShapelyPoint, MultiLineString)
 from shapely.io import from_wkt
 
-from gisworks.geometry.config import (
+from spyops.geometry.config import (
     GeometryConfig, geometry_config, _combine_lines_workaround)
-from gisworks.geometry.util import nada
+from spyops.geometry.util import nada
 
 
 pytestmark = [mark.geometry]

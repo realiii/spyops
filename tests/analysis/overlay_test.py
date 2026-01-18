@@ -8,16 +8,16 @@ from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
 from pytest import mark, raises
 
-from gisworks.analysis.overlay import erase, intersect, symmetrical_difference
-from gisworks.environment.core import zm_config
-from gisworks.shared.element import copy_element
-from gisworks.shared.enumeration import (
+from spyops.analysis.overlay import erase, intersect, symmetrical_difference
+from spyops.environment.core import zm_config
+from spyops.shared.element import copy_element
+from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
-from gisworks.environment.enumeration import (
+from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from gisworks.query.overlay import QueryErase
-from gisworks.shared.exception import OperationsError
-from gisworks.environment.context import Swap
+from spyops.query.overlay import QueryErase
+from spyops.shared.exception import OperationsError
+from spyops.environment.context import Swap
 
 
 pytestmark = [mark.overlay, mark.query]

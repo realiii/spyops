@@ -6,7 +6,7 @@ Tests for Base
 from pytest import mark
 from shapely.geometry.polygon import Polygon
 
-from gisworks.shared.base import (
+from spyops.shared.base import (
     AnalysisComponents, PlanarizeResults)
 
 pytestmark = [mark.utility]

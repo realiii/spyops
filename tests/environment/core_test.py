@@ -8,11 +8,11 @@ from math import isnan
 from fudgeo import MemoryGeoPackage
 from pytest import mark
 
-from gisworks.environment.context import Swap
-from gisworks.environment.enumeration import (
+from spyops.environment.context import Swap
+from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from gisworks.environment import ANALYSIS_SETTINGS
-from gisworks.environment.core import ZMConfig, zm_config, HasZM
+from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.core import ZMConfig, zm_config, HasZM
 
 pytestmark = [mark.environment]
 

@@ -14,16 +14,16 @@ from pytest import mark, raises
 
 from warnings import catch_warnings, simplefilter
 
-from gisworks.geometry.validate import get_geometry_dimension
-from gisworks.shared.enumeration import AttributeOption, OutputTypeOption
-from gisworks.environment.enumeration import Setting
-from gisworks.shared.exception import OperationsError, OperationsWarning
-from gisworks.shared.field import (
+from spyops.geometry.validate import get_geometry_dimension
+from spyops.shared.enumeration import AttributeOption, OutputTypeOption
+from spyops.environment.enumeration import Setting
+from spyops.shared.exception import OperationsError, OperationsWarning
+from spyops.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS,
     GEOM_TYPE_POLYGONS, REALS, TEXT_AND_NUMBERS)
-from gisworks.environment.context import Swap
-from gisworks.shared.util import element_names, make_unique_name
-from gisworks.shared.validation import (
+from spyops.environment.context import Swap
+from spyops.shared.util import element_names, make_unique_name
+from spyops.shared.validation import (
     _check_output, validate_element, validate_enumeration,
     validate_feature_class, validate_field, validate_geometry_dimension,
     validate_geopackage,

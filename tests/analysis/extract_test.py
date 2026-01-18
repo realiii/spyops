@@ -11,15 +11,15 @@ from fudgeo.enumeration import GeometryType, SQLFieldType
 from numpy import array, isnan
 from pytest import approx, mark, raises
 
-from gisworks.analysis.extract import (
+from spyops.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
-from gisworks.environment.core import zm_config
-from gisworks.environment.enumeration import (
+from spyops.environment.core import zm_config
+from spyops.environment.enumeration import (
     OutputMOption, OutputZOption,
     Setting)
-from gisworks.shared.exception import OperationsError
-from gisworks.environment.context import Swap
-from gisworks.shared.util import element_names, make_unique_name
+from spyops.shared.exception import OperationsError
+from spyops.environment.context import Swap
+from spyops.shared.util import element_names, make_unique_name
 
 
 pytestmark = [mark.extract]

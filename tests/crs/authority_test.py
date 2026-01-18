@@ -11,10 +11,10 @@ from constants import (
     CUSTOM_PROJ_STR, CUSTOM_CAMACUPA_UTM_32S, CUSTOM_COMPOUND_AUTH,
     CUSTOM_COMPOUND_NO_AUTH_HORIZ, CUSTOM_COMPOUND_NO_AUTH_VERT,
     CUSTOM_THIRD_PARTY_AUTHORITY,  COMPOUND_ESRI_EPSG_MIX)
-from gisworks.crs.authority import Authority, authorities
-from gisworks.crs.util import _get_crs_component, get_crs_authority
-from gisworks.shared.constant import CUSTOM_UPPER, EPSG, ESRI
-from gisworks.crs.enumeration import InfoOption
+from spyops.crs.authority import Authority, authorities
+from spyops.crs.util import _get_crs_component, get_crs_authority
+from spyops.shared.constant import CUSTOM_UPPER, EPSG, ESRI
+from spyops.crs.enumeration import InfoOption
 
 pytestmark = [mark.crs]
 

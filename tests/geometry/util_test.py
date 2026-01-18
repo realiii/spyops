@@ -14,11 +14,11 @@ from shapely import (
     MultiPolygon, get_coordinates, from_wkt)
 from shapely.geometry.base import GeometrySequence
 
-from gisworks.geometry.util import (
+from spyops.geometry.util import (
     find_slice_indexes, get_geoms, get_geoms_iter,
     nada, to_shapely)
-from gisworks.geometry.wa import USE_WORKAROUNDS, make_valid, set_precision
-from gisworks.shared.exception import OperationsWarning
+from spyops.geometry.wa import USE_WORKAROUNDS, make_valid, set_precision
+from spyops.shared.exception import OperationsWarning
 
 
 pytestmark = [mark.geometry]

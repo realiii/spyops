@@ -10,15 +10,15 @@ from pyproj import CRS
 from pytest import mark
 
 from conftest import world_features
-from gisworks.crs.util import from_crs, validate_srs
-from gisworks.environment.context import Swap
-from gisworks.environment.core import zm_config
-from gisworks.environment.enumeration import (
+from spyops.crs.util import from_crs, validate_srs
+from spyops.environment.context import Swap
+from spyops.environment.core import zm_config
+from spyops.environment.enumeration import (
     OutputMOption, OutputZOption,
     Setting)
-from gisworks.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
-from gisworks.shared.constant import CUSTOM_UPPER
-from gisworks.shared.element import (
+from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
+from spyops.shared.constant import CUSTOM_UPPER
+from spyops.shared.element import (
     copy_element, copy_feature_class,
     create_feature_class)
 from tests.constants import (

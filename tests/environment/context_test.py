@@ -6,9 +6,9 @@ Test for Context Manager
 
 from pytest import mark, raises
 
-from gisworks.environment.enumeration import Setting
-from gisworks.environment import ANALYSIS_SETTINGS
-from gisworks.environment.context import Swap
+from spyops.environment.enumeration import Setting
+from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.context import Swap
 
 
 pytestmark = [mark.environment]

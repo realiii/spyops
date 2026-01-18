@@ -7,7 +7,7 @@ from pytest import mark
 from fudgeo import Field
 from fudgeo.enumeration import SQLFieldType
 
-from gisworks.query.extract import QuerySplitByAttributes
+from spyops.query.extract import QuerySplitByAttributes
 
 
 pytestmark = [mark.query]

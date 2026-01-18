@@ -8,7 +8,7 @@ from fudgeo import Field
 from fudgeo.enumeration import DataType, SQLFieldType
 from pytest import mark
 
-from gisworks.shared.field import (
+from spyops.shared.field import (
     clone_field, common_fields, get_geometry_column_name, make_field_names,
     validate_fields)
 

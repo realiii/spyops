@@ -6,8 +6,8 @@ Test Utilities
 
 from pytest import approx, mark, raises
 
-from gisworks.environment.enumeration import OutputMOption
-from gisworks.shared.util import (
+from spyops.environment.enumeration import OutputMOption
+from spyops.shared.util import (
     check_enumeration, element_names, expand_extent, make_unique_name,
     make_valid_name, _replace_double_under, safe_float, safe_int)
 
