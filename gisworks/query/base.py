@@ -295,7 +295,13 @@ class AbstractSpatialQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Make Intersection Query
         """
-        if where := self._spatial_index_where(element, extent=self.shared_extent):
+        *_, select_field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=select_field_names,
+                where_clause=SQL_EMPTY)
+        if where := self._spatial_index_where(
+                element, extent=self.shared_extent):
             where = where.format(IN)
         else:  # pragma: no cover
             where = SQL_FULL
