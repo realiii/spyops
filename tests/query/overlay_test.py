@@ -461,6 +461,7 @@ class TestQuerySymmetricalDifferencePairwise:
     # End test_insert_operator method
 
     @mark.zm
+    @mark.large
     @mark.parametrize('fc_name, count, where_clause', [
         ('hydro_a', 2356, """DATANAME = '082O08'"""),
         ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
