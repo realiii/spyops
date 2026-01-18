@@ -58,7 +58,8 @@ class QueryErase(QueryClip):
 
 
 def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
-                       xy_tolerance: XY_TOL) -> tuple['FeatureClass', 'Field', 'FeatureClass', 'Field']:
+                       use_full_extent: bool, xy_tolerance: XY_TOL) \
+        -> tuple['FeatureClass', 'Field', 'FeatureClass', 'Field']:
     """
     Planarize Feature Class Factory
     """
@@ -72,9 +73,11 @@ def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
     else:
         op_cls = PlanarizeGeneralOperator
     source, source_fid = src_cls(
-        source, operator=operator, xy_tolerance=xy_tolerance)()
+        source, operator=operator, use_full_extent=use_full_extent,
+        xy_tolerance=xy_tolerance)()
     operator, operator_fid = op_cls(
-        source, operator=operator, xy_tolerance=xy_tolerance)()
+        source, operator=operator, use_full_extent=use_full_extent,
+        xy_tolerance=xy_tolerance)()
     return source, source_fid, operator, operator_fid
 # End _planarize_factory function
 
@@ -84,13 +87,14 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     Abstract Base Class for Planarizing Feature Classes
     """
     def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
-                 xy_tolerance: XY_TOL) -> None:
+                 *, use_full_extent: bool, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractPlanarize class
         """
         super().__init__(
             source=source, operator=operator, target=None,
             attribute_option=AttributeOption.ALL, xy_tolerance=xy_tolerance)
+        self._use_full_extent: bool = use_full_extent
     # End init built-in
 
     @abstractmethod
@@ -223,6 +227,26 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         """
         return
     # End target_empty property
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        if self._use_full_extent:
+            return self._make_full_query(self.source)
+        return super().select
+    # End select property
+
+    @property
+    def select_operator(self) -> str:
+        """
+        Selection Query for Operator
+        """
+        if self._use_full_extent:
+            return self._make_full_query(self.operator)
+        return super().select_operator
+    # End select_operator property
 # End AbstractPlanarize class
 
 
@@ -538,7 +562,8 @@ class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
         Initialize the QueryIntersectClassic class
         """
         source, source_fid, operator, operator_fid = _planarize_factory(
-            source, operator=operator, xy_tolerance=xy_tolerance)
+            source, operator=operator, use_full_extent=False,
+            xy_tolerance=xy_tolerance)
         super().__init__(
             source=source, target=target, operator=operator,
             attribute_option=attribute_option, xy_tolerance=xy_tolerance,
@@ -693,7 +718,8 @@ class QuerySymmetricalDifferenceClassic(
         Initialize the QuerySymmetricalDifferenceClassic class
         """
         source, source_fid, operator, operator_fid = _planarize_factory(
-            source, operator=operator, xy_tolerance=xy_tolerance)
+            source, operator=operator, use_full_extent=True,
+            xy_tolerance=xy_tolerance)
         super().__init__(
             source=source, target=target, operator=operator,
             attribute_option=attribute_option, xy_tolerance=xy_tolerance)
