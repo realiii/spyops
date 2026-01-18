@@ -58,7 +58,7 @@ class QueryErase(QueryClip):
 
 
 def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
-                       xy_tolerance: XY_TOL) -> tuple['FeatureClass', 'FeatureClass']:
+                       xy_tolerance: XY_TOL) -> tuple['FeatureClass', 'Field', 'FeatureClass', 'Field']:
     """
     Planarize Feature Class Factory
     """
@@ -71,9 +71,11 @@ def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
         op_cls = PlanarizePolygonOperator
     else:
         op_cls = PlanarizeGeneralOperator
-    source = src_cls(source, operator=operator, xy_tolerance=xy_tolerance)()
-    operator = op_cls(source, operator=operator, xy_tolerance=xy_tolerance)()
-    return source, operator
+    source, source_fid = src_cls(
+        source, operator=operator, xy_tolerance=xy_tolerance)()
+    operator, operator_fid = op_cls(
+        source, operator=operator, xy_tolerance=xy_tolerance)()
+    return source, source_fid, operator, operator_fid
 # End _planarize_factory function
 
 
@@ -92,7 +94,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End init built-in
 
     @abstractmethod
-    def __call__(self) -> 'FeatureClass':  # pragma: no cover
+    def __call__(self) -> tuple['FeatureClass', 'Field']:  # pragma: no cover
         """
         Make Class Callable
         """
@@ -288,11 +290,12 @@ class PlanarizePolygonSource(AbstractPlanarizePolygon):
     """
     Planarize a source polygon feature class
     """
-    def __call__(self) -> 'FeatureClass':
+    def __call__(self) -> tuple['FeatureClass', 'Field']:
         """
         Make Class Callable
         """
-        return self._planarize(self.source, sql=self.select)
+        fid = self.source.primary_key_field
+        return self._planarize(self.source, sql=self.select), fid
     # End call built-in
 
     @property
@@ -309,11 +312,12 @@ class PlanarizePolygonOperator(AbstractPlanarizePolygon):
     """
     Planarize an operator polygon feature class
     """
-    def __call__(self) -> 'FeatureClass':
+    def __call__(self) -> tuple['FeatureClass', 'Field']:
         """
         Make Class Callable
         """
-        return self._planarize(self.operator, sql=self.select_operator)
+        fid = self.operator.primary_key_field
+        return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in
 
     @property
@@ -345,11 +349,12 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
     """
     Planarize a source feature class -- handling for FID
     """
-    def __call__(self) -> 'FeatureClass':
+    def __call__(self) -> tuple['FeatureClass', 'Field']:
         """
         Make Class Callable
         """
-        return self._planarize(self.source, sql=self.select)
+        fid = self.source.primary_key_field
+        return self._planarize(self.source, sql=self.select), fid
     # End call built-in
 
     @property
@@ -374,11 +379,12 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
     """
     Planarize an operator feature class -- handling for FID
     """
-    def __call__(self) -> 'FeatureClass':
+    def __call__(self) -> tuple['FeatureClass', 'Field']:
         """
         Make Class Callable
         """
-        return self._planarize(self.operator, sql=self.select_operator)
+        fid = self.operator.primary_key_field
+        return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in
 
     @property
@@ -516,12 +522,14 @@ class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
         """
         Initialize the QueryIntersectClassic class
         """
-        source, operator = _planarize_factory(
+        source, source_fid, operator, operator_fid = _planarize_factory(
             source, operator=operator, xy_tolerance=xy_tolerance)
         super().__init__(
             source=source, target=target, operator=operator,
             attribute_option=attribute_option, xy_tolerance=xy_tolerance,
             output_type_option=output_type_option)
+        self._input_fid_source: Field = source_fid
+        self._input_fid_operator: Field = operator_fid
     # End init built-in
 # End QueryIntersectClassic class
 
@@ -657,20 +665,24 @@ class QuerySymmetricalDifferencePairwise(BaseQuerySymmetricalDifference):
 # End QuerySymmetricalDifferencePairwise class
 
 
-class QuerySymmetricalDifferenceClassic(QueryIntersectClassic):
+class QuerySymmetricalDifferenceClassic(
+        ClassicMixin, AbstractQuerySymmetricalDifference):
     """
     Query Symmetrical Difference Classic
     """
-    def __init__(self, source: 'FeatureClass', target: Optional['FeatureClass'],
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
                  operator: 'FeatureClass', attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QuerySymmetricalDifferenceClassic class
         """
+        source, source_fid, operator, operator_fid = _planarize_factory(
+            source, operator=operator, xy_tolerance=xy_tolerance)
         super().__init__(
             source=source, target=target, operator=operator,
-            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
-            output_type_option=OutputTypeOption.SAME)
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+        self._input_fid_source: Field = source_fid
+        self._input_fid_operator: Field = operator_fid
     # End init built-in
 # End QuerySymmetricalDifferenceClassic class
 
