@@ -501,13 +501,28 @@ class ClassicMixin:
         """
         Override field names for Selection -- ignore insert names and count
         """
-        fields = self._get_fields(element)
-        if self._attr_option in (AttributeOption.ALL, AttributeOption.SANS_FID):
-            _, *fields = fields
+        fields = self._get_fields(element)[1:]
         select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
+
+    # noinspection PyUnresolvedReferences
+    def _get_fields(self, element: ELEMENT) -> FIELDS:
+        """
+        Get Fields from Element based on Attribute Option
+        """
+        if self._attr_option in (AttributeOption.ALL, AttributeOption.SANS_FID):
+            fields = validate_fields(element, fields=element.fields)
+        else:
+            if element is self.source:
+                fields = [self.output_fid_source]
+            else:
+                fields = [self.output_fid_operator]
+        if self._attr_option in (AttributeOption.ALL, AttributeOption.ONLY_FID):
+            fields = [element.primary_key_field, *fields]
+        return fields
+    # End _get_fields method
 # End ClassicMixin class
 
 
