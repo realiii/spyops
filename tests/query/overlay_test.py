@@ -181,6 +181,16 @@ class TestPlanarizePolygons:
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 13
     # End test_planarize_operator_holes method
+
+    def test_planarize_source_multi_part(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Source Multi Part on a non FID column
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = PlanarizePolygonSource(source=source, operator=operator, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
+    # End test_planarize_source_multi_part method
 # End TestPlanarizePolygons class
 
 
@@ -233,6 +243,16 @@ class TestPlanarizeGeneral:
             'vertex_part', 'vertex_part_index', 'distance', 'angle']
         assert len(fc) == 20620
     # End test_planarize_source_point method
+
+    def test_planarize_source_multi_part(self, inputs, world_features, mem_gpkg):
+        """
+        Test Planarize Source Multi Part on a non FID column
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = PlanarizeGeneralSource(source=source, operator=operator, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
+    # End test_planarize_source_multi_part method
 # End TestPlanarizeGeneral class
 
 
