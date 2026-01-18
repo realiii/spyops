@@ -700,6 +700,16 @@ class QuerySymmetricalDifferenceClassic(
         self._input_fid_source: Field = source_fid
         self._input_fid_operator: Field = operator_fid
     # End init built-in
+
+    def _get_insert_fields(self, element: 'FeatureClass') -> FIELDS:
+        """
+        Get Fields for Disjoint Insert Statements
+        """
+        fields = super()._get_insert_fields(element)
+        if len(fields) == 1:
+            return fields
+        return fields[1:]
+    # End _get_insert_fields method
 # End QuerySymmetricalDifferenceClassic class
 
 
