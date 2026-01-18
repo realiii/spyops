@@ -275,6 +275,33 @@ class TestQueryIntersectClassic:
         assert len(operator) == 9
     # End test_planarize method
 
+    def test_insert_planarize(self, inputs, mem_gpkg):
+        """
+        Test Planarize
+        """
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'],
+            target=FeatureClass(geopackage=mem_gpkg, name='lmno'),
+            operator=inputs['intersect_a'],
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert 'INTO lmno(SHAPE, fid_int_flavor_a, id, fid_intersect_a,' in query.insert
+    # End test_insert_planarize method
+
+    def test_insert_general_planar(self, world_features, mem_gpkg):
+        """
+        Test insert statement when rolling through general planar
+        """
+        operator = world_features['cities_p']
+        cites = world_features['cities_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='ceetees')
+        query = QueryIntersectClassic(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert ' INTO ceetees(SHAPE, fid_cities_p, CITY_NAME, GMI_ADMIN, ' in query.insert.strip()
+    # End test_insert_general_planar method
+
     @mark.parametrize('option, names', [
         (AttributeOption.ALL, ['fid', 'SHAPE', 'fid_int_flavor_a', 'id', 'fid_intersect_a', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
         (AttributeOption.SANS_FID, ['fid', 'SHAPE', 'id', 'ID_1', 'NAME', 'WHEN', 'EXAMPLE_JSON', 'BOB', 'NOT_NOW']),
@@ -292,6 +319,60 @@ class TestQueryIntersectClassic:
             output_type_option=OutputTypeOption.SAME)
         assert query.target.field_names == names
     # End test_target_fields method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_int_flavor_a, id'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", id'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_int_flavor_a'),
+    ])
+    def test_select_source(self, inputs, mem_gpkg, option, sql):
+        """
+        Test source select sql
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert sql in query.select
+    # End test_select_source method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_intersect_a, ID, NAME, "WHEN"'),
+        (AttributeOption.SANS_FID, 'SELECT SHAPE "[Polygon]", ID, NAME, "WHEN"'),
+        (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_intersect_a'),
+    ])
+    def test_select_operator(self, inputs, mem_gpkg, option, sql):
+        """
+        Test operator select sql
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert sql in query.select_operator
+    # End test_select_operator method
+
+    @mark.parametrize('option, sql', [
+        (AttributeOption.ALL, ' INTO all_target(SHAPE, fid_int_flavor_a, id, fid_intersect_a, ID_1'),
+        (AttributeOption.SANS_FID, ' INTO sans_fid_target(SHAPE, id, ID_1, '),
+        (AttributeOption.ONLY_FID, ' INTO only_fid_target(SHAPE, fid_int_flavor_a, fid_intersect_a)'),
+    ])
+    def test_insert(self, inputs, mem_gpkg, option, sql):
+        """
+        Test insert sql
+        """
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        query = QueryIntersectClassic(
+            inputs['int_flavor_a'], target=target,
+            operator=inputs['intersect_a'],
+            attribute_option=option, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        assert sql in query.insert
+    # End test_insert method
 # End TestQueryIntersectClassic class
 
 
