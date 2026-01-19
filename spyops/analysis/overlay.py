@@ -31,6 +31,9 @@ from spyops.shared.validation import (
     validate_xy_tolerance)
 
 
+__all__ = ['erase', 'intersect', 'symmetrical_difference']
+
+
 @validate_result()
 @validate_feature_class(SOURCE)
 @validate_feature_class(OPERATOR)
