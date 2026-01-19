@@ -40,6 +40,7 @@ MIT
 * added `table_select` (Analysis - Extract) and aliased as `extract_rows`
 * added `erase` (Analysis - Overlay)
 * added `intersect` (Analysis - Overlay)
+* added `symmetrical_difference` (Analysis - Overlay)
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, and `scratch_workspace`
