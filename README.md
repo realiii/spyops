@@ -34,35 +34,158 @@ MIT
 Extracts features using the features of a polygon feature class. Extracted
 features are cut along the edges of the operator polygons.
 
+```python
+from fudgeo import GeoPackage, FeatureClass, MemoryGeoPackage
+from spyops.analysis.extract import clip
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+mem = MemoryGeoPackage.create()
+source = gpkg['hydro_a']
+operator = gpkg['index_a'].copy(
+    name='index_082J16_a', where_clause="""DATANAME = '082J16'""", geopackage=mem)
+target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
+
+fc = clip(source, operator=operator, target=target)
+```
+
 #### `select`
 Select features from a feature class using a where clause (optional) and
 write results to a target feature class.
+
+```python
+from fudgeo import GeoPackage, FeatureClass
+from spyops.analysis.extract import select
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+source = gpkg['structures_a']
+target = FeatureClass(geopackage=gpkg, name='selected_structures_a')
+
+fc = select(source, target=target, where="""ENTITY = 'Golf course' AND VALIDATE = 1987""")
+```
 
 #### `split`
 Extracts features for each polygon in the operator feature class and uses
 values from the specified field to name the output feature classes.
 
+```python
+from fudgeo import GeoPackage
+from spyops.analysis.extract import split
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+source = gpkg['hydro_a']
+operator = gpkg['index_a']
+output = GeoPackage.create('/another/path/hydro_split.gpkg')
+
+fcs = split(source, operator=operator, field='DATANAME', geopackage=output)
+```
+
 #### `split_by_attributes`
 Split an input table or feature class by groups of attributes.
+
+```python
+from fudgeo import GeoPackage
+from spyops.analysis.extract import split_by_attributes
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+source = gpkg['transmission_l']
+output = GeoPackage.create('/another/path/transmission_split.gpkg')
+
+fcs = split_by_attributes(source, group_fields=('ENTITY', 'CODE'), geopackage=output)
+```
 
 #### `table_select`
 Select rows from a table using a where clause (optional) and 
 write results to a target table.
+
+```python
+from fudgeo import GeoPackage, Table
+from spyops.analysis.extract import table_select
+
+gpkg = GeoPackage('/some/path/world_tables.gpkg')
+source = gpkg['cities']
+target = Table(geopackage=gpkg, name='cities_peru')
+
+tbl = table_select(source, target=target, where_clause="""FIPS_CNTRY = 'PE'""")
+```
+
 
 ### Overlay
 #### `erase`
 Removes the portion of the input feature class that overlaps with the
 operator feature class.
 
+```python
+from fudgeo import GeoPackage, FeatureClass, MemoryGeoPackage
+from spyops.analysis.overlay import erase
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+mem = MemoryGeoPackage.create()
+source = gpkg['hydro_a']
+operator = gpkg['index_a'].copy(
+    name='index_082J16_a', where_clause="""DATANAME = '082J16'""", geopackage=mem)
+target = FeatureClass(geopackage=gpkg, name='erased_hydro_a')
+
+fc = erase(source, operator=operator, target=target)
+```
+
 #### `intersect`
 Extracts the portion of the input feature class that overlaps with the
 operator feature class.  Optionally, extends the output feature class
 with attributes from the operator feature class.
 
+```python
+from fudgeo import GeoPackage, FeatureClass
+from spyops.analysis.overlay import intersect
+from spyops.shared.enumeration import AlgorithmOption, AttributeOption, OutputTypeOption
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+source = gpkg['hydro_a']
+operator = gpkg['structures_a']
+
+# all attributes and output will be polygon
+target = FeatureClass(geopackage=gpkg, name='sh_intersection_a')
+fc = intersect(source, operator=operator, target=target)
+
+# only fid and output will be points for the intersections
+target = FeatureClass(geopackage=gpkg, name='sh_intersection_only_pt')
+fc = intersect(source, operator=operator, target=target,
+               attribute_option=AttributeOption.ONLY_FID,
+               output_option=OutputTypeOption.POINT)
+
+# algorithm options, applies to polygon inputs (source / operator)
+target = FeatureClass(geopackage=gpkg, name='sh_intersection_classic_pt')
+fc = intersect(source, operator=operator, target=target,
+               algorithm_option=AlgorithmOption.CLASSIC)
+```
+
 ### `symmetrical_difference`
 Extracts the portion of the input feature class and operator feature class
 that do not intersect.  Optionally, extends the output feature class
 with attributes from the operator feature class.
+
+```python
+from fudgeo import GeoPackage, FeatureClass
+from spyops.analysis.overlay import symmetrical_difference
+from spyops.shared.enumeration import AlgorithmOption, AttributeOption
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+source = gpkg['hydro_a']
+operator = gpkg['structures_a']
+
+# inputs (source / operator) must have same geometry type (e.g. polygon)
+target = FeatureClass(geopackage=gpkg, name='sh_sym_diff_a')
+fc = symmetrical_difference(source, operator=operator, target=target)
+
+# all attributes except the original FID columns will be copied to the output
+target = FeatureClass(geopackage=gpkg, name='sh_sym_diff_sans_a')
+fc = symmetrical_difference(source, operator=operator, target=target, 
+                            attribute_option=AttributeOption.SANS_FID)
+
+# algorithm options, applies to polygon inputs (source / operator)
+target = FeatureClass(geopackage=gpkg, name='sh_sym_diff_classic_a')
+fc = symmetrical_difference(source, operator=operator, target=target, 
+                            algorithm_option=AlgorithmOption.CLASSIC)
+```
 
 ## Settings
 Setting can be used globally or on a specific function call using context managers.
@@ -79,7 +202,7 @@ ANALYSIS_SETTINGS.overwrite = True
 
 # set overwrite on a specific function call
 with Swap(Setting.OVERWRITE, True):
-    result = clip(source, operator=operator, target=target)
+    fc = clip(source, operator=operator, target=target)
 ```
 
 ### Dimension
@@ -99,14 +222,14 @@ from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 
 # set on the function call as an argument
-result = clip(source, operator=operator, target=target, xy_tolerance=0.001)
+fc = clip(source, operator=operator, target=target, xy_tolerance=0.001)
 
 # or set globally (not recommended)
 ANALYSIS_SETTINGS.xy_tolerance = 0.001  # in units of the coordinate reference system
 
 # or set via context during a function call
 with Swap(Setting.XY_TOLERANCE, 0.001):
-    result = clip(source, operator=operator, target=target)
+    fc = clip(source, operator=operator, target=target)
 ```
 
 The defaults for `output_m_option` and `output_z_option` are `OutputMOption.SAME` and `OutputZOption.SAME` respectively.
@@ -128,7 +251,7 @@ ANALYSIS_SETTINGS.output_z_option = OutputZOption.DISABLED
 # or set via context during a function call
 with (Swap(Setting.OUTPUT_M_OPTION, OutputMOption.DISABLED), 
       Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.DISABLED)):
-    result = clip(source, operator=operator, target=target)
+    fc = clip(source, operator=operator, target=target)
 ```
 
 ### Workspace
@@ -145,17 +268,17 @@ from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 
 # fully hydrated objects
-gpkg = GeoPackage('/some/data/ntdb_zm.gpkg')
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
 source = gpkg['hydro_a']
 operator = gpkg['index_a']
 target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
-result = clip(source, operator=operator, target=target)
+fc = clip(source, operator=operator, target=target)
 
 # use strings hydrated objects
 gpkg = GeoPackage('/some/data/ntdb_zm.gpkg')
 target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
 with Swap(Setting.CURRENT_WORKSPACE, gpkg):
-    result = clip('hydro_a', operator='index_a', target=target)
+    fc = clip('hydro_a', operator='index_a', target=target)
 ```
 
 ## Release History
