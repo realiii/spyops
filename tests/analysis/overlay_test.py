@@ -6,7 +6,7 @@ Tests for Overlay
 
 from fudgeo import FeatureClass
 from fudgeo.enumeration import GeometryType
-from pytest import mark, raises
+from pytest import mark, param, raises
 
 from spyops.analysis.overlay import erase, intersect, symmetrical_difference
 from spyops.environment.core import zm_config
@@ -30,22 +30,22 @@ class TestErase:
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 245),
         ('airports_p', None, 29),
-        ('roads_l', None, 3054),
+        param('roads_l', None, 3054, marks=mark.slow),
         ('admin_mp_a', None, 217),
         ('airports_mp_p', None, 10),
-        ('roads_mp_l', None, 14),
+        param('roads_mp_l', None, 14, marks=mark.slow),
         ('admin_a', 0.001, 286),
         ('airports_p', 0.001, 29),
-        ('roads_l', 0.001, 3054),
+        param('roads_l', 0.001, 3054, marks=mark.slow),
         ('admin_mp_a', 0.001, 217),
         ('airports_mp_p', 0.001, 10),
-        ('roads_mp_l', 0.001, 14),
+        param('roads_mp_l', 0.001, 14, marks=mark.slow),
         ('admin_a', 1, 41),
         ('airports_p', 1, 33),
-        ('roads_l', 1, 337),
+        param('roads_l', 1, 337, marks=mark.slow),
         ('admin_mp_a', 1, 37),
         ('airports_mp_p', 1, 10),
-        ('roads_mp_l', 1, 14),
+        param('roads_mp_l', 1, 14, marks=mark.slow),
     ])
     def test_erase_reduced(self, inputs, world_features, fresh_gpkg, fc_name,
                            xy_tolerance, count):
@@ -69,28 +69,26 @@ class TestErase:
     # End test_erase_reduced method
 
     @mark.zm
-    @mark.parametrize('fc_name, xy_tolerance, output_z_option, output_m_option, count', [
-        ('admin_a', None, OutputZOption.SAME, OutputMOption.SAME, 245),
-        ('airports_p', None, OutputZOption.SAME, OutputMOption.SAME, 29),
-        ('roads_l', None, OutputZOption.SAME, OutputMOption.SAME, 3054),
-        ('admin_mp_a', None, OutputZOption.SAME, OutputMOption.SAME, 217),
-        ('airports_mp_p', None, OutputZOption.SAME, OutputMOption.SAME, 10),
-        ('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 14),
-        ('admin_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 245),
-        ('airports_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 29),
-        ('roads_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 3054),
-        ('admin_mp_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 217),
-        ('airports_mp_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 10),
-        ('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 14),
-        ('admin_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 245),
-        ('airports_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 29),
-        ('roads_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 3054),
-        ('admin_mp_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 217),
-        ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 10),
-        ('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 14),
+    @mark.parametrize('fc_name, count', [
+        ('admin_a', 245),
+        ('airports_p', 29),
+        ('roads_l', 3054),
+        ('admin_mp_a', 217),
+        ('airports_mp_p', 10),
+        param('roads_mp_l', 14, marks=mark.slow),
+    ])
+    @mark.parametrize('output_z_option', [
+        param(OutputZOption.SAME, marks=mark.large),
+        OutputZOption.ENABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m_option', [
+        param(OutputMOption.SAME, marks=mark.large),
+        OutputMOption.ENABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
     def test_erase_reduced_zm(self, inputs, world_features, fresh_gpkg, fc_name,
-                              xy_tolerance, output_z_option, output_m_option, count):
+                              output_z_option, output_m_option, count):
         """
         Test erase -- reduced data for faster testing -- with ZM
         """
@@ -109,8 +107,7 @@ class TestErase:
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456)):
             zm = zm_config(source, eraser)
-            result = erase(source=subset, operator=eraser, target=target,
-                           xy_tolerance=xy_tolerance)
+            result = erase(source=subset, operator=eraser, target=target)
         assert len(result) == count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
@@ -134,11 +131,13 @@ class TestErase:
         assert len(result) == 245
     # End test_erase_reduced_sans_attributes method
 
-    @mark.parametrize('fc_name, xy_tolerance, count', [
-        ('airports_p', None, 3464),
-        ('airports_mp_p', None, 191),
-        ('airports_p', 0.001, 3464),
-        ('airports_mp_p', 0.001, 191),
+    @mark.parametrize('fc_name, count', [
+        ('airports_p', 3464),
+        ('airports_mp_p', 191),
+    ])
+    @mark.parametrize('xy_tolerance,', [
+        None,
+        0.001,
     ])
     def test_erase(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
         """
@@ -172,9 +171,9 @@ class TestErase:
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 13_958),
-        (0, 13_958),
-        (0.0000000001, 21_353),
-        (0.1, 21_356),
+        param(0, 13_958, marks=mark.slow),
+        param(0.0000000001, 21_353, marks=mark.slow),
+        param(0.1, 21_356, marks=mark.slow),
     ])
     def test_erase_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
@@ -188,12 +187,12 @@ class TestErase:
         assert len(result) == count
     # End test_erase_line_on_point method
 
-    @mark.parametrize('xy_tolerance, count', [
-        (None, 21_256),
-        (0, 21_256),
-        (0.001, 21_256),
+    @mark.parametrize('xy_tolerance', [
+        None,
+        param(0, marks=mark.slow),
+        param(0.001, marks=mark.slow),
     ])
-    def test_erase_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_erase_point_on_point(self, inputs, mem_gpkg, xy_tolerance):
         """
         Test erase using a point feature class as the operator on a point feature class
         """
@@ -206,166 +205,160 @@ class TestErase:
         target = FeatureClass(geopackage=mem_gpkg, name='riv')
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
-        assert len(result) == count
+        assert len(result) == 21_256
     # End test_erase_point_on_point method
 
     @mark.zm
-    @mark.large
+
+    @mark.zm
     @mark.parametrize('fc_name', [
         'hydro_a',
+        'structures_p',
         'structures_a',
         'structures_m_a',
-        'structures_m_ma',
-        'structures_ma',
-        'structures_p',
-        'structures_vcs_z_a',
-        'structures_vcs_z_ma',
-        'structures_vcs_zm_a',
-        'structures_vcs_zm_ma',
         'structures_z_a',
-        'structures_z_ma',
         'structures_zm_a',
-        'structures_zm_ma',
-        'topography_l',
+        'structures_ma',
+        param('structures_m_ma', marks=mark.slow),
+        param('structures_z_ma', marks=mark.slow),
+        param('structures_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_ma', marks=mark.slow),
+        param('structures_vcs_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_a', marks=mark.slow),
+        param('structures_vcs_zm_a', marks=mark.slow),
+        param('topography_l', marks=mark.slow),
         'toponymy_mp',
-        'toponymy_p',
-        'toponymy_vcs_z_mp',
-        'toponymy_vcs_z_p',
         'toponymy_z_mp',
+        'toponymy_p',
         'toponymy_z_p',
+        param('toponymy_vcs_z_p', marks=mark.large),
+        param('toponymy_vcs_z_mp', marks=mark.large),
         'transmission_l',
-        'transmission_m_l',
-        'transmission_ml',
-        'transmission_p',
-        'transmission_vcs_z_l',
-        'transmission_vcs_z_ml',
-        'transmission_vcs_zm_l',
-        'transmission_z_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        param('transmission_vcs_z_l', marks=mark.large),
+        param('transmission_vcs_zm_l', marks=mark.large),
+        'transmission_ml',
+        param('transmission_vcs_z_ml', marks=mark.large),
+        'transmission_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm(self, grid_index, ntdb_zm_meh_small, mem_gpkg,
+                       fc_name, op_name, output_z, output_m):
         """
         Test erase using Output ZM settings
         """
-        operator = ntdb_zm_meh[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm_meh[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_meh_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_erased')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             erased = erase(source=source, operator=operator, target=target)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert erased.has_z == has_z
-        assert erased.has_m == has_m
+        assert erased.has_z == zm.z_enabled
+        assert erased.has_m == zm.m_enabled
         assert len(erased) <= len(source)
     # End test_output_zm method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
-        'hydro_m_a',
-        'hydro_z_a',
-        'hydro_zm_a',
+        param('hydro_m_a', marks=mark.large),
+        param('hydro_z_a', marks=mark.large),
+        param('hydro_zm_a', marks=mark.large),
         'structures_a',
-        'structures_m_a',
-        'structures_m_ma',
-        'structures_m_p',
-        'structures_p',
-        'structures_z_a',
-        'structures_z_ma',
-        'structures_z_p',
-        'structures_zm_a',
+        param('structures_m_a', marks=mark.large),
+        param('structures_z_a', marks=mark.large),
+        param('structures_zm_a', marks=mark.large),
+        param('structures_ma', marks=mark.large),
+        param('structures_m_ma', marks=mark.large),
+        param('structures_z_ma', marks=mark.large),
         'structures_zm_ma',
+        'structures_p',
+        param('structures_m_p', marks=mark.large),
+        param('structures_z_p', marks=mark.large),
         'structures_zm_p',
-        'topography_l',
-        'topography_m_l',
-        'topography_z_l',
-        'topography_zm_l',
-        'toponymy_m_mp',
-        'toponymy_m_p',
-        'toponymy_p',
-        'toponymy_z_mp',
-        'toponymy_z_p',
+        param('topography_l', marks=mark.slow),
+        param('topography_m_l', marks=mark.slow),
+        param('topography_z_l', marks=mark.slow),
+        param('topography_zm_l', marks=mark.slow),
+        param('toponymy_p', marks=mark.large),
+        param('toponymy_m_p', marks=mark.large),
+        param('toponymy_z_p', marks=mark.large),
+        param('toponymy_zm_p', marks=mark.large),
+        'toponymy_mp',
+        param('toponymy_m_mp', marks=mark.large),
+        param('toponymy_z_mp', marks=mark.large),
         'toponymy_zm_mp',
-        'toponymy_zm_p',
-        'transmission_l',
-        'transmission_m_l',
-        'transmission_m_ml',
-        'transmission_m_mp',
+        param('transmission_p', marks=mark.large),
         'transmission_m_p',
-        'transmission_p',
-        'transmission_z_l',
-        'transmission_z_ml',
-        'transmission_z_mp',
         'transmission_z_p',
+        param('transmission_zm_p', marks=mark.large),
+        'transmission_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        'transmission_ml',
+        param('transmission_m_ml', marks=mark.large),
+        param('transmission_z_ml', marks=mark.large),
         'transmission_zm_ml',
+        'transmission_mp',
+        param('transmission_m_mp', marks=mark.large),
+        param('transmission_z_mp', marks=mark.large),
         'transmission_zm_mp',
-        'transmission_zm_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_zm_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm_cleaner(self, grid_index, ntdb_zm_small, mem_gpkg,
+                               fc_name, op_name, output_z, output_m):
         """
         Test erase using Output ZM settings using cleaner inputs
         """
-        operator = ntdb_zm[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_erased')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             erased = erase(source=source, operator=operator, target=target)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert erased.has_z == has_z
-        assert erased.has_m == has_m
+        assert erased.has_z == zm.z_enabled
+        assert erased.has_m == zm.m_enabled
         assert len(erased) <= len(source)
     # End test_output_zm_cleaner method
 
