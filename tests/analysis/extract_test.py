@@ -581,41 +581,34 @@ class TestClip:
 
     @mark.zm
     @mark.parametrize('fc_name, op_name, z_value, expected', [
-        ('hydro_a', 'index_a', None, nan),
-        ('structures_p', 'index_a', None, nan),
-        ('transmission_l', 'index_a', None, nan),
-        ('hydro_a', 'index_a', nan, nan),
-        ('structures_p', 'index_a', nan, nan),
-        ('transmission_l', 'index_a', nan, nan),
-        ('hydro_a', 'index_a', 123, 123.),
-        ('structures_p', 'index_a', 234, 234.),
-        ('transmission_l', 'index_a', 345, 345.),
-        ('hydro_a', 'index_zm_nan_a', None, nan),
-        ('structures_p', 'index_zm_nan_a', None, nan),
-        ('transmission_l', 'index_zm_nan_a', None, nan),
-        ('hydro_a', 'index_zm_nan_a', nan, nan),
-        ('structures_p', 'index_zm_nan_a', nan, nan),
-        ('transmission_l', 'index_zm_nan_a', nan, nan),
-        ('hydro_a', 'index_zm_nan_a', 123, 123.),
-        ('structures_p', 'index_zm_nan_a', 234, 234.),
-        ('transmission_l', 'index_zm_nan_a', 345, 345.),
-        ('hydro_a', 'index_zm_a', None, nan),
-        ('structures_p', 'index_zm_a', None, nan),
-        ('transmission_l', 'index_zm_a', None, nan),
-        ('hydro_a', 'index_zm_a', nan, nan),
-        ('structures_p', 'index_zm_a', nan, nan),
-        ('transmission_l', 'index_zm_a', nan, nan),
-        ('hydro_a', 'index_zm_a', 123, 123.),
-        ('structures_p', 'index_zm_a', 234, 234.),
-        ('transmission_l', 'index_zm_a', 345, 345.),
+        ('hydro_a', 'grid_a', None, nan),
+        ('structures_p', 'grid_a', None, nan),
+        ('transmission_l', 'grid_a', None, nan),
+        ('hydro_a', 'grid_a', nan, nan),
+        ('structures_p', 'grid_a', nan, nan),
+        ('transmission_l', 'grid_a', nan, nan),
+        ('hydro_a', 'grid_a', 123, 123.),
+        ('structures_p', 'grid_a', 234, 234.),
+        ('transmission_l', 'grid_a', 345, 345.),
+        ('hydro_a', 'grid_zm_a', None, nan),
+        ('structures_p', 'grid_zm_a', None, nan),
+        ('transmission_l', 'grid_zm_a', None, nan),
+        ('hydro_a', 'grid_zm_a', nan, nan),
+        ('structures_p', 'grid_zm_a', nan, nan),
+        ('transmission_l', 'grid_zm_a', nan, nan),
+        ('hydro_a', 'grid_zm_a', 123, 123.),
+        ('structures_p', 'grid_zm_a', 234, 234.),
+        ('transmission_l', 'grid_zm_a', 345, 345.),
     ])
-    def test_output_z_value(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, z_value, expected):
+    def test_output_z_value(self, grid_index, ntdb_zm_meh_small, mem_gpkg, fc_name, op_name, z_value, expected):
         """
         Test clip using output z value
         """
-        operator = ntdb_zm_meh[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm_meh[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_meh_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, z_value)):
