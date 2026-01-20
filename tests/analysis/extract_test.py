@@ -9,7 +9,7 @@ from math import nan
 from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from numpy import array, isnan
-from pytest import approx, mark, raises
+from pytest import approx, mark, param, raises
 
 from spyops.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
@@ -288,22 +288,22 @@ class TestClip:
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 89),
         ('airports_p', None, 35),
-        ('roads_l', None, 2189),
+        param('roads_l', None, 2189, marks=mark.slow),
         ('admin_mp_a', None, 49),
         ('airports_mp_p', None, 4),
-        ('roads_mp_l', None, 8),
+        param('roads_mp_l', None, 8, marks=mark.slow),
         ('admin_a', 0.001, 88),
         ('airports_p', 0.001, 35),
-        ('roads_l', 0.001, 2319),
+        param('roads_l', 0.001, 2319, marks=mark.slow),
         ('admin_mp_a', 0.001, 49),
         ('airports_mp_p', 0.001, 4),
-        ('roads_mp_l', 0.001, 8),
+        param('roads_mp_l', 0.001, 8, marks=mark.slow),
         ('admin_a', 1, 17),
         ('airports_p', 1, 32),
-        ('roads_l', 1, 300),
+        param('roads_l', 1, 300, marks=mark.slow),
         ('admin_mp_a', 1, 17),
         ('airports_mp_p', 1, 4),
-        ('roads_mp_l', 1, 8),
+        param('roads_mp_l', 1, 8, marks=mark.slow),
     ])
     def test_clip(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
         """
@@ -346,10 +346,10 @@ class TestClip:
     # End test_clip_line_on_line method
 
     @mark.parametrize('xy_tolerance, count', [
-        (None, 7398),
-        (0, 7398),
+        param(None, 7398, marks=mark.slow),
+        param(0, 7398, marks=mark.slow),
         (0.0000000001, 3),
-        (0.1, 0),
+        param(0.1, 0, marks=mark.slow),
     ])
     def test_clip_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
@@ -382,22 +382,22 @@ class TestClip:
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 89),
         ('airports_p', None, 35),
-        ('roads_l', None, 2189),
+        param('roads_l', None, 2189, marks=mark.slow),
         ('admin_mp_a', None, 49),
         ('airports_mp_p', None, 4),
-        ('roads_mp_l', None, 8),
+        param('roads_mp_l', None, 8, marks=mark.slow),
         ('admin_a', 0.001, 88),
         ('airports_p', 0.001, 35),
-        ('roads_l', 0.001, 2319),
+        param('roads_l', 0.001, 2319, marks=mark.slow),
         ('admin_mp_a', 0.001, 49),
         ('airports_mp_p', 0.001, 4),
-        ('roads_mp_l', 0.001, 8),
+        param('roads_mp_l', 0.001, 8, marks=mark.slow),
         ('admin_a', 1, 17),
         ('airports_p', 1, 32),
-        ('roads_l', 1, 300),
+        param('roads_l', 1, 300, marks=mark.slow),
         ('admin_mp_a', 1, 17),
         ('airports_mp_p', 1, 4),
-        ('roads_mp_l', 1, 8),
+        param('roads_mp_l', 1, 8, marks=mark.slow),
     ])
     def test_clip_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
         """
