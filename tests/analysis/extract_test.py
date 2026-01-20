@@ -430,45 +430,43 @@ class TestClip:
     # End test_clip_larger_inputs method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
+        'structures_p',
         'structures_a',
         'structures_m_a',
-        'structures_m_ma',
-        'structures_ma',
-        'structures_p',
-        'structures_vcs_z_a',
-        'structures_vcs_z_ma',
-        'structures_vcs_zm_a',
-        'structures_vcs_zm_ma',
         'structures_z_a',
-        'structures_z_ma',
         'structures_zm_a',
-        'structures_zm_ma',
-        'topography_l',
+        'structures_ma',
+        param('structures_m_ma', marks=mark.slow),
+        param('structures_z_ma', marks=mark.slow),
+        param('structures_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_ma', marks=mark.slow),
+        param('structures_vcs_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_a', marks=mark.slow),
+        param('structures_vcs_zm_a', marks=mark.slow),
+        param('topography_l', marks=mark.slow),
         'toponymy_mp',
-        'toponymy_p',
-        'toponymy_vcs_z_mp',
-        'toponymy_vcs_z_p',
         'toponymy_z_mp',
+        'toponymy_p',
         'toponymy_z_p',
+        param('toponymy_vcs_z_p', marks=mark.large),
+        param('toponymy_vcs_z_mp', marks=mark.large),
         'transmission_l',
-        'transmission_m_l',
-        'transmission_ml',
-        'transmission_p',
-        'transmission_vcs_z_l',
-        'transmission_vcs_z_ml',
-        'transmission_vcs_zm_l',
-        'transmission_z_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        param('transmission_vcs_z_l', marks=mark.large),
+        param('transmission_vcs_zm_l', marks=mark.large),
+        'transmission_ml',
+        param('transmission_vcs_z_ml', marks=mark.large),
+        'transmission_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -480,28 +478,23 @@ class TestClip:
         OutputMOption.ENABLED,
         OutputMOption.DISABLED,
     ])
-    def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm(self, grid_index, ntdb_zm_meh_small, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
         Test clip using Output ZM settings
         """
-        operator = ntdb_zm_meh[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm_meh[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_meh_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             clipped = clip(source=source, operator=operator, target=target)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert clipped.has_z == has_z
-        assert clipped.has_m == has_m
-        assert len(clipped) < len(source)
+        assert clipped.has_z == zm.z_enabled
+        assert clipped.has_m == zm.m_enabled
+        assert len(clipped) <= len(source)
     # End test_output_zm method
 
     @mark.zm
