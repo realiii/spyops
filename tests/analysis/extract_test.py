@@ -641,22 +641,22 @@ class TestSplit:
     @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
         ('admin_a', None, 4, 114),
         ('airports_p', None, 4, 40),
-        ('roads_l', None, 4, 2514),
+        param('roads_l', None, 4, 2514, marks=mark.slow),
         ('admin_mp_a', None, 4, 68),
         ('airports_mp_p', None, 4, 8),
-        ('roads_mp_l', None, 4, 14),
+        param('roads_mp_l', None, 4, 14, marks=mark.slow),
         ('admin_a', 0.001, 4, 112),
         ('airports_p', 0.001, 4, 40),
-        ('roads_l', 0.001, 4, 2676),
+        param('roads_l', 0.001, 4, 2676, marks=mark.slow),
         ('admin_mp_a', 0.001, 4, 68),
         ('airports_mp_p', 0.001, 4, 8),
-        ('roads_mp_l', 0.001, 4, 14),
+        param('roads_mp_l', 0.001, 4, 14, marks=mark.slow),
         ('admin_a', 1, 4, 22),
         ('airports_p', 1, 4, 35),
-        ('roads_l', 1, 4, 345),
+        param('roads_l', 1, 4, 345, marks=mark.slow),
         ('admin_mp_a', 1, 4, 22),
         ('airports_mp_p', 1, 4, 8),
-        ('roads_mp_l', 1, 4, 13),
+        param('roads_mp_l', 1, 4, 13, marks=mark.slow),
     ])
     def test_split(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
         """
@@ -679,19 +679,19 @@ class TestSplit:
         ('roads_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 2514),
         ('admin_mp_a', None, OutputZOption.SAME, OutputMOption.SAME, 4, 68),
         ('airports_mp_p', None, OutputZOption.SAME, OutputMOption.SAME, 4, 8),
-        ('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 14),
+        param('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 14, marks=mark.slow),
         ('admin_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 114),
         ('airports_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 40),
         ('roads_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 2514),
         ('admin_mp_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 68),
         ('airports_mp_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 8),
-        ('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 14),
+        param('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 14, marks=mark.slow),
         ('admin_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 114),
         ('airports_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 40),
         ('roads_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 2514),
         ('admin_mp_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 68),
         ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 8),
-        ('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14),
+        param('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14, marks=mark.slow),
     ])
     def test_split_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
                       output_z_option, output_m_option, element_count, record_count):
@@ -720,21 +720,16 @@ class TestSplit:
         ('roads_l', None, 4, 2514),
         ('admin_mp_a', None, 4, 68),
         ('airports_mp_p', None, 4, 8),
-        ('roads_mp_l', None, 4, 14),
+        param('roads_mp_l', None, 4, 14, marks=mark.slow),
         ('admin_a', 0.001, 4, 112),
         ('airports_p', 0.001, 4, 40),
         ('roads_l', 0.001, 4, 2676),
         ('admin_mp_a', 0.001, 4, 68),
         ('airports_mp_p', 0.001, 4, 8),
-        ('roads_mp_l', 0.001, 4, 14),
-        ('admin_a', 1, 4, 22),
-        ('airports_p', 1, 4, 35),
-        ('roads_l', 1, 4, 345),
-        ('admin_mp_a', 1, 4, 22),
-        ('airports_mp_p', 1, 4, 8),
-        ('roads_mp_l', 1, 4, 13),
+        param('roads_mp_l', 0.001, 4, 14, marks=mark.slow),
     ])
-    def test_split_setting(self, tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
+    def test_split_setting(self, tmp_path, inputs, world_features, mem_gpkg,
+                           fc_name, xy_tolerance, element_count, record_count):
         """
         Test split using analysis settings
         """
