@@ -52,6 +52,37 @@ def ntdb_zm(data_path) -> GeoPackage:
 
 
 @fixture(scope='session')
+def ntdb_zm_meh_small(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to a single 50K tile near YYC, Z values in these
+    features are either NaN or a single value (123.456) and most (if not all)
+    of the M values are empty (NaN).
+    """
+    return GeoPackage(data_path.joinpath('ntdb_zm_meh_small.gpkg'))
+# End ntdb_zm_meh_small function
+
+
+@fixture(scope='session')
+def ntdb_zm_small(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to a single 50K tile near YYC, Z and M values in these
+    features are fully populated, albeit with bogus-ish values but at least
+    varying per vertex.
+    """
+    return GeoPackage(data_path.joinpath('ntdb_zm_small.gpkg'))
+# End ntdb_zm_small function
+
+
+@fixture(scope='session')
+def grid_index(data_path) -> GeoPackage:
+    """
+    Index and grid feature classes
+    """
+    return GeoPackage(data_path.joinpath('grid_index.gpkg'))
+# End grid_index function
+
+
+@fixture(scope='session')
 def world_tables(data_path) -> GeoPackage:
     """
     World Tables
