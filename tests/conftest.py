@@ -74,6 +74,17 @@ def ntdb_zm_small(data_path) -> GeoPackage:
 
 
 @fixture(scope='session')
+def ntdb_zm_tile(data_path) -> GeoPackage:
+    """
+    NTDB Clipped to a single 50K tile near YYC, Z and M values in these
+    features are fully populated, albeit with bogus-ish values but at least
+    varying per vertex.  Intersected with grid_a to get DATANAME.
+    """
+    return GeoPackage(data_path.joinpath('ntdb_zm_tile.gpkg'))
+# End ntdb_zm_tile function
+
+
+@fixture(scope='session')
 def grid_index(data_path) -> GeoPackage:
     """
     Index and grid feature classes
