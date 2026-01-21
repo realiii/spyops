@@ -468,8 +468,8 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         if self._attr_option != AttributeOption.ALL:
             return field
         # NOTE use slice (not unpacking) to avoid ValueError if no fields
-        src_fields = self._get_fields(self.source)[1:]
-        op_fields = self._get_fields(self.operator)[1:]
+        src_fields = self._get_fields(self.source)
+        op_fields = self._get_fields(self.operator)
         fields = [*src_fields, *op_fields]
         field, = self._make_unique_fields(fields, [field])
         return field
