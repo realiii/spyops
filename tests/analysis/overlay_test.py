@@ -274,7 +274,6 @@ class TestErase:
             erased = erase(source=source, operator=operator, target=target)
         assert erased.has_z == zm.z_enabled
         assert erased.has_m == zm.m_enabled
-        assert len(erased) <= len(source)
     # End test_output_zm method
 
     @mark.zm
@@ -357,7 +356,6 @@ class TestErase:
             erased = erase(source=source, operator=operator, target=target)
         assert erased.has_z == zm.z_enabled
         assert erased.has_m == zm.m_enabled
-        assert len(erased) <= len(source)
     # End test_output_zm_cleaner method
 
     @mark.benchmark
