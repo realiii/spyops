@@ -133,13 +133,14 @@ class TestPlanarizePolygons:
         assert len(fc) == 268
     # End test_planarize_source method
 
-    def test_planarize_source_zm(self, ntdb_zm_meh, mem_gpkg):
+    def test_planarize_source_zm(self, grid_index, ntdb_zm_meh, mem_gpkg):
         """
         Test Planarize Source
         """
-        operator = ntdb_zm_meh['index_a']
+        operator = grid_index['grid_a']
         source = ntdb_zm_meh['structures_zm_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_structures_zm_a'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -147,7 +148,7 @@ class TestPlanarizePolygons:
             'fid', 'SHAPE', 'fid_structures_zm_a', 'OBJECTID',
             'ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER', 'DATANAME',
             'ACCURACY', 'FILE_NAME', 'CODE']
-        assert len(fc) == 3523
+        assert len(fc) == 1550
     # End test_planarize_source_zm method
 
     def test_planarize_operator(self, inputs, mem_gpkg):
