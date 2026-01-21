@@ -700,13 +700,18 @@ class TestIntersect:
         OutputMOption.ENABLED,
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_zm_classic_cleaner(self, grid_index, ntdb_zm_small, mem_gpkg,
+    @mark.parametrize('name', [
+        'ntdb_zm_small',
+        'ntdb_zm_tile'
+    ])
+    def test_output_zm_classic_cleaner(self, request, grid_index, name, mem_gpkg,
                                        fc_name, op_name, output_z, output_m):
         """
         Test intersect using Output ZM settings and classic algorithm using cleaner inputs
         """
+        gpkg = request.getfixturevalue(name)
         operator = grid_index[op_name]
-        source = ntdb_zm_small[fc_name]
+        source = gpkg[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_intersected')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
