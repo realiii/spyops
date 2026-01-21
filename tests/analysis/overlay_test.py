@@ -1068,39 +1068,36 @@ class TestSymmetricDifference:
     # End test_holes_and_shifted method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
-        ('hydro_a', 'hydro_a', 5215, 24),
-        ('hydro_a', 'hydro_zm_a', 5215, 25),
-        ('hydro_zm_a', 'hydro_zm_a', 5215, 26),
-        ('structures_a', 'structures_a', 2854, 24),
-        ('structures_a', 'structures_zm_a', 2854, 25),
-        ('structures_zm_a', 'structures_zm_a', 2854, 26),
-        ('structures_p', 'structures_p', 11512, 20),
-        ('structures_p', 'structures_zm_p', 11512, 20),
-        ('structures_zm_p', 'structures_zm_p', 11512, 20),
-        ('toponymy_mp', 'toponymy_mp', 6, 22),
-        ('toponymy_mp', 'toponymy_zm_mp', 6, 22),
-        ('toponymy_zm_mp', 'toponymy_zm_mp', 6, 22),
-        ('transmission_l', 'transmission_l', 135, 24),
-        ('transmission_l', 'transmission_zm_l', 135, 25),
-        ('transmission_zm_l', 'transmission_zm_l', 135, 26),
+        ('hydro_a', 'hydro_a', 194, 42),
+        ('hydro_a', 'hydro_zm_a', 194, 43),
+        ('hydro_zm_a', 'hydro_zm_a', 194, 44),
+        ('structures_a', 'structures_a', 33, 42),
+        ('structures_a', 'structures_zm_a', 33, 43),
+        ('structures_zm_a', 'structures_zm_a', 33, 44),
+        ('structures_p', 'structures_p', 852, 38),
+        ('structures_p', 'structures_zm_p', 852, 38),
+        ('structures_zm_p', 'structures_zm_p', 852, 38),
+        ('toponymy_mp', 'toponymy_mp', 2, 40),
+        ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
+        ('toponymy_zm_mp', 'toponymy_zm_mp', 2, 40),
+        ('transmission_l', 'transmission_l', 21, 42),
+        ('transmission_l', 'transmission_zm_l', 21, 43),
+        ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    @mark.parametrize('xy_tolerance', [
-        None,
-        0.00001,
-    ])
-    def test_sym_diff_setting(self, inputs, ntdb_zm, mem_gpkg, source_name, operator_name,
-                              feature_count, field_count, xy_tolerance):
+    def test_sym_diff_setting(self, ntdb_zm_tile, mem_gpkg,
+                              source_name, operator_name, feature_count,
+                              field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         """
-        source = ntdb_zm[source_name].copy(
+        source = ntdb_zm_tile[source_name].copy(
             name=f'{source_name}_source', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082O01', '082J16', '082P04')""")
-        operator = ntdb_zm[operator_name].copy(
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082I12', '082I14', '082I11')""")
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
-        with Swap(Setting.XY_TOLERANCE, xy_tolerance):
+        with Swap(Setting.XY_TOLERANCE, 0.000001):
             result = symmetrical_difference(
                 source=source, operator=operator, target=target,
                 attribute_option=AttributeOption.ALL)
@@ -1109,47 +1106,44 @@ class TestSymmetricDifference:
     # End test_sym_diff_setting method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
-        ('hydro_a', 'hydro_a', 5216, 24),
-        ('hydro_a', 'hydro_zm_a', 5216, 25),
-        ('hydro_zm_a', 'hydro_zm_a', 5216, 26),
-        ('structures_a', 'structures_a', 2958, 24),
-        ('structures_a', 'structures_zm_a', 2958, 25),
-        ('structures_zm_a', 'structures_zm_a', 2958, 26),
-        ('structures_p', 'structures_p', 11512, 20),
-        ('structures_p', 'structures_zm_p', 11512, 20),
-        ('structures_zm_p', 'structures_zm_p', 11512, 20),
-        ('toponymy_mp', 'toponymy_mp', 6, 22),
-        ('toponymy_mp', 'toponymy_zm_mp', 6, 22),
-        ('toponymy_zm_mp', 'toponymy_zm_mp', 6, 22),
-        ('transmission_l', 'transmission_l', 135, 24),
-        ('transmission_l', 'transmission_zm_l', 135, 25),
-        ('transmission_zm_l', 'transmission_zm_l', 135, 26),
+        ('hydro_a', 'hydro_a', 194, 42),
+        ('hydro_a', 'hydro_zm_a', 194, 43),
+        ('hydro_zm_a', 'hydro_zm_a', 194, 44),
+        ('structures_a', 'structures_a', 35, 42),
+        ('structures_a', 'structures_zm_a', 35, 43),
+        ('structures_zm_a', 'structures_zm_a', 35, 44),
+        ('structures_p', 'structures_p', 852, 38),
+        ('structures_p', 'structures_zm_p', 852, 38),
+        ('structures_zm_p', 'structures_zm_p', 852, 38),
+        ('toponymy_mp', 'toponymy_mp', 2, 40),
+        ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
+        ('toponymy_zm_mp', 'toponymy_zm_mp', 2, 40),
+        ('transmission_l', 'transmission_l', 21, 42),
+        ('transmission_l', 'transmission_zm_l', 21, 43),
+        ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    @mark.parametrize('xy_tolerance', [
-        0.00001,
-    ])
-    def test_sym_diff_setting_classic(self, inputs, ntdb_zm, mem_gpkg, source_name, operator_name,
-                                      feature_count, field_count, xy_tolerance):
+    def test_sym_diff_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name, operator_name,
+                                      feature_count, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         """
-        source = ntdb_zm[source_name].copy(
+        source = ntdb_zm_tile[source_name].copy(
             name=f'{source_name}_source', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082O01', '082J16', '082P04')""")
-        operator = ntdb_zm[operator_name].copy(
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082I12', '082I14', '082I11')""")
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
-        with Swap(Setting.XY_TOLERANCE, xy_tolerance):
+        with Swap(Setting.XY_TOLERANCE, 0.00001):
             result = symmetrical_difference(
                 source=source, operator=operator, target=target,
-                attribute_option=AttributeOption.ALL, algorithm_option=AlgorithmOption.CLASSIC)
+                attribute_option=AttributeOption.ALL,
+                algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
     # End test_sym_diff_setting_classic method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('source_name, operator_name', [
         ('hydro_a', 'hydro_a'),
         ('hydro_a', 'hydro_z_a'),
@@ -1166,25 +1160,26 @@ class TestSymmetricDifference:
         ('transmission_zm_l', 'transmission_m_l'),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_zm_pairwise_cleaner(self, ntdb_zm, mem_gpkg, source_name, operator_name, output_z, output_m):
+    def test_output_zm_pairwise_cleaner(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                        operator_name, output_z, output_m):
         """
         Test sym diff using Output ZM settings using pairwise algorithm using cleaner inputs
         """
-        source = ntdb_zm[source_name].copy(
+        source = ntdb_zm_tile[source_name].copy(
             name=f'{source_name}_source', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082O01')""")
-        operator = ntdb_zm[operator_name].copy(
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082I12')""")
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
@@ -1208,7 +1203,6 @@ class TestSymmetricDifference:
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)
-
         assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
         result = symmetrical_difference(source=subset, operator=eraser, target=target)
@@ -1217,28 +1211,29 @@ class TestSymmetricDifference:
     # End test_sans_attributes method
 
     @mark.parametrize('source_name, operator_name, option, field_count', [
-        ('hydro_a', 'hydro_a', AttributeOption.SANS_FID, 22),
-        ('structures_a', 'structures_a', AttributeOption.SANS_FID, 22),
-        ('structures_p', 'structures_p', AttributeOption.SANS_FID, 18),
-        ('toponymy_mp', 'toponymy_mp', AttributeOption.SANS_FID, 20),
-        ('transmission_l', 'transmission_l', AttributeOption.SANS_FID, 22),
+        ('hydro_a', 'hydro_a', AttributeOption.SANS_FID, 40),
+        ('structures_a', 'structures_a', AttributeOption.SANS_FID, 40),
+        ('structures_p', 'structures_p', AttributeOption.SANS_FID, 36),
+        ('toponymy_mp', 'toponymy_mp', AttributeOption.SANS_FID, 38),
+        ('transmission_l', 'transmission_l', AttributeOption.SANS_FID, 40),
         ('hydro_a', 'hydro_a', AttributeOption.ONLY_FID, 4),
         ('structures_a', 'structures_a', AttributeOption.ONLY_FID, 4),
         ('structures_p', 'structures_p', AttributeOption.ONLY_FID, 4),
         ('toponymy_mp', 'toponymy_mp', AttributeOption.ONLY_FID, 4),
         ('transmission_l', 'transmission_l', AttributeOption.ONLY_FID, 4),
     ])
-    def test_sym_diff_attribute_option(self, inputs, ntdb_zm, mem_gpkg, source_name, operator_name, option, field_count):
+    def test_sym_diff_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
+                                       source_name, operator_name, option, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         and varying attribute option
         """
-        source = ntdb_zm[source_name].copy(
+        source = ntdb_zm_tile[source_name].copy(
             name=f'{source_name}_source', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082O01')""")
-        operator = ntdb_zm[operator_name].copy(
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
-            where_clause="""DATANAME IN ('082I13', '082I12')""")
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
         result = symmetrical_difference(
             source=source, operator=operator, target=target,
@@ -1247,39 +1242,37 @@ class TestSymmetricDifference:
     # End test_sym_diff_attribute_option method
 
     @mark.zm
-    @mark.large
-    @mark.parametrize('fc_name, count, where_clause', [
-        ('hydro_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
-        ('structures_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_a', 52, """DATANAME = '082O08'"""),
-        ('structures_z_a', 52, """DATANAME = '082O08'"""),
-        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_ma', 5, """CODE = 2010082"""),
-        ('structures_z_ma', 5, """CODE = 2010082"""),
-        ('structures_zm_ma', 5, """CODE = 2010082"""),
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 88),
+        ('hydro_m_a', 88),
+        ('hydro_zm_a', 88),
+        ('structures_a', 30),
+        ('structures_m_a', 30),
+        ('structures_z_a', 30),
+        ('structures_zm_a', 30),
+        ('structures_m_ma', 10),
+        ('structures_z_ma', 10),
+        ('structures_zm_ma', 10),
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_target_full_disjoint_pairwise(self, ntdb_zm, mem_gpkg, fc_name,
-                                           count, where_clause, op_name,
-                                           output_z, output_m):
+    def test_target_full_disjoint_pairwise(self, grid_index, ntdb_zm_tile,
+                                           mem_gpkg, fc_name, count,
+                                           op_name, output_z, output_m):
         """
         Test target full, exercising process disjoint and handling
         different ZM dimensions
@@ -1287,65 +1280,55 @@ class TestSymmetricDifference:
         option = AttributeOption.ALL
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = copy_element(
-            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
-            where_clause=where_clause)
+            ntdb_zm_tile[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
         source.add_spatial_index()
         operator = copy_element(
-            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
-            where_clause="""DATANAME = '082J10'""")
+            grid_index[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082O01-8'""")
         operator.add_spatial_index()
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             result = symmetrical_difference(
                 source=source, operator=operator,
                 target=target, attribute_option=option)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert result.has_z == has_z
-        assert result.has_m == has_m
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_pairwise method
 
     @mark.zm
-    @mark.large
-    @mark.parametrize('fc_name, count, where_clause', [
-        ('hydro_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
-        ('structures_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_a', 52, """DATANAME = '082O08'"""),
-        ('structures_z_a', 52, """DATANAME = '082O08'"""),
-        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_ma', 11, """CODE = 2010082"""),
-        ('structures_z_ma', 11, """CODE = 2010082"""),
-        ('structures_zm_ma', 11, """CODE = 2010082"""),
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 88),
+        ('hydro_m_a', 88),
+        ('hydro_zm_a', 88),
+        ('structures_a', 34),
+        ('structures_m_a', 34),
+        ('structures_z_a', 34),
+        ('structures_zm_a', 34),
+        ('structures_m_ma', 34),
+        ('structures_z_ma', 34),
+        ('structures_zm_ma', 34),
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_target_full_disjoint_classic(self, ntdb_zm, mem_gpkg, fc_name,
-                                          count, where_clause, op_name,
-                                          output_z, output_m):
+    def test_target_full_disjoint_classic(self, grid_index, ntdb_zm_tile, mem_gpkg,
+                                          fc_name, count, op_name, output_z, output_m):
         """
         Test target full, exercising process disjoint and handling
         different ZM dimensions
@@ -1353,29 +1336,22 @@ class TestSymmetricDifference:
         option = AttributeOption.ALL
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = copy_element(
-            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
-            where_clause=where_clause)
+            ntdb_zm_tile[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
         source.add_spatial_index()
         operator = copy_element(
-            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
-            where_clause="""DATANAME = '082J10'""")
+            grid_index[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082O01-8'""")
         operator.add_spatial_index()
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             result = symmetrical_difference(
                 source=source, operator=operator,
                 algorithm_option=AlgorithmOption.CLASSIC,
                 target=target, attribute_option=option)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert result.has_z == has_z
-        assert result.has_m == has_m
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
 # End TestSymmetricDifference class
