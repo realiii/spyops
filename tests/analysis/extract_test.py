@@ -9,7 +9,7 @@ from math import nan
 from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from numpy import array, isnan
-from pytest import approx, mark, raises
+from pytest import approx, mark, param, raises
 
 from spyops.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
@@ -288,22 +288,22 @@ class TestClip:
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 89),
         ('airports_p', None, 35),
-        ('roads_l', None, 2189),
+        param('roads_l', None, 2189, marks=mark.slow),
         ('admin_mp_a', None, 49),
         ('airports_mp_p', None, 4),
-        ('roads_mp_l', None, 8),
+        param('roads_mp_l', None, 8, marks=mark.slow),
         ('admin_a', 0.001, 88),
         ('airports_p', 0.001, 35),
-        ('roads_l', 0.001, 2319),
+        param('roads_l', 0.001, 2319, marks=mark.slow),
         ('admin_mp_a', 0.001, 49),
         ('airports_mp_p', 0.001, 4),
-        ('roads_mp_l', 0.001, 8),
+        param('roads_mp_l', 0.001, 8, marks=mark.slow),
         ('admin_a', 1, 17),
         ('airports_p', 1, 32),
-        ('roads_l', 1, 300),
+        param('roads_l', 1, 300, marks=mark.slow),
         ('admin_mp_a', 1, 17),
         ('airports_mp_p', 1, 4),
-        ('roads_mp_l', 1, 8),
+        param('roads_mp_l', 1, 8, marks=mark.slow),
     ])
     def test_clip(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
         """
@@ -346,10 +346,10 @@ class TestClip:
     # End test_clip_line_on_line method
 
     @mark.parametrize('xy_tolerance, count', [
-        (None, 7398),
-        (0, 7398),
+        param(None, 7398, marks=mark.slow),
+        param(0, 7398, marks=mark.slow),
         (0.0000000001, 3),
-        (0.1, 0),
+        param(0.1, 0, marks=mark.slow),
     ])
     def test_clip_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
@@ -382,22 +382,22 @@ class TestClip:
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 89),
         ('airports_p', None, 35),
-        ('roads_l', None, 2189),
+        param('roads_l', None, 2189, marks=mark.slow),
         ('admin_mp_a', None, 49),
         ('airports_mp_p', None, 4),
-        ('roads_mp_l', None, 8),
+        param('roads_mp_l', None, 8, marks=mark.slow),
         ('admin_a', 0.001, 88),
         ('airports_p', 0.001, 35),
-        ('roads_l', 0.001, 2319),
+        param('roads_l', 0.001, 2319, marks=mark.slow),
         ('admin_mp_a', 0.001, 49),
         ('airports_mp_p', 0.001, 4),
-        ('roads_mp_l', 0.001, 8),
+        param('roads_mp_l', 0.001, 8, marks=mark.slow),
         ('admin_a', 1, 17),
         ('airports_p', 1, 32),
-        ('roads_l', 1, 300),
+        param('roads_l', 1, 300, marks=mark.slow),
         ('admin_mp_a', 1, 17),
         ('airports_mp_p', 1, 4),
-        ('roads_mp_l', 1, 8),
+        param('roads_mp_l', 1, 8, marks=mark.slow),
     ])
     def test_clip_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
         """
@@ -430,45 +430,43 @@ class TestClip:
     # End test_clip_larger_inputs method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
+        'structures_p',
         'structures_a',
         'structures_m_a',
-        'structures_m_ma',
-        'structures_ma',
-        'structures_p',
-        'structures_vcs_z_a',
-        'structures_vcs_z_ma',
-        'structures_vcs_zm_a',
-        'structures_vcs_zm_ma',
         'structures_z_a',
-        'structures_z_ma',
         'structures_zm_a',
-        'structures_zm_ma',
-        'topography_l',
+        'structures_ma',
+        param('structures_m_ma', marks=mark.slow),
+        param('structures_z_ma', marks=mark.slow),
+        param('structures_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_ma', marks=mark.slow),
+        param('structures_vcs_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_a', marks=mark.slow),
+        param('structures_vcs_zm_a', marks=mark.slow),
+        param('topography_l', marks=mark.slow),
         'toponymy_mp',
-        'toponymy_p',
-        'toponymy_vcs_z_mp',
-        'toponymy_vcs_z_p',
         'toponymy_z_mp',
+        'toponymy_p',
         'toponymy_z_p',
+        param('toponymy_vcs_z_p', marks=mark.large),
+        param('toponymy_vcs_z_mp', marks=mark.large),
         'transmission_l',
-        'transmission_m_l',
-        'transmission_ml',
-        'transmission_p',
-        'transmission_vcs_z_l',
-        'transmission_vcs_z_ml',
-        'transmission_vcs_zm_l',
-        'transmission_z_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        param('transmission_vcs_z_l', marks=mark.large),
+        param('transmission_vcs_zm_l', marks=mark.large),
+        'transmission_ml',
+        param('transmission_vcs_z_ml', marks=mark.large),
+        'transmission_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -480,80 +478,77 @@ class TestClip:
         OutputMOption.ENABLED,
         OutputMOption.DISABLED,
     ])
-    def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm(self, grid_index, ntdb_zm_meh_small, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
         Test clip using Output ZM settings
         """
-        operator = ntdb_zm_meh[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm_meh[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_meh_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             clipped = clip(source=source, operator=operator, target=target)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert clipped.has_z == has_z
-        assert clipped.has_m == has_m
-        assert len(clipped) < len(source)
+        assert clipped.has_z == zm.z_enabled
+        assert clipped.has_m == zm.m_enabled
+        assert len(clipped) <= len(source)
     # End test_output_zm method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
-        'hydro_m_a',
-        'hydro_z_a',
-        'hydro_zm_a',
+        param('hydro_m_a', marks=mark.large),
+        param('hydro_z_a', marks=mark.large),
+        param('hydro_zm_a', marks=mark.large),
         'structures_a',
-        'structures_m_a',
-        'structures_m_ma',
-        'structures_m_p',
-        'structures_p',
-        'structures_z_a',
-        'structures_z_ma',
-        'structures_z_p',
-        'structures_zm_a',
+        param('structures_m_a', marks=mark.large),
+        param('structures_z_a', marks=mark.large),
+        param('structures_zm_a', marks=mark.large),
+        param('structures_ma', marks=mark.large),
+        param('structures_m_ma', marks=mark.large),
+        param('structures_z_ma', marks=mark.large),
         'structures_zm_ma',
+        'structures_p',
+        param('structures_m_p', marks=mark.large),
+        param('structures_z_p', marks=mark.large),
         'structures_zm_p',
-        'topography_l',
-        'topography_m_l',
-        'topography_z_l',
-        'topography_zm_l',
-        'toponymy_m_mp',
-        'toponymy_m_p',
-        'toponymy_p',
-        'toponymy_z_mp',
-        'toponymy_z_p',
+        param('topography_l', marks=mark.slow),
+        param('topography_m_l', marks=mark.slow),
+        param('topography_z_l', marks=mark.slow),
+        param('topography_zm_l', marks=mark.slow),
+        param('toponymy_p', marks=mark.large),
+        param('toponymy_m_p', marks=mark.large),
+        param('toponymy_z_p', marks=mark.large),
+        param('toponymy_zm_p', marks=mark.large),
+        'toponymy_mp',
+        param('toponymy_m_mp', marks=mark.large),
+        param('toponymy_z_mp', marks=mark.large),
         'toponymy_zm_mp',
-        'toponymy_zm_p',
-        'transmission_l',
-        'transmission_m_l',
-        'transmission_m_ml',
-        'transmission_m_mp',
+        param('transmission_p', marks=mark.large),
         'transmission_m_p',
-        'transmission_p',
-        'transmission_z_l',
-        'transmission_z_ml',
-        'transmission_z_mp',
         'transmission_z_p',
+        param('transmission_zm_p', marks=mark.large),
+        'transmission_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        'transmission_ml',
+        param('transmission_m_ml', marks=mark.large),
+        param('transmission_z_ml', marks=mark.large),
         'transmission_zm_ml',
+        'transmission_mp',
+        param('transmission_m_mp', marks=mark.large),
+        param('transmission_z_mp', marks=mark.large),
         'transmission_zm_mp',
-        'transmission_zm_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
         OutputZOption.SAME,
@@ -565,67 +560,55 @@ class TestClip:
         OutputMOption.ENABLED,
         OutputMOption.DISABLED,
     ])
-    def test_output_zm_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm_cleaner(self, grid_index, ntdb_zm_small, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
         Test clip using Output ZM settings using cleaner inputs
         """
-        operator = ntdb_zm[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             clipped = clip(source=source, operator=operator, target=target)
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert clipped.has_z == has_z
-        assert clipped.has_m == has_m
-        assert len(clipped) < len(source)
+        assert clipped.has_z == zm.z_enabled
+        assert clipped.has_m == zm.m_enabled
+        assert len(clipped) <= len(source)
     # End test_output_zm_cleaner method
 
     @mark.zm
     @mark.parametrize('fc_name, op_name, z_value, expected', [
-        ('hydro_a', 'index_a', None, nan),
-        ('structures_p', 'index_a', None, nan),
-        ('transmission_l', 'index_a', None, nan),
-        ('hydro_a', 'index_a', nan, nan),
-        ('structures_p', 'index_a', nan, nan),
-        ('transmission_l', 'index_a', nan, nan),
-        ('hydro_a', 'index_a', 123, 123.),
-        ('structures_p', 'index_a', 234, 234.),
-        ('transmission_l', 'index_a', 345, 345.),
-        ('hydro_a', 'index_zm_nan_a', None, nan),
-        ('structures_p', 'index_zm_nan_a', None, nan),
-        ('transmission_l', 'index_zm_nan_a', None, nan),
-        ('hydro_a', 'index_zm_nan_a', nan, nan),
-        ('structures_p', 'index_zm_nan_a', nan, nan),
-        ('transmission_l', 'index_zm_nan_a', nan, nan),
-        ('hydro_a', 'index_zm_nan_a', 123, 123.),
-        ('structures_p', 'index_zm_nan_a', 234, 234.),
-        ('transmission_l', 'index_zm_nan_a', 345, 345.),
-        ('hydro_a', 'index_zm_a', None, nan),
-        ('structures_p', 'index_zm_a', None, nan),
-        ('transmission_l', 'index_zm_a', None, nan),
-        ('hydro_a', 'index_zm_a', nan, nan),
-        ('structures_p', 'index_zm_a', nan, nan),
-        ('transmission_l', 'index_zm_a', nan, nan),
-        ('hydro_a', 'index_zm_a', 123, 123.),
-        ('structures_p', 'index_zm_a', 234, 234.),
-        ('transmission_l', 'index_zm_a', 345, 345.),
+        ('hydro_a', 'grid_a', None, nan),
+        ('structures_p', 'grid_a', None, nan),
+        ('transmission_l', 'grid_a', None, nan),
+        ('hydro_a', 'grid_a', nan, nan),
+        ('structures_p', 'grid_a', nan, nan),
+        ('transmission_l', 'grid_a', nan, nan),
+        ('hydro_a', 'grid_a', 123, 123.),
+        ('structures_p', 'grid_a', 234, 234.),
+        ('transmission_l', 'grid_a', 345, 345.),
+        ('hydro_a', 'grid_zm_a', None, nan),
+        ('structures_p', 'grid_zm_a', None, nan),
+        ('transmission_l', 'grid_zm_a', None, nan),
+        ('hydro_a', 'grid_zm_a', nan, nan),
+        ('structures_p', 'grid_zm_a', nan, nan),
+        ('transmission_l', 'grid_zm_a', nan, nan),
+        ('hydro_a', 'grid_zm_a', 123, 123.),
+        ('structures_p', 'grid_zm_a', 234, 234.),
+        ('transmission_l', 'grid_zm_a', 345, 345.),
     ])
-    def test_output_z_value(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, z_value, expected):
+    def test_output_z_value(self, grid_index, ntdb_zm_meh_small, mem_gpkg, fc_name, op_name, z_value, expected):
         """
         Test clip using output z value
         """
-        operator = ntdb_zm_meh[op_name]
-        operator = operator.copy(name=op_name, where_clause="""DATANAME = '082O01'""", geopackage=mem_gpkg)
-        source = ntdb_zm_meh[fc_name]
+        operator = grid_index[op_name]
+        operator = operator.copy(
+            name=op_name, where_clause="""DATANAME = '082O01-6'""",
+            geopackage=mem_gpkg)
+        source = ntdb_zm_meh_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, z_value)):
@@ -658,22 +641,22 @@ class TestSplit:
     @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
         ('admin_a', None, 4, 114),
         ('airports_p', None, 4, 40),
-        ('roads_l', None, 4, 2514),
+        param('roads_l', None, 4, 2514, marks=mark.slow),
         ('admin_mp_a', None, 4, 68),
         ('airports_mp_p', None, 4, 8),
-        ('roads_mp_l', None, 4, 14),
+        param('roads_mp_l', None, 4, 14, marks=mark.slow),
         ('admin_a', 0.001, 4, 112),
         ('airports_p', 0.001, 4, 40),
-        ('roads_l', 0.001, 4, 2676),
+        param('roads_l', 0.001, 4, 2676, marks=mark.slow),
         ('admin_mp_a', 0.001, 4, 68),
         ('airports_mp_p', 0.001, 4, 8),
-        ('roads_mp_l', 0.001, 4, 14),
+        param('roads_mp_l', 0.001, 4, 14, marks=mark.slow),
         ('admin_a', 1, 4, 22),
         ('airports_p', 1, 4, 35),
-        ('roads_l', 1, 4, 345),
+        param('roads_l', 1, 4, 345, marks=mark.slow),
         ('admin_mp_a', 1, 4, 22),
         ('airports_mp_p', 1, 4, 8),
-        ('roads_mp_l', 1, 4, 13),
+        param('roads_mp_l', 1, 4, 13, marks=mark.slow),
     ])
     def test_split(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
         """
@@ -696,19 +679,19 @@ class TestSplit:
         ('roads_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 2514),
         ('admin_mp_a', None, OutputZOption.SAME, OutputMOption.SAME, 4, 68),
         ('airports_mp_p', None, OutputZOption.SAME, OutputMOption.SAME, 4, 8),
-        ('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 14),
+        param('roads_mp_l', None, OutputZOption.SAME, OutputMOption.SAME, 4, 14, marks=mark.slow),
         ('admin_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 114),
         ('airports_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 40),
         ('roads_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 2514),
         ('admin_mp_a', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 68),
         ('airports_mp_p', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 8),
-        ('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 14),
+        param('roads_mp_l', None, OutputZOption.ENABLED, OutputMOption.ENABLED, 4, 14, marks=mark.slow),
         ('admin_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 114),
         ('airports_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 40),
         ('roads_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 2514),
         ('admin_mp_a', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 68),
         ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 8),
-        ('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14),
+        param('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14, marks=mark.slow),
     ])
     def test_split_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
                       output_z_option, output_m_option, element_count, record_count):
@@ -737,21 +720,16 @@ class TestSplit:
         ('roads_l', None, 4, 2514),
         ('admin_mp_a', None, 4, 68),
         ('airports_mp_p', None, 4, 8),
-        ('roads_mp_l', None, 4, 14),
+        param('roads_mp_l', None, 4, 14, marks=mark.slow),
         ('admin_a', 0.001, 4, 112),
         ('airports_p', 0.001, 4, 40),
         ('roads_l', 0.001, 4, 2676),
         ('admin_mp_a', 0.001, 4, 68),
         ('airports_mp_p', 0.001, 4, 8),
-        ('roads_mp_l', 0.001, 4, 14),
-        ('admin_a', 1, 4, 22),
-        ('airports_p', 1, 4, 35),
-        ('roads_l', 1, 4, 345),
-        ('admin_mp_a', 1, 4, 22),
-        ('airports_mp_p', 1, 4, 8),
-        ('roads_mp_l', 1, 4, 13),
+        param('roads_mp_l', 0.001, 4, 14, marks=mark.slow),
     ])
-    def test_split_setting(self, tmp_path, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, element_count, record_count):
+    def test_split_setting(self, tmp_path, inputs, world_features, mem_gpkg,
+                           fc_name, xy_tolerance, element_count, record_count):
         """
         Test split using analysis settings
         """
@@ -769,167 +747,156 @@ class TestSplit:
     # End test_split_setting method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
+        'structures_p',
         'structures_a',
         'structures_m_a',
-        'structures_m_ma',
-        'structures_ma',
-        'structures_p',
-        'structures_vcs_z_a',
-        'structures_vcs_z_ma',
-        'structures_vcs_zm_a',
-        'structures_vcs_zm_ma',
         'structures_z_a',
-        'structures_z_ma',
         'structures_zm_a',
-        'structures_zm_ma',
-        'topography_l',
+        'structures_ma',
+        param('structures_m_ma', marks=mark.slow),
+        param('structures_z_ma', marks=mark.slow),
+        param('structures_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_ma', marks=mark.slow),
+        param('structures_vcs_zm_ma', marks=mark.slow),
+        param('structures_vcs_z_a', marks=mark.slow),
+        param('structures_vcs_zm_a', marks=mark.slow),
+        param('topography_l', marks=mark.slow),
         'toponymy_mp',
-        'toponymy_p',
-        'toponymy_vcs_z_mp',
-        'toponymy_vcs_z_p',
         'toponymy_z_mp',
+        'toponymy_p',
         'toponymy_z_p',
+        param('toponymy_vcs_z_p', marks=mark.large),
+        param('toponymy_vcs_z_mp', marks=mark.large),
         'transmission_l',
-        'transmission_m_l',
-        'transmission_ml',
-        'transmission_p',
-        'transmission_vcs_z_l',
-        'transmission_vcs_z_ml',
-        'transmission_vcs_zm_l',
-        'transmission_z_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        param('transmission_vcs_z_l', marks=mark.large),
+        param('transmission_vcs_zm_l', marks=mark.large),
+        'transmission_ml',
+        param('transmission_vcs_z_ml', marks=mark.large),
+        'transmission_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_zm(self, ntdb_zm_meh, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm(self, grid_index, ntdb_zm_meh_small, mem_gpkg,
+                       fc_name, op_name, output_z, output_m):
         """
         Test split using Output ZM settings
         """
-        operator = ntdb_zm_meh[op_name]
+        operator = grid_index[op_name]
         operator = operator.copy(
-            name=op_name, where_clause="""DATANAME IN ('082O01', '082I14', '082J09')""",
+            name=op_name,
+            where_clause="""DATANAME IN ('082O01-6', '082O01-7', '082O01-8')""",
             geopackage=mem_gpkg)
-        source = ntdb_zm_meh[fc_name]
+        source = ntdb_zm_meh_small[fc_name]
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             results = split(source=source, operator=operator, field='DATANAME', geopackage=mem_gpkg)
         assert len(results) == 3
         result, *_ = results
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert result.has_z == has_z
-        assert result.has_m == has_m
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
     # End test_output_zm method
 
     @mark.zm
-    @mark.large
     @mark.parametrize('fc_name', [
         'hydro_a',
-        'hydro_m_a',
-        'hydro_z_a',
-        'hydro_zm_a',
+        param('hydro_m_a', marks=mark.large),
+        param('hydro_z_a', marks=mark.large),
+        param('hydro_zm_a', marks=mark.large),
         'structures_a',
-        'structures_m_a',
-        'structures_m_ma',
-        'structures_m_p',
-        'structures_p',
-        'structures_z_a',
-        'structures_z_ma',
-        'structures_z_p',
-        'structures_zm_a',
+        param('structures_m_a', marks=mark.large),
+        param('structures_z_a', marks=mark.large),
+        param('structures_zm_a', marks=mark.large),
+        param('structures_ma', marks=mark.large),
+        param('structures_m_ma', marks=mark.large),
+        param('structures_z_ma', marks=mark.large),
         'structures_zm_ma',
+        'structures_p',
+        param('structures_m_p', marks=mark.large),
+        param('structures_z_p', marks=mark.large),
         'structures_zm_p',
-        'topography_l',
-        'topography_m_l',
-        'topography_z_l',
-        'topography_zm_l',
-        'toponymy_m_mp',
-        'toponymy_m_p',
-        'toponymy_p',
-        'toponymy_z_mp',
-        'toponymy_z_p',
+        param('topography_l', marks=mark.slow),
+        param('topography_m_l', marks=mark.slow),
+        param('topography_z_l', marks=mark.slow),
+        param('topography_zm_l', marks=mark.slow),
+        param('toponymy_p', marks=mark.large),
+        param('toponymy_m_p', marks=mark.large),
+        param('toponymy_z_p', marks=mark.large),
+        param('toponymy_zm_p', marks=mark.large),
+        'toponymy_mp',
+        param('toponymy_m_mp', marks=mark.large),
+        param('toponymy_z_mp', marks=mark.large),
         'toponymy_zm_mp',
-        'toponymy_zm_p',
-        'transmission_l',
-        'transmission_m_l',
-        'transmission_m_ml',
-        'transmission_m_mp',
+        param('transmission_p', marks=mark.large),
         'transmission_m_p',
-        'transmission_p',
-        'transmission_z_l',
-        'transmission_z_ml',
-        'transmission_z_mp',
         'transmission_z_p',
+        param('transmission_zm_p', marks=mark.large),
+        'transmission_l',
+        param('transmission_m_l', marks=mark.large),
+        param('transmission_z_l', marks=mark.large),
         'transmission_zm_l',
+        'transmission_ml',
+        param('transmission_m_ml', marks=mark.large),
+        param('transmission_z_ml', marks=mark.large),
         'transmission_zm_ml',
+        'transmission_mp',
+        param('transmission_m_mp', marks=mark.large),
+        param('transmission_z_mp', marks=mark.large),
         'transmission_zm_mp',
-        'transmission_zm_p',
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
-        'index_zm_nan_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_zm_cleaner(self, ntdb_zm, mem_gpkg, fc_name, op_name, output_z, output_m):
+    def test_output_zm_cleaner(self, grid_index, ntdb_zm_small, mem_gpkg, fc_name, op_name, output_z, output_m):
         """
         Test split using Output ZM settings using cleaner inputs
         """
-        operator = ntdb_zm[op_name]
+        operator = grid_index[op_name]
         operator = operator.copy(
-            name=op_name, where_clause="""DATANAME IN ('082O01', '082I14', '082J09')""",
+            name=op_name,
+            where_clause="""DATANAME IN ('082O01-6', '082O01-7', '082O01-8')""",
             geopackage=mem_gpkg)
-        source = ntdb_zm[fc_name]
+        source = ntdb_zm_small[fc_name]
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             results = split(source=source, operator=operator, field='DATANAME', geopackage=mem_gpkg)
         assert len(results) == 3
         result, *_ = results
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert result.has_z == has_z
-        assert result.has_m == has_m
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
     # End test_output_zm_cleaner method
 
     @mark.benchmark

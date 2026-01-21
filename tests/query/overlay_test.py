@@ -5,9 +5,10 @@ Test for Overlay Query Classes
 
 
 from fudgeo import FeatureClass
-from pytest import mark
+from pytest import mark, param
 
 from spyops.environment.context import Swap
+from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.query.overlay import (
@@ -133,13 +134,14 @@ class TestPlanarizePolygons:
         assert len(fc) == 268
     # End test_planarize_source method
 
-    def test_planarize_source_zm(self, ntdb_zm_meh, mem_gpkg):
+    def test_planarize_source_zm(self, grid_index, ntdb_zm_meh, mem_gpkg):
         """
         Test Planarize Source
         """
-        operator = ntdb_zm_meh['index_a']
+        operator = grid_index['grid_a']
         source = ntdb_zm_meh['structures_zm_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_structures_zm_a'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -147,7 +149,7 @@ class TestPlanarizePolygons:
             'fid', 'SHAPE', 'fid_structures_zm_a', 'OBJECTID',
             'ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER', 'DATANAME',
             'ACCURACY', 'FILE_NAME', 'CODE']
-        assert len(fc) == 3523
+        assert len(fc) == 1550
     # End test_planarize_source_zm method
 
     def test_planarize_operator(self, inputs, mem_gpkg):
@@ -156,7 +158,8 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        po = PlanarizePolygonOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator,
+                                      use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_a'
         fc, fid_field = po()
         assert fid_field.name == 'fid'
@@ -172,7 +175,8 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_holes_a']
         source = inputs['int_flavor_a']
-        po = PlanarizePolygonOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        po = PlanarizePolygonOperator(source=source, operator=operator,
+                                      use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_intersect_holes_a'
         fc, fid_field = po()
         assert fid_field.name == 'fid'
@@ -188,7 +192,8 @@ class TestPlanarizePolygons:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['admin_mp_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
 # End TestPlanarizePolygons class
@@ -204,7 +209,8 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['rivers_l']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_rivers_l'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -220,7 +226,8 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['rivers_l']
-        po = PlanarizeGeneralOperator(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        po = PlanarizeGeneralOperator(source=source, operator=operator,
+                                      use_full_extent=False, xy_tolerance=None)
         assert po.temporary_fid_field.name == 'fid_rivers_portion_l'
         fc, fid_fld = po()
         assert fid_fld.name == 'fid'
@@ -234,7 +241,8 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = inputs['river_p']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_river_p'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -250,7 +258,8 @@ class TestPlanarizeGeneral:
         """
         operator = inputs['rivers_portion_l']
         source = world_features['admin_mp_a']
-        ps = PlanarizeGeneralSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizeGeneralSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
 # End TestPlanarizeGeneral class
@@ -461,38 +470,37 @@ class TestQuerySymmetricalDifferencePairwise:
     # End test_insert_operator method
 
     @mark.zm
-    @mark.large
-    @mark.parametrize('fc_name, count, where_clause', [
-        ('hydro_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
-        ('structures_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_a', 52, """DATANAME = '082O08'"""),
-        ('structures_z_a', 52, """DATANAME = '082O08'"""),
-        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_ma', 4, """CODE = 2010082"""),
-        ('structures_z_ma', 4, """CODE = 2010082"""),
-        ('structures_zm_ma', 4, """CODE = 2010082"""),
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 88),
+        ('hydro_m_a', 88),
+        ('hydro_z_a', 88),
+        ('hydro_zm_a', 88),
+        ('structures_a', 30),
+        ('structures_m_a', 30),
+        ('structures_z_a', 30),
+        ('structures_zm_a', 30),
+        ('structures_m_ma', 10),
+        ('structures_z_ma', 10),
+        ('structures_zm_ma', 10),
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        'grid_zm_a',
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_target_full_disjoint_query(self, ntdb_zm, mem_gpkg, fc_name,
-                                        count, where_clause, op_name,
+    def test_target_full_disjoint_query(self, grid_index, ntdb_zm_tile, mem_gpkg,
+                                        fc_name, count, op_name,
                                         output_z, output_m):
         """
         Test target full, exercising process disjoint and handling
@@ -501,29 +509,22 @@ class TestQuerySymmetricalDifferencePairwise:
         option = AttributeOption.ALL
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = copy_element(
-            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
-            where_clause=where_clause)
+            ntdb_zm_tile[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
         source.add_spatial_index()
         operator = copy_element(
-            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
-            where_clause="""DATANAME = '082J10'""")
+            grid_index[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082O01-6'""")
         operator.add_spatial_index()
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             query = QuerySymmetricalDifferencePairwise(
                 source, target=target, operator=operator,
                 attribute_option=option, xy_tolerance=None)
             full = query.target_full
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert full.has_z == has_z
-        assert full.has_m == has_m
+        assert full.has_z == zm.z_enabled
+        assert full.has_m == zm.m_enabled
         assert full.count == count
     # End test_target_full_disjoint_query method
 # End TestQuerySymmetricalDifferencePairwise class
@@ -694,39 +695,37 @@ class TestQuerySymmetricalDifferenceClassic:
     # End test_insert_operator_general method
 
     @mark.zm
-    @mark.large
-    @mark.parametrize('fc_name, count, where_clause', [
-        ('hydro_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_m_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_z_a', 2356, """DATANAME = '082O08'"""),
-        ('hydro_zm_a', 2356, """DATANAME = '082O08'"""),
-        ('structures_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_a', 52, """DATANAME = '082O08'"""),
-        ('structures_z_a', 52, """DATANAME = '082O08'"""),
-        ('structures_zm_a', 52, """DATANAME = '082O08'"""),
-        ('structures_m_ma', 10, """CODE = 2010082"""),
-        ('structures_z_ma', 10, """CODE = 2010082"""),
-        ('structures_zm_ma', 10, """CODE = 2010082"""),
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 88),
+        ('hydro_m_a', 88),
+        ('hydro_z_a', 88),
+        ('hydro_zm_a', 88),
+        ('structures_a', 34),
+        ('structures_m_a', 34),
+        ('structures_z_a', 34),
+        ('structures_zm_a', 34),
+        ('structures_m_ma', 34),
+        ('structures_z_ma', 34),
+        ('structures_zm_ma', 34),
     ])
     @mark.parametrize('op_name', [
-        'index_a',
-        'index_m_a',
-        'index_z_a',
-        'index_zm_a',
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        'grid_zm_a',
     ])
     @mark.parametrize('output_z', [
-        OutputZOption.SAME,
+        param(OutputZOption.SAME, marks=mark.large),
         OutputZOption.ENABLED,
-        OutputZOption.DISABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
     ])
     @mark.parametrize('output_m', [
-        OutputMOption.SAME,
+        param(OutputMOption.SAME, marks=mark.large),
         OutputMOption.ENABLED,
-        OutputMOption.DISABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_target_full_disjoint_query(self, ntdb_zm, mem_gpkg, fc_name,
-                                        count, where_clause, op_name,
-                                        output_z, output_m):
+    def test_target_full_disjoint_query(self, grid_index, ntdb_zm_tile, mem_gpkg, fc_name,
+                                        count, op_name, output_z, output_m):
         """
         Test target full, exercising process disjoint and handling
         different ZM dimensions
@@ -734,29 +733,22 @@ class TestQuerySymmetricalDifferenceClassic:
         option = AttributeOption.ALL
         target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
         source = copy_element(
-            ntdb_zm[fc_name], target=FeatureClass(mem_gpkg, fc_name),
-            where_clause=where_clause)
+            ntdb_zm_tile[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
         source.add_spatial_index()
         operator = copy_element(
-            ntdb_zm[op_name], target=FeatureClass(mem_gpkg, op_name),
-            where_clause="""DATANAME = '082J10'""")
+            grid_index[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082O01-6'""")
         operator.add_spatial_index()
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
               Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
             query = QuerySymmetricalDifferenceClassic(
                 source, target=target, operator=operator,
                 attribute_option=option, xy_tolerance=None)
             full = query.target_full
-        if output_z == OutputZOption.SAME:
-            has_z = source.has_z or operator.has_z
-        else:
-            has_z = output_z == OutputZOption.ENABLED
-        if output_m == OutputZOption.SAME:
-            has_m = source.has_m or operator.has_m
-        else:
-            has_m = output_m == OutputMOption.ENABLED
-        assert full.has_z == has_z
-        assert full.has_m == has_m
+        assert full.has_z == zm.z_enabled
+        assert full.has_m == zm.m_enabled
         assert full.count == count
     # End test_target_full_disjoint_query method
 # End TestQuerySymmetricalDifferenceClassic class
