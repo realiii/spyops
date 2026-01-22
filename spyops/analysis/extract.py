@@ -17,7 +17,7 @@ from spyops.shared.element import copy_element
 from spyops.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from spyops.shared.util import make_valid_name
-from spyops.shared.validation import (
+from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geometry_dimension, validate_geopackage, validate_result,
     validate_same_crs, validate_table, validate_xy_tolerance)

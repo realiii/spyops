@@ -25,7 +25,7 @@ from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
 from spyops.shared.hint import XY_TOL
 from spyops.shared.records import extend_records
-from spyops.shared.validation import (
+from spyops.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
     validate_output_type, validate_result, validate_same_crs,
     validate_xy_tolerance)
