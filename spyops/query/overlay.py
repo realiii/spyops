@@ -484,7 +484,7 @@ class ClassicMixin:
     """
     # noinspection PyUnresolvedReferences
     @property
-    def input_fid_source(self) -> Field:
+    def input_fid_source(self) -> 'Field':
         """
         Input FID for Source
         """
@@ -493,7 +493,7 @@ class ClassicMixin:
 
     # noinspection PyUnresolvedReferences
     @property
-    def input_fid_operator(self) -> Field:
+    def input_fid_operator(self) -> 'Field':
         """
         Input FID for Operator
         """
@@ -568,8 +568,8 @@ class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
             source=source, target=target, operator=operator,
             attribute_option=attribute_option, xy_tolerance=xy_tolerance,
             output_type_option=output_type_option)
-        self._input_fid_source: Field = source_fid
-        self._input_fid_operator: Field = operator_fid
+        self._input_fid_source: 'Field' = source_fid
+        self._input_fid_operator: 'Field' = operator_fid
     # End init built-in
 # End QueryIntersectClassic class
 
@@ -723,8 +723,8 @@ class QuerySymmetricalDifferenceClassic(
         super().__init__(
             source=source, target=target, operator=operator,
             attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-        self._input_fid_source: Field = source_fid
-        self._input_fid_operator: Field = operator_fid
+        self._input_fid_source: 'Field' = source_fid
+        self._input_fid_operator: 'Field' = operator_fid
     # End init built-in
 
     def _get_insert_fields(self, element: 'FeatureClass') -> FIELDS:

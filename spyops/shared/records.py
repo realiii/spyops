@@ -85,7 +85,7 @@ def extend_records(results: list[tuple], records: list[tuple],
 # End extend_records function
 
 
-def _extend_measures(refined: list, cls: Type[AbstractGeometry]) -> list:
+def _extend_measures(refined: list, cls: Type['AbstractGeometry']) -> list:
     """
     Extend shapely PointZ / MultiPointZ with Measures (when needed)
     """

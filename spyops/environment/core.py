@@ -4,16 +4,14 @@ Environment / Analysis Settings
 """
 
 
-from typing import NamedTuple, TYPE_CHECKING
+from typing import NamedTuple
+
+from fudgeo import FeatureClass
 
 from spyops.environment.workspace import _Workspace
 from spyops.environment.geometry import _GeometryDimensions
 from spyops.environment.enumeration import OutputMOption, OutputZOption
 from spyops.shared.hint import GPKG, XY_TOL
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
 
 
 class _AnalysisSettings:

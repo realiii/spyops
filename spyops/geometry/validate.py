@@ -146,7 +146,7 @@ def check_zm(a: tuple[bool, bool], name_a: str,
 # End check_zm function
 
 
-def get_validated_geometries(feature_class: FeatureClass) -> list:
+def get_validated_geometries(feature_class: 'FeatureClass') -> list:
     """
     Get Validated Geometries forced to 2D
     """
@@ -163,7 +163,7 @@ def get_validated_geometries(feature_class: FeatureClass) -> list:
 # End get_validated_geometries function
 
 
-def _get_validated_geoms(feature_class: FeatureClass,
+def _get_validated_geoms(feature_class: 'FeatureClass',
                          checker: Callable) -> list:
     """
     Get Shapely Geometries from Feature Class, forcing to 2D.
