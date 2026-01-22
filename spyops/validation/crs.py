@@ -16,7 +16,7 @@ class ValidateSameCRS(AbstractValidate):
     """
     Validate Same Coordinate Reference System
     """
-    def __init__(self, *names) -> None:
+    def __init__(self, *names: str) -> None:
         """
         Initialize the ValidateSameCRS class
         """
