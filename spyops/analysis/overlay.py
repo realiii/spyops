@@ -11,7 +11,7 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from shapely.strtree import STRtree
 
-from spyops.analysis.util import _difference
+from spyops.analysis.util import _difference, _symmetrical_difference
 from spyops.geometry.convert import get_geometry_converters
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
@@ -23,6 +23,7 @@ from spyops.shared.constant import (
     TARGET)
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
+from spyops.shared.field import GEOM_TYPE_POLYGONS
 from spyops.shared.hint import XY_TOL
 from spyops.shared.records import extend_records
 from spyops.validation import (
@@ -174,16 +175,7 @@ def symmetrical_difference(source: FeatureClass, operator: FeatureClass,
         cls = QuerySymmetricalDifferencePairwise
     query = cls(source=source, target=target, operator=operator,
                 attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-    geoms = get_validated_geometries(operator)
-    _difference(source=query.source, select_sql=query.select_source,
-                insert_sql=query.source_config.insert, overlay_geoms=geoms,
-                target=query.target, config=query.geometry_config,
-                xy_tolerance=xy_tolerance)
-    geoms = get_validated_geometries(source)
-    _difference(source=query.operator, select_sql=query.select_operator,
-                insert_sql=query.operator_config.insert,
-                overlay_geoms=geoms, target=query.target,
-                config=query.geometry_config, xy_tolerance=xy_tolerance)
+    _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
     return query.target
 # End symmetrical_difference function
 

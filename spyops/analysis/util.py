@@ -18,8 +18,8 @@ from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_multi
-
 from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
 from spyops.query.extract import QueryClip, QuerySplitByAttributes
 from spyops.shared.constant import SQL_EMPTY, UNDERSCORE
@@ -157,6 +157,23 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
             executor(sql=insert_sql, data=records)
             records.clear()
 # End _difference function
+
+
+def _symmetrical_difference(*, query, xy_tolerance: XY_TOL) -> None:
+    """
+    Internal Symmetrical Difference
+    """
+    geoms = get_validated_geometries(query.operator)
+    _difference(source=query.source, select_sql=query.select_source,
+                insert_sql=query.source_config.insert, overlay_geoms=geoms,
+                target=query.target, config=query.geometry_config,
+                xy_tolerance=xy_tolerance)
+    geoms = get_validated_geometries(query.source)
+    _difference(source=query.operator, select_sql=query.select_operator,
+                insert_sql=query.operator_config.insert,
+                overlay_geoms=geoms, target=query.target,
+                config=query.geometry_config, xy_tolerance=xy_tolerance)
+# End _symmetrical_difference function
 
 
 if __name__ == '__main__':  # pragma: no cover
