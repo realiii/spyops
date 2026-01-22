@@ -4,13 +4,15 @@ Validation for Feature Classes, Tables, and GeoPackages
 """
 
 
-from typing import Any, ClassVar
+from functools import wraps
+from typing import Any, Callable, ClassVar
 
-from fudgeo import FeatureClass, Table
+from fudgeo import FeatureClass, MemoryGeoPackage, Table
 
 from spyops.shared.constant import PADDED_PIPE
-from spyops.shared.hint import NAMES
-from spyops.validation.base import AbstractValidateTypeExists
+from spyops.shared.exception import OperationsError
+from spyops.shared.hint import ELEMENT, NAMES
+from spyops.validation.base import AbstractValidate, AbstractValidateTypeExists
 
 
 class ValidateContent(AbstractValidateTypeExists):
@@ -133,6 +135,75 @@ class ValidateFeatureClass(ValidateContent):
         raise ValueError(f'{self._name} must have geometry type of {types}')
     # End _validate_geometry_types method
 # End ValidateFeatureClass class
+
+
+class ValidateOverwriteInput(AbstractValidate):
+    """
+    Validate Overwrite Input, use in conjunction with validate_element,
+    validate_table, or validate_feature_class decorators so that the target
+    and inputs have been validated before this validation is performed.
+    """
+    def __init__(self, target: str, *inputs: str) -> None:
+        """
+        Initialize the ValidateOverwriteInput class
+        """
+        super().__init__()
+        self._target: str = target
+        self._inputs: NAMES = inputs
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            target: ELEMENT = kwargs[self._target]
+            for name in self._inputs:
+                self._check_same(target, other=kwargs[name], name=name)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _check_same(self, target: ELEMENT, other: ELEMENT, name: str) -> None:
+        """
+        Check Target Same as Input
+        """
+        if target.name.casefold() != other.name.casefold():
+            return
+        if not self._check_same_geopackage(target, other):
+            return
+        raise OperationsError(
+            f'Value for output argument {self._target} is same as value '
+            f'for input argument {name}')
+    # End _check_same method
+
+    @staticmethod
+    def _check_same_geopackage(target: ELEMENT, other: ELEMENT) -> bool:
+        """
+        Check Same GeoPackage
+        """
+        if target.geopackage is other.geopackage:
+            return True
+        if not isinstance(target.geopackage, other.geopackage.__class__):
+            return False
+        if isinstance(target.geopackage, MemoryGeoPackage):
+            # NOTE if get here identity check has failed, we assume two
+            #  different MemoryGeoPackages, which is true unless someone has
+            #  taken control over the connection string for MemoryGeoPackage
+            #  or done some other changes to the internals
+            return True
+        else:
+            return target.geopackage.path.samefile(other.geopackage.path)
+        return False
+    # End _check_same_geopackage method
+# End ValidateOverwriteInput class
 
 
 if __name__ == '__main__':  # pragma: no cover

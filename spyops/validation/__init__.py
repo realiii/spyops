@@ -6,7 +6,8 @@ Validation
 from spyops.validation.container import ValidateGeopackage
 from spyops.validation.crs import ValidateSameCRS
 from spyops.validation.element import (
-    ValidateElement, ValidateFeatureClass, ValidateTable)
+    ValidateElement, ValidateFeatureClass, ValidateOverwriteInput,
+    ValidateTable)
 from spyops.validation.enumish import ValidateEnumeration, ValidateOutputType
 from spyops.validation.field import ValidateField, ValidateGeometryDimension
 from spyops.validation.result import ValidateResult
@@ -21,6 +22,7 @@ validate_field = ValidateField
 validate_geometry_dimension = ValidateGeometryDimension
 validate_geopackage = ValidateGeopackage
 validate_output_type = ValidateOutputType
+validate_overwrite_input = ValidateOverwriteInput
 validate_result = ValidateResult
 validate_same_crs = ValidateSameCRS
 validate_table = ValidateTable

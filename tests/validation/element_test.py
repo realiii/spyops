@@ -7,7 +7,7 @@ from warnings import catch_warnings, simplefilter
 
 from pytest import raises, mark
 
-from fudgeo import Table
+from fudgeo import FeatureClass, Table
 from fudgeo.enumeration import GeometryType
 
 from spyops.environment import Setting
@@ -20,9 +20,10 @@ from spyops.shared.field import (
     GEOM_TYPE_POLYGONS)
 from spyops.shared.util import element_names, make_unique_name
 from spyops.validation import (
-    validate_element,
-    validate_feature_class, validate_geometry_dimension, validate_table)
+    validate_element, validate_feature_class, validate_geometry_dimension,
+    validate_overwrite_input, validate_table)
 from spyops.validation.result import _check_output
+
 
 pytestmark = [mark.validation]
 
@@ -210,6 +211,37 @@ def test_validate_geometry_dimension(world_features, source_name, operator_name,
     else:
         assert geom_function(source, operator) == expected
 # End test_validate_geometry_dimension function
+
+
+def test_validate_overwrite_input(world_features, inputs, mem_gpkg):
+    """
+    Test validate_overwrite_input
+    """
+    source = world_features['admin_a']
+    operator = inputs['clipper_a']
+
+    @validate_feature_class('s')
+    @validate_feature_class('o')
+    @validate_feature_class('t', exists=False)
+    @validate_overwrite_input('t', 's', 'o')
+    def geom_function(s, o, t):
+        return True
+
+    target = inputs['clipper_a']
+    with raises(OperationsError):
+        geom_function(source, operator, target)
+
+    target = FeatureClass(geopackage=source.geopackage, name='lmnop')
+    assert geom_function(source, operator, target)
+
+    op = operator.copy(name=operator.name, geopackage=mem_gpkg)
+    target = FeatureClass(geopackage=mem_gpkg, name='lmnop')
+    assert geom_function(source, op, target)
+
+    target = FeatureClass(geopackage=mem_gpkg, name=op.name)
+    with raises(OperationsError):
+        assert geom_function(source, op, target)
+# End test_validate_overwrite_input function
 
 
 if __name__ == '__main__':  # pragma: no cover
