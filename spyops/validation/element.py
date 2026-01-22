@@ -10,7 +10,6 @@ from fudgeo import FeatureClass, Table
 
 from spyops.shared.constant import PADDED_PIPE
 from spyops.shared.hint import NAMES
-
 from spyops.validation.base import AbstractValidateTypeExists
 
 

@@ -13,7 +13,6 @@ from fudgeo.enumeration import GeometryType
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.enumeration import OutputTypeOption
 from spyops.shared.exception import OperationsError
-
 from spyops.shared.util import check_enumeration
 from spyops.validation.base import AbstractValidate, AbstractValidateArgument
 
