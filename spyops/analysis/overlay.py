@@ -27,8 +27,8 @@ from spyops.shared.hint import XY_TOL
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
-    validate_output_type, validate_result, validate_same_crs,
-    validate_xy_tolerance)
+    validate_output_type, validate_overwrite_input, validate_result,
+    validate_same_crs, validate_xy_tolerance)
 
 
 __all__ = ['erase', 'intersect', 'symmetrical_difference']
@@ -41,6 +41,7 @@ __all__ = ['erase', 'intersect', 'symmetrical_difference']
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
           xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
@@ -73,6 +74,7 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def intersect(source: FeatureClass, operator: FeatureClass,
               target: FeatureClass, *,
               attribute_option: AttributeOption = AttributeOption.ALL,
@@ -153,6 +155,7 @@ def intersect(source: FeatureClass, operator: FeatureClass,
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
 @validate_same_crs(SOURCE, OPERATOR)
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def symmetrical_difference(source: FeatureClass, operator: FeatureClass,
                            target: FeatureClass, *,
                            attribute_option: AttributeOption = AttributeOption.ALL,

@@ -19,8 +19,8 @@ from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
-    validate_geometry_dimension, validate_geopackage, validate_result,
-    validate_same_crs, validate_table, validate_xy_tolerance)
+    validate_geometry_dimension, validate_geopackage, validate_overwrite_input,
+    validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
 
 
 __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
@@ -30,6 +30,7 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_result()
 @validate_table(SOURCE)
 @validate_table(TARGET, exists=False)
+@validate_overwrite_input(TARGET, SOURCE)
 def table_select(source: Table, target: Table, *,
                  where_clause: str = '') -> Table:
     """
@@ -45,6 +46,7 @@ def table_select(source: Table, target: Table, *,
 @validate_result()
 @validate_feature_class(SOURCE)
 @validate_feature_class(TARGET, exists=False)
+@validate_overwrite_input(TARGET, SOURCE)
 def select(source: FeatureClass, target: FeatureClass, *,
            where_clause: str = '') -> FeatureClass:
     """
@@ -83,6 +85,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          xy_tolerance: XY_TOL = None) -> FeatureClass:
     """
