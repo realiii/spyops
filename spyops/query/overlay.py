@@ -582,7 +582,7 @@ class QueryUnionPairwise(QueryIntersectPairwise):
     """
     def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
                  target: 'FeatureClass', attribute_option: AttributeOption,
-                 xy_tolerance: XY_TOL) -> None:
+                 xy_tolerance: XY_TOL, **kwargs) -> None:
         """
         Initialize the QueryUnionPairwise class
         """
