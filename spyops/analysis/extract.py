@@ -111,7 +111,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_xy_tolerance()
 @validate_same_crs(SOURCE, OPERATOR)
 def split(source: FeatureClass, operator: FeatureClass,
-          field: Union['Field' | str], geopackage: GPKG, *,
+          field: Union['Field', str], geopackage: GPKG, *,
           xy_tolerance: XY_TOL = None) -> list[FeatureClass]:
     """
     Split
