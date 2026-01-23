@@ -4,10 +4,18 @@ Query Classes for analysis.extract module
 """
 
 
+from functools import cached_property
+from typing import TYPE_CHECKING, Union
+
+from spyops.geometry.multi import build_multi
 from spyops.query.base import AbstractQuery, AbstractSpatialQuery
 from spyops.shared.constant import EMPTY
 from spyops.shared.field import make_field_names
 from spyops.shared.hint import ELEMENT, FIELDS
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from shapely import MultiLineString, MultiPoint, MultiPolygon
 
 
 class QuerySplitByAttributes(AbstractQuery):
@@ -72,6 +80,14 @@ class QueryClip(AbstractSpatialQuery):
     """
     Queries for Clip
     """
+    @cached_property
+    def geometry(self) -> Union['MultiPolygon', 'MultiLineString', 'MultiPoint']:
+        """
+        Multi-Part Geometry of the Operator Feature Class
+        """
+        return build_multi(self.operator)
+    # End geometry property
+
     @property
     def insert(self) -> str:
         """
