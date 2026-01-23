@@ -14,6 +14,9 @@ from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
 GEOM_TYPE_POINTS: NAMES = GeometryType.point, GeometryType.multi_point
 GEOM_TYPE_LINES: NAMES = GeometryType.linestring, GeometryType.multi_linestring
 GEOM_TYPE_POLYGONS: NAMES = GeometryType.polygon, GeometryType.multi_polygon
+GEOM_TYPE_MULTI: NAMES = (GeometryType.multi_point,
+                          GeometryType.multi_linestring,
+                          GeometryType.multi_polygon)
 
 
 ALIAS_TYPE_LUT: dict[NAMES, str] = {
