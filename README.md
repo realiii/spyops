@@ -187,6 +187,37 @@ fc = symmetrical_difference(source, operator=operator, target=target,
                             algorithm_option=AlgorithmOption.CLASSIC)
 ```
 
+### `union`
+Combines the geometries from the source and operator feature classes into
+a single output feature class. The output contains all features from both
+inputs, with overlapping areas split into separate features. Optionally,
+extends the output feature class with attributes from the operator feature
+class. Only polygon geometry types are supported.
+
+```python
+from fudgeo import GeoPackage, FeatureClass
+from spyops.analysis.overlay import union
+from spyops.shared.enumeration import AlgorithmOption, AttributeOption
+
+gpkg = GeoPackage('/some/path/ntdb_zm.gpkg')
+source = gpkg['hydro_a']
+operator = gpkg['structures_a']
+
+# inputs (source / operator) must have polygon geometry
+target = FeatureClass(geopackage=gpkg, name='sh_union_a')
+fc = union(source, operator=operator, target=target)
+
+# all attributes except the original FID columns will be copied to the output
+target = FeatureClass(geopackage=gpkg, name='sh_union_sans_a')
+fc = union(source, operator=operator, target=target, 
+           attribute_option=AttributeOption.SANS_FID)
+
+# algorithm options, applies to polygon inputs (source / operator)
+target = FeatureClass(geopackage=gpkg, name='sh_union_classic_a')
+fc = union(source, operator=operator, target=target, 
+           algorithm_option=AlgorithmOption.CLASSIC)
+```
+
 ## Settings
 Setting can be used globally or on a specific function call using context managers.
 
@@ -293,6 +324,7 @@ with Swap(Setting.CURRENT_WORKSPACE, gpkg):
 * added `erase` (Analysis - Overlay)
 * added `intersect` (Analysis - Overlay)
 * added `symmetrical_difference` (Analysis - Overlay)
+* added `union` (Analysis - Overlay)
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, and `scratch_workspace`
