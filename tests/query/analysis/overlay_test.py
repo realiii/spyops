@@ -12,7 +12,7 @@ from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from spyops.query.overlay import (
+from spyops.query.analysis.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
     PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,

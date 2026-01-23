@@ -11,7 +11,7 @@ from spyops.analysis.util import (
     _intersect, _symmetrical_difference)
 from spyops.geometry.convert import get_geometry_converters
 from spyops.geometry.validate import get_validated_geometries
-from spyops.query.overlay import (
+from spyops.query.analysis.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)

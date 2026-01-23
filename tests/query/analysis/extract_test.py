@@ -9,7 +9,7 @@ from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import SQLFieldType
 from pytest import approx, mark, raises
 
-from spyops.query.extract import QueryClip, QuerySplitByAttributes
+from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
 from spyops.geometry.config import GeometryConfig
 
 pytestmark = [mark.extract, mark.query]

@@ -22,7 +22,7 @@ from spyops.geometry.multi import build_multi
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
-from spyops.query.extract import QueryClip, QuerySplitByAttributes
+from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
 from spyops.shared.constant import SQL_EMPTY, UNDERSCORE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
@@ -34,7 +34,7 @@ from spyops.shared.util import (
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry
     from spyops.geometry.config import GeometryConfig
-    from spyops.query.overlay import (
+    from spyops.query.analysis.overlay import (
         QueryIntersectClassic, QueryIntersectPairwise,
         QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
 

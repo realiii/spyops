@@ -10,7 +10,7 @@ from fudgeo import FeatureClass
 
 from spyops.analysis.util import _clip, _split_by_attributes
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.query.extract import QuerySplit
+from spyops.query.analysis.extract import QuerySplit
 from spyops.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET, UNDERSCORE)
 from spyops.shared.element import copy_element

@@ -22,7 +22,7 @@ from spyops.geometry.config import geometry_config
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
-from spyops.query.extract import QueryClip
+from spyops.query.analysis.extract import QueryClip
 from spyops.shared.base import QueryConfig
 from spyops.shared.constant import EMPTY
 from spyops.shared.element import create_feature_class
