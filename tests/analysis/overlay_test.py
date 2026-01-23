@@ -2,6 +2,7 @@
 """
 Tests for Overlay
 """
+from spyops.analysis import union
 
 
 from fudgeo import FeatureClass
@@ -1046,9 +1047,9 @@ class TestIntersect:
 # End TestIntersect class
 
 
-class TestSymmetricDifference:
+class TestSymmetricalDifference:
     """
-    Tests for Symmetric Difference
+    Tests for Symmetrical Difference
     """
     def test_holes_and_shifted(self, inputs, mem_gpkg):
         """
@@ -1352,7 +1353,290 @@ class TestSymmetricDifference:
         assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
-# End TestSymmetricDifference class
+# End TestSymmetricalDifference class
+
+
+class TestUnion:
+    """
+    Tests for Union
+    """
+    @mark.parametrize('algorithm_option, feature_count, hole_count, shifted_count', [
+        (AlgorithmOption.PAIRWISE, 50, 18, 18),
+        (AlgorithmOption.CLASSIC, 82, 29, 29),
+    ])
+    def test_holes_and_shifted(self, inputs, mem_gpkg, algorithm_option, feature_count, hole_count, shifted_count):
+        """
+        Test for union using small datasets
+        """
+        source = inputs['intersect_holes_a']
+        operator = inputs['intersect_holes_shifted_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='union_holes_shifted_a')
+        union(source=source, operator=operator, target=target, algorithm_option=algorithm_option)
+        assert len(target) == feature_count
+        cursor = target.select(where_clause="""fid_intersect_holes_a IS NULL""")
+        assert len(cursor.fetchall()) == hole_count
+        cursor = target.select(where_clause="""fid_intersect_holes_shifted_a IS NULL""")
+        assert len(cursor.fetchall()) == shifted_count
+        cursor = target.select(where_clause="""fid_intersect_holes_a IS NOT NULL AND fid_intersect_holes_shifted_a IS NOT NULL""")
+        assert len(cursor.fetchall()) == feature_count - (hole_count + shifted_count)
+    # End test_holes_and_shifted method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_a', 227, 42),
+        ('hydro_a', 'hydro_zm_a', 227, 43),
+        ('hydro_zm_a', 'hydro_zm_a', 227, 44),
+        ('structures_a', 'structures_a', 34, 42),
+        ('structures_a', 'structures_zm_a', 34, 43),
+        ('structures_zm_a', 'structures_zm_a', 34, 44),
+    ])
+    def test_union_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
+                           operator_name, feature_count, field_count):
+        """
+        Test union using analysis settings for XY tolerance
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.XY_TOLERANCE, 0.000001):
+            result = union(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_union_setting method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_a', 227, 42),
+        ('hydro_a', 'hydro_zm_a', 227, 43),
+        ('hydro_zm_a', 'hydro_zm_a', 227, 44),
+        ('structures_a', 'structures_a', 36, 42),
+        ('structures_a', 'structures_zm_a', 36, 43),
+        ('structures_zm_a', 'structures_zm_a', 36, 44),
+    ])
+    def test_union_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                   operator_name, feature_count, field_count):
+        """
+        Test union using analysis settings for XY tolerance
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.XY_TOLERANCE, 0.00001):
+            result = union(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL,
+                algorithm_option=AlgorithmOption.CLASSIC)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_union_setting_classic method
+
+    @mark.zm
+    @mark.parametrize('source_name, operator_name', [
+        ('hydro_a', 'hydro_a'),
+        ('hydro_a', 'hydro_z_a'),
+        ('hydro_m_a', 'hydro_z_a'),
+        ('structures_a', 'structures_a'),
+        ('structures_a', 'structures_m_a'),
+        ('structures_m_a', 'structures_z_a'),
+    ])
+    @mark.parametrize('output_z', [
+        param(OutputZOption.SAME, marks=mark.large),
+        OutputZOption.ENABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        param(OutputMOption.SAME, marks=mark.large),
+        OutputMOption.ENABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_zm_pairwise_cleaner(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                        operator_name, output_z, output_m):
+        """
+        Test union using Output ZM settings using pairwise algorithm using cleaner inputs
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator,
+                target=target, algorithm_option=AlgorithmOption.PAIRWISE)
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
+    # End test_output_zm_pairwise_cleaner method
+
+    def test_sans_attributes(self, inputs, world_features, fresh_gpkg):
+        """
+        Test union -- reduced data for faster testing -- sans attributes
+        """
+        eraser = inputs['intersect_sans_attr_a']
+        assert len(eraser) == 5
+        source = world_features['admin_sans_attr_a']
+        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
+        query = QueryErase(source=source, target=target, operator=eraser)
+        _, touches = query.select.split('WHERE', 1)
+        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
+                             geopackage=fresh_gpkg)
+        assert len(subset) <= len(source)
+        target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
+        result = union(source=subset, operator=eraser, target=target)
+        assert len(result) == 359
+        assert len(result.fields) == 4
+    # End test_sans_attributes method
+
+    @mark.parametrize('source_name, operator_name, option, field_count', [
+        ('hydro_a', 'hydro_a', AttributeOption.SANS_FID, 40),
+        ('structures_a', 'structures_a', AttributeOption.SANS_FID, 40),
+        ('hydro_a', 'hydro_a', AttributeOption.ONLY_FID, 4),
+        ('structures_a', 'structures_a', AttributeOption.ONLY_FID, 4),
+    ])
+    def test_union_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
+                                       source_name, operator_name, option, field_count):
+        """
+        Test union using analysis settings for XY tolerance
+        and varying attribute option
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        result = union(
+            source=source, operator=operator, target=target,
+            attribute_option=option)
+        assert len(result.fields) == field_count
+    # End test_union_attribute_option method
+
+    @mark.zm
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 88),
+        ('hydro_m_a', 88),
+        ('hydro_zm_a', 88),
+        ('structures_a', 30),
+        ('structures_m_a', 30),
+        ('structures_z_a', 30),
+        ('structures_zm_a', 30),
+        ('structures_m_ma', 10),
+        ('structures_z_ma', 10),
+        ('structures_zm_ma', 10),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
+    ])
+    @mark.parametrize('output_z', [
+        param(OutputZOption.SAME, marks=mark.large),
+        OutputZOption.ENABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        param(OutputMOption.SAME, marks=mark.large),
+        OutputMOption.ENABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_target_full_disjoint_pairwise(self, grid_index, ntdb_zm_tile,
+                                           mem_gpkg, fc_name, count,
+                                           op_name, output_z, output_m):
+        """
+        Test target full, exercising process disjoint and handling
+        different ZM dimensions
+        """
+        option = AttributeOption.ALL
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = copy_element(
+            ntdb_zm_tile[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        source.add_spatial_index()
+        operator = copy_element(
+            grid_index[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082O01-8'""")
+        operator.add_spatial_index()
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator,
+                target=target, attribute_option=option)
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
+        assert result.count == count
+    # End test_target_full_disjoint_pairwise method
+
+    @mark.zm
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 88),
+        ('hydro_m_a', 88),
+        ('hydro_zm_a', 88),
+        ('structures_a', 34),
+        ('structures_m_a', 34),
+        ('structures_z_a', 34),
+        ('structures_zm_a', 34),
+        ('structures_m_ma', 34),
+        ('structures_z_ma', 34),
+        ('structures_zm_ma', 34),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_a',
+        param('grid_m_a', marks=mark.large),
+        param('grid_z_a', marks=mark.large),
+        param('grid_zm_a', marks=mark.large),
+    ])
+    @mark.parametrize('output_z', [
+        param(OutputZOption.SAME, marks=mark.large),
+        OutputZOption.ENABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        param(OutputMOption.SAME, marks=mark.large),
+        OutputMOption.ENABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_target_full_disjoint_classic(self, grid_index, ntdb_zm_tile, mem_gpkg,
+                                          fc_name, count, op_name, output_z, output_m):
+        """
+        Test target full, exercising process disjoint and handling
+        different ZM dimensions
+        """
+        option = AttributeOption.ALL
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{str(option)}_target')
+        source = copy_element(
+            ntdb_zm_tile[fc_name], target=FeatureClass(mem_gpkg, fc_name),
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        source.add_spatial_index()
+        operator = copy_element(
+            grid_index[op_name], target=FeatureClass(mem_gpkg, op_name),
+            where_clause="""DATANAME = '082O01-8'""")
+        operator.add_spatial_index()
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator,
+                algorithm_option=AlgorithmOption.CLASSIC,
+                target=target, attribute_option=option)
+        assert result.has_z == zm.z_enabled
+        assert result.has_m == zm.m_enabled
+        assert result.count == count
+    # End test_target_full_disjoint_classic method
+# End TestUnion class
 
 
 if __name__ == '__main__':  # pragma: no cover

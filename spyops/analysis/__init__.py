@@ -8,7 +8,7 @@ from spyops.analysis.extract import (
     clip, extract_features, extract_rows,
     select, split, split_by_attributes, table_select)
 from spyops.analysis.overlay import (
-    erase, intersect, symmetrical_difference)
+    erase, intersect, symmetrical_difference, union)
 
 
 __all__ = [
@@ -19,10 +19,10 @@ __all__ = [
     'table_select',
     'extract_rows',
     'extract_features',
-
     'erase',
     'intersect',
-    'symmetrical_difference'
+    'symmetrical_difference',
+    'union',
 ]
 
 
