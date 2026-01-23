@@ -12,7 +12,8 @@ from spyops.geometry.convert import get_geometry_converters
 from spyops.geometry.validate import get_validated_geometries
 from spyops.query.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
-    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
+    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
+    QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.constant import (
     ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, OUTPUT_TYPE_OPTION, SOURCE,
     TARGET)
@@ -26,7 +27,7 @@ from spyops.validation import (
     validate_same_crs, validate_xy_tolerance)
 
 
-__all__ = ['erase', 'intersect', 'symmetrical_difference']
+__all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 
 
 @validate_result()
@@ -133,6 +134,54 @@ def symmetrical_difference(source: FeatureClass, operator: FeatureClass,
     _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
     return query.target
 # End symmetrical_difference function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_feature_class(TARGET, exists=False)
+@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
+@validate_xy_tolerance()
+@validate_same_crs(SOURCE, OPERATOR)
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
+def union(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
+          attribute_option: AttributeOption = AttributeOption.ALL,
+          algorithm_option: AlgorithmOption = AlgorithmOption.PAIRWISE,
+          xy_tolerance: XY_TOL = None) -> FeatureClass:
+    """
+    Union
+
+    Combines the geometries from the source and operator feature classes into
+    a single output feature class. The output contains all features from both
+    inputs, with overlapping areas split into separate features. Optionally,
+    extends the output feature class with attributes from the operator feature
+    class. Only polygon geometry types are supported.
+    """
+    if algorithm_option == AlgorithmOption.CLASSIC:
+        cls = QuerySymmetricalDifferenceClassic
+    else:
+        cls = QuerySymmetricalDifferencePairwise
+    query = cls(source=source, target=target, operator=operator,
+                attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+    _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
+    if algorithm_option == AlgorithmOption.CLASSIC:
+        cls = QueryUnionClassic
+    else:
+        cls = QueryUnionPairwise
+    query = cls(source=query.source, source_fid=query.input_fid_source,
+                operator=query.operator, operator_fid=query.input_fid_operator,
+                target=query.target, attribute_option=attribute_option,
+                xy_tolerance=xy_tolerance)
+    if not query.has_intersection:
+        return query.target
+    src_convert, op_convert = get_geometry_converters(
+        source, operator=operator, output_type_option=OutputTypeOption.SAME)
+    op_features, op_geoms = _get_converted_operator(
+        query=query, converter=op_convert)
+    return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
+                      src_convert=src_convert, xy_tolerance=xy_tolerance)
+# End union function
 
 
 if __name__ == '__main__':  # pragma: no cover
