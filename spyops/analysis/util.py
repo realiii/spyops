@@ -4,7 +4,8 @@ Internal functions for analysis module
 """
 
 
-from typing import TYPE_CHECKING
+from collections import defaultdict
+from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
@@ -31,7 +32,15 @@ from spyops.shared.util import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from shapely.geometry.base import BaseGeometry
     from spyops.geometry.config import GeometryConfig
+    from spyops.query.overlay import (
+        QueryIntersectClassic, QueryIntersectPairwise,
+        QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
+
+
+QUERY_INT: TypeAlias = Union['QueryIntersectClassic', 'QueryIntersectPairwise']
+QUERY_SYN: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
 
 
 def _clip(*, source: FeatureClass, operator: FeatureClass,
@@ -159,7 +168,7 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
 # End _difference function
 
 
-def _symmetrical_difference(*, query, xy_tolerance: XY_TOL) -> None:
+def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
     """
     Internal Symmetrical Difference
     """
@@ -174,6 +183,66 @@ def _symmetrical_difference(*, query, xy_tolerance: XY_TOL) -> None:
                 overlay_geoms=geoms, target=query.target,
                 config=query.geometry_config, xy_tolerance=xy_tolerance)
 # End _symmetrical_difference function
+
+
+def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
+        -> tuple[list[tuple], list[BaseGeometry]]:
+    """
+    Get Converted Operator Features and Geometries
+    """
+    op_geoms = []
+    op_features = []
+    with query.operator.geopackage.connection as cin:
+        cursor = cin.execute(query.select_operator)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            op_features.extend(features)
+            op_geoms.extend(to_shapely(features))
+    return op_features, converter(op_geoms)
+# End _get_converted_operator function
+
+
+def _intersect(*, query: QUERY_INT, op_features: list[tuple],
+               op_geoms: list[BaseGeometry], src_convert: Callable,
+               xy_tolerance: XY_TOL) -> FeatureClass:
+    """
+    Internal Intersect
+    """
+    records = []
+    tree = STRtree(op_geoms)
+    insert_sql = query.insert
+    config = query.geometry_config
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            geometries = src_convert(to_shapely(features))
+            intersects = tree.query(geometries, predicate='intersects')
+            if not len(intersects):
+                continue
+            grouper = defaultdict(list)
+            for src_idx, op_idx in intersects.T.tolist():
+                grouper[op_idx].append(src_idx)
+            results = []
+            for op_idx, indexes in grouper.items():
+                op_attr = op_features[op_idx][1:]
+                op_geom = op_geoms[op_idx]
+                src_attrs = [features[idx][1:] for idx in indexes]
+                intersections = op_geom.intersection(
+                    [geometries[idx] for idx in indexes],
+                    grid_size=xy_tolerance)
+                results.extend([
+                    (g, (*src_attr, *op_attr))
+                    for g, src_attr in zip(intersections, src_attrs)])
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End _intersect function
 
 
 if __name__ == '__main__':  # pragma: no cover

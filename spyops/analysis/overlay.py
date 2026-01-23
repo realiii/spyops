@@ -3,17 +3,12 @@
 Overlay
 """
 
-
-from collections import defaultdict
-
 from fudgeo import FeatureClass
-from fudgeo.constant import FETCH_SIZE
-from fudgeo.context import ExecuteMany
-from shapely.strtree import STRtree
 
-from spyops.analysis.util import _difference, _symmetrical_difference
+from spyops.analysis.util import (
+    _difference, _get_converted_operator,
+    _intersect, _symmetrical_difference)
 from spyops.geometry.convert import get_geometry_converters
-from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.query.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
@@ -25,7 +20,6 @@ from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
 from spyops.shared.field import GEOM_TYPE_POLYGONS
 from spyops.shared.hint import XY_TOL
-from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
     validate_output_type, validate_overwrite_input, validate_result,
@@ -99,51 +93,12 @@ def intersect(source: FeatureClass, operator: FeatureClass,
                 xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_empty
-    op_geoms = []
-    op_features = []
     src_convert, op_convert = get_geometry_converters(
         source, operator=operator, output_type_option=output_type_option)
-    with query.operator.geopackage.connection as cin:
-        cursor = cin.execute(query.select_operator)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            op_features.extend(features)
-            op_geoms.extend(to_shapely(features))
-    op_geoms = op_convert(op_geoms)
-    records = []
-    tree = STRtree(op_geoms)
-    insert_sql = query.insert
-    config = query.geometry_config
-    with (query.target.geopackage.connection as cout,
-          query.source.geopackage.connection as cin,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.select)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            geometries = src_convert(to_shapely(features))
-            intersects = tree.query(geometries, predicate='intersects')
-            if not len(intersects):
-                continue
-            grouper = defaultdict(list)
-            for src_idx, op_idx in intersects.T.tolist():
-                grouper[op_idx].append(src_idx)
-            results = []
-            for op_idx, indexes in grouper.items():
-                op_attr = op_features[op_idx][1:]
-                op_geom = op_geoms[op_idx]
-                src_attrs = [features[idx][1:] for idx in indexes]
-                intersections = op_geom.intersection(
-                    [geometries[idx] for idx in indexes],
-                    grid_size=xy_tolerance)
-                results.extend([
-                    (g, (*src_attr, *op_attr))
-                    for g, src_attr in zip(intersections, src_attrs)])
-            extend_records(results, records=records, config=config)
-            executor(sql=insert_sql, data=records)
-            records.clear()
-    return query.target
+    op_features, op_geoms = _get_converted_operator(
+        query=query, converter=op_convert)
+    return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
+                      src_convert=src_convert, xy_tolerance=xy_tolerance)
 # End intersect function
 
 
