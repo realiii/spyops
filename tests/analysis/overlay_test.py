@@ -1046,9 +1046,9 @@ class TestIntersect:
 # End TestIntersect class
 
 
-class TestSymmetricDifference:
+class TestSymmetricalDifference:
     """
-    Tests for Symmetric Difference
+    Tests for Symmetrical Difference
     """
     def test_holes_and_shifted(self, inputs, mem_gpkg):
         """
@@ -1352,7 +1352,7 @@ class TestSymmetricDifference:
         assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
-# End TestSymmetricDifference class
+# End TestSymmetricalDifference class
 
 
 if __name__ == '__main__':  # pragma: no cover
