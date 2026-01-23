@@ -429,55 +429,6 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
 # End PlanarizeGeneralOperator class
 
 
-class QueryIntersectPairwise(AbstractSpatialAttribute):
-    """
-    Queries for Intersect (Pairwise)
-    """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
-                 output_type_option: OutputTypeOption,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the QueryIntersectPairwise class
-        """
-        super().__init__(
-            source=source, target=target, operator=operator,
-            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-        self._output_type_option: OutputTypeOption = output_type_option
-    # End init built-in
-
-    @cached_property
-    def target_empty(self) -> 'FeatureClass':
-        """
-        Target Empty
-        """
-        shape_type = self._get_target_shape_type()
-        has_z = self.source.has_z or self.operator.has_z
-        has_m = self.source.has_m or self.operator.has_m
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
-            z_enabled=has_z, m_enabled=has_m)
-    # End target_empty property
-
-    def _get_target_shape_type(self) -> str:
-        """
-        Get Target Shape Type based on Output Type Option and Source Shape Type
-        """
-        if self._output_type_option == OutputTypeOption.LINE:
-            if self.source.is_multi_part:
-                return GeometryType.multi_linestring
-            return GeometryType.linestring
-        elif self._output_type_option == OutputTypeOption.POINT:
-            if self.source.is_multi_part:
-                return GeometryType.multi_point
-            return GeometryType.point
-        return self.source.shape_type
-    # End _get_target_shape_type method
-# End QueryIntersectPairwise class
-
-
 class ClassicMixin:
     """
     Mixin for Shared Classic Capabilities
@@ -550,6 +501,55 @@ class ClassicMixin:
 # End ClassicMixin class
 
 
+class QueryIntersectPairwise(AbstractSpatialAttribute):
+    """
+    Queries for Intersect (Pairwise)
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryIntersectPairwise class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+        self._output_type_option: OutputTypeOption = output_type_option
+    # End init built-in
+
+    @cached_property
+    def target_empty(self) -> 'FeatureClass':
+        """
+        Target Empty
+        """
+        shape_type = self._get_target_shape_type()
+        has_z = self.source.has_z or self.operator.has_z
+        has_m = self.source.has_m or self.operator.has_m
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=shape_type, fields=self._get_unique_fields(),
+            srs=self.source.spatial_reference_system,
+            z_enabled=has_z, m_enabled=has_m)
+    # End target_empty property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        if self._output_type_option == OutputTypeOption.LINE:
+            if self.source.is_multi_part:
+                return GeometryType.multi_linestring
+            return GeometryType.linestring
+        elif self._output_type_option == OutputTypeOption.POINT:
+            if self.source.is_multi_part:
+                return GeometryType.multi_point
+            return GeometryType.point
+        return self.source.shape_type
+    # End _get_target_shape_type method
+# End QueryIntersectPairwise class
+
+
 class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
     """
     Queries for Intersect (Classic)
@@ -572,6 +572,74 @@ class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
         self._input_fid_operator: 'Field' = operator_fid
     # End init built-in
 # End QueryIntersectClassic class
+
+
+class QueryUnionPairwise(QueryIntersectPairwise):
+    """
+    Queries for the intersection portion of Union (Pairwise).  The target
+    feature class should already exist and may or may not have features
+    depending on the results of symmetrical difference.
+    """
+    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
+                 target: 'FeatureClass', attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryUnionPairwise class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance,
+            output_type_option=OutputTypeOption.SAME)
+    # End init built-in
+
+    @property
+    def target(self) -> 'FeatureClass':
+        """
+        Target
+        """
+        return self.target_full
+    # End target property
+
+    @property
+    def target_full(self) -> 'FeatureClass':
+        """
+        Target Full
+        """
+        return self._target
+    # End target_full property
+
+    @property
+    def target_empty(self) -> 'FeatureClass':
+        """
+        Target Empty
+        """
+        return self._target
+    # End target_empty property
+# End QueryUnionPairwise class
+
+
+class QueryUnionClassic(ClassicMixin, QueryUnionPairwise):
+    """
+    Queries for the intersection portion of Union (Classic). The source and
+    operator feature classes must already be planarized and coming from
+    symmetrical difference, need to do it in this order since the
+    symmetrical difference planarizing process retains the full extent of
+    the source and operator feature classes.
+    """
+    def __init__(self, source: 'FeatureClass', source_fid: 'Field',
+                 operator: 'FeatureClass', operator_fid: 'Field',
+                 target: 'FeatureClass', attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryUnionClassic class
+        """
+        super().__init__(
+            source=source, target=target, operator=operator,
+            attribute_option=attribute_option, xy_tolerance=xy_tolerance)
+        self._input_fid_source: 'Field' = source_fid
+        self._input_fid_operator: 'Field' = operator_fid
+    # End init built-in
+# End QueryUnionClassic class
 
 
 class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
