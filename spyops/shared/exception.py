@@ -39,5 +39,19 @@ class CoordinateSystemNotSupportedError(OperationsError):
 # End CoordinateSystemNotSupportedError class
 
 
+class NoValidTransformerError(BaseError):
+    """
+    No Valid Transformation Exists
+    """
+# End NoValidTransformerError class
+
+
+class InvalidAreaOfInterestError(BaseError):
+    """
+    Invalid or Inappropriate AOI Error
+    """
+# End InvalidAreaOfInterestError class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
