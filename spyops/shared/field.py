@@ -52,6 +52,9 @@ TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
+ORIG_FID: Field = Field('ORIG_FID', data_type=SQLFieldType.integer)
+
+
 def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,
                     exclude_geometry: bool = True,
                     exclude_primary: bool = True) -> FIELDS:
