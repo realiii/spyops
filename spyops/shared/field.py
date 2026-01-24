@@ -9,6 +9,7 @@ from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import GeometryType, SQLFieldType
 
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
+from spyops.shared.util import make_unique_name
 
 
 GEOM_TYPE_POINTS: NAMES = GeometryType.point, GeometryType.multi_point
@@ -158,6 +159,16 @@ def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:
     return Field(name=name, data_type=field.data_type, size=field.size,
                  is_nullable=is_nullable, default=field.default)
 # End clone_field method
+
+
+def make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
+    """
+    Make Unique Fields
+    """
+    names = {f.name.casefold() for f in base}
+    return [clone_field(f, name=make_unique_name(f.name, names=names))
+            for f in others]
+# End make_unique_fields function
 
 
 if __name__ == '__main__':  # pragma: no cover

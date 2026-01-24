@@ -20,7 +20,8 @@ from spyops.shared.constant import (
 from spyops.shared.element import copy_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.field import (
-    clone_field, get_geometry_column_name, make_field_names, validate_fields)
+    clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
+    validate_fields)
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
 from spyops.shared.util import make_unique_name
 
@@ -405,26 +406,16 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
             src_fields = [self.output_fid_source, *src_fields]
-            op_fields = self._make_unique_fields(src_fields, op_fields)
+            op_fields = make_unique_fields(src_fields, op_fields)
             return [*src_fields, self.output_fid_operator, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
             return self.output_fid_source, self.output_fid_operator
         else:
             src_fields = self._get_fields(self.source)
             op_fields = self._get_fields(self.operator)
-            op_fields = self._make_unique_fields(src_fields, op_fields)
+            op_fields = make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
     # End _get_unique_fields method
-
-    @staticmethod
-    def _make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
-        """
-        Make Unique Fields
-        """
-        names = {f.name.casefold() for f in base}
-        return [clone_field(f, name=make_unique_name(f.name, names=names))
-                for f in others]
-    # End _make_unique_fields method
 
     @staticmethod
     def _make_fid_field(field: Field, element: ELEMENT) -> Field:
@@ -482,7 +473,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         src_fields = self._get_fields(self.source)
         op_fields = self._get_fields(self.operator)
         fields = [*src_fields, *op_fields]
-        field, = self._make_unique_fields(fields, [field])
+        field, = make_unique_fields(fields, [field])
         return field
     # End _avoid_name_clash method
 

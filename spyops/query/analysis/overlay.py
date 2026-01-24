@@ -28,7 +28,8 @@ from spyops.shared.constant import EMPTY
 from spyops.shared.element import create_feature_class
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
-    get_geometry_column_name, make_field_names, validate_fields)
+    get_geometry_column_name, make_field_names, make_unique_fields,
+    validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
 from spyops.shared.util import element_names, make_unique_name
@@ -459,14 +460,14 @@ class ClassicMixin:
         if self._attr_option == AttributeOption.ALL:
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
-            op_fields = self._make_unique_fields(src_fields, op_fields)
+            op_fields = make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
             return self.output_fid_source, self.output_fid_operator
         else:
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
-            op_fields = self._make_unique_fields(src_fields, op_fields)
+            op_fields = make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
     # End _get_unique_fields method
 
@@ -675,7 +676,7 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
             if is_source:
                 return src_fields
             else:
-                op_fields = self._make_unique_fields(src_fields, op_fields)
+                op_fields = make_unique_fields(src_fields, op_fields)
                 return [self.output_fid_operator, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
             if is_source:
@@ -688,7 +689,7 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
                 return src_fields
             else:
                 op_fields = self._get_fields(self.operator)
-                return self._make_unique_fields(src_fields, op_fields)
+                return make_unique_fields(src_fields, op_fields)
     # End _get_insert_fields method
 
     @property

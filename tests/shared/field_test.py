@@ -5,12 +5,12 @@ Test Field
 
 
 from fudgeo import Field
-from fudgeo.enumeration import DataType, SQLFieldType
+from fudgeo.enumeration import SQLFieldType
 from pytest import mark
 
 from spyops.shared.field import (
     clone_field, common_fields, get_geometry_column_name, make_field_names,
-    validate_fields)
+    make_unique_fields, validate_fields)
 
 
 pytestmark = [mark.field]
@@ -110,6 +110,22 @@ def test_clone_field():
     cloned = clone_field(fld, 'qwer', allow_null=True)
     assert cloned.is_nullable
 # End test_clone_field function
+
+
+@mark.parametrize('existing_names, new_names, expected', [
+    (('ID', 'NAME'), ('a', 'b'), ('a', 'b')),
+    (('ID', 'NAME'), ('ORIG_FID',), ('ORIG_FID',)),
+    (('ORIG_FID', 'ID', 'NAME'), ('ORIG_FID',), ('ORIG_FID_1',)),
+])
+def test_make_unique_fields(existing_names, new_names, expected):
+    """
+    Test make unique fields
+    """
+    existing = [Field(n, data_type=SQLFieldType.text) for n in existing_names]
+    fields = [Field(n, data_type=SQLFieldType.text) for n in new_names]
+    unique_names = [f.name for f in make_unique_fields(existing, fields)]
+    assert tuple(unique_names) == expected
+# End test_make_unique_fields function
 
 
 if __name__ == '__main__':  # pragma: no cover
