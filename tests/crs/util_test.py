@@ -13,7 +13,7 @@ from tests.constants import (
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
     NAD_1983_StatePlane_Texas_North_Central_FIPS_4202, NAD_1983_UTM_Zone_15N)
 from spyops.crs.util import (
-    _equals, check_same_crs, from_authority, from_crs, get_crs_from_source,
+    equals, check_same_crs, from_authority, from_crs, get_crs_from_source,
     _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs)
 from spyops.shared.exception import OperationsError
 
@@ -69,7 +69,7 @@ def test_equals(source_code, target_code, expected):
     """
     Test Equals
     """
-    assert _equals(CRS(source_code), CRS(target_code)) is expected
+    assert equals(CRS(source_code), CRS(target_code)) is expected
 # End test_equals function
 
 

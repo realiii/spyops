@@ -68,7 +68,7 @@ def check_same_crs(a: CRS | FeatureClass, b: CRS | FeatureClass) -> None:
     """
     Check Feature Classes have same CRS
     """
-    if _equals(get_crs_from_source(a), get_crs_from_source(b)):
+    if equals(get_crs_from_source(a), get_crs_from_source(b)):
         return
     raise OperationsError('CRS for input feature classes must be the same')
 # End check_same_crs function
@@ -126,14 +126,14 @@ def _change_crs_dimension(source_crs: CRS, target_crs: CRS) \
 # End _change_crs_dimension function
 
 
-def _equals(source_crs: CRS, target_crs: CRS) -> bool:
+def equals(source_crs: CRS, target_crs: CRS) -> bool:
     """
     Check if Coordinate Reference Systems are equal, account for compound crs
-    adjusting to same dimension.
+    adjusting to the same dimension.
     """
-    source_crs, target_crs, _ = _change_crs_dimension(source_crs, target_crs)
+    source_crs, target_crs, _ = change_crs_dimension(source_crs, target_crs)
     return source_crs.equals(target_crs, ignore_axis_order=True)
-# End _equals function
+# End equals function
 
 
 def from_crs(crs: CRS) -> SpatialReferenceSystem:
