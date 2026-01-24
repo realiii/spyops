@@ -236,7 +236,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return HasZM(has_z=self.source.has_z, has_m=self.source.has_m)
     # End _has_zm property
 
-    def _make_full_query(self, element: 'FeatureClass') -> str:
+    def _make_full_query(self, element: FeatureClass) -> str:
         """
         Make Full Query, return all features
         """
