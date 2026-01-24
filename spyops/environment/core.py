@@ -4,6 +4,7 @@ Environment / Analysis Settings
 """
 
 
+from pathlib import Path
 from typing import NamedTuple
 
 from fudgeo import FeatureClass
@@ -101,6 +102,18 @@ class _AnalysisSettings:
     def current_workspace(self, value: GPKG | None) -> None:
         self._workspace.current = value
     # End current_workspace property
+
+    @property
+    def scratch_folder(self) -> Path | None:
+        """
+        Scratch Folder
+        """
+        return self._workspace.folder
+
+    @scratch_folder.setter
+    def scratch_folder(self, value: Path | None) -> None:
+        self._workspace.folder = value
+    # End scratch_folder property
 
     @property
     def scratch_workspace(self) -> GPKG | None:

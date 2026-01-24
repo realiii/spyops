@@ -4,6 +4,8 @@ Test for Workspace Settings
 """
 
 
+from pathlib import Path
+
 from fudgeo import GeoPackage, MemoryGeoPackage
 from pytest import mark, raises
 
@@ -42,6 +44,20 @@ def test_scratch_workspace(fresh_gpkg):
         assert ANALYSIS_SETTINGS.scratch_workspace is fresh_gpkg
     assert ANALYSIS_SETTINGS.scratch_workspace is original
 # End test_scratch_workspace function
+
+
+def test_scratch_folder():
+    """
+    Test scratch folder
+    """
+    original = ANALYSIS_SETTINGS.scratch_folder
+    assert original.is_dir()
+    with Swap(Setting.SCRATCH_FOLDER, None) as s:
+        assert isinstance(s.cached_value, Path)
+        assert s.swap_value is None
+        assert ANALYSIS_SETTINGS.scratch_folder is None
+    assert ANALYSIS_SETTINGS.scratch_folder is original
+# End test_scratch_folder function
 
 
 if __name__ == '__main__':  # pragma: no cover
