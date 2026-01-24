@@ -751,20 +751,6 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
             source=self.operator, target=target, config=config,
             disjoint=self._disjoint_operator, insert=self._insert_operator)
     # End operator_config property
-
-    @cached_property
-    def target_empty(self) -> 'FeatureClass':
-        """
-        Target Empty
-        """
-        has_z = self.source.has_z or self.operator.has_z
-        has_m = self.source.has_m or self.operator.has_m
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=self.source.shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
-            z_enabled=has_z, m_enabled=has_m)
-    # End target_empty property
 # End BaseQuerySymmetricalDifference class
 
 

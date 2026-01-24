@@ -12,12 +12,12 @@ from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
 from shapely.creation import box
 
-from spyops.environment.core import zm_config
+from spyops.environment.core import HasZM, zm_config
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
-from spyops.shared.element import copy_feature_class
+from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
@@ -135,6 +135,13 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         self._target: FeatureClass = target
     # End init built-in
 
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return validate_fields(self.source, fields=self.source.fields)
+    # End _get_unique_fields method
+
     @cached_property
     def zm_config(self) -> 'ZMConfig':
         """
@@ -185,13 +192,16 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
     # End target property
 
     @cached_property
-    def target_empty(self) -> FeatureClass:
+    def target_empty(self) -> 'FeatureClass':
         """
-        Only the Structure of the Source copied to the Target Feature Class
+        Target Empty
         """
-        return copy_feature_class(
-            self.source, target=self._target, where_clause=SQL_EMPTY,
-            config=self.zm_config)
+        has_zm = self._has_zm
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=self.source.shape_type, fields=self._get_unique_fields(),
+            srs=self.source.spatial_reference_system,
+            z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
     # End target_empty property
 
     @cached_property
@@ -203,6 +213,24 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
             self.source, target=self._target, where_clause=SQL_FULL,
             config=self.zm_config)
     # End target_full property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        return HasZM(has_z=self.source.has_z, has_m=self.source.has_m)
+    # End _has_zm property
+
+    def _make_full_query(self, element: 'FeatureClass') -> str:
+        """
+        Make Full Query, return all features
+        """
+        where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(element)
+        return self._make_select(
+            element, field_names=select_field_names, where_clause=where)
+    # End _make_full_query method
 # End AbstractSourceQuery class
 
 
@@ -218,6 +246,16 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         super().__init__(source=source, target=target)
         self._operator: FeatureClass = operator
     # End init built-in
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        has_z = self.source.has_z or self.operator.has_z
+        has_m = self.source.has_m or self.operator.has_m
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
 
     @cached_property
     def zm_config(self) -> 'ZMConfig':
@@ -329,16 +367,6 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return self._make_select(
             element, field_names=select_field_names, where_clause=where)
     # End _make_intersection_query method
-
-    def _make_full_query(self, element: 'FeatureClass') -> str:
-        """
-        Make Full Query, return all features
-        """
-        where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(element)
-        return self._make_select(
-            element, field_names=select_field_names, where_clause=where)
-    # End _make_full_query method
 
     def _make_disjoint_select(self, element: FeatureClass) -> str:
         """
@@ -496,15 +524,6 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             field_names=self._concatenate(geom_name, names),
             field_count=len(fields) + 1)
     # End _build_insert method
-
-    @property
-    @abstractmethod
-    def target_empty(self) -> FeatureClass:  # pragma: no cover
-        """
-        Build the structure needed for the output feature class
-        """
-        pass
-    # End target_empty property
 # End AbstractSpatialAttribute class
 
 
