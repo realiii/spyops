@@ -328,11 +328,23 @@ operator = gpkg['index_a']
 target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
 fc = clip(source, operator=operator, target=target)
 
-# use strings hydrated objects
+# use strings instead of hydrated objects
 gpkg = GeoPackage('/some/data/ntdb_zm.gpkg')
 target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
 with Swap(Setting.CURRENT_WORKSPACE, gpkg):
     fc = clip('hydro_a', operator='index_a', target=target)
+```
+
+The `scratch_folder` setting can be used to specify a temporary folder.  Not presently used by any internal operations.
+
+```python
+from pathlib import Path
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
+
+path = Path('/some/data')
+with Swap(Setting.SCRATCH_FOLDER, path):
+    ...
 ```
 
 ## Release History
@@ -351,4 +363,4 @@ with Swap(Setting.CURRENT_WORKSPACE, gpkg):
 * added `multipart_to_singlepart` (Management - Features) and alias as `explode`
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
-* Settings support for workspace `current_workspace`, and `scratch_workspace`
+* Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`

@@ -5,6 +5,7 @@ Workspace Settings
 
 
 from pathlib import Path
+from tempfile import gettempdir
 from typing import Any
 
 from fudgeo import GeoPackage, MemoryGeoPackage
@@ -27,7 +28,19 @@ class _Workspace:
         super().__init__()
         self._current: GPKG | None = None
         self._scratch: GPKG | None = MemoryGeoPackage.create()
+        self._folder: Path | None = self._get_temp_path()
     # End init built-in
+
+    @staticmethod
+    def _get_temp_path() -> Path | None:
+        """
+        Get Temp Path
+        """
+        try:
+            return Path(gettempdir())
+        except FileNotFoundError:
+            return None
+    # End _get_temp_path method
 
     @property
     def current(self) -> GPKG:
@@ -41,6 +54,22 @@ class _Workspace:
         self._current = self._check_workspace(
             value, setting=Setting.CURRENT_WORKSPACE)
     # End current property
+
+    @property
+    def folder(self) -> Path | None:
+        """
+        Scratch Folder
+        """
+        return self._folder
+
+    @folder.setter
+    def folder(self, value: Path | None) -> None:
+        if value is None or not isinstance(value, Path):
+            value = None
+        elif isinstance(value, Path) and not value.is_dir():
+            value = None
+        self._folder = value
+    # End folder property
 
     @property
     def scratch(self) -> GPKG | None:

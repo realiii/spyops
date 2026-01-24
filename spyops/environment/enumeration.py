@@ -20,6 +20,7 @@ class Setting(StrEnum):
 
     CURRENT_WORKSPACE = auto()
     SCRATCH_WORKSPACE = auto()
+    SCRATCH_FOLDER = auto()
 # End Setting class
 
 
