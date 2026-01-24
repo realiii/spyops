@@ -22,13 +22,14 @@ from spyops.geometry.config import geometry_config
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
-from spyops.query.extract import QueryClip
+from spyops.query.analysis.extract import QueryClip
 from spyops.shared.base import QueryConfig
 from spyops.shared.constant import EMPTY
 from spyops.shared.element import create_feature_class
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
-    get_geometry_column_name, make_field_names, validate_fields)
+    get_geometry_column_name, make_field_names, make_unique_fields,
+    validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
 from spyops.shared.util import element_names, make_unique_name
@@ -219,14 +220,6 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
     # End _field_names_and_count method
-
-    @property
-    def target_empty(self) -> None:  # pragma: no cover
-        """
-        Minimal implementation for Abstract Class
-        """
-        return
-    # End target_empty property
 
     @property
     def select(self) -> str:
@@ -459,14 +452,14 @@ class ClassicMixin:
         if self._attr_option == AttributeOption.ALL:
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
-            op_fields = self._make_unique_fields(src_fields, op_fields)
+            op_fields = make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
             return self.output_fid_source, self.output_fid_operator
         else:
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
-            op_fields = self._make_unique_fields(src_fields, op_fields)
+            op_fields = make_unique_fields(src_fields, op_fields)
             return [*src_fields, *op_fields]
     # End _get_unique_fields method
 
@@ -517,21 +510,6 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
             attribute_option=attribute_option, xy_tolerance=xy_tolerance)
         self._output_type_option: OutputTypeOption = output_type_option
     # End init built-in
-
-    @cached_property
-    def target_empty(self) -> 'FeatureClass':
-        """
-        Target Empty
-        """
-        shape_type = self._get_target_shape_type()
-        has_z = self.source.has_z or self.operator.has_z
-        has_m = self.source.has_m or self.operator.has_m
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
-            z_enabled=has_z, m_enabled=has_m)
-    # End target_empty property
 
     def _get_target_shape_type(self) -> str:
         """
@@ -675,7 +653,7 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
             if is_source:
                 return src_fields
             else:
-                op_fields = self._make_unique_fields(src_fields, op_fields)
+                op_fields = make_unique_fields(src_fields, op_fields)
                 return [self.output_fid_operator, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
             if is_source:
@@ -688,7 +666,7 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
                 return src_fields
             else:
                 op_fields = self._get_fields(self.operator)
-                return self._make_unique_fields(src_fields, op_fields)
+                return make_unique_fields(src_fields, op_fields)
     # End _get_insert_fields method
 
     @property
@@ -750,20 +728,6 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
             source=self.operator, target=target, config=config,
             disjoint=self._disjoint_operator, insert=self._insert_operator)
     # End operator_config property
-
-    @cached_property
-    def target_empty(self) -> 'FeatureClass':
-        """
-        Target Empty
-        """
-        has_z = self.source.has_z or self.operator.has_z
-        has_m = self.source.has_m or self.operator.has_m
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=self.source.shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
-            z_enabled=has_z, m_enabled=has_m)
-    # End target_empty property
 # End BaseQuerySymmetricalDifference class
 
 

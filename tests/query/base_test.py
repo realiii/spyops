@@ -7,7 +7,7 @@ from pytest import mark
 from fudgeo import Field
 from fudgeo.enumeration import SQLFieldType
 
-from spyops.query.extract import QuerySplitByAttributes
+from spyops.query.analysis.extract import QuerySplitByAttributes
 
 
 pytestmark = [mark.query]

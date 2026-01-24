@@ -38,12 +38,23 @@ def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
     while features := cursor.fetchmany(FETCH_SIZE):
         if not (features := filter_features(features)):
             continue
-        geometries = to_shapely(features)
-        results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
-        extend_records(results, records=records, config=config)
-        executor(sql=insert_sql, data=records)
-        records.clear()
+        insert_many(config, executor=executor, insert_sql=insert_sql,
+                    features=features, records=records)
 # End bulk_insert function
+
+
+def insert_many(config: 'GeometryConfig', executor: 'ExecuteMany',
+                insert_sql: str, features: list[tuple],
+                records: list[tuple]) -> None:
+    """
+    Insert Many
+    """
+    geometries = to_shapely(features)
+    results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
+    extend_records(results, records=records, config=config)
+    executor(sql=insert_sql, data=records)
+    records.clear()
+# End insert_many function
 
 
 def extend_records(results: list[tuple], records: list[tuple],

@@ -16,7 +16,7 @@ from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from spyops.query.overlay import QueryErase
+from spyops.query.analysis.overlay import QueryErase
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
 

@@ -4,13 +4,13 @@ Extraction
 """
 
 
-from typing import Callable
+from typing import Callable, TYPE_CHECKING, Union
 
-from fudgeo import FeatureClass, Field, Table
+from fudgeo import FeatureClass
 
 from spyops.analysis.util import _clip, _split_by_attributes
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.query.extract import QuerySplit
+from spyops.query.analysis.extract import QuerySplit
 from spyops.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET, UNDERSCORE)
 from spyops.shared.element import copy_element
@@ -23,6 +23,10 @@ from spyops.validation import (
     validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import Field, Table
+
+
 __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
            'split_by_attributes', 'clip', 'split']
 
@@ -31,8 +35,8 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_table(SOURCE)
 @validate_table(TARGET, exists=False)
 @validate_overwrite_input(TARGET, SOURCE)
-def table_select(source: Table, target: Table, *,
-                 where_clause: str = '') -> Table:
+def table_select(source: 'Table', target: 'Table', *,
+                 where_clause: str = '') -> 'Table':
     """
     Table Select
 
@@ -106,8 +110,9 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_geopackage()
 @validate_xy_tolerance()
 @validate_same_crs(SOURCE, OPERATOR)
-def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
-          geopackage: GPKG, *, xy_tolerance: XY_TOL = None) -> list[FeatureClass]:
+def split(source: FeatureClass, operator: FeatureClass,
+          field: Union['Field', str], geopackage: GPKG, *,
+          xy_tolerance: XY_TOL = None) -> list[FeatureClass]:
     """
     Split
 
@@ -134,7 +139,7 @@ def split(source: FeatureClass, operator: FeatureClass, field: Field | str,
 
 
 # Aliases
-extract_rows: Callable[[Table, Table, str, bool], Table] = table_select
+extract_rows: Callable[['Table', 'Table', str, bool], 'Table'] = table_select
 extract_features: Callable[[FeatureClass, FeatureClass, str, bool], FeatureClass] = select
 
 

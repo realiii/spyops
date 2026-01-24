@@ -26,7 +26,7 @@ from tests.constants import (
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
     NAD_1983_StatePlane_Texas_North_Central_FIPS_4202, NAD_1983_UTM_Zone_15N)
 
-pytestmark = [mark.crs, mark.feature]
+pytestmark = [mark.crs, mark.element]
 
 
 @mark.parametrize('srs_id_input, org_input, org_id_input, wkt', [

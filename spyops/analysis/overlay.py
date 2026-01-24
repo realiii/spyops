@@ -3,14 +3,15 @@
 Overlay
 """
 
-from fudgeo import FeatureClass
+
+from typing import TYPE_CHECKING
 
 from spyops.analysis.util import (
     _difference, _get_converted_operator,
     _intersect, _symmetrical_difference)
 from spyops.geometry.convert import get_geometry_converters
 from spyops.geometry.validate import get_validated_geometries
-from spyops.query.overlay import (
+from spyops.query.analysis.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)
@@ -27,6 +28,10 @@ from spyops.validation import (
     validate_same_crs, validate_xy_tolerance)
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
 __all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 
 
@@ -38,8 +43,9 @@ __all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 @validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
-def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
-          xy_tolerance: XY_TOL = None) -> FeatureClass:
+def erase(source: 'FeatureClass', operator: 'FeatureClass',
+          target: 'FeatureClass', *,
+          xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Erase
 
@@ -71,12 +77,12 @@ def erase(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
-def intersect(source: FeatureClass, operator: FeatureClass,
-              target: FeatureClass, *,
+def intersect(source: 'FeatureClass', operator: 'FeatureClass',
+              target: 'FeatureClass', *,
               attribute_option: AttributeOption = AttributeOption.ALL,
               output_type_option: OutputTypeOption = OutputTypeOption.SAME,
               algorithm_option: AlgorithmOption = AlgorithmOption.PAIRWISE,
-              xy_tolerance: XY_TOL = None) -> FeatureClass:
+              xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Intersect
 
@@ -113,11 +119,11 @@ def intersect(source: FeatureClass, operator: FeatureClass,
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
-def symmetrical_difference(source: FeatureClass, operator: FeatureClass,
-                           target: FeatureClass, *,
+def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
+                           target: 'FeatureClass', *,
                            attribute_option: AttributeOption = AttributeOption.ALL,
                            algorithm_option: AlgorithmOption = AlgorithmOption.PAIRWISE,
-                           xy_tolerance: XY_TOL = None) -> FeatureClass:
+                           xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Symmetrical Difference
 
@@ -145,10 +151,11 @@ def symmetrical_difference(source: FeatureClass, operator: FeatureClass,
 @validate_xy_tolerance()
 @validate_same_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
-def union(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
+def union(source: 'FeatureClass', operator: 'FeatureClass',
+          target: 'FeatureClass', *,
           attribute_option: AttributeOption = AttributeOption.ALL,
           algorithm_option: AlgorithmOption = AlgorithmOption.PAIRWISE,
-          xy_tolerance: XY_TOL = None) -> FeatureClass:
+          xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Union
 
