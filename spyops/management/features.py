@@ -35,7 +35,8 @@ def multipart_to_singlepart(source: 'FeatureClass',
     MultiPart to Single Part
 
     Generates a feature class with single-part geometries by splitting
-    multipart input features.
+    multipart input features.  A column named ORIG_FID is added to the output
+    feature class to track the original feature identifier.
     """
     parts = []
     records = []
