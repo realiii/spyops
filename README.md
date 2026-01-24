@@ -158,7 +158,7 @@ fc = intersect(source, operator=operator, target=target,
                algorithm_option=AlgorithmOption.CLASSIC)
 ```
 
-### `symmetrical_difference`
+#### `symmetrical_difference`
 Extracts the portion of the input feature class and operator feature class
 that do not intersect.  Optionally, extends the output feature class
 with attributes from the operator feature class.
@@ -187,7 +187,7 @@ fc = symmetrical_difference(source, operator=operator, target=target,
                             algorithm_option=AlgorithmOption.CLASSIC)
 ```
 
-### `union`
+#### `union`
 Combines the geometries from the source and operator feature classes into
 a single output feature class. The output contains all features from both
 inputs, with overlapping areas split into separate features. Optionally,
