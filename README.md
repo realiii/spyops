@@ -328,7 +328,7 @@ operator = gpkg['index_a']
 target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
 fc = clip(source, operator=operator, target=target)
 
-# use strings hydrated objects
+# use strings instead of hydrated objects
 gpkg = GeoPackage('/some/data/ntdb_zm.gpkg')
 target = FeatureClass(geopackage=gpkg, name='clipped_hydro_a')
 with Swap(Setting.CURRENT_WORKSPACE, gpkg):
