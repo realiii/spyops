@@ -62,6 +62,7 @@ class TestMultiPartToSinglePart:
         assert exploded.shape_type in (
             GeometryType.linestring, GeometryType.point, GeometryType.polygon)
         cls = FUDGEO_GEOMETRY_LOOKUP[exploded.shape_type][exploded.has_z, exploded.has_m]
+        assert exploded.is_multi_part is False
         assert exploded.has_z == zm.z_enabled
         assert exploded.has_m == zm.m_enabled
         assert len(exploded) == count

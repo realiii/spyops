@@ -158,7 +158,7 @@ fc = intersect(source, operator=operator, target=target,
                algorithm_option=AlgorithmOption.CLASSIC)
 ```
 
-### `symmetrical_difference`
+#### `symmetrical_difference`
 Extracts the portion of the input feature class and operator feature class
 that do not intersect.  Optionally, extends the output feature class
 with attributes from the operator feature class.
@@ -187,7 +187,7 @@ fc = symmetrical_difference(source, operator=operator, target=target,
                             algorithm_option=AlgorithmOption.CLASSIC)
 ```
 
-### `union`
+#### `union`
 Combines the geometries from the source and operator feature classes into
 a single output feature class. The output contains all features from both
 inputs, with overlapping areas split into separate features. Optionally,
@@ -217,6 +217,29 @@ target = FeatureClass(geopackage=gpkg, name='sh_union_classic_a')
 fc = union(source, operator=operator, target=target, 
            algorithm_option=AlgorithmOption.CLASSIC)
 ```
+
+## Management
+### Features
+#### `multipart_to_singlepart`
+Generates a feature class with single-part geometries by splitting
+multipart input features.  A column named ORIG_FID is added to the output
+feature class to track the original feature identifier.
+
+```python
+from fudgeo import GeoPackage, FeatureClass
+from spyops.management.features import multipart_to_singlepart
+from spyops.shared.enumeration import AlgorithmOption, AttributeOption
+
+gpkg = GeoPackage('/some/path/ntdb_zm_small.gpkg')
+source = gpkg['structures_zm_ma']
+
+# output will be single-part features
+target = FeatureClass(geopackage=gpkg, name='structures_explode_zm_a')
+fc = multipart_to_singlepart(source, target=target)
+assert source.is_multipart is True
+assert fc.is_multipart is False
+```
+
 
 ## Settings
 Setting can be used globally or on a specific function call using context managers.
@@ -325,6 +348,7 @@ with Swap(Setting.CURRENT_WORKSPACE, gpkg):
 * added `intersect` (Analysis - Overlay)
 * added `symmetrical_difference` (Analysis - Overlay)
 * added `union` (Analysis - Overlay)
+* added `multipart_to_singlepart` (Management - Features) and alias as `explode`
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, and `scratch_workspace`
