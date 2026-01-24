@@ -4,8 +4,13 @@ Query Classes for management.features module
 """
 
 
+from operator import attrgetter
+
+from fudgeo.enumeration import GeometryType
+
 from spyops.query.base import AbstractSourceQuery
-from spyops.shared.constant import SQL_FULL
+from spyops.shared.constant import (
+    LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
 from spyops.shared.field import (
     ORIG_FID, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
@@ -16,6 +21,33 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
     """
     Queries for MultiPart to SinglePart
     """
+    @property
+    def part_getter(self) -> attrgetter:
+        """
+        Part Getter
+        """
+        shape_type = self.source.shape_type
+        if shape_type == GeometryType.multi_point:
+            name = POINTS_ATTR
+        elif shape_type == GeometryType.multi_linestring:
+            name = LINES_ATTR
+        else:
+            name = POLYGONS_ATTR
+        return attrgetter(name)
+    # End part_getter property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type reducing from multi to single
+        """
+        shape_type = self.source.shape_type
+        if shape_type == GeometryType.multi_point:
+            return GeometryType.point
+        elif shape_type == GeometryType.multi_linestring:
+            return GeometryType.linestring
+        return GeometryType.polygon
+    # End _get_target_shape_type method
+
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields and Rename Primary Key Columns if included
