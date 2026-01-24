@@ -64,9 +64,10 @@ def get_crs_authority(crs: CRS, option: InfoOption) -> Authority:
 # End get_crs_authority function
 
 
-def check_same_crs(a: CRS | FeatureClass, b: CRS | FeatureClass) -> None:
+def check_same_crs(a: Union[CRS, 'FeatureClass'],
+                   b: Union[CRS, 'FeatureClass']) -> None:
     """
-    Check Feature Classes have same CRS
+    Check Feature Classes have the same CRS
     """
     if equals(get_crs_from_source(a), get_crs_from_source(b)):
         return
