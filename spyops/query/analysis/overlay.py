@@ -222,14 +222,6 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End _field_names_and_count method
 
     @property
-    def target_empty(self) -> None:  # pragma: no cover
-        """
-        Minimal implementation for Abstract Class
-        """
-        return
-    # End target_empty property
-
-    @property
     def select(self) -> str:
         """
         Selection Query
@@ -518,21 +510,6 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
             attribute_option=attribute_option, xy_tolerance=xy_tolerance)
         self._output_type_option: OutputTypeOption = output_type_option
     # End init built-in
-
-    @cached_property
-    def target_empty(self) -> 'FeatureClass':
-        """
-        Target Empty
-        """
-        shape_type = self._get_target_shape_type()
-        has_z = self.source.has_z or self.operator.has_z
-        has_m = self.source.has_m or self.operator.has_m
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
-            z_enabled=has_z, m_enabled=has_m)
-    # End target_empty property
 
     def _get_target_shape_type(self) -> str:
         """

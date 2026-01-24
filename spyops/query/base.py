@@ -192,16 +192,12 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
     # End target property
 
     @cached_property
-    def target_empty(self) -> 'FeatureClass':
+    def target_empty(self) -> FeatureClass:
         """
         Target Empty
         """
-        has_zm = self._has_zm
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=self.source.shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
-            z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
+        shape_type = self._get_target_shape_type()
+        return self._create_feature_class(shape_type, has_zm=self._has_zm)
     # End target_empty property
 
     @cached_property
@@ -213,6 +209,24 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
             self.source, target=self._target, where_clause=SQL_FULL,
             config=self.zm_config)
     # End target_full property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        return self.source.shape_type
+    # End _get_target_shape_type method
+
+    def _create_feature_class(self, shape_type: str, has_zm: HasZM) -> FeatureClass:
+        """
+        Create Feature Class
+        """
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=shape_type, fields=self._get_unique_fields(),
+            srs=self.source.spatial_reference_system,
+            z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
+    # End _create_feature_class method
 
     @property
     def _has_zm(self) -> HasZM:
