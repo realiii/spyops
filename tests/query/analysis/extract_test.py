@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Test for Query builders
+Test for Extract Query classes
 """
 
 
