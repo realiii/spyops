@@ -3,10 +3,17 @@
 Coordinate Reference System Functionality
 """
 
-from fudgeo import FeatureClass, SpatialReferenceSystem
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Union
+
+from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 from pyproj.enums import WktVersion
+from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
+from pyproj.network import set_network_enabled
+
 
 from spyops.crs.authority import Authority, authorities, to_authority
 from spyops.crs.enumeration import InfoOption
@@ -19,7 +26,24 @@ from spyops.shared.hint import GPKG
 from spyops.shared.util import safe_int
 
 
-def get_crs_from_source(source: CRS | FeatureClass) -> CRS:
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
+def configure_grids(network_enabled: bool | None = False,
+                    data_path: Path | None = None):
+    """
+    Configure grids
+    """
+    set_network_enabled(active=network_enabled)
+    if not data_path:
+        return
+    if isinstance(data_path, Path) and data_path.is_dir():
+        append_data_dir(str(data_path))
+# End configure_grids function
+
+
+def get_crs_from_source(source: Union[CRS, 'FeatureClass']) -> CRS:
     """
     Returns a CRS object from a geopackage feature class or CRS object
     """
