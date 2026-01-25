@@ -27,7 +27,7 @@ class _Workspace:
         """
         super().__init__()
         self._current: GPKG | None = None
-        self._scratch: GPKG | None = MemoryGeoPackage.create()
+        self._scratch: GPKG | None = None
         self._folder: Path | None = self._get_temp_path()
     # End init built-in
 
