@@ -6,7 +6,7 @@ Extraction
 
 from typing import Callable, TYPE_CHECKING, Union
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, MemoryGeoPackage
 
 from spyops.analysis.util import _clip, _split_by_attributes
 from spyops.environment import ANALYSIS_SETTINGS
@@ -123,9 +123,12 @@ def split(source: FeatureClass, operator: FeatureClass,
     query = QuerySplit(source, target=None, operator=operator)
     if not query.has_intersection:
         return features
+    is_internal = False
+    if not (scratch := ANALYSIS_SETTINGS.scratch_workspace):
+        is_internal = True
+        scratch = MemoryGeoPackage.create()
     splitters = _split_by_attributes(
-        source=operator, group_fields=[field],
-        geopackage=ANALYSIS_SETTINGS.scratch_workspace,
+        source=operator, group_fields=[field], geopackage=scratch,
         ignore_zm_settings=True)
     for (value,), s in splitters.items():
         name = make_valid_name(
@@ -134,6 +137,8 @@ def split(source: FeatureClass, operator: FeatureClass,
             source=source, operator=s, xy_tolerance=xy_tolerance,
             target=FeatureClass(geopackage=geopackage, name=name))
         features.append(target)
+    if is_internal:
+        scratch.connection.close()
     return features
 # End split function
 
