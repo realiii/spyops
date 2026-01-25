@@ -131,7 +131,7 @@ def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
 # End _get_crs_component function
 
 
-def _change_crs_dimension(source_crs: CRS, target_crs: CRS) \
+def change_crs_dimension(source_crs: CRS, target_crs: CRS) \
         -> tuple[CRS, CRS, bool]:
     """
     Change CRS Dimensions to be internally consistent, return flag that
@@ -148,7 +148,7 @@ def _change_crs_dimension(source_crs: CRS, target_crs: CRS) \
     # NOTE to get here we inputs both being 2D or both being 3D
     has_vertical = source_crs.is_compound and target_crs.is_compound
     return source_crs, target_crs, has_vertical
-# End _change_crs_dimension function
+# End change_crs_dimension function
 
 
 def equals(source_crs: CRS, target_crs: CRS) -> bool:
