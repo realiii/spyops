@@ -22,6 +22,7 @@ from shapely import (
 
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
+from spyops.shared.constant import SRS_ID_WKB
 from spyops.shared.exception import OperationsWarning
 
 
@@ -58,9 +59,8 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                 geom, has_z=has_z, slicer=slicer, lookup=lookup)
             shape_type = geom.geom_type.upper()
             cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
-            # NOTE srs_id value does not matter, we are only dealing with WKB
             planarized.append(from_wkb(cls(_adjust_coords(
-                coords, shape_type=shape_type), srs_id=-1).wkb))
+                coords, shape_type=shape_type), srs_id=SRS_ID_WKB).wkb))
     return GeometryCollection(planarized)
 # End polygonize function
 
@@ -130,8 +130,7 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
     coords = _build_coordinates(
         result, has_z=has_z, slicer=slicer, lookup=lookup)
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
-    # NOTE srs_id value does not matter, we are only dealing with WKB
-    return from_wkb(cls(coords, srs_id=-1).wkb)
+    return from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
 # End _reapply_measures function
 
 

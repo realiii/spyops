@@ -18,7 +18,7 @@ from shapely.io import from_wkb
 from spyops.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
 from spyops.geometry.wa import USE_WORKAROUNDS, set_precision
-from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z
+from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, SRS_ID_WKB
 from spyops.shared.hint import XY_TOL
 
 
@@ -110,18 +110,17 @@ def _extend_measures(refined: list, cls: Type['AbstractGeometry']) -> list:
         for geom, attrs in refined:
             if not geom.has_m:
                 values, = get_coordinates(geom, **kwargs)
-                # NOTE srs_id value does not matter, only dealing with WKB
                 # noinspection PyUnresolvedReferences
-                geom = from_wkb(cls.from_tuple((*values, nan), srs_id=-1).wkb)
+                geom = from_wkb(cls.from_tuple(
+                    (*values, nan), srs_id=SRS_ID_WKB).wkb)
             corrected.append((geom, attrs))
     else:
         kwargs = {INCLUDE_Z: cls is MultiPointZM, INCLUDE_M: True}
         for geom, attrs in refined:
             if not geom.has_m:
                 coords = get_coordinates(geom, **kwargs)
-                # NOTE srs_id value does not matter, only dealing with WKB
                 # noinspection PyArgumentList
-                geom = from_wkb(cls(coords, srs_id=-1).wkb)
+                geom = from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
             corrected.append((geom, attrs))
     return corrected
 # End _extend_measures function

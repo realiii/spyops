@@ -25,7 +25,7 @@ CUSTOM_UPPER: str = CUSTOM.upper()
 NONE: str = 'NONE'
 EPSG: str = 'EPSG'
 ESRI: str = 'ESRI'
-
+SRS_ID_WKB: int = -1  # used where only need WKB
 
 ID_KEY: str = 'id'
 AUTHORITY_KEY: str = 'authority'

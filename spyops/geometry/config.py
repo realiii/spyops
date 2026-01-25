@@ -23,7 +23,7 @@ from spyops.geometry.convert import GEOMETRY_CAST
 from spyops.geometry.util import get_geoms, nada
 from spyops.geometry.wa import USE_WORKAROUNDS
 from spyops.shared.constant import (
-    GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY)
+    GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY, SRS_ID_WKB)
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
@@ -119,9 +119,8 @@ def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | 
     for key in coordinates:
         m = nanmean(measures.get(tuple(key), [nan]))
         coords.append((*key, m))
-    # NOTE srs_id value does not matter, we are only dealing with WKB
     # noinspection PyTypeChecker
-    return from_wkb(cls(coords, srs_id=-1).wkb)
+    return from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
 # End _make_measured_line function
 
 
