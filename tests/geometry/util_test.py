@@ -111,6 +111,7 @@ def test_use_workarounds():
     """
     Test USE_WORKAROUNDS
     """
+    assert USE_WORKAROUNDS.transform is True
     assert USE_WORKAROUNDS.make_valid is True
     assert USE_WORKAROUNDS.simplify is True
     assert USE_WORKAROUNDS.coverage_simplify is True

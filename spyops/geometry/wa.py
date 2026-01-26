@@ -14,12 +14,15 @@ from math import nan
 from bottleneck import nanmean
 from fudgeo.enumeration import GeometryType
 from numpy import isnan, ndarray
+from pyproj import CRS
 from shapely import (
     GeometryCollection, LineString, LinearRing, MultiLineString, MultiPolygon,
     Polygon, coverage_simplify, from_wkb, from_wkt, get_coordinates, get_rings,
     line_merge, make_valid as _make_valid, polygonize as _polygonize,
     set_precision as _set_precision)
+from shapely.ops import transform
 
+from spyops.crs.transform import get_transforms
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
 from spyops.shared.constant import SRS_ID_WKB
@@ -194,6 +197,23 @@ class _UseWorkarounds:
     """
     Use Workarounds for Shapely / GEOS
     """
+    @cached_property
+    def transform(self) -> bool:
+        """
+        Use workaround for transform (does not support Z and M because
+        set_coordinates does not support Z and M)
+        """
+        a = from_wkt('Point (0 0 0 0)')
+        _, _, records = get_transforms(
+            source_crs=CRS(4326), target_crs=CRS(3857))
+        _, transformer, _ = records[0]
+        try:
+            transform(transformer.transform, a)
+            return False
+        except ValueError:
+            return True
+    # End transform property
+
     @cached_property
     def make_valid(self) -> bool:
         """
