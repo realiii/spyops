@@ -27,8 +27,9 @@ from shapely.io import from_wkb
 
 from spyops.crs.transform import get_transforms
 from spyops.geometry.transform import (
-    transform_linestrings, transform_multi_linestrings, transform_multi_points,
-    transform_multi_polygons, transform_points, transform_polygons)
+    get_validity, transform_linestrings, transform_multi_linestrings,
+    transform_multi_points, transform_multi_polygons, transform_points,
+    transform_polygons)
 from spyops.geometry.util import find_slice_indexes
 from spyops.shared.constant import (
     HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, TRANSFORMER_KEY)
@@ -57,6 +58,43 @@ def make_kwargs(has_z: bool, has_m: bool) -> dict[str, Any]:
 # End make_kwargs function
 
 
+def test_transform_points_invalid():
+    """
+    Test transform points, invalid values
+    """
+    kwargs = make_kwargs(has_z=False, has_m=False)
+    points = [
+        Point(x=10, y=20, srs_id=WGS84),
+        Point(x=50, y=60, srs_id=WGS84),
+        Point(x=100, y=100, srs_id=WGS84),
+        Point(x=50, y=100, srs_id=WGS84),
+        Point(x=200, y=60, srs_id=WGS84),
+    ]
+    points = [from_wkb(p.wkb) for p in points]
+    points = transform_points(points, **kwargs)
+    assert len(points) == 5
+    assert get_validity(points) == [True, True, False, False, True]
+# End test_transform_points_invalid function
+
+
+def test_transform_linestring_invalid():
+    """
+    Test transform linestring, invalid values
+    """
+    kwargs = make_kwargs(has_z=False, has_m=False)
+    lines = [
+        LineString([(10, 20), (11, 22)], srs_id=WGS84),
+        LineString([(50, 60), (55, 66)], srs_id=WGS84),
+        LineString([(50, 60), (55, 110)], srs_id=WGS84),
+        LineString([(50, 100), (55, 110)], srs_id=WGS84),
+    ]
+    lines = [from_wkb(p.wkb) for p in lines]
+    lines = transform_linestrings(lines, **kwargs)
+    assert len(lines) == 4
+    assert get_validity(lines) == [True, True, False, False]
+# End test_transform_linestring_invalid function
+
+
 @mark.parametrize('pt, has_z, has_m, values', [
     (Point(x=1, y=2, srs_id=WGS84), False, False, (111319.5, 222684.2)),
     (Point(x=1, y=2, srs_id=WGS84), True, False, (111319.5, 222684.2, nan)),
@@ -80,9 +118,8 @@ def test_transform_points(pt, has_z, has_m, values):
     Test Point transforming
     """
     spt = from_wkb(pt.wkb)
-    geoms, validity = transform_points([spt], **make_kwargs(has_z, has_m))
+    geoms = transform_points([spt], **make_kwargs(has_z, has_m))
     assert len(geoms) == 1
-    assert all(validity)
     cpt, = geoms
     if has_m:
         assert isinstance(cpt.m, Number)
@@ -149,9 +186,8 @@ def test_multi_point(cls, values, has_z, has_m, expected):
     Test Multi Point Transforming
     """
     geoms = [from_wkb(cls(coords, srs_id=WGS84).wkb) for coords in values]
-    geoms, validity = transform_multi_points(geoms, **make_kwargs(has_z, has_m))
+    geoms = transform_multi_points(geoms, **make_kwargs(has_z, has_m))
     assert len(geoms) == 3
-    assert all(validity)
     coords, indexes = get_coordinates(geoms, include_z=has_z, include_m=has_m, return_index=True)
     indexes = find_slice_indexes(indexes)
     multi_first, multi_second, multi_third = [coords[b:e] for b, e in zip(indexes[:-1], indexes[1:])]
@@ -185,9 +221,8 @@ def test_line_string(cls, values, has_z, has_m, expected):
     Test line string transforming
     """
     geom = from_wkb(cls(values, srs_id=WGS84).wkb)
-    geoms, validity = transform_linestrings([geom], **make_kwargs(has_z, has_m))
+    geoms = transform_linestrings([geom], **make_kwargs(has_z, has_m))
     assert len(geoms) == 1
-    assert all(validity)
     line, = geoms
     coords = get_coordinates(line, include_m=has_m, include_z=has_z)
     assert approx(_summer(coords), abs=1, nan_ok=True) == _summer([list(v) for v in expected])
@@ -249,9 +284,8 @@ def test_multi_line_string(cls, values, has_z, has_m, expected):
     Test multi line string transforming
     """
     geom = from_wkb(cls(values, srs_id=WGS84).wkb)
-    geoms, validity = transform_multi_linestrings([geom], **make_kwargs(has_z, has_m))
+    geoms = transform_multi_linestrings([geom], **make_kwargs(has_z, has_m))
     assert len(geoms) == 1
-    assert all(validity)
     multi, = geoms
     coords, indexes = get_coordinates(get_parts(multi), include_z=has_z, include_m=has_m, return_index=True)
     indexes = find_slice_indexes(indexes)
@@ -318,9 +352,8 @@ def test_polygon(cls, values, has_z, has_m, expected):
     Test polygon transforming
     """
     geom = from_wkb(cls(values, srs_id=WGS84).wkb)
-    geoms, validity = transform_polygons([geom], **make_kwargs(has_z, has_m))
+    geoms = transform_polygons([geom], **make_kwargs(has_z, has_m))
     assert len(geoms) == 1
-    assert all(validity)
     poly, = geoms
     coords, indexes = get_coordinates(get_rings(poly), include_z=has_z, include_m=has_m, return_index=True)
     indexes = find_slice_indexes(indexes)
@@ -370,11 +403,9 @@ def test_multi_polygon(cls, values, has_z, has_m, expected):
     Test multi polygon transforming
     """
     geom = from_wkb(cls(values, srs_id=WGS84).wkb)
-    geoms, validity = transform_multi_polygons([geom], **make_kwargs(has_z, has_m))
+    geoms = transform_multi_polygons([geom], **make_kwargs(has_z, has_m))
     assert len(geoms) == 1
-    assert all(validity)
     multi, = geoms
-
     for poly, values in zip(get_parts(multi), expected):
         coords = get_coordinates(get_rings(poly), include_z=has_z, include_m=has_m)
         assert approx(_summer(coords), abs=1, nan_ok=True) == list(sum(_summer([list(v) for v in values]), ()))

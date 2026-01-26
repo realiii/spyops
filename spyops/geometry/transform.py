@@ -29,9 +29,17 @@ if TYPE_CHECKING:  # pragma: no cover
         LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon, Point)
 
 
+def get_validity(geoms: list) -> list[bool]:
+    """
+    Get Validity, True if geometry is valid and not empty and not None
+    """
+    return [not (g is None or g.is_empty or not g.is_valid) for g in geoms]
+# End get_validity function
+
+
 def transform_points(geoms: list['Point'], transformer: 'Transformer',
                      include_vertical: bool, has_z: bool,
-                     has_m: bool) -> tuple[list[Optional['Point']], list[bool]]:
+                     has_m: bool) -> list[Optional['Point']]:
     """
     Transform shapely Points including Z and M values if present.
     """
@@ -39,17 +47,16 @@ def transform_points(geoms: list['Point'], transformer: 'Transformer',
     coords = get_coordinates(geoms, include_z=has_z, include_m=has_m)
     validity = _transform_coords(
         coords, transformer=transformer, include_vertical=include_vertical)
-    geoms = [from_wkb(cls.from_tuple(values, srs_id=SRS_ID_WKB).wkb,
-                      on_invalid='fix') for values in coords]
-    # noinspection PyTypeChecker
-    return geoms, validity.tolist()
+    return [from_wkb(cls.from_tuple(values, srs_id=SRS_ID_WKB).wkb,
+                     on_invalid='fix') if valid else None
+            for values, valid in zip(coords, validity)]
 # End transform_points function
 
 
 def transform_multi_points(geoms: list['MultiPoint'],
                            transformer: 'Transformer',
                            include_vertical: bool, has_z: bool, has_m: bool) \
-        -> tuple[list[Optional['MultiPoint']], list[bool]]:
+        -> list[Optional['MultiPoint']]:
     """
     Transform shapely MultiPoints including Z and M values if present.
     """
@@ -61,7 +68,7 @@ def transform_multi_points(geoms: list['MultiPoint'],
 
 def transform_linestrings(geoms: list['LineString'], transformer: 'Transformer',
                           include_vertical: bool, has_z: bool, has_m: bool) \
-        -> tuple[list[Optional['LineString']], list[bool]]:
+        -> list[Optional['LineString']]:
     """
     Transform shapely LineStrings including Z and M values if present.
     """
@@ -75,7 +82,7 @@ def transform_multi_linestrings(geoms: list['MultiLineString'],
                                 transformer: 'Transformer',
                                 include_vertical: bool, has_z: bool,
                                 has_m: bool) \
-        -> tuple[list[Optional['MultiLineString']], list[bool]]:
+        -> list[Optional['MultiLineString']]:
     """
     Transform shapely MultiLineStrings including Z and M values if present.
     """
@@ -88,7 +95,7 @@ def transform_multi_linestrings(geoms: list['MultiLineString'],
 
 def transform_polygons(geoms: list['Polygon'], transformer: 'Transformer',
                        include_vertical: bool, has_z: bool, has_m: bool) \
-        -> tuple[list[Optional['Polygon']], list[bool]]:
+        -> list[Optional['Polygon']]:
     """
     Transform shapely Polygons including Z and M values if present.
     """
@@ -102,15 +109,13 @@ def transform_polygons(geoms: list['Polygon'], transformer: 'Transformer',
 def transform_multi_polygons(geoms: list['MultiPolygon'],
                              transformer: 'Transformer', include_vertical: bool,
                              has_z: bool, has_m: bool) \
-        -> tuple[list[Optional['MultiPolygon']], list[bool]]:
+        -> list[Optional['MultiPolygon']]:
     """
     Transform shapely MultiPolygons including Z and M values if present.
     """
-    valid = []
     converted = []
     cls = FUDGEO_GEOMETRY_LOOKUP[GeometryType.multi_polygon][has_z, has_m]
     for geom in geoms:
-        poly_valid = []
         poly_coords = []
         for part in get_geoms(geom):
             coords, indexes = get_coordinates(
@@ -120,20 +125,22 @@ def transform_multi_polygons(geoms: list['MultiPolygon'],
                 coords, transformer=transformer,
                 include_vertical=include_vertical)
             ids = find_slice_indexes(indexes)
-            poly_valid.append(validity.any())
-            poly_coords.append([coords[b:e] for b, e in zip(ids[:-1], ids[1:])])
-        # NOTE not requiring all parts to be valid
-        valid.append(any(poly_valid))
-        converted.append(from_wkb(
-            cls(poly_coords, srs_id=SRS_ID_WKB).wkb, on_invalid='fix'))
-    return converted, valid
+            rings = [coords[b:e][validity[b:e]]
+                     for b, e in zip(ids[:-1], ids[1:])]
+            rings = [r for r in rings if len(r)]
+            if not rings:
+                continue
+            poly_coords.append(rings)
+        converted.append(from_wkb(cls(
+            poly_coords, srs_id=SRS_ID_WKB).wkb, on_invalid='fix'))
+    return converted
 # End transform_multi_polygons function
 
 
 def _transform_linear(geoms: list['MultiPoint'] | list['LineString'],
                       transformer: 'Transformer', include_vertical: bool,
                       has_z: bool, has_m: bool, geom_type: str) \
-        -> tuple[list[Optional['MultiPoint']] | list[Optional['LineString']], list[bool]]:
+        -> list[Optional['MultiPoint']] | list[Optional['LineString']]:
     """
     Transform Linear Geometry
     """
@@ -143,11 +150,8 @@ def _transform_linear(geoms: list['MultiPoint'] | list['LineString'],
     validity = _transform_coords(
         coords, transformer=transformer, include_vertical=include_vertical)
     ids = find_slice_indexes(indexes)
-    converted = [from_wkb(cls(coords[b:e], srs_id=SRS_ID_WKB).wkb,
-                          on_invalid='fix')
-                 for b, e in zip(ids[:-1], ids[1:])]
-    valid = [validity[b:e].any() for b, e in zip(ids[:-1], ids[1:])]
-    return converted, valid
+    return [from_wkb(cls(coords[b:e][validity[b:e]], srs_id=SRS_ID_WKB).wkb,
+                     on_invalid='fix') for b, e in zip(ids[:-1], ids[1:])]
 # End _transform_linear function
 
 
@@ -155,11 +159,10 @@ def _transform_groups(geoms: list['MultiLineString'] | list['Polygon'],
                       transformer: 'Transformer', include_vertical: bool,
                       has_z: bool, has_m: bool, geom_type: str,
                       getter: Callable) \
-        -> tuple[list[Optional['MultiLineString']] | list[Optional['Polygon']], list[bool]]:
+        -> list[Optional['MultiLineString']] | list[Optional['Polygon']]:
     """
     Transform Groups of Geometries
     """
-    valid = []
     converted = []
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
     for geom in geoms:
@@ -169,10 +172,9 @@ def _transform_groups(geoms: list['MultiLineString'] | list['Polygon'],
             coords, transformer=transformer, include_vertical=include_vertical)
         ids = find_slice_indexes(indexes)
         converted.append(from_wkb(cls([
-            coords[b:e] for b, e in zip(ids[:-1], ids[1:])],
+            coords[b:e][validity[b:e]] for b, e in zip(ids[:-1], ids[1:])],
             srs_id=SRS_ID_WKB).wkb, on_invalid='fix'))
-        valid.append(validity.any())
-    return converted, valid
+    return converted
 # End _transform_groups function
 
 
