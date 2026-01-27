@@ -14,7 +14,7 @@ from pytest import mark, raises
 
 from spyops.crs.transform import (
     get_transforms, _validate_crs_for_transform, _validate_aoi_for_crs,
-    make_boxes)
+    _make_boxes)
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError,
     InvalidAreaOfInterestError, NoValidTransformerError)
@@ -227,7 +227,7 @@ def test_make_boxes(left, right, top, bottom, count):
     """
     Test make_boxes
     """
-    assert len(make_boxes(left, bottom, right, top)) == count
+    assert len(_make_boxes(left, bottom, right, top)) == count
 # End test_make_boxes function
 
 

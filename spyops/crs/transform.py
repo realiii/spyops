@@ -91,10 +91,10 @@ def _validate_aoi_for_crs(aoi: Optional['AreaOfInterest'], crs: CRS) -> None:
         return
     if crs.area_of_use is None:
         return
-    aoi_boxes = make_boxes(
+    aoi_boxes = _make_boxes(
         left=aoi.west_lon_degree, bottom=aoi.south_lat_degree,
         right=aoi.east_lon_degree, top=aoi.north_lat_degree)
-    crs_boxes = make_boxes(*crs.area_of_use.bounds)
+    crs_boxes = _make_boxes(*crs.area_of_use.bounds)
     results = []
     for aoi_box in aoi_boxes:
         results.extend(aoi_box.intersects(crs_boxes))
@@ -103,15 +103,15 @@ def _validate_aoi_for_crs(aoi: Optional['AreaOfInterest'], crs: CRS) -> None:
 # End _validate_aoi_for_crs function
 
 
-def make_boxes(left: float, bottom: float,
-               right: float, top: float) -> list['Polygon']:
+def _make_boxes(left: float, bottom: float,
+                right: float, top: float) -> list['Polygon']:
     """
     Make Boxes, accounting for 180/-180
     """
     if left > right:
         return [box(left, bottom, 180, top), box(-180, bottom, right, top)]
     return [box(left, bottom, right, top)]
-# End make_boxes function
+# End _make_boxes function
 
 
 def _check_transforms(aoi: Optional['AreaOfInterest'],
