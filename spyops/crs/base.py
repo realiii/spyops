@@ -4,21 +4,31 @@ Base Classes
 """
 
 
-from typing import NamedTuple, TYPE_CHECKING
+from typing import NamedTuple, Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from pyproj.transformer import Transformer
 
 
-class TransformerRecord(NamedTuple):
+class TransformOption(NamedTuple):
     """
-    Transformer Record
+    Transform Option
     """
     is_best: bool
-    transform: 'Transformer'
-    label: str
-# End TransformerRecord class
+    accuracy: float | None
+    transformer: 'Transformer'
+# End TransformOption class
+
+
+class TransformOptions(NamedTuple):
+    """
+    Transform Options
+    """
+    is_required: bool
+    best: Optional['Transformer']
+    options: list['TransformOption']
+# End TransformOptions class
 
 
 if __name__ == '__main__':  # pragma: no cover
