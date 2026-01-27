@@ -135,23 +135,19 @@ def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
 # End _get_crs_component function
 
 
-def change_crs_dimension(source_crs: CRS, target_crs: CRS) \
-        -> tuple[CRS, CRS, bool]:
+def change_crs_dimension(source_crs: CRS, target_crs: CRS) -> tuple[CRS, CRS]:
     """
-    Change CRS Dimensions to be internally consistent, return flag that
-    indicates the transformations will include vertical.
+    Change CRS Dimensions to be internally consistent.
     """
     # NOTE if source is not compound but target is compound make target 2D
     #  since we really cannot convert Z values not knowing the source VCS
     if not source_crs.is_compound and target_crs.is_compound:
-        return source_crs, target_crs.to_2d(), False
+        return source_crs, target_crs.to_2d()
     # NOTE if target is not compound but source is compound make source 2D
     #  this is a lossy operation but the user is choosing it, do not convert Z
     elif source_crs.is_compound and not target_crs.is_compound:
-        return source_crs.to_2d(), target_crs, False
-    # NOTE to get here we inputs both being 2D or both being 3D
-    has_vertical = source_crs.is_compound and target_crs.is_compound
-    return source_crs, target_crs, has_vertical
+        return source_crs.to_2d(), target_crs
+    return source_crs, target_crs
 # End change_crs_dimension function
 
 
@@ -160,7 +156,7 @@ def equals(source_crs: CRS, target_crs: CRS) -> bool:
     Check if Coordinate Reference Systems are equal, account for compound crs
     adjusting to the same dimension.
     """
-    source_crs, target_crs, _ = change_crs_dimension(source_crs, target_crs)
+    source_crs, target_crs = change_crs_dimension(source_crs, target_crs)
     return source_crs.equals(target_crs, ignore_axis_order=True)
 # End equals function
 
