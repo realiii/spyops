@@ -68,7 +68,7 @@ class UseGrids:
 # End UseGrids class
 
 
-@mark.parametrize('crs_from, crs_to, aoi, check_transforms, expected, is_best, with_grids, throw', [
+@mark.parametrize('crs_from, crs_to, aoi, check_validity, expected, is_best, with_grids, throw', [
     (26714, 9311, None, False, 1, True, False, None),  # conversion only
     (26714, 32164, None, False, 1, False, False, None),  # transform, no grids
     (26714, 32164, None, False,  5, True, True, None),  # transform with grids
@@ -108,7 +108,7 @@ class UseGrids:
     (26714, 32164, AreaOfInterest(-104, 30, -95, 31), True, 1, False, True, None),  # so so aoi with grids
     (26714, 32164, AreaOfInterest(-114, 30, -110, 31), True, 0, True, False, InvalidAreaOfInterestError),  # ng aoi
 ])
-def test_get_transforms(crs_from, crs_to, aoi, check_transforms,
+def test_get_transforms(crs_from, crs_to, aoi, check_validity,
                         expected, is_best, with_grids, throw):
     """
     Test getting transform object lists
@@ -121,13 +121,13 @@ def test_get_transforms(crs_from, crs_to, aoi, check_transforms,
             return
         is_required, _, records = get_transforms(
             source_crs=crs1, target_crs=crs2, aoi=aoi,
-            check_transforms=check_transforms)
+            check_validity=check_validity)
         if not is_required:
             assert expected == -1
             return
         assert len(records) == expected
-        best, transformer, label = records[0]
-        assert isinstance(label, str)
+        best, accuracy, transformer = records[0]
+        assert accuracy is None or isinstance(accuracy, float)
         assert isinstance(transformer, Transformer)
         assert isinstance(best, bool)
         assert is_best is best

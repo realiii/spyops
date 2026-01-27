@@ -4,16 +4,17 @@ Transformation Helpers
 """
 
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Union
 
 from numpy import array, isfinite
 from pyproj import CRS
 from pyproj.transformer import TransformerGroup
 from shapely.creation import box
 
-from spyops.crs.base import TransformerRecord
+from spyops.crs.base import TransformOptions, TransformOption
 from spyops.crs.enumeration import InfoOption
-from spyops.crs.util import change_crs_dimension, equals, get_crs_authority
+from spyops.crs.util import (
+    change_crs_dimension, equals, get_crs_authority, get_crs_from_source)
 from spyops.shared.constant import (
     CRS_REQUIRED, INVALID_AOI, NO_TRANSFORMER, UNSUPPORTED_CRS)
 from spyops.shared.exception import (
@@ -22,49 +23,69 @@ from spyops.shared.exception import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass, SpatialReferenceSystem
     from shapely import Polygon
     from pyproj.aoi import AreaOfInterest
 
 
-def get_transforms(source_crs: CRS, target_crs: CRS,
+def get_transforms(source_crs: Union[CRS, 'FeatureClass', 'SpatialReferenceSystem'],
+                   target_crs: Union[CRS, 'FeatureClass', 'SpatialReferenceSystem'],
                    aoi: Optional['AreaOfInterest'] = None,
-                   check_transforms: bool = True) \
-        -> tuple[bool, bool, list[TransformerRecord]]:
+                   check_validity: bool = True) -> TransformOptions:
     """
-    Returns a list of possible transformations for the source and target CRS.
-    If no transform is required, return None.  Optional AOI is for source.
+    Retrieve the available transformation options for converting coordinates
+    between two coordinate reference systems (CRS). The function evaluates the
+    appropriate transformation methods using the provided source and target
+    CRS, with the ability to incorporate an optional area of interest (AOI)
+    to refine the transformations.  The optional AOI is for the source CRS.
+
+    Use of AOI has been seen to reduce the number of transformations returned
+    but not always in a good way, that is, it may exclude a better option.
+
+    The check_validity parameter is used to filter out transformers that
+    are not valid (do not produce finite values) for the input AOI.  This
+    can sometimes exclude better transformations.
+
+    Results from this function will change depending on whether or not the
+    data directory for pyproj is set.  Use the `configure_grids` function to
+    set the data directory to where the grids are stored.
+
+    Returns a TransformOptions object containing a flag indicating if a
+    transformation is required, the best available transformer, and a
+    list of all transformers (including the best).  If no transformer is
+    required, the best will be None and options will be empty.
     """
+    source_crs = get_crs_from_source(source_crs)
+    target_crs = get_crs_from_source(target_crs)
     _validate_crs_for_transform(source_crs, target_crs)
-    (source_crs, target_crs,
-     has_vertical) = change_crs_dimension(source_crs, target_crs)
+    source_crs, target_crs = change_crs_dimension(source_crs, target_crs)
     if equals(source_crs, target_crs):
-        return False, has_vertical, []
+        return TransformOptions(is_required=False, best=None, options=[])
     _validate_aoi_for_crs(aoi, source_crs)
     msg = NO_TRANSFORMER.format(
         source_crs.name, source_crs.srs, target_crs.name, target_crs.srs)
     try:
-        trans_group = TransformerGroup(crs_from=source_crs, crs_to=target_crs,
-                                       always_xy=True, area_of_interest=aoi)
+        group = TransformerGroup(
+            crs_from=source_crs, crs_to=target_crs,
+            always_xy=True, area_of_interest=aoi)
     except IndexError:
         raise NoValidTransformerError(msg)
-    if not len(trans_group.transformers):
+    if not len(group.transformers):
         raise NoValidTransformerError(msg)
-    records = []
-    best_available = trans_group.best_available
-    for i, transform in enumerate(trans_group.transformers):
-        if transform.accuracy < 0:
-            accuracy = f'Unknown Accuracy'
-        else:
-            accuracy = f'\u00B1{transform.accuracy:.2f}m'
-        label = f'{transform.description} [{accuracy}]'
+    options = []
+    best_available = group.best_available
+    for i, transformer in enumerate(group.transformers):
+        if (accuracy := transformer.accuracy) < 0:
+            accuracy = None
         is_best = best_available and not bool(i)
-        records.append(TransformerRecord(
-            is_best=is_best, transform=transform, label=label))
-    if check_transforms:
-        records = _check_transforms(aoi, records)
-    if not len(records):
+        options.append(TransformOption(
+            is_best=is_best, accuracy=accuracy, transformer=transformer))
+    if check_validity:
+        options = _check_transforms(aoi, options=options)
+    if not len(options):
         raise NoValidTransformerError(msg)
-    return True, has_vertical, records
+    best = next((r.transformer for r in options if r.is_best), None)
+    return TransformOptions(is_required=True, best=best, options=options)
 # End get_transforms function
 
 
@@ -115,23 +136,23 @@ def _make_boxes(left: float, bottom: float,
 
 
 def _check_transforms(aoi: Optional['AreaOfInterest'],
-                      records: list[TransformerRecord]) \
-        -> list[TransformerRecord]:
+                      options: list[TransformOption]) -> list[TransformOption]:
     """
     Check transforms against an Area of Interest, return only those that
-    produce finite values.
+    produce finite values for the AOI, this can sometimes exclude better
+    transformation options, use with care.
     """
     if not aoi:
-        return records
+        return options
     xs = array([aoi.west_lon_degree, aoi.east_lon_degree,
                 aoi.west_lon_degree, aoi.east_lon_degree], dtype=float)
     ys = array([aoi.north_lat_degree, aoi.north_lat_degree,
                 aoi.south_lat_degree, aoi.south_lat_degree], dtype=float)
     if not isfinite(xs).all() or not isfinite(ys).all():  # pragma: no cover
-        return records
+        return options
     checked = []
-    for record in records:
-        x, y = record.transform.transform(xs, ys)
+    for record in options:
+        x, y = record.transformer.transform(xs, ys)
         if not isfinite(x).all() or not isfinite(y).all():
             continue
         checked.append(record)

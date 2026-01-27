@@ -51,9 +51,8 @@ def make_kwargs(has_z: bool, has_m: bool) -> dict[str, Any]:
     """
     Make Kwargs
     """
-    _, _, records = get_transforms(source_crs=CRS(4326), target_crs=CRS(3857))
-    _, transformer, _ = records[0]
-    return {TRANSFORMER_KEY: transformer, HAS_M_KEY: has_m, HAS_Z_KEY: has_z,
+    _, best, _ = get_transforms(source_crs=CRS(4326), target_crs=CRS(3857))
+    return {TRANSFORMER_KEY: best, HAS_M_KEY: has_m, HAS_Z_KEY: has_z,
             INCLUDE_VERTICAL_KEY: False}
 # End make_kwargs function
 

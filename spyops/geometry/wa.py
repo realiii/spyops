@@ -204,11 +204,9 @@ class _UseWorkarounds:
         set_coordinates does not support Z and M)
         """
         a = from_wkt('Point (0 0 0 0)')
-        _, _, records = get_transforms(
-            source_crs=CRS(4326), target_crs=CRS(3857))
-        _, transformer, _ = records[0]
+        _, best, _ = get_transforms(source_crs=CRS(4326), target_crs=CRS(3857))
         try:
-            transform(transformer.transform, a)
+            transform(best.transform, a)
             return False
         except ValueError:
             return True
