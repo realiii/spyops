@@ -21,6 +21,8 @@ class Setting(StrEnum):
     CURRENT_WORKSPACE = auto()
     SCRATCH_WORKSPACE = auto()
     SCRATCH_FOLDER = auto()
+
+    OUTPUT_COORDINATE_SYSTEM = auto()
 # End Setting class
 
 
