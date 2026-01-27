@@ -23,7 +23,7 @@ from pyproj import CRS
 from pytest import approx, mark
 from shapely import get_parts, get_rings
 from shapely.coordinates import get_coordinates
-from shapely.io import from_wkb
+from shapely.io import from_wkb, from_wkt
 
 from spyops.crs.transform import get_transforms
 from spyops.geometry.transform import (
@@ -93,6 +93,37 @@ def test_transform_linestring_invalid():
     assert len(lines) == 4
     assert get_validity(lines) == [True, True, False, False]
 # End test_transform_linestring_invalid function
+
+
+def test_transform_polygon_invalid():
+    """
+    Test transform polygon, invalid values
+    """
+    kwargs = make_kwargs(has_z=False, has_m=False)
+    polys = [
+        Polygon([[(10, 10), (10, 20), (20, 20), (20, 10), (10, 10)]], srs_id=WGS84),
+        Polygon([[(50, 60), (50, 1000), (1000, 50), (1000, 50), (50, 60)]], srs_id=WGS84),
+        Polygon([[(1000, 1000), (1000, 2000), (2000, 2000), (2000, 1000), (1000, 1000)]], srs_id=WGS84),
+    ]
+    polys = [from_wkb(p.wkb) for p in polys]
+    polys = transform_polygons(polys, **kwargs)
+    assert len(polys) == 3
+    assert get_validity(polys) == [True, False, False]
+# End test_transform_polygon_invalid function
+
+
+@mark.parametrize('wkt', [
+    'Polygon ((0 0 0 0, 1 1 1 1, 0 1 2 3, 1 0 4 5, 0 0 0 0))',
+    'Polygon ((0 0 0 0, 0 0 0 0, 0 0 0 0, 0 0 0 0, 0 0 0 0))',
+])
+def test_from_wkb_fix_invalid(wkt):
+    """
+    Test from WKB fix invalid
+    """
+    a = from_wkt(wkt, on_invalid='fix')
+    b = from_wkb(a.wkb, on_invalid='fix')
+    assert a == b
+# End test_from_wkb_fix_invalid function
 
 
 @mark.parametrize('pt, has_z, has_m, values', [
