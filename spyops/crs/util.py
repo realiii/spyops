@@ -43,13 +43,17 @@ def configure_grids(network_enabled: bool | None = False,
 # End configure_grids function
 
 
-def get_crs_from_source(source: Union[CRS, 'FeatureClass']) -> CRS:
+def get_crs_from_source(source: Union[CRS, 'FeatureClass', SpatialReferenceSystem]) -> CRS:
     """
-    Returns a CRS object from a geopackage feature class or CRS object
+    Returns a CRS object from a Feature Class, Spatial Reference System,
+    or CRS object.
     """
     if isinstance(source, CRS):
         return source
-    srs = source.spatial_reference_system
+    if isinstance(source, SpatialReferenceSystem):
+        srs = source
+    else:
+        srs = source.spatial_reference_system
     # NOTE although a third party can store values in spatial reference
     #  table we should "make no assumptions" per the geopackage spec
     if crs := from_authority(auth_name=srs.organization, auth_code=srs.srs_id):
