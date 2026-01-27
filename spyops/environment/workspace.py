@@ -43,14 +43,14 @@ class _Workspace:
     # End _get_temp_path method
 
     @property
-    def current(self) -> GPKG:
+    def current(self) -> GPKG | None:
         """
         Current Workspace
         """
         return self._current
 
     @current.setter
-    def current(self, value: GPKG) -> None:
+    def current(self, value: GPKG | None) -> None:
         self._current = self._check_workspace(
             value, setting=Setting.CURRENT_WORKSPACE)
     # End current property
