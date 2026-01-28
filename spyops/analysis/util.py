@@ -186,7 +186,7 @@ def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
 
 
 def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
-        -> tuple[list[tuple], list[BaseGeometry]]:
+        -> tuple[list[tuple], list['BaseGeometry']]:
     """
     Get Converted Operator Features and Geometries
     """
@@ -204,7 +204,7 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
 
 
 def _intersect(*, query: QUERY_INT, op_features: list[tuple],
-               op_geoms: list[BaseGeometry], src_convert: Callable,
+               op_geoms: list['BaseGeometry'], src_convert: Callable,
                xy_tolerance: XY_TOL) -> FeatureClass:
     """
     Internal Intersect
