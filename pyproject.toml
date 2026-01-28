@@ -1,7 +1,10 @@
 [project]
-name = "gisworks"
+name = "spyops"
 version = "0.0.1"
-description = "GIS Analysis, Operations, and Spatial Data Management"
+description = """\
+    Spatial Python Operations (SPyOps) -- an evolving collection of GIS Analysis, \
+    Spatial Statistics, Spatial Operations, and Spatial Data Management capabilities.\
+    """
 readme = "README.md"
 authors = [{ name = "Integrated Informatics (USA) Inc.", email = "contact@integrated-informatics.com" }]
 license = "MIT"
