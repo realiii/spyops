@@ -5,7 +5,7 @@ Test for Overlay Query Classes
 
 
 from fudgeo import FeatureClass, Field
-from fudgeo.enumeration import SQLFieldType
+from fudgeo.enumeration import FieldType
 from pytest import mark, param
 
 from spyops.environment.context import Swap
@@ -872,8 +872,8 @@ class TestQueryUnionClassic:
         admin = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name='admin_target_a')
         query = QueryUnionClassic(
-            source=admin, source_fid=Field('asdf', data_type=SQLFieldType.integer),
-            operator=operator, operator_fid=Field('lmno', data_type=SQLFieldType.integer),
+            source=admin, source_fid=Field('asdf', data_type=FieldType.integer),
+            operator=operator, operator_fid=Field('lmno', data_type=FieldType.integer),
             target=target,
             attribute_option=AttributeOption.ALL, xy_tolerance=None)
         assert query.input_fid_source.name == 'asdf'

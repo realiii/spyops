@@ -6,7 +6,7 @@ Test for Extract Query classes
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.enumeration import SQLFieldType
+from fudgeo.enumeration import FieldType
 from pytest import approx, mark, raises
 
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
@@ -25,7 +25,7 @@ def test_query_split_by_attributes(request, name, fix_name, group_names):
     """
     geo = request.getfixturevalue(fix_name)
     element = geo[name]
-    fields = [Field(n, data_type=SQLFieldType.text) for n in group_names]
+    fields = [Field(n, data_type=FieldType.text) for n in group_names]
     group_names = COMMA_SPACE.join(group_names)
     query = QuerySplitByAttributes(element, fields)
     assert f'FROM {element.name}' in query.groups

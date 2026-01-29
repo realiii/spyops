@@ -11,7 +11,7 @@ from typing import Any, Callable, NamedTuple, TYPE_CHECKING, Type, Union
 
 from bottleneck import nanmean
 from fudgeo.geometry import LineStringM, LineStringZM
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from shapely import LineString, MultiLineString
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
@@ -128,7 +128,7 @@ def _get_combiner(shape_type: str, has_m: bool) -> Callable:
     """
     Get Combiner Function
     """
-    if GeometryType.linestring in shape_type:
+    if ShapeType.linestring in shape_type:
         if has_m and USE_WORKAROUNDS.line_merge:
             return _combine_lines_workaround
         else:

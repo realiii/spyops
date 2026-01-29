@@ -11,7 +11,7 @@ function in spyops.crs.util.
 
 from typing import Callable, Optional, TYPE_CHECKING
 
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from numpy import isfinite
 from shapely import get_rings
 from shapely.coordinates import get_coordinates
@@ -43,7 +43,7 @@ def transform_points(geoms: list['Point'], transformer: 'Transformer',
     """
     Transform shapely Points including Z and M values if present.
     """
-    cls = FUDGEO_GEOMETRY_LOOKUP[GeometryType.point][has_z, has_m]
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
     coords = get_coordinates(geoms, include_z=has_z, include_m=has_m)
     validity = _transform_coords(
         coords, transformer=transformer, include_vertical=include_vertical)
@@ -62,7 +62,7 @@ def transform_multi_points(geoms: list['MultiPoint'],
     """
     return _transform_linear(
         geoms, transformer=transformer, include_vertical=include_vertical,
-        has_z=has_z, has_m=has_m, geom_type=GeometryType.multi_point)
+        has_z=has_z, has_m=has_m, geom_type=ShapeType.multi_point)
 # End transform_multi_points function
 
 
@@ -74,7 +74,7 @@ def transform_linestrings(geoms: list['LineString'], transformer: 'Transformer',
     """
     return _transform_linear(
         geoms, transformer=transformer, include_vertical=include_vertical,
-        has_z=has_z, has_m=has_m, geom_type=GeometryType.linestring)
+        has_z=has_z, has_m=has_m, geom_type=ShapeType.linestring)
 # End transform_linestrings function
 
 
@@ -89,7 +89,7 @@ def transform_multi_linestrings(geoms: list['MultiLineString'],
     return _transform_groups(
         geoms, transformer=transformer, include_vertical=include_vertical,
         has_z=has_z, has_m=has_m, getter=get_geoms,
-        geom_type=GeometryType.multi_linestring)
+        geom_type=ShapeType.multi_linestring)
 # End transform_multi_linestrings function
 
 
@@ -102,7 +102,7 @@ def transform_polygons(geoms: list['Polygon'], transformer: 'Transformer',
     return _transform_groups(
         geoms, transformer=transformer, include_vertical=include_vertical,
         has_z=has_z, has_m=has_m, getter=get_rings,
-        geom_type=GeometryType.polygon)
+        geom_type=ShapeType.polygon)
 # End transform_polygons function
 
 
@@ -114,7 +114,7 @@ def transform_multi_polygons(geoms: list['MultiPolygon'],
     Transform shapely MultiPolygons including Z and M values if present.
     """
     converted = []
-    cls = FUDGEO_GEOMETRY_LOOKUP[GeometryType.multi_polygon][has_z, has_m]
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_polygon][has_z, has_m]
     for geom in geoms:
         poly_coords = []
         for part in get_geoms(geom):
@@ -197,12 +197,12 @@ def _transform_coords(coords: 'ndarray', transformer: 'Transformer',
 
 
 GEOMETRY_TRANSFORM: dict[str, Callable] = {
-    GeometryType.point: transform_points,
-    GeometryType.multi_point: transform_multi_points,
-    GeometryType.linestring: transform_linestrings,
-    GeometryType.multi_linestring: transform_multi_linestrings,
-    GeometryType.polygon: transform_polygons,
-    GeometryType.multi_polygon: transform_multi_polygons,
+    ShapeType.point: transform_points,
+    ShapeType.multi_point: transform_multi_points,
+    ShapeType.linestring: transform_linestrings,
+    ShapeType.multi_linestring: transform_multi_linestrings,
+    ShapeType.polygon: transform_polygons,
+    ShapeType.multi_polygon: transform_multi_polygons,
 }
 
 

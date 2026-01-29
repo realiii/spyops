@@ -6,7 +6,7 @@ from spyops.analysis import union
 
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from pytest import mark, param, raises
 
 from spyops.analysis.overlay import erase, intersect, symmetrical_difference
@@ -503,9 +503,9 @@ class TestIntersect:
                                algorithm_option=algorithm_option,
                                output_type_option=output_option)
             if output_option == OutputTypeOption.LINE:
-                assert GeometryType.linestring in result.shape_type
+                assert ShapeType.linestring in result.shape_type
             else:
-                assert GeometryType.point in result.shape_type
+                assert ShapeType.point in result.shape_type
             assert len(result) < len(source)
             assert len(result) == feature_count
     # End test_intersect_output_type method
@@ -560,9 +560,9 @@ class TestIntersect:
                                algorithm_option=algorithm_option,
                                output_type_option=output_option)
         if output_option == OutputTypeOption.LINE:
-            assert GeometryType.linestring in result.shape_type
+            assert ShapeType.linestring in result.shape_type
         else:
-            assert GeometryType.point in result.shape_type
+            assert ShapeType.point in result.shape_type
         assert len(result) < len(source)
         assert len(result) == feature_count
         assert result.has_z == zm.z_enabled

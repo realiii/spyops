@@ -7,7 +7,7 @@ Test Extraction
 from math import nan
 
 from fudgeo import FeatureClass, Field, GeoPackage, Table
-from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.enumeration import ShapeType, FieldType
 from numpy import array, isnan
 from pytest import approx, mark, param, raises
 
@@ -615,9 +615,9 @@ class TestClip:
             clipped = clip(source=source, operator=operator, target=target)
         assert clipped.has_z is True
         assert clipped.has_m == source.has_z or operator.has_m
-        if source.shape_type == GeometryType.point:
+        if source.shape_type == ShapeType.point:
             z_values = array([pt.z for pt, in clipped.select()], dtype=float)
-        elif source.shape_type == GeometryType.polygon:
+        elif source.shape_type == ShapeType.polygon:
             z_values = []
             for poly, in clipped.select():
                 for ring in poly.rings:
@@ -665,7 +665,7 @@ class TestSplit:
         splitter = inputs['splitter_a']
         assert len(splitter) == 5
         source = world_features[fc_name]
-        field = Field('NAME', data_type=SQLFieldType.text)
+        field = Field('NAME', data_type=FieldType.text)
         results = split(source=source, operator=splitter, field=field,
                         geopackage=mem_gpkg, xy_tolerance=xy_tolerance)
         assert len(results) == element_count
@@ -701,7 +701,7 @@ class TestSplit:
         splitter = inputs['splitter_a']
         assert len(splitter) == 5
         source = world_features[fc_name]
-        field = Field('NAME', data_type=SQLFieldType.text)
+        field = Field('NAME', data_type=FieldType.text)
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456)):
@@ -736,7 +736,7 @@ class TestSplit:
         splitter = inputs['splitter_a']
         assert len(splitter) == 5
         source = world_features[fc_name]
-        field = Field('NAME', data_type=SQLFieldType.text)
+        field = Field('NAME', data_type=FieldType.text)
         gpkg = GeoPackage.create(tmp_path / 'test_scratch.gpkg')
         with (Swap(Setting.XY_TOLERANCE, xy_tolerance),
               Swap(Setting.CURRENT_WORKSPACE, mem_gpkg),

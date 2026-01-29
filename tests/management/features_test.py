@@ -5,7 +5,7 @@ Tests for Features
 
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from pytest import mark, param
 
 from spyops.environment import OutputMOption, OutputZOption, Setting
@@ -60,7 +60,7 @@ class TestMultiPartToSinglePart:
             zm = zm_config(source)
             exploded = multipart_to_singlepart(source=source, target=target)
         assert exploded.shape_type in (
-            GeometryType.linestring, GeometryType.point, GeometryType.polygon)
+            ShapeType.linestring, ShapeType.point, ShapeType.polygon)
         cls = FUDGEO_GEOMETRY_LOOKUP[exploded.shape_type][exploded.has_z, exploded.has_m]
         assert exploded.is_multi_part is False
         assert exploded.has_z == zm.z_enabled

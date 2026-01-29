@@ -8,7 +8,7 @@ from warnings import catch_warnings, simplefilter
 from pytest import raises, mark
 
 from fudgeo import FeatureClass, Table
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 
 from spyops.environment import Setting
 from spyops.environment.context import Swap
@@ -124,9 +124,9 @@ def test_validate_element_data_type(world_features, world_tables, mem_gpkg, name
     ('admin_a', GEOM_TYPE_POLYGONS, False),
     ('roads_l', GEOM_TYPE_LINES, False),
     ('airports_p', GEOM_TYPE_POINTS, False),
-    ('admin_a', GeometryType.polygon, False),
-    ('roads_l', GeometryType.linestring, False),
-    ('airports_p', GeometryType.point, False),
+    ('admin_a', ShapeType.polygon, False),
+    ('roads_l', ShapeType.linestring, False),
+    ('airports_p', ShapeType.point, False),
     ('cities_p', GEOM_TYPE_POLYGONS, True),
     (None, GEOM_TYPE_POLYGONS, True),
 ])

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from shapely import GeometryCollection
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
@@ -64,7 +64,7 @@ def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
     """
     Planarize Feature Class Factory
     """
-    polygons = GeometryType.polygon, GeometryType.multi_polygon
+    polygons = ShapeType.polygon, ShapeType.multi_polygon
     if source.shape_type in polygons:
         src_cls = PlanarizePolygonSource
     else:
@@ -252,7 +252,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         """
         Shape Type
         """
-        return GeometryType.polygon
+        return ShapeType.polygon
     # End _shape_type property
 
     def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':
@@ -517,12 +517,12 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
         """
         if self._output_type_option == OutputTypeOption.LINE:
             if self.source.is_multi_part:
-                return GeometryType.multi_linestring
-            return GeometryType.linestring
+                return ShapeType.multi_linestring
+            return ShapeType.linestring
         elif self._output_type_option == OutputTypeOption.POINT:
             if self.source.is_multi_part:
-                return GeometryType.multi_point
-            return GeometryType.point
+                return ShapeType.multi_point
+            return ShapeType.point
         return self.source.shape_type
     # End _get_target_shape_type method
 # End QueryIntersectPairwise class

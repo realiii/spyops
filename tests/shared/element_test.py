@@ -5,7 +5,7 @@ Tests for Feature Class Capabilities
 
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark
 
@@ -54,7 +54,7 @@ def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
         assert org.upper() == org_input.upper()
         assert org_id == org_id_input
     fc = create_feature_class(mem_gpkg, name='asdf', srs=srs,
-                              shape_type=GeometryType.point)
+                              shape_type=ShapeType.point)
     key = 'AUTHORITY'
     if key in wkt:
         srs = fc.spatial_reference_system

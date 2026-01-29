@@ -4,7 +4,7 @@ Build Multi Geometry
 """
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from numpy import ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.constructive import normalize
@@ -29,11 +29,11 @@ def build_multi(features: FeatureClass | ndarray | list | None) \
     else:
         shape_type = features[0].geom_type.upper()
         features = force_2d(features)
-    if shape_type in (GeometryType.point, GeometryType.multi_point):
+    if shape_type in (ShapeType.point, ShapeType.multi_point):
         return _multi_point(features)
-    elif shape_type in (GeometryType.linestring, GeometryType.multi_linestring):
+    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
         return _multi_linestring(features)
-    elif shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
         return _multi_polygon(features)
     else:
         raise ValueError(f'Unsupported shape type: {shape_type}')

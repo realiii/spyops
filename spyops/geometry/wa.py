@@ -12,7 +12,7 @@ from warnings import warn
 from math import nan
 
 from bottleneck import nanmean
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from numpy import isnan, ndarray
 from pyproj import CRS
 from shapely import (
@@ -185,9 +185,9 @@ def _adjust_coords(coords: list, shape_type: str) -> list:
     """
     Adjust Coordinates List based on Shape Type
     """
-    if shape_type == GeometryType.linestring:
+    if shape_type == ShapeType.linestring:
         coords, = coords
-    elif shape_type == GeometryType.multi_polygon:
+    elif shape_type == ShapeType.multi_polygon:
         coords = [coords]
     return coords
 # End _adjust_coords function
