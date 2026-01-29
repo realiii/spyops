@@ -236,8 +236,8 @@ source = gpkg['structures_zm_ma']
 # output will be single-part features
 target = FeatureClass(geopackage=gpkg, name='structures_explode_zm_a')
 fc = multipart_to_singlepart(source, target=target)
-assert source.is_multipart is True
-assert fc.is_multipart is False
+assert source.is_multi_part is True
+assert fc.is_multi_part is False
 ```
 
 
