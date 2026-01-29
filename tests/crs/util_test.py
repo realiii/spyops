@@ -13,7 +13,7 @@ from tests.constants import (
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
     NAD_1983_StatePlane_Texas_North_Central_FIPS_4202, NAD_1983_UTM_Zone_15N)
 from spyops.crs.util import (
-    equals, check_same_crs, from_authority, from_crs, get_crs_from_source,
+    equals, check_same_crs, from_authority, srs_from_crs, get_crs_from_source,
     _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs)
 from spyops.shared.exception import OperationsError
 
@@ -166,7 +166,7 @@ def test_validate_srs_custom_in_range(crs_geopackage, replace_id):
     Test validate SRS, custom using a srs id that is within range
     """
     wkt = CUSTOM_THIRD_PARTY_AUTHORITY.replace('54051', str(replace_id))
-    srs = from_crs(CRS.from_wkt(wkt))
+    srs = srs_from_crs(CRS.from_wkt(wkt))
     srs = validate_srs(crs_geopackage, srs)
     assert srs.organization == 'ThirdParty'
     assert srs.srs_id == replace_id

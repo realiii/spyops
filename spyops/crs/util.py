@@ -161,7 +161,7 @@ def equals(source_crs: CRS, target_crs: CRS) -> bool:
 # End equals function
 
 
-def from_crs(crs: CRS) -> SpatialReferenceSystem:
+def srs_from_crs(crs: CRS) -> SpatialReferenceSystem:
     """
     Build a Spatial Reference System object from a CRS object
     """
@@ -178,7 +178,7 @@ def from_crs(crs: CRS) -> SpatialReferenceSystem:
     return SpatialReferenceSystem(
         crs.name, organization=org_name, org_coord_sys_id=org_code,
         definition=crs.to_wkt(version=WktVersion.WKT1_GDAL))
-# End from_crs function
+# End srs_from_crs function
 
 
 def validate_srs(geopackage: GPKG, srs: SpatialReferenceSystem) \

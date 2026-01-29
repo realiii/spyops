@@ -10,7 +10,7 @@ from pyproj import CRS
 from pytest import mark
 
 from conftest import world_features
-from spyops.crs.util import from_crs, validate_srs
+from spyops.crs.util import srs_from_crs, validate_srs
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
@@ -38,11 +38,11 @@ pytestmark = [mark.crs, mark.element]
     (54051, 'ThirdParty', 54051, CUSTOM_THIRD_PARTY_AUTHORITY),
     (60000, 'ThirdParty', 60000, CUSTOM_THIRD_PARTY_AUTHORITY_60000),
 ])
-def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
+def test_srs_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
     """
-    Test from_crs where custom does not exist in geopackage
+    Test srs_from_crs where custom does not exist in geopackage
     """
-    srs = from_crs(CRS.from_wkt(wkt))
+    srs = srs_from_crs(CRS.from_wkt(wkt))
     if org_id_input:
         assert srs.srs_id == srs_id_input
         assert srs.organization == org_input
@@ -66,7 +66,7 @@ def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
             assert srs.organization == org_input
         assert key in srs.definition
         assert org_input in srs.definition
-# End test_from_crs_fresh function
+# End test_srs_from_crs_fresh function
 
 
 @mark.parametrize('name, where_clause, count', [
