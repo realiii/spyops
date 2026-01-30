@@ -25,9 +25,9 @@ from spyops.shared.util import element_names, make_unique_name
 pytestmark = [mark.extract]
 
 
-class TestSelect:
+class TestTableSelect:
     """
-    Test Select and Table Select
+    Test Table Select
     """
     @mark.parametrize('table_name, where_clause, count', [
         ('admin', None, 5824),
@@ -51,7 +51,7 @@ class TestSelect:
         assert len(result) == count
     # End test_table_select method
 
-    def test_table_select_overwrite(self, world_tables, mem_gpkg):
+    def test_overwrite(self, world_tables, mem_gpkg):
         """
         Test table_select that exercises overwrite
         """
@@ -68,7 +68,7 @@ class TestSelect:
         with Swap(Setting.OVERWRITE, True):
             result = table_select(source=source, target=target, where_clause=where_clause)
         assert len(result) == count
-    # End test_table_select_overwrite method
+    # End test_overwrite method
 
     @mark.parametrize('table_name, where_clause', [
         ('admin', 'ISO = "BR"'),
@@ -76,7 +76,7 @@ class TestSelect:
         ('cities', 'POP ISNULL()'),
         ('cities', 'POP <<>> 0'),
     ])
-    def test_table_select_bad_sql(self, world_tables, mem_gpkg, table_name, where_clause):
+    def test_bad_sql(self, world_tables, mem_gpkg, table_name, where_clause):
         """
         Test table_select bad SQL
         """
@@ -84,8 +84,14 @@ class TestSelect:
         target = Table(geopackage=mem_gpkg, name=table_name)
         with raises(OperationsError):
             table_select(source=source, target=target, where_clause=where_clause)
-    # End test_table_select_bad_sql method
+    # End test_bad_sql method
+# End TestTableSelect class
 
+
+class TestSelect:
+    """
+    Test Select
+    """
     @mark.parametrize('fc_name, where_clause, count', [
         ('lakes_a', None, 39),
         ('lakes_a', '', 39),
@@ -120,7 +126,7 @@ class TestSelect:
         ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.DISABLED, OutputMOption.DISABLED, 364),
         ('cities_p', 'POP IS NULL', OutputZOption.DISABLED, OutputMOption.DISABLED, 1377),
     ])
-    def test_select_zm(self, world_features, mem_gpkg, fc_name, where_clause, output_z_option, output_m_option, count):
+    def test_zm(self, world_features, mem_gpkg, fc_name, where_clause, output_z_option, output_m_option, count):
         """
         Test select with ZM settings
         """
@@ -134,9 +140,9 @@ class TestSelect:
         assert len(result) == count
         assert target.has_z == zm.z_enabled
         assert target.has_m == zm.m_enabled
-    # End test_select_zm method
+    # End test_zm method
 
-    def test_select_sans_attrs(self, inputs, world_features, mem_gpkg):
+    def test_sans_attrs(self, inputs, world_features, mem_gpkg):
         """
         Test select sans attributes
         """
@@ -151,7 +157,7 @@ class TestSelect:
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         result = select(source=source, target=target, where_clause=where_clause)
         assert len(result) == 10
-    # End test_select_sans_attrs method
+    # End test_sans_attrs method
 
     @mark.parametrize('fc_name, where_clause', [
         ('admin_a', 'ISO = "BR"'),
@@ -159,7 +165,7 @@ class TestSelect:
         ('cities_p', 'POP ISNULL()'),
         ('cities_p', 'POP <<>> 0'),
     ])
-    def test_select_bad_sql(self, world_features, mem_gpkg, fc_name, where_clause):
+    def test_bad_sql(self, world_features, mem_gpkg, fc_name, where_clause):
         """
         Test select bad SQL
         """
@@ -167,7 +173,7 @@ class TestSelect:
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         with raises(OperationsError):
             select(source=source, target=target, where_clause=where_clause)
-    # End test_select_bad_sql method
+    # End test_bad_sql method
 # End TestSelect class
 
 
