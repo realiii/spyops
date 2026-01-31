@@ -259,7 +259,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return create_feature_class(
             geopackage=self._target.geopackage, name=self._target.name,
             shape_type=shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
+            srs=self.spatial_reference_system,
             z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
     # End _create_feature_class method
 
