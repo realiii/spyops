@@ -38,7 +38,9 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
         srs = srs_from_crs(crs)
         source_crs = crs_from_srs(source.spatial_reference_system)
         transformer = get_transform_best_guess(source_crs, crs)
-        transformer = make_transformer_function(source, transformer=transformer)
+        transformer = make_transformer_function(
+            source.shape_type, has_z=source.has_z, has_m=source.has_m,
+            transformer=transformer)
     geopackage = target.geopackage
     srs = validate_srs(geopackage, srs=srs)
     # NOTE simple copy if no change in ZM and no change in CRS

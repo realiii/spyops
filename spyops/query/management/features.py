@@ -4,10 +4,13 @@ Query Classes for management.features module
 """
 
 
+from functools import cached_property
 from operator import attrgetter
+from typing import Callable
 
 from fudgeo.enumeration import ShapeType
 
+from spyops.crs.transform import make_transformer_function
 from spyops.query.base import AbstractSourceQuery
 from spyops.shared.constant import (
     LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
@@ -91,6 +94,18 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             self.target.escaped_name, field_names=insert_names,
             field_count=len(fields) + 1)
     # End insert property
+
+    @cached_property
+    def transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End transformer property
 # End QueryMultiPartToSinglePart class
 
 

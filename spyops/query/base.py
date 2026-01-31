@@ -6,7 +6,7 @@ Abstract Classes in support of Query objects
 
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from fudgeo import FeatureClass, Field, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE
@@ -139,21 +139,32 @@ class AbstractQuery(metaclass=ABCMeta):
         return self.source.spatial_reference_system
     # End spatial_reference_system property
 
+    @staticmethod
+    def _get_transformer(feature_class: FeatureClass) \
+            -> Optional['Transformer']:
+        """
+        Get Transformer
+        """
+        if not isinstance(feature_class, FeatureClass):
+            return None
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if not isinstance(crs, CRS):
+            return None
+        source_crs = crs_from_srs(feature_class.spatial_reference_system)
+        # TODO look up from geographic transformers, failing over to this call
+        return get_transform_best_guess(source_crs, crs)
+    # End _get_transformer method
+
     @cached_property
     def transformer(self) -> Callable | None:
         """
         Transformer
         """
-        if not isinstance(self.source, FeatureClass):
-            return None
-        crs = ANALYSIS_SETTINGS.output_coordinate_system
-        if not isinstance(crs, CRS):
-            return None
-        source_crs = crs_from_srs(self.source.spatial_reference_system)
-        # TODO look up from geographic transformers, failing over to this call
-        if (transformer := get_transform_best_guess(source_crs, crs)) is None:
-            return None
-        return make_transformer_function(self.source, transformer=transformer)
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
     # End transformer property
 # End AbstractQuery class
 

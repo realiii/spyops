@@ -110,7 +110,7 @@ def get_transform_best_guess(source_crs: CRS, target_crs: CRS) -> Transformer | 
 # End get_transform_best_guess function
 
 
-def make_transformer_function(feature_class: 'FeatureClass',
+def make_transformer_function(shape_type: str, has_z: bool, has_m: bool,
                               transformer: Transformer | None) \
         -> Callable | None:
     """
@@ -118,14 +118,13 @@ def make_transformer_function(feature_class: 'FeatureClass',
     """
     if transformer is None:
         return None
-    geom_transform = GEOMETRY_TRANSFORM[feature_class.shape_type]
-    include_vertical = (feature_class.has_z and
+    include_vertical = (has_z and
                         transformer.source_crs.is_compound and
                         transformer.target_crs.is_compound)
     kwargs = {TRANSFORMER_KEY: transformer,
               INCLUDE_VERTICAL_KEY: include_vertical,
-              HAS_Z_KEY: feature_class.has_z,
-              HAS_M_KEY: feature_class.has_m}
+              HAS_Z_KEY: has_z, HAS_M_KEY: has_m}
+    geom_transform = GEOMETRY_TRANSFORM[shape_type]
     return partial(geom_transform, **kwargs)
 # End make_transformer_function function
 
