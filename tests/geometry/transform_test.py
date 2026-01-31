@@ -69,10 +69,10 @@ def test_transform_points_invalid():
         Point(x=50, y=100, srs_id=WGS84),
         Point(x=200, y=60, srs_id=WGS84),
     ]
-    points = [from_wkb(p.wkb) for p in points]
+    points = from_wkb([p.wkb for p in points])
     points = transform_points(points, **kwargs)
     assert len(points) == 5
-    assert get_validity(points, transformer=lambda x: x) == [True, True, False, False, True]
+    assert get_validity(points, transformer=lambda x: x).tolist() == [True, True, False, False, True]
 # End test_transform_points_invalid function
 
 
@@ -90,7 +90,7 @@ def test_transform_linestring_invalid():
     lines = [from_wkb(p.wkb) for p in lines]
     lines = transform_linestrings(lines, **kwargs)
     assert len(lines) == 4
-    assert get_validity(lines, transformer=lambda x: x) == [True, True, False, False]
+    assert get_validity(lines, transformer=lambda x: x).tolist() == [True, True, False, False]
 # End test_transform_linestring_invalid function
 
 
@@ -104,10 +104,10 @@ def test_transform_polygon_invalid():
         Polygon([[(50, 60), (50, 1000), (1000, 50), (1000, 50), (50, 60)]], srs_id=WGS84),
         Polygon([[(1000, 1000), (1000, 2000), (2000, 2000), (2000, 1000), (1000, 1000)]], srs_id=WGS84),
     ]
-    polys = [from_wkb(p.wkb) for p in polys]
+    polys = from_wkb([p.wkb for p in polys])
     polys = transform_polygons(polys, **kwargs)
     assert len(polys) == 3
-    assert get_validity(polys, transformer=lambda x: x) == [True, False, False]
+    assert get_validity(polys, transformer=lambda x: x).tolist() == [True, False, False]
 # End test_transform_polygon_invalid function
 
 

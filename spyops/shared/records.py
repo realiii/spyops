@@ -16,7 +16,7 @@ from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 
 from spyops.geometry.util import (
-    filter_features, get_geoms, get_geoms_iter, to_shapely)
+    filter_features, get_geoms, get_geoms_iter, keep_valid, to_shapely)
 from spyops.geometry.wa import USE_WORKAROUNDS, set_precision
 from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, SRS_ID_WKB
 from spyops.shared.hint import XY_TOL
@@ -51,8 +51,9 @@ def insert_many(config: 'GeometryConfig', executor: 'ExecuteMany',
     Insert Many
     """
     geometries, validity = to_shapely(features, transformer=transformer)
-    results = [(g, attrs) for g, (_, *attrs), valid in
-               zip(geometries, features, validity) if valid]
+    features, geometries = keep_valid(
+        features, geometries=geometries, validity=validity)
+    results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
     extend_records(results, records=records, config=config)
     executor(sql=insert_sql, data=records)
     records.clear()
@@ -141,7 +142,9 @@ def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.disjoint)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = to_shapely(features)
+            geometries, validity = to_shapely(features)
+            features, geometries = keep_valid(
+                features, geometries=geometries, validity=validity)
             if xy_tolerance is not None:
                 geometries = set_precision(geometries, grid_size=xy_tolerance)
             results = [(geom, attrs) for geom, (_, *attrs) in

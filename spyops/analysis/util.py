@@ -10,6 +10,7 @@ from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from numpy import concat
 from shapely import STRtree, difference
 
 from spyops.environment import ANALYSIS_SETTINGS
@@ -19,7 +20,7 @@ from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_multi
-from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.util import filter_features, keep_valid, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
@@ -32,7 +33,7 @@ from spyops.shared.util import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from shapely.geometry.base import BaseGeometry
+    from numpy import ndarray
     from spyops.geometry.config import GeometryConfig
     from spyops.query.analysis.overlay import (
         QueryIntersectClassic, QueryIntersectPairwise,
@@ -62,14 +63,16 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries = to_shapely(features)
+            geometries, validity = to_shapely(features)
+            features, geometries = keep_valid(
+                features, geometries=geometries, validity=validity)
             intersects = geometry.intersects(geometries)
             if not intersects.any():
                 continue
-            keepers = [f for f, keep in zip(features, intersects) if keep]
+            keepers = [f for f, has_intersection in zip(features, intersects)
+                       if has_intersection]
             geoms = geometry.intersection(
-                [g for g, keep in zip(geometries, intersects) if keep],
-                grid_size=xy_tolerance)
+                geometries[intersects], grid_size=xy_tolerance)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
@@ -140,7 +143,9 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries = to_shapely(features)
+            geometries, validity = to_shapely(features)
+            features, geometries = keep_valid(
+                features, geometries=geometries, validity=validity)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 results = [(g, attr) for g, (_, *attr) in
@@ -149,23 +154,26 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
                 executor(sql=insert_sql, data=records)
                 records.clear()
                 continue
-            changer_indexes, indexes = intersects
-            overlay = build_multi([overlay_geoms[i] for i in set(indexes)])
-            changer_indexes = set(changer_indexes)
-            keeper_indexes = set(range(len(geometries))) - changer_indexes
+            change_indexes, indexes = intersects
+            change_indexes = set(change_indexes)
+            keeper_indexes = list(set(range(len(geometries))) - change_indexes)
             keepers = [features[i] for i in keeper_indexes]
-            geoms = [geometries[i] for i in keeper_indexes]
+            geoms = geometries[keeper_indexes]
             if xy_tolerance is not None:
                 geoms = set_precision(geoms, grid_size=xy_tolerance)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
-            changers = [features[i] for i in changer_indexes]
-            geoms = [geometries[i] for i in changer_indexes]
+
+            overlay = build_multi([overlay_geoms[i] for i in set(indexes)])
+            change_indexes = list(change_indexes)
+            changers = [features[i] for i in change_indexes]
+            geoms = geometries[change_indexes]
             differences = difference(geoms, overlay, grid_size=xy_tolerance)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(differences, changers)]
             extend_records(results, records=records, config=config)
+
             executor(sql=insert_sql, data=records)
             records.clear()
 # End _difference function
@@ -189,7 +197,7 @@ def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
 
 
 def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
-        -> tuple[list[tuple], list[BaseGeometry]]:
+        -> tuple[list[tuple], ndarray]:
     """
     Get Converted Operator Features and Geometries
     """
@@ -200,14 +208,17 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
+            geometries, validity = to_shapely(features)
+            features, geometries = keep_valid(
+                features, geometries=geometries, validity=validity)
             op_features.extend(features)
-            op_geoms.extend(to_shapely(features))
-    return op_features, converter(op_geoms)
+            op_geoms.append(geometries)
+    return op_features, converter(concat(op_geoms))
 # End _get_converted_operator function
 
 
 def _intersect(*, query: QUERY_INT, op_features: list[tuple],
-               op_geoms: list[BaseGeometry], src_convert: Callable,
+               op_geoms: 'ndarray', src_convert: Callable,
                xy_tolerance: XY_TOL) -> FeatureClass:
     """
     Internal Intersect
@@ -223,7 +234,10 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries = src_convert(to_shapely(features))
+            geometries, validity = to_shapely(features)
+            features, geometries = keep_valid(
+                features, geometries=geometries, validity=validity)
+            geometries = src_convert(geometries)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 continue
@@ -236,8 +250,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
                 op_geom = op_geoms[op_idx]
                 src_attrs = [features[idx][1:] for idx in indexes]
                 intersections = op_geom.intersection(
-                    [geometries[idx] for idx in indexes],
-                    grid_size=xy_tolerance)
+                    geometries[indexes], grid_size=xy_tolerance)
                 results.extend([
                     (g, (*src_attr, *op_attr))
                     for g, src_attr in zip(intersections, src_attrs)])

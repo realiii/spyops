@@ -6,7 +6,7 @@ Utility Functions
 
 from typing import Any, Callable, TYPE_CHECKING, Union
 
-from numpy import diff, ndarray, nonzero, ones
+from numpy import array, diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 
@@ -67,11 +67,11 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 # TODO remove the default None
 def to_shapely(features: list[tuple], transformer: Callable | None = None,
                option: DimensionOption = DimensionOption.SAME) \
-        -> tuple[Union[list, 'ndarray'], Union[list, 'ndarray']]:
+        -> tuple['ndarray', 'ndarray']:
     """
     To Shapely Geometry from Fudgeo
     """
-    geometries = [from_wkb(g.wkb) for g, *_ in features]
+    geometries = from_wkb([g.wkb for g, *_ in features])
     if transformer:
         geometries = transformer(geometries)
     if option == DimensionOption.TWO_D:
@@ -82,14 +82,14 @@ def to_shapely(features: list[tuple], transformer: Callable | None = None,
 # End to_shapely function
 
 
-def get_validity(geoms: list, transformer: Callable | None) \
-        -> Union[list[bool], 'ndarray']:
+def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
     """
     Get Validity, True if geometry is valid and not empty and not None
     """
     if transformer is None:
         return ones(len(geoms), dtype=bool)
-    return [not (g is None or g.is_empty or not g.is_valid) for g in geoms]
+    return array([not (g is None or g.is_empty or not g.is_valid)
+                  for g in geoms], dtype=bool)
 # End get_validity function
 
 

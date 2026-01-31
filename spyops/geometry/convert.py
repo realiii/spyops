@@ -22,8 +22,6 @@ from spyops.shared.hint import POLYGONS
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
-    from shapely import (
-        LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon, Point)
 
 
 def get_geometry_converters(source: 'FeatureClass', operator: 'FeatureClass',
@@ -45,7 +43,7 @@ def get_geometry_converters(source: 'FeatureClass', operator: 'FeatureClass',
 # End _use_boundary_factory function
 
 
-def _as_lines(geoms: POLYGONS) -> POLYGONS:
+def _as_lines(geoms: 'ndarray') -> 'ndarray':
     """
     Convert Polygons to LineStrings
     """
@@ -58,7 +56,7 @@ def _use_boundary_factory(source_shape_type: str, operator_shape_type: str,
                           output_type_option: OutputTypeOption) \
         -> tuple[bool, bool]:
     """
-    Factory function to determine if boundary should be used during overlay
+    Factory function to determine if boundary should be used during an overlay
     operation.  Based on output type option and shape types of source and
     operator feature classes.
     """
@@ -91,7 +89,8 @@ def _update_z_values(coords: 'ndarray', has_z: bool) -> None:
 # End _update_z_values function
 
 
-def cast_points(geoms: list['Point'], srs_id: int, has_z: bool, has_m: bool) -> list:
+def cast_points(geoms: 'ndarray', srs_id: int, has_z: bool,
+                has_m: bool) -> list:
     """
     Cast shapely Points to fudgeo Points adjusting by including or dropping
     Z and M values if necessary.
@@ -103,8 +102,8 @@ def cast_points(geoms: list['Point'], srs_id: int, has_z: bool, has_m: bool) -> 
 # End cast_points function
 
 
-def cast_multi_points(geoms: list['MultiPoint'], srs_id: int,
-                      has_z: bool, has_m: bool) -> list:
+def cast_multi_points(geoms: 'ndarray', srs_id: int, has_z: bool,
+                      has_m: bool) -> list:
     """
     Cast shapely MultiPoints to fudgeo MultiPoints adjusting by including or
     dropping Z and M values if necessary.
@@ -114,8 +113,8 @@ def cast_multi_points(geoms: list['MultiPoint'], srs_id: int,
 # End cast_multi_points function
 
 
-def cast_linestrings(geoms: list['LineString'], srs_id: int,
-                     has_z: bool, has_m: bool) -> list:
+def cast_linestrings(geoms: 'ndarray', srs_id: int, has_z: bool,
+                     has_m: bool) -> list:
     """
     Cast shapely LineStrings to fudgeo LineStrings adjusting by including or
     dropping Z and M values if necessary.
@@ -125,8 +124,8 @@ def cast_linestrings(geoms: list['LineString'], srs_id: int,
 # End cast_linestrings function
 
 
-def cast_multi_linestrings(geoms: list['MultiLineString'], srs_id: int,
-                           has_z: bool, has_m: bool) -> list:
+def cast_multi_linestrings(geoms: 'ndarray', srs_id: int, has_z: bool,
+                           has_m: bool) -> list:
     """
     Cast shapely MultiLineStrings to fudgeo MultiLineStrings adjusting by
     including or dropping Z and M values if necessary.
@@ -137,8 +136,8 @@ def cast_multi_linestrings(geoms: list['MultiLineString'], srs_id: int,
 # End cast_multi_linestrings function
 
 
-def cast_polygons(geoms: list['Polygon'], srs_id: int,
-                  has_z: bool, has_m: bool) -> list:
+def cast_polygons(geoms: 'ndarray', srs_id: int, has_z: bool,
+                  has_m: bool) -> list:
     """
     Cast shapely Polygons to fudgeo Polygons adjusting by including or dropping
     Z and M values if necessary.
@@ -149,8 +148,8 @@ def cast_polygons(geoms: list['Polygon'], srs_id: int,
 # End cast_polygons function
 
 
-def cast_multi_polygons(geoms: list['MultiPolygon'], srs_id: int,
-                        has_z: bool, has_m: bool) -> list:
+def cast_multi_polygons(geoms: 'ndarray', srs_id: int, has_z: bool,
+                        has_m: bool) -> list:
     """
     Cast shapely MultiPolygons to fudgeo MultiPolygons adjusting by including or
     dropping Z and M values if necessary.
@@ -171,8 +170,8 @@ def cast_multi_polygons(geoms: list['MultiPolygon'], srs_id: int,
 # End cast_multi_polygons function
 
 
-def _cast_linear(geoms: list['MultiPoint'] | list['LineString'], has_z: bool,
-                 has_m: bool, srs_id: int, geom_type: str) -> list:
+def _cast_linear(geoms: 'ndarray', has_z: bool, has_m: bool, srs_id: int,
+                 geom_type: str) -> list:
     """
     Cast Linear Geometry
     """
@@ -185,9 +184,8 @@ def _cast_linear(geoms: list['MultiPoint'] | list['LineString'], has_z: bool,
 # End _cast_linear function
 
 
-def _cast_groups(geoms: list['MultiLineString'] | list['Polygon'], has_z: bool,
-                 has_m: bool, srs_id: int, geom_type: str,
-                 getter: Callable) -> list:
+def _cast_groups(geoms: 'ndarray', has_z: bool, has_m: bool, srs_id: int,
+                 geom_type: str, getter: Callable) -> list:
     """
     Cast Groups of Geometries
     """

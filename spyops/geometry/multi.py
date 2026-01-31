@@ -5,7 +5,7 @@ Build Multi Geometry
 
 from fudgeo import FeatureClass
 from fudgeo.enumeration import ShapeType
-from numpy import ndarray
+from numpy import asarray, ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.constructive import normalize
 from shapely.creation import prepare
@@ -44,13 +44,14 @@ def _multi_polygon(features: FeatureClass | ndarray) -> MultiPolygon:
     """
     Build MultiPolygon from Polygon or MultiPolygon Feature Class or Geometries
     """
-    geoms = []
     checker = check_polygon
     if isinstance(features, FeatureClass):
         geoms = _get_validated_geoms(features, checker=checker)
     else:
+        geoms = []
         _check_geometries(features, checker=checker, geoms=geoms)
-    if not geoms:
+        geoms = asarray(geoms, dtype=object)
+    if not len(geoms):
         return MultiPolygon()
     multi = unary_union(normalize(geoms)).normalize()
     prepare(multi)
@@ -68,6 +69,7 @@ def _multi_linestring(features: FeatureClass | ndarray) -> MultiLineString:
     checker = check_linestring
     if isinstance(features, FeatureClass):
         geoms = _get_validated_geoms(features, checker=checker)
+        geoms = geoms.tolist()
     else:
         _check_geometries(features, checker=checker, geoms=geoms)
     multi = MultiLineString(geoms)
@@ -80,12 +82,13 @@ def _multi_point(features: FeatureClass | ndarray) -> MultiPoint:
     """
     Build MultiPoint from Point or MultiPoint Feature Class
     """
-    geoms = []
     checker = check_point
     if isinstance(features, FeatureClass):
         geoms = _get_validated_geoms(features, checker=checker)
     else:
+        geoms = []
         _check_geometries(features, checker=checker, geoms=geoms)
+        geoms = asarray(geoms, dtype=object)
     multi = MultiPoint(geoms)
     prepare(multi)
     return multi

@@ -13,13 +13,14 @@ from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import ShapeType
+from numpy import concat
 from shapely import GeometryCollection
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
 from spyops.environment.core import zm_config
 from spyops.geometry.config import geometry_config
-from spyops.geometry.util import get_geoms_iter, to_shapely
+from spyops.geometry.util import get_geoms_iter, keep_valid, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
 from spyops.query.analysis.extract import QueryClip
@@ -30,14 +31,14 @@ from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import (
-    ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
+from spyops.shared.hint import ELEMENT, FIELDS, POLYGONS, XY_TOL
 from spyops.shared.util import element_names, make_unique_name
 from spyops.shared.records import extend_records, process_disjoint
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field
+    from numpy import ndarray
     from shapely import Polygon
 
 
@@ -179,7 +180,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @staticmethod
     def _fetch_features(feature_class: 'FeatureClass', sql: str) \
-            -> tuple[POLYGONS | LINES | POINTS, list[tuple]]:
+            -> tuple['ndarray', list[tuple]]:
         """
         Fetch Features, return shapely geometries and attributes
         """
@@ -188,9 +189,12 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         with feature_class.geopackage.connection as cin:
             cursor = cin.execute(sql)
             while features := cursor.fetchmany(FETCH_SIZE):
+                geometries, validity = to_shapely(features)
+                features, geometries = keep_valid(
+                    features, geometries=geometries, validity=validity)
                 attributes.extend([feature[1:] for feature in features])
-                geoms.extend(to_shapely(features))
-        return geoms, attributes
+                geoms.append(geometries)
+        return concat(geoms), attributes
     # End _fetch_features method
 
     def _make_planar_feature_class(self, feature_class: 'FeatureClass',
