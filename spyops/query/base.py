@@ -6,12 +6,17 @@ Abstract Classes in support of Query objects
 
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass, Field, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE
+from pyproj import CRS
 from shapely.creation import box
 
+from spyops.crs.transform import (
+    get_transform_best_guess, make_transformer_function)
+from spyops.crs.util import crs_from_srs, srs_from_crs
+from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
@@ -120,6 +125,36 @@ class AbstractQuery(metaclass=ABCMeta):
         """
         pass
     # End insert property
+
+    @property
+    def spatial_reference_system(self) -> SpatialReferenceSystem | None:
+        """
+        Spatial Reference System
+        """
+        if not isinstance(self.source, FeatureClass):
+            return None
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        return self.source.spatial_reference_system
+    # End spatial_reference_system property
+
+    @cached_property
+    def transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        if not isinstance(self.source, FeatureClass):
+            return None
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if not isinstance(crs, CRS):
+            return None
+        source_crs = crs_from_srs(self.source.spatial_reference_system)
+        # TODO look up from geographic transformers, failing over to this call
+        if (transformer := get_transform_best_guess(source_crs, crs)) is None:
+            return None
+        return make_transformer_function(self.source, transformer=transformer)
+    # End transformer property
 # End AbstractQuery class
 
 

@@ -7,15 +7,18 @@ Extraction
 from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, MemoryGeoPackage
+from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
 
 from spyops.analysis.util import _clip, _split_by_attributes
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.query.analysis.extract import QuerySplit
+from spyops.query.analysis.extract import QuerySelect, QuerySplit
 from spyops.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET, UNDERSCORE)
 from spyops.shared.element import copy_element
 from spyops.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
+from spyops.shared.records import insert_many
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
@@ -59,7 +62,21 @@ def select(source: FeatureClass, target: FeatureClass, *,
     Select features from a feature class using a where clause (optional) and
     write results to a target feature class.
     """
-    return copy_element(source=source, target=target, where_clause=where_clause)
+    records = []
+    query = QuerySelect(source, target=target, where_clause=where_clause)
+    query_select = query.select
+    query_insert = query.insert
+    transformer = query.transformer
+    config = query.geometry_config
+    with (target.geopackage.connection as cout,
+          source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=target) as executor):
+        cursor = cin.execute(query_select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            insert_many(
+                config, executor=executor, transformer=transformer,
+                insert_sql=query_insert, features=features, records=records)
+    return query.target
 # End select function
 
 

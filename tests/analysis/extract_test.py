@@ -9,17 +9,19 @@ from math import nan
 from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import ShapeType, FieldType
 from numpy import array, isnan
+from pyproj import CRS
 from pytest import approx, mark, param, raises
 
 from spyops.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
-    OutputMOption, OutputZOption,
-    Setting)
+    OutputMOption, OutputZOption, Setting)
+from spyops.shared.constant import EPSG, ESRI
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
 from spyops.shared.util import element_names, make_unique_name
+from tests.util import UseGrids
 
 
 pytestmark = [mark.extract]
@@ -174,6 +176,41 @@ class TestSelect:
         with raises(OperationsError):
             select(source=source, target=target, where_clause=where_clause)
     # End test_bad_sql method
+
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('hydro_4617_a', ESRI, 102179, False, (35000.796875, 5647522.5, 70211.8828125, 5675482.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, False, (35000.796875, 5647522.5, 70211.8828125, 5675482.0)),
+        ('transmission_4617_m_l', ESRI, 102179, False, (34973.9453125, 5647476.0, 70037.765625, 5675522.0)),
+        ('transmission_4617_z_l', ESRI, 102179, False, (34973.9453125, 5647476.0, 70037.765625, 5675522.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('toponymy_4617_z_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('hydro_4617_a', ESRI, 102179, True, (34997.60546875, 5647514.0, 70209.1640625, 5675475.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, True, (34997.60546875, 5647514.0, 70209.1640625, 5675475.0)),
+        ('transmission_4617_m_l', ESRI, 102179, True, (34970.6953125, 5647467.0, 70035.03125, 5675514.0)),
+        ('transmission_4617_z_l', ESRI, 102179, True, (34970.6953125, 5647467.0, 70035.03125, 5675514.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+        ('toponymy_4617_z_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+    ])
+    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name, srs_id, flag, extent):
+        """
+        Test select with output CRS
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(flag):
+            result = select(source=source, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert len(result) == len(source)
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_output_crs method
 # End TestSelect class
 
 

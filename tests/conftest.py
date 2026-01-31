@@ -84,6 +84,18 @@ def ntdb_zm_small(data_path) -> Generator[GeoPackage, None, None]:
 
 
 @fixture(scope='session')
+def ntdb_zm_small_prj(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    NTDB Clipped to a single 50K tile near YYC, Z and M values in these
+    features are fully populated, albeit with bogus-ish values but at least
+    varying per vertex.  Not a full set of data from ntdb_zm_small but
+    a variety of coordinate systems used.
+    """
+    yield from _open_geopackage(data_path.joinpath('ntdb_zm_small_prj.gpkg'))
+# End ntdb_zm_small_prj function
+
+
+@fixture(scope='session')
 def ntdb_zm_tile(data_path) -> Generator[GeoPackage, None, None]:
     """
     NTDB Clipped to a single 50K tile near YYC, Z and M values in these
@@ -101,6 +113,15 @@ def grid_index(data_path) -> Generator[GeoPackage, None, None]:
     """
     yield from _open_geopackage(data_path.joinpath('grid_index.gpkg'))
 # End grid_index function
+
+
+@fixture(scope='session')
+def grid_index_prj(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    Index and grid feature classes in a variety of coordinate systems
+    """
+    yield from _open_geopackage(data_path.joinpath('grid_index_prj.gpkg'))
+# End grid_index_prj function
 
 
 @fixture(scope='session')
