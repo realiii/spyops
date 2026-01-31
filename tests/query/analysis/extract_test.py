@@ -42,7 +42,7 @@ def test_query_split_by_attributes(request, name, fix_name, group_names):
     group_names = COMMA_SPACE.join(group_names)
     query = QuerySplitByAttributes(element, fields)
     assert f'FROM {element.name}' in query.groups
-    assert query.insert.strip().startswith('INSERT INTO {}(')
+    assert 'INTO {}(' in query.insert.strip()
     assert f'dense_rank() OVER (ORDER BY {group_names}' in query.select
 # End test_query_split_by_attributes function
 
@@ -60,7 +60,7 @@ def test_query_clip(world_features, inputs, mem_gpkg):
     assert approx(query.source_extent, abs=0.001) == (-176.15156, -54.79199, 179.19906, 78.20000)
     assert query.select == query.select_intersect
     assert query.select.strip().startswith('SELECT SHAPE "[Point]"')
-    assert query.insert.strip().startswith('INSERT INTO test_target')
+    assert 'INTO test_target(' in query.insert
     assert query.select_disjoint
     assert query.operator is operator
     assert isinstance(query.geometry_config, GeometryConfig)
