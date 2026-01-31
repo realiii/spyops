@@ -9,10 +9,23 @@ from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import FieldType
 from pytest import approx, mark, raises
 
-from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
+from spyops.query.analysis.extract import (
+    QueryClip, QuerySelect, QuerySplitByAttributes)
 from spyops.geometry.config import GeometryConfig
 
 pytestmark = [mark.extract, mark.query]
+
+
+def test_query_select(world_features, mem_gpkg):
+    """
+    Test Query Select
+    """
+    source = world_features['admin_a']
+    target = FeatureClass(geopackage=mem_gpkg, name='test_target')
+    query = QuerySelect(source=source, target=target)
+    assert query.select.strip().startswith('SELECT SHAPE "[Polygon]"')
+    assert 'INTO test_target' in query.insert
+# End test_query_select function
 
 
 @mark.parametrize('name, fix_name, group_names', [
