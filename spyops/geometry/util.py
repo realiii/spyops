@@ -52,6 +52,16 @@ def filter_features(features: list[tuple]) -> list[tuple]:
 # End filter_features function
 
 
+def keep_valid(features: list[tuple], geometries: 'ndarray',
+               validity: 'ndarray') -> tuple[list[tuple], 'ndarray']:
+    """
+    Filter Features and Geometries based on validity
+    """
+    features = [feature for feature, valid in zip(features, validity) if valid]
+    return features, geometries[validity]
+# End keep_valid function
+
+
 def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
     """
     Find Slice Indexes, include the final index to allow for easier striding
