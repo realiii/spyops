@@ -339,6 +339,55 @@ class TestSplitByAttributes:
         assert len(results) == count
     # End test_larger_inputs method
 
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (674755.125, 5653806.0, 710282.9375, 5680738.5)),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674755.125, 5653806.0, 710282.9375, 5680738.5)),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('hydro_4617_a', ESRI, 102179, False, (35142.88671875, 5647703.0, 70034.015625, 5675482.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, False, (35142.88671875, 5647703.0, 70034.015625, 5675482.0)),
+        ('transmission_4617_m_l', ESRI, 102179, False, (35012.9609375, 5647727.0, 70037.765625, 5674590.0)),
+        ('transmission_4617_z_l', ESRI, 102179, False, (35012.9609375, 5647727.0, 70037.765625, 5674590.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('toponymy_4617_z_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('hydro_4617_a', ESRI, 102179, True, (35139.65625, 5647695.0, 70031.140625, 5675475.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, True, (35139.65625, 5647695.0, 70031.140625, 5675475.0)),
+        ('transmission_4617_m_l', ESRI, 102179, True, (35009.80859375, 5647718.5, 70035.03125, 5674582.5)),
+        ('transmission_4617_z_l', ESRI, 102179, True, (35009.80859375, 5647718.5, 70035.03125, 5674582.5)),
+        ('toponymy_4617_m_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+        ('toponymy_4617_z_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name, srs_id, flag, extent, output_z, output_m):
+        """
+        Test with output CRS
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source)
+            result = split_by_attributes(source=source, group_fields='CODE', geopackage=mem_gpkg)
+            first, *_ = result
+            assert first.spatial_reference_system.srs_id == srs_id
+            assert first.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(first.extent, abs=0.001) == extent
+            assert first.has_z == zm.z_enabled
+            assert first.has_m == zm.m_enabled
+    # End test_output_crs method
 # End TestSplitByAttributes class
 
 
