@@ -129,13 +129,13 @@ def test_copy_feature_class_zm(world_features, mem_gpkg, name, where_clause, out
     source = world_features[name]
     target = FeatureClass(geopackage=mem_gpkg, name=name)
     with Swap(Setting.OUTPUT_Z_OPTION, output_z_option), Swap(Setting.OUTPUT_M_OPTION, output_m_option):
-        config = zm_config(source)
+        zm = zm_config(source)
         target = copy_feature_class(
-            source, target=target, where_clause=where_clause, config=config)
+            source, target=target, where_clause=where_clause, zm=zm)
     assert len(target) == count
-    assert target.has_z == config.z_enabled
-    assert target.has_m == config.m_enabled
-    cls = FUDGEO_GEOMETRY_LOOKUP[target.shape_type][config.z_enabled, config.m_enabled]
+    assert target.has_z == zm.z_enabled
+    assert target.has_m == zm.m_enabled
+    cls = FUDGEO_GEOMETRY_LOOKUP[target.shape_type][zm.z_enabled, zm.m_enabled]
     cursor = target.select()
     assert all(isinstance(g, cls) for g, in cursor.fetchall())
     assert all(not g.is_empty for g, in cursor.fetchall())
