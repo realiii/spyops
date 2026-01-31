@@ -7,7 +7,7 @@ Feature Class and some Table Functionality
 from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
-from fudgeo.constant import COMMA_SPACE
+from fudgeo.constant import COMMA_SPACE, SHAPE
 from fudgeo.context import ExecuteMany
 from pyproj import CRS
 
@@ -56,6 +56,7 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
         target = create_feature_class(
             geopackage, name=target.name, shape_type=source.shape_type, srs=srs,
             fields=fields, description=target.description,
+            geom_name=source.geometry_column_name,
             z_enabled=zm.z_enabled, m_enabled=zm.m_enabled)
         geom_name = get_geometry_column_name(target)
         if fields:
@@ -81,7 +82,8 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
 def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
                          srs: SpatialReferenceSystem, *, fields: FIELDS = (),
                          z_enabled: bool = False, m_enabled: bool = False,
-                         description: str = '', override_zm: bool = False) -> FeatureClass:
+                         description: str = '', geom_name: str = SHAPE,
+                         override_zm: bool = False) -> FeatureClass:
     """
     Create Feature Class, a light wrapper around the create method of
     FeatureClass with some additional logic for Spatial Reference handling and
@@ -96,7 +98,7 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
         z_enabled=zm.z_enabled, m_enabled=zm.m_enabled, fields=fields,
         description=description, overwrite=ANALYSIS_SETTINGS.overwrite,
-        spatial_index=True)
+        spatial_index=True, geom_name=geom_name)
 # End create_feature_class function
 
 
