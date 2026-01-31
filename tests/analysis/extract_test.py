@@ -5,6 +5,7 @@ Test Extraction
 
 
 from math import nan
+from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import ShapeType, FieldType
@@ -173,7 +174,7 @@ class TestSelect:
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-        with raises(OperationsError):
+        with raises(OperationalError):
             select(source=source, target=target, where_clause=where_clause)
     # End test_bad_sql method
 
