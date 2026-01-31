@@ -4,10 +4,11 @@ Transformation Helpers
 """
 
 
-from typing import Optional, TYPE_CHECKING, Union
+from functools import partial
+from typing import Callable, Optional, TYPE_CHECKING, Union
 
 from numpy import array, isfinite
-from pyproj import CRS
+from pyproj import CRS, Transformer
 from pyproj.transformer import TransformerGroup
 from shapely.creation import box
 
@@ -15,8 +16,10 @@ from spyops.crs.base import TransformOptions, TransformOption
 from spyops.crs.enumeration import InfoOption
 from spyops.crs.util import (
     change_crs_dimension, equals, get_crs_authority, get_crs_from_source)
+from spyops.geometry.transform import GEOMETRY_TRANSFORM
 from spyops.shared.constant import (
-    CRS_REQUIRED, INVALID_AOI, NO_TRANSFORMER, UNSUPPORTED_CRS)
+    CRS_REQUIRED, HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, INVALID_AOI,
+    NO_TRANSFORMER, TRANSFORMER_KEY, UNSUPPORTED_CRS)
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError, InvalidAreaOfInterestError,
     NoValidTransformerError)
@@ -87,6 +90,44 @@ def get_transforms(source_crs: Union[CRS, 'FeatureClass', 'SpatialReferenceSyste
     best = next((r.transformer for r in options if r.is_best), None)
     return TransformOptions(is_required=True, best=best, options=options)
 # End get_transforms function
+
+
+def get_transform_best_guess(source_crs: CRS, target_crs: CRS) -> Transformer | None:
+    """
+    Get Transformer for the best available guess between the source CRS
+    and target CRS.  It will either be None if no transformation is required,
+    None if source CRS and target CRS are considered equal, the best available
+    transformer, or the first transformer in the list of available transformers.
+    """
+    if equals(source_crs, target_crs):
+        return None
+    is_required, best, options = get_transforms(
+        source_crs, target_crs, check_validity=False)
+    if not is_required or best:
+        return best
+    first, *_ = options
+    return first.transformer
+# End get_transform_best_guess function
+
+
+def make_transformer_function(feature_class: 'FeatureClass',
+                              transformer: Transformer | None) \
+        -> Callable | None:
+    """
+    Make Transformer Function
+    """
+    if transformer is None:
+        return None
+    geom_transform = GEOMETRY_TRANSFORM[feature_class.shape_type]
+    include_vertical = (feature_class.has_z and
+                        transformer.source_crs.is_compound and
+                        transformer.target_crs.is_compound)
+    kwargs = {TRANSFORMER_KEY: transformer,
+              INCLUDE_VERTICAL_KEY: include_vertical,
+              HAS_Z_KEY: feature_class.has_z,
+              HAS_M_KEY: feature_class.has_m}
+    return partial(geom_transform, **kwargs)
+# End make_transformer_function function
 
 
 def _validate_crs_for_transform(*args: CRS) -> None:
