@@ -242,7 +242,7 @@ class TestSplitByAttributes:
         ('ISO_CC', 3),
         (('ISO_CC', 'LAND_TYPE'), 7),
     ])
-    def test_split_by_attributes_features(self, world_features, mem_gpkg, fields, count):
+    def test_features(self, world_features, mem_gpkg, fields, count):
         """
         Test split_by_attributes for feature classes
         """
@@ -255,7 +255,7 @@ class TestSplitByAttributes:
         results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
         assert len(results) == count
         assert sum([len(r) for r in results]) == subset
-    # End test_split_by_attributes_features method
+    # End test_features method
 
     @mark.zm
     @mark.parametrize('fields, output_z_option, output_m_option, count', [
@@ -263,7 +263,7 @@ class TestSplitByAttributes:
         (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 7),
         (('ISO_CC', 'LAND_TYPE'), OutputZOption.DISABLED, OutputMOption.DISABLED, 7),
     ])
-    def test_split_by_attributes_features_zm(self, world_features, mem_gpkg, fields,
+    def test_features_zm(self, world_features, mem_gpkg, fields,
                                              output_z_option, output_m_option, count):
         """
         Test split_by_attributes for feature classes with ZM settings
@@ -284,9 +284,9 @@ class TestSplitByAttributes:
         assert sum([len(r) for r in results]) == subset
         assert all([target.has_z == zm.z_enabled for target in results])
         assert all([target.has_m == zm.m_enabled for target in results])
-    # End test_split_by_attributes_features_zm method
+    # End test_features_zm method
 
-    def test_split_by_attributes_features_sans_attributes(self, world_features, mem_gpkg):
+    def test_features_sans_attributes(self, world_features, mem_gpkg):
         """
         Test split_by_attributes for feature classes sans attributes
         """
@@ -299,7 +299,7 @@ class TestSplitByAttributes:
         results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
         assert len(results) == count
         assert sum([len(r) for r in results]) == count
-    # End test_split_by_attributes_features_sans_attributes method
+    # End test_features_sans_attributes method
 
     @mark.parametrize('fields, count', [
         (Field('ISO_CC', data_type='TEXT'), 3),
@@ -307,7 +307,7 @@ class TestSplitByAttributes:
         ('ISO_CC', 3),
         (('ISO_CC', 'LAND_TYPE'), 7),
     ])
-    def test_split_by_attributes_features_with_settings(self, world_features, mem_gpkg, fields, count):
+    def test_features_with_settings(self, world_features, mem_gpkg, fields, count):
         """
         Test split_by_attributes for feature classes with analysis settings
         """
@@ -321,7 +321,7 @@ class TestSplitByAttributes:
             results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
         assert len(results) == count
         assert sum([len(r) for r in results]) == subset
-    # End test_split_by_attributes_features_with_settings method
+    # End test_features_with_settings method
 
     @mark.benchmark
     @mark.parametrize('fix_name, name, fields, count', [
@@ -329,8 +329,7 @@ class TestSplitByAttributes:
         ('inputs', 'utmzone_sparse_a', ('ZONE', 'ROW_'), 228),
         ('world_features', 'admin_a', ('COUNTRY', 'ISO_CC', 'ADMINTYPE'), 376),
     ])
-    def test_split_by_attributes_larger_inputs(self, request, inputs, mem_gpkg,
-                                               fix_name, name, fields, count):
+    def test_larger_inputs(self, request, inputs, mem_gpkg, fix_name, name, fields, count):
         """
         Test split by attributes using larger inputs
         """
@@ -338,7 +337,8 @@ class TestSplitByAttributes:
         results = split_by_attributes(
             source=source, group_fields=fields, geopackage=mem_gpkg)
         assert len(results) == count
-    # End test_split_by_attributes_larger_inputs method
+    # End test_larger_inputs method
+
 # End TestSplitByAttributes class
 
 
@@ -692,6 +692,40 @@ class TestClip:
         else:
             assert approx(list(set(z_values))) == [expected]
     # End test_output_z_value method
+
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (674755.125, 5653806.0, 710282.9375, 5680738.5)),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674755.125, 5653806.0, 710282.9375, 5680738.5)),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('hydro_4617_a', ESRI, 102179, False, (35142.88671875, 5647703.0, 70034.015625, 5675482.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, False, (35142.88671875, 5647703.0, 70034.015625, 5675482.0)),
+        ('transmission_4617_m_l', ESRI, 102179, False, (35012.9609375, 5647727.0, 70037.765625, 5674590.0)),
+        ('transmission_4617_z_l', ESRI, 102179, False, (35012.9609375, 5647727.0, 70037.765625, 5674590.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('toponymy_4617_z_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('hydro_4617_a', ESRI, 102179, True, (35139.65625, 5647695.0, 70031.140625, 5675475.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, True, (35139.65625, 5647695.0, 70031.140625, 5675475.0)),
+        ('transmission_4617_m_l', ESRI, 102179, True, (35009.80859375, 5647718.5, 70035.03125, 5674582.5)),
+        ('transmission_4617_z_l', ESRI, 102179, True, (35009.80859375, 5647718.5, 70035.03125, 5674582.5)),
+        ('toponymy_4617_m_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+        ('toponymy_4617_z_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+    ])
+    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name, srs_id, flag, extent):
+        """
+        Test with output CRS
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(flag):
+            result = split_by_attributes(source=source, group_fields='CODE', geopackage=mem_gpkg)
+            first, *_ = result
+            assert first.spatial_reference_system.srs_id == srs_id
+            assert first.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(first.extent, abs=0.001) == extent
+    # End test_output_crs method
 # End TestClip class
 
 
