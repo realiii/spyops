@@ -29,14 +29,6 @@ if TYPE_CHECKING:  # pragma: no cover
         LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon, Point)
 
 
-def get_validity(geoms: list) -> list[bool]:
-    """
-    Get Validity, True if geometry is valid and not empty and not None
-    """
-    return [not (g is None or g.is_empty or not g.is_valid) for g in geoms]
-# End get_validity function
-
-
 def transform_points(geoms: list['Point'], transformer: 'Transformer',
                      include_vertical: bool, has_z: bool,
                      has_m: bool) -> list[Optional['Point']]:

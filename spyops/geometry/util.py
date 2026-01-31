@@ -4,9 +4,9 @@ Utility Functions
 """
 
 
-from typing import Any, TYPE_CHECKING, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
-from numpy import diff, ndarray, nonzero
+from numpy import diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 
@@ -77,6 +77,17 @@ def to_shapely(features: list[tuple], option: DimensionOption = DimensionOption.
         return force_3d(geometries)
     return geometries
 # End to_shapely function
+
+
+def get_validity(geoms: list, transformer: Callable | None) \
+        -> Union[list[bool], 'ndarray']:
+    """
+    Get Validity, True if geometry is valid and not empty and not None
+    """
+    if transformer is None:
+        return ones(len(geoms), dtype=bool)
+    return [not (g is None or g.is_empty or not g.is_valid) for g in geoms]
+# End get_validity function
 
 
 if __name__ == '__main__':  # pragma: no cover

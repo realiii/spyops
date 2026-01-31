@@ -27,10 +27,10 @@ from shapely.io import from_wkb, from_wkt
 
 from spyops.crs.transform import get_transforms
 from spyops.geometry.transform import (
-    get_validity, transform_linestrings, transform_multi_linestrings,
+    transform_linestrings, transform_multi_linestrings,
     transform_multi_points, transform_multi_polygons, transform_points,
     transform_polygons)
-from spyops.geometry.util import find_slice_indexes
+from spyops.geometry.util import find_slice_indexes, get_validity
 from spyops.shared.constant import (
     HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, TRANSFORMER_KEY)
 
@@ -72,7 +72,7 @@ def test_transform_points_invalid():
     points = [from_wkb(p.wkb) for p in points]
     points = transform_points(points, **kwargs)
     assert len(points) == 5
-    assert get_validity(points) == [True, True, False, False, True]
+    assert get_validity(points, transformer=lambda x: x) == [True, True, False, False, True]
 # End test_transform_points_invalid function
 
 
@@ -90,7 +90,7 @@ def test_transform_linestring_invalid():
     lines = [from_wkb(p.wkb) for p in lines]
     lines = transform_linestrings(lines, **kwargs)
     assert len(lines) == 4
-    assert get_validity(lines) == [True, True, False, False]
+    assert get_validity(lines, transformer=lambda x: x) == [True, True, False, False]
 # End test_transform_linestring_invalid function
 
 
@@ -107,7 +107,7 @@ def test_transform_polygon_invalid():
     polys = [from_wkb(p.wkb) for p in polys]
     polys = transform_polygons(polys, **kwargs)
     assert len(polys) == 3
-    assert get_validity(polys) == [True, False, False]
+    assert get_validity(polys, transformer=lambda x: x) == [True, False, False]
 # End test_transform_polygon_invalid function
 
 
