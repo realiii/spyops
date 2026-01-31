@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from typing import Callable, Optional, TYPE_CHECKING
 
-from fudgeo import FeatureClass, Field, SpatialReferenceSystem
+from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from pyproj import CRS
 from shapely.creation import box
@@ -32,6 +32,8 @@ from spyops.shared.util import make_unique_name
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import Field, SpatialReferenceSystem
+    from pyproj import Transformer
     from spyops.environment.core import ZMConfig
     from spyops.geometry.config import GeometryConfig
 
@@ -127,7 +129,7 @@ class AbstractQuery(metaclass=ABCMeta):
     # End insert property
 
     @property
-    def spatial_reference_system(self) -> SpatialReferenceSystem | None:
+    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
         """
         Spatial Reference System
         """
@@ -506,7 +508,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End _get_unique_fields method
 
     @staticmethod
-    def _make_fid_field(field: Field, element: ELEMENT) -> Field:
+    def _make_fid_field(field: 'Field', element: ELEMENT) -> 'Field':
         """
         Make FID Field
         """
@@ -515,7 +517,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End _make_fid_field method
 
     @property
-    def input_fid_source(self) -> Field:
+    def input_fid_source(self) -> 'Field':
         """
         Input FID for Source
         """
@@ -523,7 +525,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End input_fid_source property
 
     @property
-    def input_fid_operator(self) -> Field:
+    def input_fid_operator(self) -> 'Field':
         """
         Input FID for Operator
         """
@@ -531,7 +533,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End input_fid_operator property
 
     @cached_property
-    def output_fid_source(self) -> Field:
+    def output_fid_source(self) -> 'Field':
         """
         Output FID for Source
         """
@@ -540,7 +542,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End output_fid_source property
 
     @cached_property
-    def output_fid_operator(self) -> Field:
+    def output_fid_operator(self) -> 'Field':
         """
         Output FID for Operator
         """
@@ -551,7 +553,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         return self._avoid_name_clash(field)
     # End output_fid_operator property
 
-    def _avoid_name_clash(self, field: Field) -> Field:
+    def _avoid_name_clash(self, field: 'Field') -> 'Field':
         """
         Avoid Name Clash with Source or Operator Fields
         """
