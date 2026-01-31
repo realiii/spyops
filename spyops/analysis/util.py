@@ -146,6 +146,8 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
                 results = [(g, attr) for g, (_, *attr) in
                            zip(geometries, features)]
                 extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
                 continue
             changer_indexes, indexes = intersects
             overlay = build_multi([overlay_geoms[i] for i in set(indexes)])
