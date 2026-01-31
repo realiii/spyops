@@ -93,7 +93,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     query_select = query.select
     query_insert = query.insert
     source_name = query.source.name
-    transformer = query.transformer
+    transformer = query.source_transformer
     if ignore_zm_settings:
         z_option = OutputZOption.SAME
         m_option = OutputMOption.SAME

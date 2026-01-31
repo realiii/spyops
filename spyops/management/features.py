@@ -44,7 +44,7 @@ def multipart_to_singlepart(source: 'FeatureClass',
     insert_sql = query.insert
     getter = query.part_getter
     config = query.geometry_config
-    transformer = query.transformer
+    transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=target) as executor):

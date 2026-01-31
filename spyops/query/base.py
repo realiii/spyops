@@ -158,16 +158,16 @@ class AbstractQuery(metaclass=ABCMeta):
     # End _get_transformer method
 
     @cached_property
-    def transformer(self) -> Callable | None:
+    def source_transformer(self) -> Callable | None:
         """
-        Transformer
+        Source Transformer
         """
         elm = self.source
         transformer = self._get_transformer(elm)
         return make_transformer_function(
             elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
-    # End transformer property
+    # End source_transformer property
 # End AbstractQuery class
 
 

@@ -96,7 +96,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
     # End insert property
 
     @cached_property
-    def transformer(self) -> Callable | None:
+    def source_transformer(self) -> Callable | None:
         """
         Transformer
         """
@@ -105,7 +105,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         return make_transformer_function(
             self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
-    # End transformer property
+    # End source_transformer property
 # End QueryMultiPartToSinglePart class
 
 

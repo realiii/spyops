@@ -66,7 +66,7 @@ def select(source: FeatureClass, target: FeatureClass, *,
     query = QuerySelect(source, target=target, where_clause=where_clause)
     query_select = query.select
     query_insert = query.insert
-    transformer = query.transformer
+    transformer = query.source_transformer
     config = query.geometry_config
     with (target.geopackage.connection as cout,
           source.geopackage.connection as cin,
