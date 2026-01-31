@@ -64,18 +64,21 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 # End find_slice_indexes function
 
 
-def to_shapely(features: list[tuple], option: DimensionOption = DimensionOption.SAME) -> Union[list, 'ndarray']:
+# TODO remove the default None
+def to_shapely(features: list[tuple], transformer: Callable | None = None,
+               option: DimensionOption = DimensionOption.SAME) \
+        -> tuple[Union[list, 'ndarray'], Union[list, 'ndarray']]:
     """
     To Shapely Geometry from Fudgeo
     """
     geometries = [from_wkb(g.wkb) for g, *_ in features]
+    if transformer:
+        geometries = transformer(geometries)
     if option == DimensionOption.TWO_D:
-        # noinspection PyTypeChecker
-        return force_2d(geometries)
+        geometries = force_2d(geometries)
     elif option == DimensionOption.THREE_D:
-        # noinspection PyTypeChecker
-        return force_3d(geometries)
-    return geometries
+        geometries = force_3d(geometries)
+    return geometries, get_validity(geometries, transformer)
 # End to_shapely function
 
 
