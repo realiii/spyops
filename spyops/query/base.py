@@ -242,7 +242,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         """
         return copy_feature_class(
             self.source, target=self._target, where_clause=SQL_FULL,
-            config=self.zm_config)
+            zm=self.zm_config)
     # End target_full property
 
     def _get_target_shape_type(self) -> str:

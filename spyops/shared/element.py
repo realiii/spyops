@@ -9,8 +9,11 @@ from sqlite3 import OperationalError
 from fudgeo import FeatureClass, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.context import ExecuteMany
+from pyproj import CRS
 
-from spyops.crs.util import validate_srs
+from spyops.crs.transform import (
+    get_transform_best_guess, make_transformer_function)
+from spyops.crs.util import crs_from_srs, srs_from_crs, validate_srs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, ZMConfig, zm_config
 from spyops.geometry.config import geometry_config
@@ -22,14 +25,24 @@ from spyops.shared.records import bulk_insert
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
-                       where_clause: str = '', config: ZMConfig) -> FeatureClass:
+                       where_clause: str = '', zm: ZMConfig) -> FeatureClass:
     """
     Copy Feature Class, accounting for potential Spatial Reference System
     differences across GeoPackages and ensuring the target has a spatial index.
     """
+    crs = ANALYSIS_SETTINGS.output_coordinate_system
+    if not isinstance(crs, CRS):
+        srs = source.spatial_reference_system
+        transformer = None
+    else:
+        srs = srs_from_crs(crs)
+        source_crs = crs_from_srs(source.spatial_reference_system)
+        transformer = get_transform_best_guess(source_crs, crs)
+        transformer = make_transformer_function(source, transformer=transformer)
     geopackage = target.geopackage
-    srs = validate_srs(geopackage, srs=source.spatial_reference_system)
-    if not config.is_different:
+    srs = validate_srs(geopackage, srs=srs)
+    # NOTE simple copy if no change in ZM and no change in CRS
+    if not zm.is_different and not transformer:
         target = source.copy(
             name=target.name, geopackage=geopackage, where_clause=where_clause,
             overwrite=ANALYSIS_SETTINGS.overwrite, srs=srs)
@@ -41,7 +54,7 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
         target = create_feature_class(
             geopackage, name=target.name, shape_type=source.shape_type, srs=srs,
             fields=fields, description=target.description,
-            z_enabled=config.z_enabled, m_enabled=config.m_enabled)
+            z_enabled=zm.z_enabled, m_enabled=zm.m_enabled)
         geom_name = get_geometry_column_name(target)
         if fields:
             field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
@@ -53,12 +66,12 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
             INSERT INTO {target.escaped_name}({field_names}) 
             VALUES ({params})
         """
-        config = geometry_config(target, cast_geom=True)
+        geom_config = geometry_config(target, cast_geom=True)
         with (target.geopackage.connection as cout,
               ExecuteMany(connection=cout, table=target) as executor):
             cursor = source.select(fields=fields, where_clause=where_clause)
-            bulk_insert(cursor, config=config, executor=executor,
-                        insert_sql=insert_sql)
+            bulk_insert(cursor, config=geom_config, executor=executor,
+                        insert_sql=insert_sql, transformer=transformer)
     return target
 # End copy_feature_class function
 
@@ -92,10 +105,9 @@ def copy_element(source: ELEMENT, target: ELEMENT, *,
     """
     try:
         if isinstance(source, FeatureClass):
-            config = zm_config(source)
+            zm = zm_config(source)
             element = copy_feature_class(
-                source=source, target=target, where_clause=where_clause,
-                config=config)
+                source=source, target=target, where_clause=where_clause, zm=zm)
         else:
             overwrite = ANALYSIS_SETTINGS.overwrite
             element = source.copy(
