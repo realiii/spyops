@@ -1081,6 +1081,49 @@ class TestSplit:
         results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
         assert len(results) == count
     # End test_split_larger_inputs method
+
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', ESRI, 102179, True, (34997.609375, 5661405.0, 43766.390625, 5675267.)),
+        param('hydro_4617_zm_a', ESRI, 102179, True, (34997.609375, 5661405.0, 43766.390625, 5675267.), marks=mark.slow),
+        ('transmission_4617_m_l', ESRI, 102179, True, (34970.7265625, 5661361.0, 43784.84375, 5675250.5)),
+        param('transmission_4617_z_l', ESRI, 102179, True, (34970.7265625, 5661361.0, 43784.84375, 5675250.5), marks=mark.slow),
+        ('toponymy_4617_m_p', ESRI, 102179, True, (37632.4375, 5665134.0, 43108.640625, 5675312.5)),
+        param('toponymy_4617_z_p', ESRI, 102179, True, (37632.4375, 5665134.0, 43108.640625, 5675312.5), marks=mark.slow),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                        fc_name, auth_name, srs_id, flag, extent,op_name, output_z, output_m):
+        """
+        Test with output CRS
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        operator = grid_index_prj[op_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source)
+            result = split(source=source, operator=operator, field='DATANAME', geopackage=mem_gpkg)
+            first, *_ = result
+            assert first.spatial_reference_system.srs_id == srs_id
+            assert first.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(first.extent, abs=0.001) == extent
+            assert first.has_z == zm.z_enabled
+            assert first.has_m == zm.m_enabled
+    # End test_output_crs method
 # End TestSplit class
 
 
