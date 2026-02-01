@@ -479,11 +479,9 @@ class TestIntersect:
         ('airports_mp_p', 1, 8),
         param('roads_mp_l', 1, 13, marks=mark.slow),
     ])
-    def test_intersect_setting(self, inputs, world_features, mem_gpkg, fc_name,
-                               xy_tolerance, feature_count):
+    def test_xy_tolerance_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, feature_count):
         """
         Test intersect using analysis settings for XY tolerance
-        and varying attribute option
         """
         operator = inputs['intersect_a']
         assert len(operator) == 5
@@ -493,7 +491,7 @@ class TestIntersect:
             result = intersect(source=source, operator=operator, target=target)
         assert len(result) < len(source)
         assert len(result) == feature_count
-    # End test_intersect_setting method
+    # End test_xy_tolerance_setting method
 
     @mark.parametrize('fc_name, option, field_count', [
         ('admin_a', AttributeOption.ALL, 25),
@@ -523,7 +521,7 @@ class TestIntersect:
         param('roads_l', AttributeOption.SANS_FID, 20, marks=mark.slow),
         ('admin_mp_a', AttributeOption.SANS_FID, 21),
     ])
-    def test_intersect_attribute_option(self, inputs, world_features, mem_gpkg, fc_name, option, field_count):
+    def test_attribute_option(self, inputs, world_features, mem_gpkg, fc_name, option, field_count):
         """
         Test intersect varying attribute option
         """
@@ -535,7 +533,7 @@ class TestIntersect:
                            attribute_option=option)
         assert len(result) < len(source)
         assert len(result.fields) == field_count
-    # End test_intersect_attribute_option method
+    # End test_attribute_option method
 
     @mark.parametrize('fc_name, algorithm_option, output_option, feature_count, throws', [
         ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0, False),
@@ -563,7 +561,7 @@ class TestIntersect:
         ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13, False),
         ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, False),
     ])
-    def test_intersect_output_type(self, inputs, world_features, mem_gpkg, fc_name,
+    def test_output_type(self, inputs, world_features, mem_gpkg, fc_name,
                                    algorithm_option, output_option, feature_count, throws):
         """
         Test intersect varying output types for each algorithm option
@@ -586,7 +584,7 @@ class TestIntersect:
                 assert ShapeType.point in result.shape_type
             assert len(result) < len(source)
             assert len(result) == feature_count
-    # End test_intersect_output_type method
+    # End test_output_type method
 
     @mark.zm
     @mark.parametrize('fc_name, algorithm_option, output_option, feature_count', [
@@ -621,7 +619,7 @@ class TestIntersect:
         OutputMOption.ENABLED,
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_intersect_output_type_zm(self, inputs, world_features, mem_gpkg,
+    def test_output_type_zm(self, inputs, world_features, mem_gpkg,
                                       fc_name, algorithm_option, output_option,
                                       output_z_option, output_m_option, feature_count):
         """
@@ -645,7 +643,7 @@ class TestIntersect:
         assert len(result) == feature_count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
-    # End test_intersect_output_type_zm method
+    # End test_output_type_zm method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -962,8 +960,8 @@ class TestIntersect:
         ('airports_mp_p', 0.001, 12),
         param('roads_mp_l', 0.001, 21, marks=mark.slow),
     ])
-    def test_intersect_classic_setting(self, inputs, world_features, mem_gpkg,
-                                       fc_name, xy_tolerance, feature_count):
+    def test_classic_setting(self, inputs, world_features, mem_gpkg,
+                             fc_name, xy_tolerance, feature_count):
         """
         Test intersect using analysis settings -- classic algorithm
         """
@@ -976,7 +974,7 @@ class TestIntersect:
                 source=source, operator=operator, target=target,
                 algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
-    # End test_intersect_classic_setting method
+    # End test_classic_setting method
 
     @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
         (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 64, 11),
@@ -986,7 +984,7 @@ class TestIntersect:
         (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 380, 9),
         (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 380, 4),
     ])
-    def test_intersect_option(self, inputs, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+    def test_algorithm_option(self, inputs, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
         """
         Test Intersect with Options for Classic and Pairwise
         """
@@ -1000,7 +998,7 @@ class TestIntersect:
             algorithm_option=algorithm_option, attribute_option=attribute_option)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_intersect_option method
+    # End test_algorithm_option method
 
     @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
         (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 114, 4),
@@ -1010,7 +1008,7 @@ class TestIntersect:
         (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 128, 2),
         (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 128, 4),
     ])
-    def test_intersect_option_sans_attributes(self, inputs, world_features, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+    def test_option_sans_attributes(self, inputs, world_features, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
         """
         Test Intersect with Options for Classic and Pairwise -- sans attributes
         """
@@ -1023,14 +1021,14 @@ class TestIntersect:
                            algorithm_option=algorithm_option, attribute_option=attribute_option)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_intersect_option method
+    # End test_option_sans_attributes method
 
     @mark.parametrize('xy_tolerance, feature_count', [
         (None, 380),
         (0.001, 379),
         (0.05, 369),
     ])
-    def test_intersect_classic_xy_tolerance(self, inputs, mem_gpkg, xy_tolerance, feature_count):
+    def test_classic_xy_tolerance(self, inputs, mem_gpkg, xy_tolerance, feature_count):
         """
         Test Intersect classic with XY Tolerance
         """
@@ -1040,7 +1038,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=AlgorithmOption.CLASSIC, xy_tolerance=xy_tolerance)
         assert len(result) == feature_count
-    # End test_intersect_classic_xy_tolerance method
+    # End test_classic_xy_tolerance method
 
     @mark.parametrize('option, xy_tolerance, count', [
         (AlgorithmOption.CLASSIC, None, 195),
@@ -1048,7 +1046,7 @@ class TestIntersect:
         (AlgorithmOption.PAIRWISE, None, 195),
         (AlgorithmOption.PAIRWISE, 0.001, 209),
     ])
-    def test_intersect_line_on_line(self, world_features, inputs, mem_gpkg, option, xy_tolerance, count):
+    def test_line_on_line(self, world_features, inputs, mem_gpkg, option, xy_tolerance, count):
         """
         Test intersect using a line feature class as the operator on a line feature class
         """
@@ -1058,7 +1056,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=option, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_intersect_line_on_line method
+    # End test_line_on_line method
 
     @mark.parametrize('option, xy_tolerance, count', [
         (AlgorithmOption.CLASSIC, None, 7524),
@@ -1070,7 +1068,7 @@ class TestIntersect:
         param(AlgorithmOption.PAIRWISE, 0.0000000001, 3, marks=mark.large),
         param(AlgorithmOption.PAIRWISE, 0.1, 0, marks=mark.large),
     ])
-    def test_intersect_line_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
+    def test_line_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
         """
         Test intersect using a line feature class as the operator on a point feature class
         """
@@ -1080,7 +1078,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=option, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_intersect_line_on_point method
+    # End test_line_on_point method
 
     @mark.parametrize('option, xy_tolerance, count', [
         (AlgorithmOption.CLASSIC, None, 100),
@@ -1090,7 +1088,7 @@ class TestIntersect:
         (AlgorithmOption.PAIRWISE, 0, 100),
         (AlgorithmOption.PAIRWISE, 0.001, 100),
     ])
-    def test_intersect_point_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
+    def test_point_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
         """
         Test intersect using a point feature class as the operator on a point feature class
         """
@@ -1103,7 +1101,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=option, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_intersect_point_on_point method
+    # End test_point_on_point method
 
     @mark.benchmark
     @mark.parametrize('option, name, count', [
@@ -1112,7 +1110,7 @@ class TestIntersect:
         (AlgorithmOption.PAIRWISE, 'utmzone_continentish_a', 205_532),
         (AlgorithmOption.PAIRWISE, 'utmzone_sparse_a', 26_949),
     ])
-    def test_intersect_larger_inputs(self, inputs, world_features, mem_gpkg, option, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, option, name, count):
         """
         Test intersect using larger inputs
         """
@@ -1121,7 +1119,7 @@ class TestIntersect:
         target = FeatureClass(geopackage=mem_gpkg, name=name)
         result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
         assert len(result) == count
-    # End test_intersect_larger_inputs method
+    # End test_larger_inputs method
 # End TestIntersect class
 
 
