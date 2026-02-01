@@ -23,7 +23,7 @@ from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geometry_dimension, validate_geopackage, validate_overwrite_input,
-    validate_result, validate_same_crs, validate_table, validate_xy_tolerance)
+    validate_result, validate_crs, validate_table, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -105,7 +105,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 @validate_feature_class(TARGET, exists=False)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
          xy_tolerance: XY_TOL = None) -> FeatureClass:
@@ -126,7 +126,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 @validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
 @validate_geopackage()
 @validate_xy_tolerance()
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 def split(source: FeatureClass, operator: FeatureClass,
           field: Union['Field', str], geopackage: GPKG, *,
           xy_tolerance: XY_TOL = None) -> list[FeatureClass]:

@@ -25,7 +25,7 @@ from spyops.shared.hint import XY_TOL
 from spyops.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
     validate_output_type, validate_overwrite_input, validate_result,
-    validate_same_crs, validate_xy_tolerance)
+    validate_crs, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -41,7 +41,7 @@ __all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 @validate_feature_class(TARGET, exists=False)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def erase(source: 'FeatureClass', operator: 'FeatureClass',
           target: 'FeatureClass', *,
@@ -74,7 +74,7 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def intersect(source: 'FeatureClass', operator: 'FeatureClass',
@@ -117,7 +117,7 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
                            target: 'FeatureClass', *,
@@ -149,7 +149,7 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def union(source: 'FeatureClass', operator: 'FeatureClass',
           target: 'FeatureClass', *,
