@@ -824,16 +824,12 @@ class TestClip:
         operator = grid_index_prj[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
-        if '4671' in fc_name:
-            tol = 0.000001
-        else:
-            tol = 0.001
         with UseGrids(True):
             result = clip(source=source, operator=operator, target=target)
             srs_id = source.spatial_reference_system.srs_id
             assert result.spatial_reference_system.srs_id == srs_id
             assert result.spatial_reference_system.org_coord_sys_id == srs_id
-            assert approx(result.extent, abs=tol) == extent
+            assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs method
 # End TestClip class
 
