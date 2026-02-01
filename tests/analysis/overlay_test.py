@@ -1222,8 +1222,8 @@ class TestIntersect:
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
     def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
-                                 fc_name, auth_name, srs_id, flag, extent, op_name,
-                                 output_z, output_m):
+                                fc_name, auth_name, srs_id, flag, extent, op_name,
+                                output_z, output_m):
         """
         Test intersect with output CRS and different input spatial reference systems
         """
@@ -1258,7 +1258,7 @@ class TestIntersect:
         'grid_10tm_a',
     ])
     def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
-                                    fc_name, extent, op_name):
+                                   fc_name, extent, op_name):
         """
         Test intersect with different input spatial reference systems
         """
@@ -1315,9 +1315,8 @@ class TestSymmetricalDifference:
         ('transmission_l', 'transmission_zm_l', 21, 43),
         ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    def test_sym_diff_setting(self, ntdb_zm_tile, mem_gpkg,
-                              source_name, operator_name, feature_count,
-                              field_count):
+    def test_xy_tolerance_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                  operator_name, feature_count, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         """
@@ -1334,7 +1333,7 @@ class TestSymmetricalDifference:
                 attribute_option=AttributeOption.ALL)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_sym_diff_setting method
+    # End test_xy_tolerance_setting method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 194, 42),
@@ -1353,8 +1352,8 @@ class TestSymmetricalDifference:
         ('transmission_l', 'transmission_zm_l', 21, 43),
         ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    def test_sym_diff_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name, operator_name,
-                                      feature_count, field_count):
+    def test_xy_tolerance_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                          operator_name, feature_count, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         """
@@ -1372,7 +1371,7 @@ class TestSymmetricalDifference:
                 algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_sym_diff_setting_classic method
+    # End test_xy_tolerance_setting_classic method
 
     @mark.zm
     @mark.parametrize('source_name, operator_name', [
@@ -1453,7 +1452,7 @@ class TestSymmetricalDifference:
         ('toponymy_mp', 'toponymy_mp', AttributeOption.ONLY_FID, 4),
         ('transmission_l', 'transmission_l', AttributeOption.ONLY_FID, 4),
     ])
-    def test_sym_diff_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
+    def test_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
                                        source_name, operator_name, option, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
@@ -1470,7 +1469,7 @@ class TestSymmetricalDifference:
             source=source, operator=operator, target=target,
             attribute_option=option)
         assert len(result.fields) == field_count
-    # End test_sym_diff_attribute_option method
+    # End test_attribute_option method
 
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -1585,6 +1584,158 @@ class TestSymmetricalDifference:
         assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                fc_name, auth_name, srs_id, flag, extent, op_name,
+                                output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_classic method
 # End TestSymmetricalDifference class
 
 
