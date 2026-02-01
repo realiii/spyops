@@ -57,10 +57,12 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
         return query.target_full
     query.process_disjoint(xy_tolerance)
     geoms = get_validated_geometries(query.operator)
-    _difference(source=query.source, select_sql=query.select_source,
-                insert_sql=query.insert, overlay_geoms=geoms,
-                target=query.target, config=query.geometry_config,
-                xy_tolerance=xy_tolerance)
+    _difference(
+        source=query.source, source_transformer=query.source_transformer,
+        select_sql=query.select_source, insert_sql=query.insert,
+        overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
+        target=query.target, config=query.geometry_config,
+        xy_tolerance=xy_tolerance)
     return query.target
 # End erase function
 

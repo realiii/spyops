@@ -129,9 +129,11 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 # End _split_by_attributes function
 
 
-def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
-                overlay_geoms: list, target: FeatureClass,
-                config: 'GeometryConfig', xy_tolerance: XY_TOL) -> None:
+def _difference(*, source: FeatureClass, source_transformer: Callable | None,
+                select_sql: str, insert_sql: str,
+                overlay_geoms: 'ndarray', overlay_transformer: Callable | None,
+                target: FeatureClass, config: 'GeometryConfig',
+                xy_tolerance: XY_TOL) -> None:
     """
     Internal Difference
     """
@@ -188,15 +190,19 @@ def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
     Internal Symmetrical Difference
     """
     geoms = get_validated_geometries(query.operator)
-    _difference(source=query.source, select_sql=query.select_source,
-                insert_sql=query.source_config.insert, overlay_geoms=geoms,
-                target=query.target, config=query.geometry_config,
-                xy_tolerance=xy_tolerance)
+    _difference(
+        source=query.source, source_transformer=query.source_transformer,
+        select_sql=query.select_source, insert_sql=query.source_config.insert,
+        overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
+        target=query.target, config=query.geometry_config,
+        xy_tolerance=xy_tolerance)
     geoms = get_validated_geometries(query.source)
-    _difference(source=query.operator, select_sql=query.select_operator,
-                insert_sql=query.operator_config.insert,
-                overlay_geoms=geoms, target=query.target,
-                config=query.geometry_config, xy_tolerance=xy_tolerance)
+    _difference(
+        source=query.operator, source_transformer=query.operator_transformer,
+        select_sql=query.select_operator, insert_sql=query.operator_config.insert,
+        overlay_geoms=geoms, overlay_transformer=query.source_transformer,
+        target=query.target, config=query.geometry_config,
+        xy_tolerance=xy_tolerance)
 # End _symmetrical_difference function
 
 
