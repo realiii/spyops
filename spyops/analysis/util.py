@@ -10,7 +10,7 @@ from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from numpy import concat
+from numpy import concatenate
 from shapely import STRtree, difference
 
 from spyops.environment import ANALYSIS_SETTINGS
@@ -220,7 +220,7 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
             features, geometries = to_shapely(features, transformer=transformer)
             op_features.extend(features)
             op_geoms.append(geometries)
-    return op_features, converter(concat(op_geoms))
+    return op_features, converter(concatenate(op_geoms))
 # End _get_converted_operator function
 
 

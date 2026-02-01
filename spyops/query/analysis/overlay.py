@@ -13,7 +13,7 @@ from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import ShapeType
-from numpy import concat
+from numpy import concatenate
 from shapely import GeometryCollection
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
@@ -194,7 +194,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
                     features, geometries=geometries, validity=validity)
                 attributes.extend([feature[1:] for feature in features])
                 geoms.append(geometries)
-        return concat(geoms), attributes
+        return concatenate(geoms), attributes
     # End _fetch_features method
 
     def _make_planar_feature_class(self, feature_class: 'FeatureClass',
