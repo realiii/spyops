@@ -41,7 +41,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 QUERY_INT: TypeAlias = Union['QueryIntersectClassic', 'QueryIntersectPairwise']
-QUERY_SYN: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
+QUERY_SYM: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
 
 
 def _clip(*, source: FeatureClass, operator: FeatureClass,
@@ -185,7 +185,7 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
 # End _difference function
 
 
-def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
+def _symmetrical_difference(*, query: QUERY_SYM, xy_tolerance: XY_TOL) -> None:
     """
     Internal Symmetrical Difference
     """
