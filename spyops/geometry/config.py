@@ -97,19 +97,19 @@ def _combine_lines_workaround(geom: Union[LineString, MultiLineString]) \
     for *key, m in get_coordinates(geom, include_z=has_z, include_m=True):
         measures[tuple(key)].append(m)
     if isinstance(result, LineString):
-        return _make_measured_line(
-            result, has_z=has_z, cls=cls, measures=measures)
+        # noinspection PyTypeChecker
+        return from_wkb(_make_measured_line(
+            result, has_z=has_z, cls=cls, measures=measures))
     else:
-        lines = []
-        for line in get_geoms(result):
-            lines.append(_make_measured_line(
-                line, has_z=has_z, cls=cls, measures=measures))
-        return MultiLineString(lines)
+        wkb = [_make_measured_line(
+            line, has_z=has_z, cls=cls, measures=measures)
+            for line in get_geoms(result)]
+        return MultiLineString(from_wkb(wkb).tolist())
 # End _combine_lines_workaround function
 
 
 def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | LineStringM],
-                        measures: defaultdict[tuple[float, ...], list[float]]) -> LineString:
+                        measures: defaultdict[tuple[float, ...], list[float]]) -> bytes:
     """
     Make a Measured Line from a Shapely LineString, looking up measures
     based on the coordinates.
@@ -119,8 +119,7 @@ def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | 
     for key in coordinates:
         m = nanmean(measures.get(tuple(key), [nan]))
         coords.append((*key, m))
-    # noinspection PyTypeChecker
-    return from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
+    return cls(coords, srs_id=SRS_ID_WKB).wkb
 # End _make_measured_line function
 
 
