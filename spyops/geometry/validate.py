@@ -164,8 +164,8 @@ def get_validated_geometries(feature_class: 'FeatureClass') -> 'ndarray':
 # End get_validated_geometries function
 
 
-def _get_validated_geoms(feature_class: 'FeatureClass',
-                         checker: Callable) -> 'ndarray':
+def _get_validated_geoms(feature_class: 'FeatureClass', checker: Callable,
+                         transformer: Callable | None) -> 'ndarray':
     """
     Get Shapely Geometries from Feature Class, forcing to 2D.
     """
@@ -173,7 +173,7 @@ def _get_validated_geoms(feature_class: 'FeatureClass',
     cursor = feature_class.select()
     while features := cursor.fetchmany(FETCH_SIZE):
         geometries, validity = to_shapely(
-            features, option=DimensionOption.TWO_D)
+            features, transformer=transformer, option=DimensionOption.TWO_D)
         _check_geometries(geometries[validity], checker=checker, geoms=geoms)
     return asarray(geoms, dtype=object)
 # End _get_validated_geoms function

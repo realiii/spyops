@@ -198,7 +198,8 @@ def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
 # End _symmetrical_difference function
 
 
-def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
+def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
+                            transformer: Callable | None) \
         -> tuple[list[tuple], ndarray]:
     """
     Get Converted Operator Features and Geometries
@@ -210,7 +211,7 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features)
+            geometries, validity = to_shapely(features, transformer=transformer)
             features, geometries = keep_valid(
                 features, geometries=geometries, validity=validity)
             op_features.extend(features)

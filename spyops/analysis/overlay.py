@@ -103,7 +103,8 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
     src_convert, op_convert = get_geometry_converters(
         source, operator=operator, output_type_option=output_type_option)
     op_features, op_geoms = _get_converted_operator(
-        query=query, converter=op_convert)
+        query=query, converter=op_convert,
+        transformer=query.operator_transformer)
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
                       src_convert=src_convert, xy_tolerance=xy_tolerance)
 # End intersect function
@@ -185,7 +186,8 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
     src_convert, op_convert = get_geometry_converters(
         source, operator=operator, output_type_option=OutputTypeOption.SAME)
     op_features, op_geoms = _get_converted_operator(
-        query=query, converter=op_convert)
+        query=query, converter=op_convert,
+        transformer=query.operator_transformer)
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
                       src_convert=src_convert, xy_tolerance=xy_tolerance)
 # End union function
