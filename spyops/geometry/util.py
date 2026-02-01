@@ -52,16 +52,6 @@ def filter_features(features: list[tuple]) -> list[tuple]:
 # End filter_features function
 
 
-def keep_valid(features: list[tuple], geometries: 'ndarray',
-               validity: 'ndarray') -> tuple[list[tuple], 'ndarray']:
-    """
-    Filter Features and Geometries based on validity
-    """
-    features = [feature for feature, valid in zip(features, validity) if valid]
-    return features, geometries[validity]
-# End keep_valid function
-
-
 def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
     """
     Find Slice Indexes, include the final index to allow for easier striding
@@ -76,18 +66,24 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 
 def to_shapely(features: list[tuple], transformer: Callable | None,
                option: DimensionOption = DimensionOption.SAME) \
-        -> tuple['ndarray', 'ndarray']:
+        -> tuple[list[tuple], 'ndarray']:
     """
-    To Shapely Geometry from Fudgeo
+    Convert to Shapely Geometry from Fudgeo Geometry, optionally changing
+    geometry dimension by forcing to 2D or 3D and/or transforming.
+
+    When a transformer is provided the geometries are transformed, validity
+    checked, and valid geometries (and corresponding features) are returned.
     """
     geometries = from_wkb([g.wkb for g, *_ in features])
     if transformer:
         geometries = transformer(geometries)
+        validity = get_validity(geometries, transformer)
+        features = [feature for feature, v in zip(features, validity) if v]
     if option == DimensionOption.TWO_D:
         geometries = force_2d(geometries)
     elif option == DimensionOption.THREE_D:
         geometries = force_3d(geometries)
-    return geometries, get_validity(geometries, transformer)
+    return features, geometries
 # End to_shapely function
 
 

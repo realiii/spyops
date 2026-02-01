@@ -20,7 +20,7 @@ from shapely.set_operations import union_all
 
 from spyops.environment.core import zm_config
 from spyops.geometry.config import geometry_config
-from spyops.geometry.util import get_geoms_iter, keep_valid, to_shapely
+from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
 from spyops.query.analysis.extract import QueryClip

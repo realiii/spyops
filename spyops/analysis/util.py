@@ -20,7 +20,7 @@ from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_multi
-from spyops.geometry.util import filter_features, keep_valid, to_shapely
+from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
@@ -64,9 +64,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features, transformer=transformer)
-            features, geometries = keep_valid(
-                features, geometries=geometries, validity=validity)
+            features, geometries = to_shapely(features, transformer=transformer)
             intersects = geometry.intersects(geometries)
             if not intersects.any():
                 continue
@@ -146,10 +144,8 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(
+            features, geometries = to_shapely(
                 features, transformer=source_transformer)
-            features, geometries = keep_valid(
-                features, geometries=geometries, validity=validity)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 results = [(g, attr) for g, (_, *attr) in
@@ -221,9 +217,7 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features, transformer=transformer)
-            features, geometries = keep_valid(
-                features, geometries=geometries, validity=validity)
+            features, geometries = to_shapely(features, transformer=transformer)
             op_features.extend(features)
             op_geoms.append(geometries)
     return op_features, converter(concat(op_geoms))
@@ -248,9 +242,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features, transformer=transformer)
-            features, geometries = keep_valid(
-                features, geometries=geometries, validity=validity)
+            features, geometries = to_shapely(features, transformer=transformer)
             geometries = src_convert(geometries)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):

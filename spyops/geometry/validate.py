@@ -174,9 +174,9 @@ def _get_validated_geoms(feature_class: 'FeatureClass', checker: Callable,
     geoms = []
     cursor = feature_class.select()
     while features := cursor.fetchmany(FETCH_SIZE):
-        geometries, validity = to_shapely(
+        _, geometries = to_shapely(
             features, transformer=transformer, option=DimensionOption.TWO_D)
-        _check_geometries(geometries[validity], checker=checker, geoms=geoms)
+        _check_geometries(geometries, checker=checker, geoms=geoms)
     return asarray(geoms, dtype=object)
 # End _get_validated_geoms function
 

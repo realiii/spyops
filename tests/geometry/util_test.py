@@ -100,11 +100,10 @@ def test_to_shapely(features, expected_count, expected_type):
     """
     Test to_shapely conversion from Fudgeo to Shapely geometries
     """
-    result, validity = to_shapely(features, transformer=None)
-    assert isinstance(result, ndarray)
-    assert len(result) == expected_count
-    assert all(isinstance(geom, expected_type) for geom in result)
-    assert all(validity)
+    _, geometries = to_shapely(features, transformer=None)
+    assert isinstance(geometries, ndarray)
+    assert len(geometries) == expected_count
+    assert all(isinstance(geom, expected_type) for geom in geometries)
 # End test_to_shapely function
 
 
