@@ -48,8 +48,7 @@ class TestErase:
         ('airports_mp_p', 1, 10),
         param('roads_mp_l', 1, 14, marks=mark.slow),
     ])
-    def test_erase_reduced(self, inputs, world_features, fresh_gpkg, fc_name,
-                           xy_tolerance, count):
+    def test_reduced(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
         """
         Test erase -- reduced data for faster testing
         """
@@ -67,7 +66,7 @@ class TestErase:
         result = erase(source=subset, operator=eraser, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase_reduced method
+    # End test_reduced method
 
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -88,8 +87,8 @@ class TestErase:
         OutputMOption.ENABLED,
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_erase_reduced_zm(self, inputs, world_features, fresh_gpkg, fc_name,
-                              output_z_option, output_m_option, count):
+    def test_reduced_zm(self, inputs, world_features, fresh_gpkg, fc_name,
+                        output_z_option, output_m_option, count):
         """
         Test erase -- reduced data for faster testing -- with ZM
         """
@@ -112,9 +111,9 @@ class TestErase:
         assert len(result) == count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
-    # End test_erase_reduced_zm method
+    # End test_reduced_zm method
 
-    def test_erase_reduced_sans_attributes(self, inputs, world_features, fresh_gpkg):
+    def test_reduced_sans_attributes(self, inputs, world_features, fresh_gpkg):
         """
         Test erase -- reduced data for faster testing -- sans attributes
         """
@@ -130,7 +129,7 @@ class TestErase:
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
         result = erase(source=subset, operator=eraser, target=target)
         assert len(result) == 245
-    # End test_erase_reduced_sans_attributes method
+    # End test_reduced_sans_attributes method
 
     @mark.parametrize('fc_name, count', [
         ('airports_p', 3464),
@@ -140,7 +139,7 @@ class TestErase:
         None,
         0.001,
     ])
-    def test_erase(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
+    def test_disjoint(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
         """
         Test erase - ensure that disjoint is exercised
         """
@@ -152,13 +151,13 @@ class TestErase:
         result = erase(source=source, operator=eraser, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase method
+    # End test_disjoint method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 191),
         (0.001, 203),
     ])
-    def test_erase_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test erase using a line feature class as the operator on a line feature class
         """
@@ -168,7 +167,7 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase_line_on_line method
+    # End test_line_on_line method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 13_958),
@@ -176,7 +175,7 @@ class TestErase:
         param(0.0000000001, 21_353, marks=mark.slow),
         param(0.1, 21_356, marks=mark.slow),
     ])
-    def test_erase_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test erase using a line feature class as the operator on a point feature class
         """
@@ -186,14 +185,14 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase_line_on_point method
+    # End test_line_on_point method
 
     @mark.parametrize('xy_tolerance', [
         None,
         param(0, marks=mark.slow),
         param(0.001, marks=mark.slow),
     ])
-    def test_erase_point_on_point(self, inputs, mem_gpkg, xy_tolerance):
+    def test_point_on_point(self, inputs, mem_gpkg, xy_tolerance):
         """
         Test erase using a point feature class as the operator on a point feature class
         """
@@ -207,7 +206,7 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == 21_256
-    # End test_erase_point_on_point method
+    # End test_point_on_point method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -364,7 +363,7 @@ class TestErase:
         ('utmzone_continentish_a', 11_046),
         ('utmzone_sparse_a', 186_254),
     ])
-    def test_erase_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
         """
         Test erase using larger inputs
         """
@@ -373,7 +372,7 @@ class TestErase:
         target = FeatureClass(geopackage=mem_gpkg, name=name)
         result = erase(source=source, operator=operator, target=target)
         assert len(result) == count
-    # End test_erase_larger_inputs function
+    # End test_larger_inputs function
 # End TestErase class
 
 
