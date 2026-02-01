@@ -57,7 +57,7 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                 lookup[tuple(key)].append(m)
     if isinstance(collections, GeometryCollection):
         collections = [collections]
-    planarized = []
+    wkb = []
     slicer = _get_slicer(has_z=has_z, has_m=has_m)
     for collections in collections:
         for geom in get_geoms_iter(collections):
@@ -65,9 +65,9 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                 geom, has_z=has_z, slicer=slicer, lookup=lookup)
             shape_type = geom.geom_type.upper()
             cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
-            planarized.append(from_wkb(cls(_adjust_coords(
-                coords, shape_type=shape_type), srs_id=SRS_ID_WKB).wkb))
-    return GeometryCollection(planarized)
+            wkb.append(cls(_adjust_coords(coords, shape_type=shape_type),
+                           srs_id=SRS_ID_WKB).wkb)
+    return GeometryCollection(from_wkb(wkb))
 # End polygonize function
 
 
