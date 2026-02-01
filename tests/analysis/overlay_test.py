@@ -2152,7 +2152,7 @@ class TestUnion:
         'grid_10tm_a',
     ])
     def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
-                                    fc_name, extent, op_name):
+                                   fc_name, extent, op_name):
         """
         Test sym diff with different input spatial reference systems
         """
