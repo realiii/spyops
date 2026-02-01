@@ -12,10 +12,11 @@ from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from pyproj import CRS
 from shapely.creation import box
+from shapely.ops import transform
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
-from spyops.crs.util import crs_from_srs, srs_from_crs
+from spyops.crs.util import crs_from_srs, get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
 from spyops.geometry.config import geometry_config
@@ -351,22 +352,37 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return extent_from_feature_class(self.operator)
     # End operator_extent property
 
-    @cached_property
-    def shared_extent(self) -> EXTENT:
+    def _shared_extent(self, element: FeatureClass) -> EXTENT:
         """
         Shared Extent between source and operator
         """
-        shared = box(*self.operator_extent).intersection(
-            box(*self.source_extent))
-        return shared.bounds
-    # End shared_extent property
+        operator_box = box(*self.operator_extent)
+        source_box = box(*self.source_extent)
+        if element is self.source:
+            transformer = get_transform_best_guess(
+                self.operator_crs, self.source_crs)
+            if transformer:
+                operator_box = transform(transformer.transform, operator_box)
+        else:
+            transformer = get_transform_best_guess(
+                self.source_crs, self.operator_crs)
+            if transformer:
+                source_box = transform(transformer.transform, source_box)
+        return operator_box.intersection(source_box).bounds
+    # End _shared_extent method
 
     @cached_property
     def has_intersection(self) -> bool:
         """
         Has Intersection between source and operator
         """
-        return box(*self.operator_extent).intersects(box(*self.source_extent))
+        # NOTE get transform from operator to source
+        transformer = get_transform_best_guess(
+            self.operator_crs, self.source_crs)
+        operator_box = box(*self.operator_extent)
+        if transformer:
+            operator_box = transform(transformer.transform, operator_box)
+        return operator_box.intersects(box(*self.source_extent))
     # End has_intersection property
 
     @staticmethod
@@ -437,7 +453,7 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
                 element, field_names=select_field_names,
                 where_clause=SQL_EMPTY)
         if where := self._spatial_index_where(
-                element, extent=self.shared_extent):
+                element, extent=self._shared_extent(element)):
             where = where.format(IN)
         else:  # pragma: no cover
             where = SQL_FULL
@@ -456,7 +472,7 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
                 element, field_names=select_field_names,
                 where_clause=SQL_FULL)
         if not (where := self._spatial_index_where(
-                element, extent=self.shared_extent)):  # pragma: no cover
+                element, extent=self._shared_extent(element))):  # pragma: no cover
             return EMPTY
         return self._make_select(
             element, field_names=select_field_names,
