@@ -1105,7 +1105,7 @@ class TestSplit:
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
     def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
-                        fc_name, auth_name, srs_id, flag, extent,op_name, output_z, output_m):
+                        fc_name, auth_name, srs_id, flag, extent, op_name, output_z, output_m):
         """
         Test with output CRS and different input spatial reference systems
         """
