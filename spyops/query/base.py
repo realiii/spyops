@@ -128,6 +128,14 @@ class AbstractQuery(metaclass=ABCMeta):
         pass
     # End insert property
 
+    @cached_property
+    def source_crs(self) -> CRS:
+        """
+        Source CRS
+        """
+        return get_crs_from_source(self.source)
+    # End source_crs property
+
     @property
     def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
         """
@@ -386,6 +394,14 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         return self._operator
     # End operator property
+
+    @cached_property
+    def operator_crs(self) -> CRS:
+        """
+        Operator CRS
+        """
+        return get_crs_from_source(self.operator)
+    # End operator_crs property
 
     @property
     def select_operator(self) -> str:
