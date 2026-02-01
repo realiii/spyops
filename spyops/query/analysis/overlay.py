@@ -182,16 +182,15 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     def _fetch_features(feature_class: 'FeatureClass', sql: str) \
             -> tuple['ndarray', list[tuple]]:
         """
-        Fetch Features, return shapely geometries and attributes
+        Fetch Features, return shapely geometries and attributes, stay in
+        the original spatial reference system.
         """
         geoms = []
         attributes = []
         with feature_class.geopackage.connection as cin:
             cursor = cin.execute(sql)
             while features := cursor.fetchmany(FETCH_SIZE):
-                geometries, validity = to_shapely(features)
-                features, geometries = keep_valid(
-                    features, geometries=geometries, validity=validity)
+                features, geometries = to_shapely(features, transformer=None)
                 attributes.extend([feature[1:] for feature in features])
                 geoms.append(geometries)
         return concatenate(geoms), attributes
