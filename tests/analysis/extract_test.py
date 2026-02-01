@@ -803,6 +803,38 @@ class TestClip:
             assert result.has_z == zm.z_enabled
             assert result.has_m == zm.m_enabled
     # End test_output_crs method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.25001525878906, 51.0, -114.125, 51.11003494262695)),
+        ('hydro_6654_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+        ('hydro_lcc_a', (-1260769.625, 1417430.0, -1250397.75, 1429655.5)),
+        ('hydro_utm11_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                           fc_name, extent, op_name):
+        """
+        Test clip with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        if '4671' in fc_name:
+            tol = 0.000001
+        else:
+            tol = 0.001
+        with UseGrids(True):
+            result = clip(source=source, operator=operator, target=target)
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=tol) == extent
+    # End test_different_crs method
 # End TestClip class
 
 
@@ -1129,6 +1161,37 @@ class TestSplit:
             assert first.has_z == zm.z_enabled
             assert first.has_m == zm.m_enabled
     # End test_output_crs method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.25001525878906, 51.0, -114.125, 51.11003494262695)),
+        ('hydro_6654_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+        ('hydro_lcc_a', (-1260769.625, 1417430.0, -1250397.75, 1429655.5)),
+        ('hydro_utm11_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                           fc_name, extent, op_name):
+        """
+        Test split with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        if '4671' in fc_name:
+            tol = 0.000001
+        else:
+            tol = 0.001
+        with UseGrids(True):
+            result, = split(source=source, operator=operator, field='DATANAME', geopackage=mem_gpkg)
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=tol) == extent
+    # End test_different_crs method
 # End TestSplit class
 
 
