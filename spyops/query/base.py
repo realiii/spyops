@@ -446,6 +446,18 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
             element, field_names=select_field_names,
             where_clause=where.format(NOT_IN))
     # End _make_disjoint_select method
+
+    @cached_property
+    def operator_transformer(self) -> Callable | None:
+        """
+        Operator Transformer
+        """
+        elm = self.operator
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End operator_transformer property
 # End AbstractSpatialQuery class
 
 
