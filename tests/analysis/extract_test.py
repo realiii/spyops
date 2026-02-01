@@ -743,37 +743,61 @@ class TestClip:
     # End test_output_z_value method
 
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
-        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
-        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
-        ('transmission_4617_m_l', EPSG, 2955, False, (674755.125, 5653806.0, 710282.9375, 5680738.5)),
-        ('transmission_4617_z_l', EPSG, 2955, False, (674755.125, 5653806.0, 710282.9375, 5680738.5)),
-        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
-        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
-        ('hydro_4617_a', ESRI, 102179, False, (35142.88671875, 5647703.0, 70034.015625, 5675482.0)),
-        ('hydro_4617_zm_a', ESRI, 102179, False, (35142.88671875, 5647703.0, 70034.015625, 5675482.0)),
-        ('transmission_4617_m_l', ESRI, 102179, False, (35012.9609375, 5647727.0, 70037.765625, 5674590.0)),
-        ('transmission_4617_z_l', ESRI, 102179, False, (35012.9609375, 5647727.0, 70037.765625, 5674590.0)),
-        ('toponymy_4617_m_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
-        ('toponymy_4617_z_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
-        ('hydro_4617_a', ESRI, 102179, True, (35139.65625, 5647695.0, 70031.140625, 5675475.0)),
-        ('hydro_4617_zm_a', ESRI, 102179, True, (35139.65625, 5647695.0, 70031.140625, 5675475.0)),
-        ('transmission_4617_m_l', ESRI, 102179, True, (35009.80859375, 5647718.5, 70035.03125, 5674582.5)),
-        ('transmission_4617_z_l', ESRI, 102179, True, (35009.80859375, 5647718.5, 70035.03125, 5674582.5)),
-        ('toponymy_4617_m_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
-        ('toponymy_4617_z_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+        ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('transmission_4617_z_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+        ('hydro_4617_a', ESRI, 102179, False, (52561.53515625, 5647665.0, 61375.05078125, 5659934.5)),
+        ('hydro_4617_zm_a', ESRI, 102179, False, (52561.53515625, 5647665.0, 61375.05078125, 5659934.5)),
+        ('transmission_4617_m_l', ESRI, 102179, False, (52556.953125, 5648163.0, 61380.49609375, 5661534.5)),
+        ('transmission_4617_z_l', ESRI, 102179, False, (52556.953125, 5648163.0, 61380.49609375, 5661534.5)),
+        ('toponymy_4617_m_p', ESRI, 102179, False, (53556.5859375, 5647991.5, 61297.6328125, 5660650.5)),
+        ('toponymy_4617_z_p', ESRI, 102179, False, (53556.5859375, 5647991.5, 61297.6328125, 5660650.5)),
+        ('hydro_4617_a', ESRI, 102179, True, (52561.625, 5647659.5, 61375.1640625, 5659926.5)),
+        ('hydro_4617_zm_a', ESRI, 102179, True, (52561.625, 5647659.5, 61375.1640625, 5659926.5)),
+        ('transmission_4617_m_l', ESRI, 102179, True, (52557.04296875, 5648154.0, 61380.6171875, 5661554.0)),
+        ('transmission_4617_z_l', ESRI, 102179, True, (52557.04296875, 5648154.0, 61380.6171875, 5661554.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, True, (53553.6328125, 5647982.5, 61294.859375, 5660642.5)),
+        ('toponymy_4617_z_p', ESRI, 102179, True, (53553.6328125, 5647982.5, 61294.859375, 5660642.5)),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name, srs_id, flag, extent):
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                        fc_name, auth_name, srs_id, flag, extent, op_name,
+                        output_z, output_m):
         """
         Test with output CRS
         """
         source = ntdb_zm_small_prj[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(flag):
-            result = split_by_attributes(source=source, group_fields='CODE', geopackage=mem_gpkg)
-            first, *_ = result
-            assert first.spatial_reference_system.srs_id == srs_id
-            assert first.spatial_reference_system.org_coord_sys_id == srs_id
-            assert approx(first.extent, abs=0.001) == extent
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_{srs_id}_{flag}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = clip(source=source, operator=operator, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
     # End test_output_crs method
 # End TestClip class
 
