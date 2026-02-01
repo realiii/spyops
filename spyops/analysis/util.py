@@ -56,6 +56,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
     insert_sql = query.insert
     geometry = query.geometry
     config = query.geometry_config
+    transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -63,7 +64,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features)
+            geometries, validity = to_shapely(features, transformer=transformer)
             features, geometries = keep_valid(
                 features, geometries=geometries, validity=validity)
             intersects = geometry.intersects(geometries)
@@ -143,7 +144,8 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features)
+            geometries, validity = to_shapely(
+                features, transformer=source_transformer)
             features, geometries = keep_valid(
                 features, geometries=geometries, validity=validity)
             intersects = tree.query(geometries, predicate='intersects')
@@ -170,8 +172,8 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
                 transformer=overlay_transformer)
             change_indexes = list(change_indexes)
             changers = [features[i] for i in change_indexes]
-            geoms = geometries[change_indexes]
-            differences = difference(geoms, overlay, grid_size=xy_tolerance)
+            differences = difference(
+                geometries[change_indexes], overlay, grid_size=xy_tolerance)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(differences, changers)]
             extend_records(results, records=records, config=config)
@@ -230,6 +232,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
     tree = STRtree(op_geoms)
     insert_sql = query.insert
     config = query.geometry_config
+    transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -237,7 +240,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries, validity = to_shapely(features)
+            geometries, validity = to_shapely(features, transformer=transformer)
             features, geometries = keep_valid(
                 features, geometries=geometries, validity=validity)
             geometries = src_convert(geometries)

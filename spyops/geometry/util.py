@@ -74,8 +74,7 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 # End find_slice_indexes function
 
 
-# TODO remove the default None
-def to_shapely(features: list[tuple], transformer: Callable | None = None,
+def to_shapely(features: list[tuple], transformer: Callable | None,
                option: DimensionOption = DimensionOption.SAME) \
         -> tuple['ndarray', 'ndarray']:
     """
