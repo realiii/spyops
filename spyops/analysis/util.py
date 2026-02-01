@@ -165,7 +165,9 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
                        zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
 
-            overlay = build_multi([overlay_geoms[i] for i in set(indexes)])
+            overlay = build_multi(
+                overlay_geoms[list(set(indexes))],
+                transformer=overlay_transformer)
             change_indexes = list(change_indexes)
             changers = [features[i] for i in change_indexes]
             geoms = geometries[change_indexes]

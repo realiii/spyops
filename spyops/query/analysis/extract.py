@@ -126,7 +126,7 @@ class QueryClip(AbstractSpatialQuery):
         """
         Multi-Part Geometry of the Operator Feature Class
         """
-        return build_multi(self.operator)
+        return build_multi(self.operator, transformer=self.operator_transformer)
     # End geometry property
 
     @property
