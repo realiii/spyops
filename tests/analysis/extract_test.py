@@ -211,7 +211,7 @@ class TestSelect:
     def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name,
                         srs_id, flag, extent, output_z, output_m):
         """
-        Test select with output CRS
+        Test select with output CRS and different input spatial reference systems
         """
         source = ntdb_zm_small_prj[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -371,7 +371,8 @@ class TestSplitByAttributes:
     ])
     def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name, srs_id, flag, extent, output_z, output_m):
         """
-        Test with output CRS
+        Test split by attributes with output CRS and different input
+        spatial reference systems
         """
         source = ntdb_zm_small_prj[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
@@ -779,7 +780,7 @@ class TestClip:
                         fc_name, auth_name, srs_id, flag, extent, op_name,
                         output_z, output_m):
         """
-        Test with output CRS
+        Test clip with output CRS and different input spatial reference systems
         """
         source = ntdb_zm_small_prj[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
@@ -1106,7 +1107,7 @@ class TestSplit:
     def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
                         fc_name, auth_name, srs_id, flag, extent,op_name, output_z, output_m):
         """
-        Test with output CRS
+        Test with output CRS and different input spatial reference systems
         """
         source = ntdb_zm_small_prj[fc_name]
         operator = grid_index_prj[op_name]
