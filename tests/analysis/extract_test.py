@@ -787,7 +787,7 @@ class TestClip:
         """
         source = ntdb_zm_small_prj[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_{srs_id}_{flag}_clipped')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
         operator = grid_index_prj[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
@@ -1090,9 +1090,9 @@ class TestSplit:
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', ESRI, 102179, True, (34997.609375, 5661405.0, 43766.390625, 5675267.)),
         param('hydro_4617_zm_a', ESRI, 102179, True, (34997.609375, 5661405.0, 43766.390625, 5675267.), marks=mark.slow),
-        ('transmission_4617_m_l', ESRI, 102179, True, (34970.7265625, 5661361.0, 43784.84375, 5675250.5)),
+        param('transmission_4617_m_l', ESRI, 102179, True, (34970.7265625, 5661361.0, 43784.84375, 5675250.5), marks=mark.slow),
         param('transmission_4617_z_l', ESRI, 102179, True, (34970.7265625, 5661361.0, 43784.84375, 5675250.5), marks=mark.slow),
-        ('toponymy_4617_m_p', ESRI, 102179, True, (37632.4375, 5665134.0, 43108.640625, 5675312.5)),
+        param('toponymy_4617_m_p', ESRI, 102179, True, (37632.4375, 5665134.0, 43108.640625, 5675312.5), marks=mark.slow),
         param('toponymy_4617_z_p', ESRI, 102179, True, (37632.4375, 5665134.0, 43108.640625, 5675312.5), marks=mark.slow),
     ])
     @mark.parametrize('op_name', [
