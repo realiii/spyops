@@ -25,6 +25,7 @@ from spyops.geometry.wa import USE_WORKAROUNDS
 from spyops.shared.constant import (
     GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY, SRS_ID_WKB)
 
+
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
