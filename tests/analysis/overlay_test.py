@@ -2,15 +2,17 @@
 """
 Tests for Overlay
 """
-from spyops.analysis import union
 
 
 from fudgeo import FeatureClass
 from fudgeo.enumeration import ShapeType
-from pytest import mark, param, raises
+from pyproj import CRS
+from pytest import mark, param, raises, approx
 
-from spyops.analysis.overlay import erase, intersect, symmetrical_difference
+from spyops.analysis.overlay import (
+    erase, intersect, symmetrical_difference, union)
 from spyops.environment.core import zm_config
+from spyops.shared.constant import EPSG
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
@@ -19,6 +21,8 @@ from spyops.environment.enumeration import (
 from spyops.query.analysis.overlay import QueryErase
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
+
+from tests.util import UseGrids
 
 
 pytestmark = [mark.overlay, mark.query]
@@ -373,6 +377,81 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target)
         assert len(result) == count
     # End test_larger_inputs function
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0 )),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0 )),
+        ('transmission_4617_m_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                        fc_name, auth_name, srs_id, flag, extent, op_name,
+                        output_z, output_m):
+        """
+        Test erase with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = erase(source=source, operator=operator, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                           fc_name, extent, op_name):
+        """
+        Test erase with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = erase(source=source, operator=operator, target=target)
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs method
 # End TestErase class
 
 
