@@ -1772,8 +1772,8 @@ class TestUnion:
         ('structures_a', 'structures_zm_a', 34, 43),
         ('structures_zm_a', 'structures_zm_a', 34, 44),
     ])
-    def test_union_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
-                           operator_name, feature_count, field_count):
+    def test_xy_tolerance_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                  operator_name, feature_count, field_count):
         """
         Test union using analysis settings for XY tolerance
         """
@@ -1790,7 +1790,7 @@ class TestUnion:
                 attribute_option=AttributeOption.ALL)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_union_setting method
+    # End test_xy_tolerance_setting method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 227, 42),
@@ -1800,8 +1800,8 @@ class TestUnion:
         ('structures_a', 'structures_zm_a', 36, 43),
         ('structures_zm_a', 'structures_zm_a', 36, 44),
     ])
-    def test_union_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
-                                   operator_name, feature_count, field_count):
+    def test_xy_tolerance_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                          operator_name, feature_count, field_count):
         """
         Test union using analysis settings for XY tolerance
         """
@@ -1819,7 +1819,7 @@ class TestUnion:
                 algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_union_setting_classic method
+    # End test_xy_tolerance_setting_classic method
 
     @mark.zm
     @mark.parametrize('source_name, operator_name', [
@@ -1887,8 +1887,8 @@ class TestUnion:
         ('hydro_a', 'hydro_a', AttributeOption.ONLY_FID, 4),
         ('structures_a', 'structures_a', AttributeOption.ONLY_FID, 4),
     ])
-    def test_union_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
-                                       source_name, operator_name, option, field_count):
+    def test_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
+                              source_name, operator_name, option, field_count):
         """
         Test union using analysis settings for XY tolerance
         and varying attribute option
@@ -1904,7 +1904,7 @@ class TestUnion:
             source=source, operator=operator, target=target,
             attribute_option=option)
         assert len(result.fields) == field_count
-    # End test_union_attribute_option method
+    # End test_attribute_option method
 
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -2019,6 +2019,158 @@ class TestUnion:
         assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                fc_name, auth_name, srs_id, flag, extent, op_name,
+                                output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_classic method
 # End TestUnion class
 
 
