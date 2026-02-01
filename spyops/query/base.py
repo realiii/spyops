@@ -137,10 +137,12 @@ class AbstractQuery(metaclass=ABCMeta):
         return get_crs_from_source(self.source)
     # End source_crs property
 
-    @property
+    @cached_property
     def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
         """
-        Spatial Reference System
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the source.
         """
         if not isinstance(self.source, FeatureClass):
             return None
@@ -150,20 +152,17 @@ class AbstractQuery(metaclass=ABCMeta):
         return self.source.spatial_reference_system
     # End spatial_reference_system property
 
-    @staticmethod
-    def _get_transformer(feature_class: FeatureClass) \
+    def _get_transformer(self, feature_class: FeatureClass) \
             -> Optional['Transformer']:
         """
         Get Transformer
         """
-        if not isinstance(feature_class, FeatureClass):
+        if not (srs := self.spatial_reference_system):
             return None
-        crs = ANALYSIS_SETTINGS.output_coordinate_system
-        if not isinstance(crs, CRS):
-            return None
-        source_crs = crs_from_srs(feature_class.spatial_reference_system)
+        crs = crs_from_srs(srs)
+        fc_crs = crs_from_srs(feature_class.spatial_reference_system)
         # TODO look up from geographic transformers, failing over to this call
-        return get_transform_best_guess(source_crs, crs)
+        return get_transform_best_guess(fc_crs, crs)
     # End _get_transformer method
 
     @cached_property
