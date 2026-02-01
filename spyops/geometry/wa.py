@@ -121,7 +121,8 @@ def _get_slicer(*, has_z: bool, has_m: bool) -> itemgetter:
 # End _get_slicer function
 
 
-def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
+def _reapply_measures(geometry: 'BaseGeometry',
+                      result: 'BaseGeometry') -> 'BaseGeometry':
     """
     Reapply Measures
     """
