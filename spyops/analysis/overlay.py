@@ -56,7 +56,8 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
     if not query.has_intersection:
         return query.target_full
     query.process_disjoint(xy_tolerance)
-    geoms = get_validated_geometries(query.operator)
+    geoms = get_validated_geometries(
+        query.operator, transformer=query.operator_transformer)
     _difference(
         source=query.source, source_transformer=query.source_transformer,
         select_sql=query.select_source, insert_sql=query.insert,

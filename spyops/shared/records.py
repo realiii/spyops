@@ -142,7 +142,8 @@ def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.disjoint)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries, validity = to_shapely(features)
+            geometries, validity = to_shapely(
+                features, transformer=query.transformer)
             features, geometries = keep_valid(
                 features, geometries=geometries, validity=validity)
             if xy_tolerance is not None:

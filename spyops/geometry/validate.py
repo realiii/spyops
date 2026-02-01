@@ -147,7 +147,8 @@ def check_zm(a: tuple[bool, bool], name_a: str,
 # End check_zm function
 
 
-def get_validated_geometries(feature_class: 'FeatureClass') -> 'ndarray':
+def get_validated_geometries(feature_class: 'FeatureClass',
+                             transformer: Callable | None) -> 'ndarray':
     """
     Get Validated Geometries forced to 2D
     """
@@ -160,7 +161,8 @@ def get_validated_geometries(feature_class: 'FeatureClass') -> 'ndarray':
         checker = check_polygon
     else:
         checker = nada
-    return _get_validated_geoms(feature_class, checker=checker)
+    return _get_validated_geoms(
+        feature_class, checker=checker, transformer=transformer)
 # End get_validated_geometries function
 
 

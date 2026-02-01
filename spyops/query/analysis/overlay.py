@@ -53,7 +53,7 @@ class QueryErase(QueryClip):
         query = QueryConfig(
             source=self.source, target=self.target,
             disjoint=self.select_disjoint, insert=self.insert,
-            config=self.geometry_config)
+            config=self.geometry_config, transformer=self.source_transformer)
         process_disjoint(query=query, xy_tolerance=xy_tolerance)
     # End process_disjoint method
 # End QueryErase class
@@ -718,7 +718,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         config = geometry_config(target, cast_geom=self.zm_config.is_different)
         return QueryConfig(
             source=self.source, target=target, config=config,
-            disjoint=self._disjoint_source, insert=self._insert_source)
+            disjoint=self._disjoint_source, insert=self._insert_source,
+            transformer=self.source_transformer)
     # End source_config property
 
     @property
@@ -730,7 +731,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         config = geometry_config(target, cast_geom=self.zm_config.is_different)
         return QueryConfig(
             source=self.operator, target=target, config=config,
-            disjoint=self._disjoint_operator, insert=self._insert_operator)
+            disjoint=self._disjoint_operator, insert=self._insert_operator,
+            transformer=self.operator_transformer)
     # End operator_config property
 # End BaseQuerySymmetricalDifference class
 

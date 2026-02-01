@@ -189,14 +189,16 @@ def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
     """
     Internal Symmetrical Difference
     """
-    geoms = get_validated_geometries(query.operator)
+    geoms = get_validated_geometries(
+        query.operator, transformer=query.operator_transformer)
     _difference(
         source=query.source, source_transformer=query.source_transformer,
         select_sql=query.select_source, insert_sql=query.source_config.insert,
         overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
         target=query.target, config=query.geometry_config,
         xy_tolerance=xy_tolerance)
-    geoms = get_validated_geometries(query.source)
+    geoms = get_validated_geometries(
+        query.source, transformer=query.source_transformer)
     _difference(
         source=query.operator, source_transformer=query.operator_transformer,
         select_sql=query.select_operator, insert_sql=query.operator_config.insert,
