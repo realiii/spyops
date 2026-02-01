@@ -1120,6 +1120,164 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
         assert len(result) == count
     # End test_larger_inputs method
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('transmission_4617_z_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test intersect with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.PAIRWISE)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.25001525878906, 51.0, -114.125, 51.11003494262695)),
+        ('hydro_6654_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+        ('hydro_lcc_a', (-1260769.625, 1417430.0, -1250397.75, 1429655.5)),
+        ('hydro_utm11_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test intersect with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.PAIRWISE)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('transmission_4617_z_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test intersect with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.CLASSIC)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.25001525878906, 51.0, -114.125, 51.11003494262695)),
+        ('hydro_6654_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+        ('hydro_lcc_a', (-1260769.625, 1417430.0, -1250397.75, 1429655.5)),
+        ('hydro_utm11_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test intersect with different input spatial reference systems
+        """
+        source = ntdb_zm_small_prj[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index_prj[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.CLASSIC)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_classic method
 # End TestIntersect class
 
 
