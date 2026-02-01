@@ -337,7 +337,6 @@ class _UseWorkarounds:
         """
         Use workaround for ZM values sourced from both inputs?
         """
-        from shapely import from_wkt
         a = from_wkt('LineString (2 0 1111 2222, 5 0 3333 4444, 8 0 5555 6666)')
         b = from_wkt('LineString (0 0 1 2, 3 0 3 4, 6 0 5 6, 8 0 7 8)')
         bad = from_wkt('LineString (2 0 1111 2222, 3 0 3 4)')
