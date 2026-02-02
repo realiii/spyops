@@ -25,7 +25,7 @@ def test_output_coordinate_system():
         assert s.cached_value is None
         assert isinstance(s.swap_value, CRS)
         assert ANALYSIS_SETTINGS.output_coordinate_system is crs
-    assert ANALYSIS_SETTINGS.scratch_workspace is original
+    assert ANALYSIS_SETTINGS.output_coordinate_system is original
 # End test_output_coordinate_system function
 
 
