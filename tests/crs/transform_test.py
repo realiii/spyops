@@ -68,7 +68,7 @@ class UseGrids:
 # End UseGrids class
 
 
-@mark.parametrize('crs_from, crs_to, aoi, check_validity, expected, is_best, with_grids, throw', [
+@mark.parametrize('crs_from, crs_to, aoi, check_validity, expected, is_best, flag, throw', [
     (26714, 9311, None, False, 1, True, False, None),  # conversion only
     (26714, 32164, None, False, 1, False, False, None),  # transform, no grids
     (26714, 32164, None, False,  5, True, True, None),  # transform with grids
@@ -107,13 +107,21 @@ class UseGrids:
     (26714, 32164, AreaOfInterest(-104, 30, -95, 31), True, 1, False, False, None),  # so so aoi, no grids
     (26714, 32164, AreaOfInterest(-104, 30, -95, 31), True, 1, False, True, None),  # so so aoi with grids
     (26714, 32164, AreaOfInterest(-114, 30, -110, 31), True, 0, True, False, InvalidAreaOfInterestError),  # ng aoi
+    (32665, 32065, None, False, 7, False, False, None),
+    (32665, 32065, None, False, 10, True, True, None),
+    (32665, 32065, None, True, 7, False, False, None),
+    (32665, 32065, None, True, 10, True, True, None),
+    (32665, 32065, AreaOfInterest(-90, 27, -89, 28), False, 6, True, False, None),
+    (32665, 32065, AreaOfInterest(-90, 27, -89, 28), False, 7, True, True, None),
+    (32665, 32065, AreaOfInterest(-90, 27, -89, 28), True, 6, True, False, None),
+    (32665, 32065, AreaOfInterest(-90, 27, -89, 28), True, 6, True, True, None),
 ])
 def test_get_transforms(crs_from, crs_to, aoi, check_validity,
-                        expected, is_best, with_grids, throw):
+                        expected, is_best, flag, throw):
     """
     Test getting transform object lists
     """
-    with UseGrids(with_grids):
+    with UseGrids(flag):
         crs1, crs2 = CRS(crs_from), CRS(crs_to)
         if throw is not None:
             with raises(throw):
