@@ -231,6 +231,46 @@ class TestSelect:
             assert result.has_z == zm.z_enabled
             assert result.has_m == zm.m_enabled
     # End test_output_crs method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name', [
+        param('hydro_6654_a', marks=mark.large),
+        param('hydro_6654_m_a', marks=mark.large),
+        'hydro_6654_z_a',
+        'hydro_6654_zm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_include_vertical(self, ntdb_zm_small, mem_gpkg, fc_name, output_z, output_m):
+        """
+        Test select with output compound CRS coming from a compound CRS
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        srs_id = 6893
+        crs = CRS(srs_id)
+        assert crs.is_compound
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(True)):
+            zm = zm_config(source)
+            result = select(source=source, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert len(result) == len(source)
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_include_vertical method
 # End TestSelect class
 
 
