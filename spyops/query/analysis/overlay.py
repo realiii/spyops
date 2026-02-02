@@ -31,7 +31,7 @@ from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, FIELDS, POLYGONS, XY_TOL
+from spyops.shared.hint import ELEMENT, FIELDS, XY_TOL
 from spyops.shared.util import element_names, make_unique_name
 from spyops.shared.records import extend_records, process_disjoint
 
@@ -270,7 +270,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     # End _planarize method
 
     @staticmethod
-    def _build_planar_results(planarized: list['Polygon'], geoms: POLYGONS,
+    def _build_planar_results(planarized: list['Polygon'], geoms: 'ndarray',
                               attributes: list[tuple]) -> list[tuple]:
         """
         Build Planar Results
@@ -289,7 +289,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     # End _build_planar_results method
 
     @staticmethod
-    def _make_planarized_geometry(geoms: POLYGONS) -> list['Polygon']:
+    def _make_planarized_geometry(geoms: 'ndarray') -> list['Polygon']:
         """
         Make Planarized Geometry
         """
