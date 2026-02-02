@@ -260,31 +260,36 @@ with Swap(Setting.OVERWRITE, True):
 ```
 
 ### Dimension
+#### XY Tolerance
 In the dimension category, the `xy_tolerance` setting can be used to specify a tolerance value for XY coordinates.
-The `output_m_option` and `output_z_option` settings can be used to control how M and Z values are handled in the 
-output feature class based in the inputs. The `z_value` setting can be used to specify a constant Z 
-value for the output feature class when z values are present or specified for output.  The `z_value` will only be used
-to replace NaN values.
-
 The default for `xy_tolerance` is `None`, for the most part it is recommended to use the default unless you have a 
 specific reason to change it, for example, if dealing with some dirty data or need to downgrade the data fidelity.
-The units of the tolerance value are the same as the coordinate reference system.
 
 ```python
 from spyops.analysis.extract import clip
 from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 
-# set on the function call as an argument
+# set on the function call as an argument in units of the source coordinate reference system
 fc = clip(source, operator=operator, target=target, xy_tolerance=0.001)
 
-# or set globally (not recommended)
-ANALYSIS_SETTINGS.xy_tolerance = 0.001  # in units of the coordinate reference system
+# or set globally (not recommended) in units of the source coordinate reference system
+ANALYSIS_SETTINGS.xy_tolerance = 0.001 
 
 # or set via context during a function call
 with Swap(Setting.XY_TOLERANCE, 0.001):
     fc = clip(source, operator=operator, target=target)
 ```
+
+The units of the `xy_tolerance` are interpreted as being the same as the coordinate reference system of the `source` 
+feature class in the function call.  Be cautious when working with a mixture of different coordinate reference systems
+that have different units (e.g. metres, feet, US Survey Feet, or decimal degrees).
+
+#### M/Z Options
+The `output_m_option` and `output_z_option` settings can be used to control how M and Z values are handled in the 
+output feature class based in the inputs. The `z_value` setting can be used to specify a constant Z 
+value for the output feature class when z values are present or specified for output.  The `z_value` will only be used
+to replace NaN values.
 
 The defaults for `output_m_option` and `output_z_option` are `OutputMOption.SAME` and `OutputZOption.SAME` respectively.
 `SAME` means that if an input feature class has M or Z values then the output feature class will have the same values.
@@ -364,3 +369,4 @@ with Swap(Setting.SCRATCH_FOLDER, path):
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
+* Settings support for coordinates `output_coordinate_system`
