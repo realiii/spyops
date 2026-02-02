@@ -51,6 +51,9 @@ SRS_ID_KEY: str = 'srs_id'
 INCLUDE_VERTICAL_KEY: str = 'include_vertical'
 TRANSFORMER_KEY: str = 'transformer'
 
+DEGREE: str = 'degree'
+METRE: str = 'metre'
+
 FIELD: str = 'field'
 SOURCE: str = 'source'
 OPERATOR: str = 'operator'
