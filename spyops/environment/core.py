@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
-from pyproj import CRS
+from pyproj import CRS, Transformer
 
 from spyops.environment.coordinates import _Coordinates
 from spyops.environment.enumeration import OutputMOption, OutputZOption
@@ -129,6 +129,18 @@ class _AnalysisSettings:
     def scratch_workspace(self, value: GPKG | None) -> None:
         self._workspace.scratch = value
     # End scratch_workspace property
+
+    @property
+    def geographic_transformations(self) -> list[Transformer]:
+        """
+        Geographic Transformations
+        """
+        return self._coordinates.transformations
+
+    @geographic_transformations.setter
+    def geographic_transformations(self, value: Transformer | list[Transformer]) -> None:
+        self._coordinates.transformations = value
+    # End geographic_transformations property
 
     @property
     def output_coordinate_system(self) -> CRS | None:

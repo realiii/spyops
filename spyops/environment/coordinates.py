@@ -4,14 +4,12 @@ Coordinate Reference System and Geographic Transformation Settings
 """
 
 
-from typing import Any, TYPE_CHECKING
+from typing import Any
+
+from fudgeo import FeatureClass, SpatialReferenceSystem
+from pyproj import CRS, Transformer
 
 from spyops.crs.util import get_crs_from_source
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass, SpatialReferenceSystem
-    from pyproj import CRS
 
 
 class _Coordinates:
@@ -23,8 +21,26 @@ class _Coordinates:
         Initialize the _Coordinates class
         """
         super().__init__()
+        self._transformations: list[Transformer] = []
         self._output: CRS | None = None
     # End init built-in
+
+    @property
+    def transformations(self) -> list[Transformer]:
+        """
+        Geographic Transformations
+        """
+        return self._transformations
+
+    @transformations.setter
+    def transformations(self, value: Transformer | list[Transformer]) -> None:
+        self._transformations.clear()
+        if isinstance(value, Transformer):
+            self._transformations.append(value)
+        elif isinstance(value, (list, tuple)):
+            value = [v for v in value if isinstance(v, Transformer)]
+            self._transformations.extend(value)
+    # End transformations property
 
     @property
     def output(self) -> CRS | None:

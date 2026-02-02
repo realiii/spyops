@@ -21,9 +21,20 @@ class Swap:
         super().__init__()
         setting = self._check_setting(setting)
         self._setting: Setting = setting
-        self._cached: Any = getattr(ANALYSIS_SETTINGS, setting)
+        self._cached: Any = self._get_cached_value(setting)
         self._value: Any = value
     # End init built-in
+
+    @staticmethod
+    def _get_cached_value(setting: Setting) -> Any:
+        """
+        Get Cached Value
+        """
+        value = getattr(ANALYSIS_SETTINGS, setting)
+        if setting == Setting.GEOGRAPHIC_TRANSFORMATIONS:
+            return list(value)
+        return value
+    # End _get_cached_value method
 
     @property
     def cached_value(self) -> Any:

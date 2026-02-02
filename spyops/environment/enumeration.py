@@ -23,6 +23,7 @@ class Setting(StrEnum):
     SCRATCH_FOLDER = auto()
 
     OUTPUT_COORDINATE_SYSTEM = auto()
+    GEOGRAPHIC_TRANSFORMATIONS = auto()
 # End Setting class
 
 
