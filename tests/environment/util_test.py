@@ -7,10 +7,14 @@ Test for Utility Functions
 from pyproj import CRS
 from pytest import approx, mark
 
+from spyops.crs.transform import get_transform_best_guess
 from spyops.crs.unit import get_unit_name
 from spyops.crs.util import get_crs_from_source, srs_from_crs
+from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.context import Swap
 from spyops.environment.enumeration import Setting
-from spyops.environment.util import as_title, _scale_factor, get_grid_size
+from spyops.environment.util import (
+    as_title, _scale_factor, get_geographic_transformation, get_grid_size)
 
 
 pytestmark = [mark.environment]
@@ -81,6 +85,23 @@ def test_get_grid_size(ntdb_zm_small, fc_name, epsg_code, from_name, to_name, ex
     size = get_grid_size(fc, xy_tolerance=xy_tolerance, target_srs=target_srs)
     assert approx(size, abs=10 ** -9) == expected
 # End test_get_grid_size function
+
+
+def test_get_geographic_transformation():
+    """
+    Test get_geographic_transformation
+    """
+    source_crs = CRS(4326)
+    target_crs = CRS(3857)
+    transformer = get_transform_best_guess(source_crs, target_crs)
+    assert get_geographic_transformation(source_crs, source_crs, [transformer]) is None
+    assert get_geographic_transformation(source_crs, target_crs, []) is None
+    assert get_geographic_transformation(
+        source_crs, target_crs, ANALYSIS_SETTINGS.geographic_transformations) is None
+    with Swap(Setting.GEOGRAPHIC_TRANSFORMATIONS, [transformer]):
+        assert get_geographic_transformation(
+            source_crs, target_crs, ANALYSIS_SETTINGS.geographic_transformations) is transformer
+# End test_get_geographic_transformation function
 
 
 if __name__ == '__main__':  # pragma: no cover

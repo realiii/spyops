@@ -8,7 +8,6 @@ from math import hypot
 from typing import Optional, TYPE_CHECKING
 
 from numpy import isnan
-from pyproj import Transformer
 from shapely.creation import box
 from shapely.ops import transform
 
@@ -22,6 +21,7 @@ from spyops.shared.hint import GRID_SIZE, XY_TOL
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, SpatialReferenceSystem
+    from pyproj import CRS, Transformer
 
 
 def as_title(setting: Setting | str | None) -> str:
@@ -84,6 +84,22 @@ def get_grid_size(source: 'FeatureClass', xy_tolerance: XY_TOL,
     return xy_tolerance * get_unit_conversion_factor(
         from_name=source_crs_unit_name, to_name=crs_unit_name)
 # End get_grid_size function
+
+
+def get_geographic_transformation(source_crs: 'CRS', target_crs: 'CRS',
+                                  transformations: list['Transformer']) \
+        -> Optional['Transformer']:
+    """
+    Get Geographic Transformation from Analysis Settings
+    """
+    if not transformations or equals(source_crs, target_crs):
+        return None
+    for transformer in transformations:
+        if (equals(transformer.source_crs, source_crs) and
+                equals(transformer.target_crs, target_crs)):
+            return transformer
+    return None
+# End get_geographic_transformation function
 
 
 if __name__ == '__main__':  # pragma: no cover
