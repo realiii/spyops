@@ -378,6 +378,7 @@ class TestErase:
         assert len(result) == count
     # End test_larger_inputs function
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0 )),
@@ -425,6 +426,7 @@ class TestErase:
             assert result.has_m == zm.m_enabled
     # End test_output_crs method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, extent', [
         ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
@@ -1121,6 +1123,7 @@ class TestIntersect:
         assert len(result) == count
     # End test_larger_inputs method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
@@ -1199,6 +1202,7 @@ class TestIntersect:
             assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs_pairwise method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
@@ -1585,6 +1589,7 @@ class TestSymmetricalDifference:
         assert result.count == count
     # End test_target_full_disjoint_classic method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
@@ -1661,6 +1666,7 @@ class TestSymmetricalDifference:
             assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs_pairwise method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
@@ -2020,6 +2026,7 @@ class TestUnion:
         assert result.count == count
     # End test_target_full_disjoint_classic method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
@@ -2096,6 +2103,7 @@ class TestUnion:
             assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs_pairwise method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),

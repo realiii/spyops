@@ -178,6 +178,7 @@ class TestSelect:
             select(source=source, target=target, where_clause=where_clause)
     # End test_bad_sql method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
@@ -340,6 +341,7 @@ class TestSplitByAttributes:
         assert len(results) == count
     # End test_larger_inputs method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653408.0, 709947.5, 5681614.0)),
@@ -745,6 +747,7 @@ class TestClip:
             assert approx(list(set(z_values))) == [expected]
     # End test_output_z_value method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
@@ -1114,6 +1117,7 @@ class TestSplit:
         assert len(results) == count
     # End test_split_larger_inputs method
 
+    @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', ESRI, 102179, True, (34997.609375, 5661405.0, 43766.390625, 5675267.)),
