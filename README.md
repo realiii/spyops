@@ -259,6 +259,39 @@ with Swap(Setting.OVERWRITE, True):
     fc = clip(source, operator=operator, target=target)
 ```
 
+### Coordinates
+#### Output Coordinate System
+The `output_coordinate_system` setting can be used to specify the coordinate reference system (CRS) for the `target`
+feature class.  The default is `None`, which means that the `target` feature class will have the CRS of the 
+`source` feature class.
+
+```python
+from pyproj import CRS
+from spyops.analysis.extract import clip
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
+
+# set globally, can be set using a pyproj CRS, 
+# fudgeo SpatialReferenceSystem object, or fudgeo FeatureClass object
+ANALYSIS_SETTINGS.output_coordinate_system = CRS(4326) 
+ANALYSIS_SETTINGS.output_coordinate_system = operator.spatial_reference_system 
+ANALYSIS_SETTINGS.output_coordinate_system = source
+
+# can clear the setting by using None
+ANALYSIS_SETTINGS.output_coordinate_system = None
+
+# or set via context during a function call
+with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+    fc = clip(source, operator=operator, target=target)
+
+# use None to ignore the current output_coordinate_system setting
+with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None):
+    fc = clip(source, operator=operator, target=target)
+```
+
+If `geographic_transformations` are not specified (see below) then a "best guess" will be made as to the transformation
+needed to convert the CRS of the `source` and / or `operator` feature class(es) to the `output_coordinate_system`.
+
 ### Dimension
 #### XY Tolerance
 In the dimension category, the `xy_tolerance` setting can be used to specify a tolerance value for XY coordinates.
