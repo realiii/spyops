@@ -205,6 +205,14 @@ def validate_srs(geopackage: GPKG, srs: SpatialReferenceSystem) \
 # End validate_srs function
 
 
+def get_crs_horizontal_component(crs: CRS) -> CRS:
+    """
+    Get CRS Horizontal Component
+    """
+    return _get_crs_component(crs, use_horizontal=True)
+# End get_crs_horizontal_component function
+
+
 def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
     """
     Returns the original crs if not compound, the horizontal component of a
