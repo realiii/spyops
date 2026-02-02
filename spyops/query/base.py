@@ -20,7 +20,7 @@ from spyops.crs.util import (
     crs_from_srs, get_crs_from_source, srs_from_crs)
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
-from spyops.environment.util import get_grid_size
+from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
@@ -164,7 +164,10 @@ class AbstractQuery(metaclass=ABCMeta):
             return None
         crs = crs_from_srs(srs)
         fc_crs = crs_from_srs(feature_class.spatial_reference_system)
-        # TODO look up from geographic transformers, failing over to this call
+        if transformer := get_geographic_transformation(
+                source_crs=fc_crs, target_crs=crs,
+                transformations=ANALYSIS_SETTINGS.geographic_transformations):
+            return transformer
         return get_transform_best_guess(fc_crs, crs)
     # End _get_transformer method
 
