@@ -19,7 +19,7 @@ from spyops.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
 from spyops.geometry.wa import USE_WORKAROUNDS, set_precision
 from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, SRS_ID_WKB
-from spyops.shared.hint import XY_TOL
+from spyops.shared.hint import GRID_SIZE
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -127,7 +127,7 @@ def _extend_measures(refined: list, cls: Type['AbstractGeometry']) -> list:
 # End _extend_measures function
 
 
-def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
+def process_disjoint(query: 'QueryConfig', grid_size: GRID_SIZE) -> None:
     """
     Process Disjoint Features
     """
@@ -142,8 +142,8 @@ def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
         while features := cursor.fetchmany(FETCH_SIZE):
             features, geometries = to_shapely(
                 features, transformer=query.transformer)
-            if xy_tolerance is not None:
-                geometries = set_precision(geometries, grid_size=xy_tolerance)
+            if grid_size is not None:
+                geometries = set_precision(geometries, grid_size=grid_size)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geometries, features)]
             extend_records(results, records=records, config=query.config)

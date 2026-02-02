@@ -29,7 +29,7 @@ class QuerySelect(AbstractSourceQuery):
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source, target=target)
+        super().__init__(source, target=target, xy_tolerance=None)
         self._where_clause: str = where_clause
     # End init built-in
 
@@ -67,7 +67,7 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Initialize the QuerySplitByAttributes class
         """
-        super().__init__(element)
+        super().__init__(element, xy_tolerance=None)
         self._group_names: str = make_field_names(fields)
     # End init built-in
 

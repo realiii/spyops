@@ -15,6 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 XY_TOL: TypeAlias = float | int | None
+GRID_SIZE: TypeAlias = XY_TOL
 
 ELEMENT: TypeAlias = Union['Table', 'FeatureClass']
 EXTENT: TypeAlias = tuple[float, float, float, float]

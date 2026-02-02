@@ -26,7 +26,8 @@ from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
 from spyops.shared.constant import SQL_EMPTY, UNDERSCORE
 from spyops.shared.element import copy_element
-from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, FIELDS, FIELD_NAMES, GPKG, GRID_SIZE, XY_TOL)
 from spyops.shared.records import bulk_insert, extend_records
 from spyops.shared.util import (
     element_names, make_unique_name, make_valid_name)
@@ -49,12 +50,14 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
     """
     Internal Clip
     """
-    query = QueryClip(source=source, target=target, operator=operator)
+    query = QueryClip(source=source, target=target, operator=operator,
+                      xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_empty
     records = []
     insert_sql = query.insert
     geometry = query.geometry
+    grid_size = query.grid_size
     config = query.geometry_config
     transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
@@ -71,7 +74,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
             keepers = [f for f, has_intersection in zip(features, intersects)
                        if has_intersection]
             geoms = geometry.intersection(
-                geometries[intersects], grid_size=xy_tolerance)
+                geometries[intersects], grid_size=grid_size)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
@@ -131,7 +134,7 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
                 select_sql: str, insert_sql: str,
                 overlay_geoms: 'ndarray', overlay_transformer: Callable | None,
                 target: FeatureClass, config: 'GeometryConfig',
-                xy_tolerance: XY_TOL) -> None:
+                grid_size: GRID_SIZE) -> None:
     """
     Internal Difference
     """
@@ -159,8 +162,8 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
             keeper_indexes = list(set(range(len(geometries))) - change_indexes)
             keepers = [features[i] for i in keeper_indexes]
             geoms = geometries[keeper_indexes]
-            if xy_tolerance is not None:
-                geoms = set_precision(geoms, grid_size=xy_tolerance)
+            if grid_size is not None:
+                geoms = set_precision(geoms, grid_size=grid_size)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
@@ -171,7 +174,7 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
             change_indexes = list(change_indexes)
             changers = [features[i] for i in change_indexes]
             differences = difference(
-                geometries[change_indexes], overlay, grid_size=xy_tolerance)
+                geometries[change_indexes], overlay, grid_size=grid_size)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(differences, changers)]
             extend_records(results, records=records, config=config)
@@ -181,7 +184,7 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
 # End _difference function
 
 
-def _symmetrical_difference(*, query: QUERY_SYM, xy_tolerance: XY_TOL) -> None:
+def _symmetrical_difference(query: QUERY_SYM) -> None:
     """
     Internal Symmetrical Difference
     """
@@ -192,7 +195,7 @@ def _symmetrical_difference(*, query: QUERY_SYM, xy_tolerance: XY_TOL) -> None:
         select_sql=query.select_source, insert_sql=query.source_config.insert,
         overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
         target=query.target, config=query.geometry_config,
-        xy_tolerance=xy_tolerance)
+        grid_size=query.grid_size)
     geoms = get_validated_geometries(
         query.source, transformer=query.source_transformer)
     _difference(
@@ -200,7 +203,7 @@ def _symmetrical_difference(*, query: QUERY_SYM, xy_tolerance: XY_TOL) -> None:
         select_sql=query.select_operator, insert_sql=query.operator_config.insert,
         overlay_geoms=geoms, overlay_transformer=query.source_transformer,
         target=query.target, config=query.geometry_config,
-        xy_tolerance=xy_tolerance)
+        grid_size=query.grid_size)
 # End _symmetrical_difference function
 
 
@@ -225,14 +228,14 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
 
 
 def _intersect(*, query: QUERY_INT, op_features: list[tuple],
-               op_geoms: 'ndarray', src_convert: Callable,
-               xy_tolerance: XY_TOL) -> FeatureClass:
+               op_geoms: 'ndarray', src_convert: Callable) -> FeatureClass:
     """
     Internal Intersect
     """
     records = []
     tree = STRtree(op_geoms)
     insert_sql = query.insert
+    grid_size = query.grid_size
     config = query.geometry_config
     transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
@@ -256,7 +259,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
                 op_geom = op_geoms[op_idx]
                 src_attrs = [features[idx][1:] for idx in indexes]
                 intersections = op_geom.intersection(
-                    geometries[indexes], grid_size=xy_tolerance)
+                    geometries[indexes], grid_size=grid_size)
                 results.extend([
                     (g, (*src_attr, *op_attr))
                     for g, src_attr in zip(intersections, src_attrs)])

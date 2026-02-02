@@ -61,7 +61,7 @@ class TestErase:
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=xy_tolerance)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_{fc_name}', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -101,7 +101,7 @@ class TestErase:
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_{fc_name}', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -125,7 +125,7 @@ class TestErase:
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -1429,7 +1429,7 @@ class TestSymmetricalDifference:
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -1870,7 +1870,7 @@ class TestUnion:
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)

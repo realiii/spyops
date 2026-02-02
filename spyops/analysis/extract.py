@@ -137,7 +137,8 @@ def split(source: FeatureClass, operator: FeatureClass,
     values from the specified field to name the output feature classes.
     """
     features = []
-    query = QuerySplit(source, target=None, operator=operator)
+    query = QuerySplit(source, target=None, operator=operator,
+                       xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return features
     is_internal = False
@@ -150,6 +151,7 @@ def split(source: FeatureClass, operator: FeatureClass,
     for (value,), s in splitters.items():
         name = make_valid_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
+        # NOTE raw xy_tolerance used, avoid repeated conversion
         target = _clip(
             source=source, operator=s, xy_tolerance=xy_tolerance,
             target=FeatureClass(geopackage=geopackage, name=name))

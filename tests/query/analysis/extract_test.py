@@ -54,7 +54,7 @@ def test_query_clip(world_features, inputs, mem_gpkg):
     target = FeatureClass(mem_gpkg, 'test_target')
     source = world_features['cities_p']
     operator = inputs['clipper_a']
-    query = QueryClip(source, target, operator)
+    query = QueryClip(source, target, operator, xy_tolerance=None)
     assert query.has_intersection is True
     assert approx(query.operator_extent, abs=0.0001) == (6.74573, 46.49314, 16.47727, 51.70966)
     assert approx(query.source_extent, abs=0.001) == (-176.15156, -54.79199, 179.19906, 78.20000)

@@ -6,7 +6,7 @@ Query Classes for management.features module
 
 from functools import cached_property
 from operator import attrgetter
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import ShapeType
 
@@ -20,10 +20,21 @@ from spyops.shared.field import (
 from spyops.shared.hint import FIELDS
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
     """
     Queries for MultiPart to SinglePart
     """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass') -> None:
+        """
+        Initialize the QueryMultiPartToSinglePart class
+        """
+        super().__init__(source, target=target, xy_tolerance=None)
+    # End init built-in
+
     @property
     def part_getter(self) -> attrgetter:
         """

@@ -46,7 +46,7 @@ class QueryErase(QueryClip):
     """
     Queries for Erase
     """
-    def process_disjoint(self, xy_tolerance: XY_TOL) -> None:
+    def process_disjoint(self) -> None:
         """
         Process Disjoint
         """
@@ -54,7 +54,7 @@ class QueryErase(QueryClip):
             source=self.source, target=self.target,
             disjoint=self.select_disjoint, insert=self.insert,
             config=self.geometry_config, transformer=self.source_transformer)
-        process_disjoint(query=query, xy_tolerance=xy_tolerance)
+        process_disjoint(query=query, grid_size=self.grid_size)
     # End process_disjoint method
 # End QueryErase class
 
@@ -88,8 +88,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     """
     Abstract Base Class for Planarizing Feature Classes
     """
-    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
-                 *, use_full_extent: bool, xy_tolerance: XY_TOL) -> None:
+    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass', *,
+                 use_full_extent: bool, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractPlanarize class
         """
@@ -502,7 +502,8 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
     Queries for Intersect (Pairwise)
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
@@ -536,7 +537,8 @@ class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
     Queries for Intersect (Classic)
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
@@ -562,7 +564,8 @@ class QueryUnionPairwise(QueryIntersectPairwise):
     depending on the results of symmetrical difference.
     """
     def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
-                 target: 'FeatureClass', attribute_option: AttributeOption,
+                 target: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL, **kwargs) -> None:
         """
         Initialize the QueryUnionPairwise class
@@ -609,7 +612,8 @@ class QueryUnionClassic(ClassicMixin, QueryUnionPairwise):
     """
     def __init__(self, source: 'FeatureClass', source_fid: 'Field',
                  operator: 'FeatureClass', operator_fid: 'Field',
-                 target: 'FeatureClass', attribute_option: AttributeOption,
+                 target: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryUnionClassic class
@@ -703,8 +707,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         """
         Target Full
         """
-        process_disjoint(self.source_config, xy_tolerance=self._xy_tolerance)
-        process_disjoint(self.operator_config, xy_tolerance=self._xy_tolerance)
+        process_disjoint(self.source_config, grid_size=self.grid_size)
+        process_disjoint(self.operator_config, grid_size=self.grid_size)
         return self.target_empty
     # End target_full property
 
@@ -749,7 +753,8 @@ class QuerySymmetricalDifferenceClassic(
     Query Symmetrical Difference Classic
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QuerySymmetricalDifferenceClassic class

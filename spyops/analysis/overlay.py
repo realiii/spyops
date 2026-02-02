@@ -52,10 +52,11 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
     Removes the portion of the input feature class that overlaps with the
     operator feature class.
     """
-    query = QueryErase(source, target=target, operator=operator)
+    query = QueryErase(source, target=target, operator=operator,
+                       xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_full
-    query.process_disjoint(xy_tolerance)
+    query.process_disjoint()
     geoms = get_validated_geometries(
         query.operator, transformer=query.operator_transformer)
     _difference(
@@ -63,7 +64,7 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
         select_sql=query.select_source, insert_sql=query.insert,
         overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
         target=query.target, config=query.geometry_config,
-        xy_tolerance=xy_tolerance)
+        grid_size=query.grid_size)
     return query.target
 # End erase function
 
@@ -109,7 +110,7 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
         query=query, converter=op_convert,
         transformer=query.operator_transformer)
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
-                      src_convert=src_convert, xy_tolerance=xy_tolerance)
+                      src_convert=src_convert)
 # End intersect function
 
 
@@ -141,7 +142,7 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
         cls = QuerySymmetricalDifferencePairwise
     query = cls(source=source, target=target, operator=operator,
                 attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-    _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
+    _symmetrical_difference(query)
     return query.target
 # End symmetrical_difference function
 
@@ -175,7 +176,7 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
         cls = QuerySymmetricalDifferencePairwise
     query = cls(source=source, target=target, operator=operator,
                 attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-    _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
+    _symmetrical_difference(query)
     if algorithm_option == AlgorithmOption.CLASSIC:
         cls = QueryUnionClassic
     else:
@@ -192,7 +193,7 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
         query=query, converter=op_convert,
         transformer=query.operator_transformer)
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
-                      src_convert=src_convert, xy_tolerance=xy_tolerance)
+                      src_convert=src_convert)
 # End union function
 
 

@@ -43,12 +43,13 @@ class AbstractQuery(metaclass=ABCMeta):
     """
     Base Query Support
     """
-    def __init__(self, element: ELEMENT) -> None:
+    def __init__(self, element: ELEMENT, *, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractQuery class
         """
         super().__init__()
         self._element: ELEMENT = element
+        self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
     @staticmethod
@@ -183,11 +184,12 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
     """
     Abstract Source Query
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass) -> None:
+    def __init__(self, source: FeatureClass, target: FeatureClass, *,
+                 xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source)
+        super().__init__(source, xy_tolerance=xy_tolerance)
         self._target: FeatureClass = target
     # End init built-in
 
@@ -309,11 +311,11 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     Abstract Spatial Query Support
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass) -> None:
+                 operator: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialQuery class
         """
-        super().__init__(source=source, target=target)
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._operator: FeatureClass = operator
     # End init built-in
 
@@ -497,14 +499,14 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     Abstract class extending with attribute options
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, attribute_option: AttributeOption,
+                 operator: FeatureClass, attribute_option: AttributeOption, *,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
-        super().__init__(source=source, target=target, operator=operator)
+        super().__init__(source, target=target, operator=operator,
+                         xy_tolerance=xy_tolerance)
         self._attr_option: AttributeOption = attribute_option
-        self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
     @cache
