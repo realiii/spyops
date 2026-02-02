@@ -209,12 +209,12 @@ class TestSelect:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name,
+    def test_output_crs(self, ntdb_zm_small, mem_gpkg, fc_name, auth_name,
                         srs_id, flag, extent, output_z, output_m):
         """
         Test select with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -371,12 +371,12 @@ class TestSplitByAttributes:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name, srs_id, flag, extent, output_z, output_m):
+    def test_output_crs(self, ntdb_zm_small, mem_gpkg, fc_name, auth_name, srs_id, flag, extent, output_z, output_m):
         """
         Test split by attributes with output CRS and different input
         spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
               Swap(Setting.OUTPUT_Z_OPTION, output_z),
@@ -779,16 +779,16 @@ class TestClip:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
                         fc_name, auth_name, srs_id, flag, extent, op_name,
                         output_z, output_m):
         """
         Test clip with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -814,14 +814,14 @@ class TestClip:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
                            fc_name, extent, op_name):
         """
         Test clip with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -1136,13 +1136,13 @@ class TestSplit:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
                         fc_name, auth_name, srs_id, flag, extent, op_name, output_z, output_m):
         """
         Test with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
-        operator = grid_index_prj[op_name]
+        source = ntdb_zm_small[fc_name]
+        operator = grid_index[op_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
               Swap(Setting.OUTPUT_Z_OPTION, output_z),
@@ -1168,13 +1168,13 @@ class TestSplit:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
                            fc_name, extent, op_name):
         """
         Test split with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
-        operator = grid_index_prj[op_name].copy(
+        source = ntdb_zm_small[fc_name]
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         if '4671' in fc_name:

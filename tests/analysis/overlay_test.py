@@ -400,16 +400,16 @@ class TestErase:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
                         fc_name, auth_name, srs_id, flag, extent, op_name,
                         output_z, output_m):
         """
         Test erase with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -435,14 +435,14 @@ class TestErase:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
                            fc_name, extent, op_name):
         """
         Test erase with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -1143,16 +1143,16 @@ class TestIntersect:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
                                  fc_name, auth_name, srs_id, flag, extent, op_name,
                                  output_z, output_m):
         """
         Test intersect with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -1179,14 +1179,14 @@ class TestIntersect:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
                                     fc_name, extent, op_name):
         """
         Test intersect with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -1221,16 +1221,16 @@ class TestIntersect:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
                                 fc_name, auth_name, srs_id, flag, extent, op_name,
                                 output_z, output_m):
         """
         Test intersect with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -1257,14 +1257,14 @@ class TestIntersect:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
                                    fc_name, extent, op_name):
         """
         Test intersect with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -1603,16 +1603,16 @@ class TestSymmetricalDifference:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
                                  fc_name, auth_name, srs_id, flag, extent, op_name,
                                  output_z, output_m):
         """
         Test sym diff with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -1640,14 +1640,14 @@ class TestSymmetricalDifference:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
                                     fc_name, extent, op_name):
         """
         Test sym diff with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -1679,16 +1679,16 @@ class TestSymmetricalDifference:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
                                 fc_name, auth_name, srs_id, flag, extent, op_name,
                                 output_z, output_m):
         """
         Test sym diff with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -1716,14 +1716,14 @@ class TestSymmetricalDifference:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
                                     fc_name, extent, op_name):
         """
         Test sym diff with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -2038,16 +2038,16 @@ class TestUnion:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
                                  fc_name, auth_name, srs_id, flag, extent, op_name,
                                  output_z, output_m):
         """
         Test sym diff with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -2075,14 +2075,14 @@ class TestUnion:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs_pairwise(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
                                     fc_name, extent, op_name):
         """
         Test sym diff with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):
@@ -2114,16 +2114,16 @@ class TestUnion:
         param(OutputMOption.ENABLED, marks=mark.large),
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_output_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_output_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
                                 fc_name, auth_name, srs_id, flag, extent, op_name,
                                 output_z, output_m):
         """
         Test sym diff with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -2151,14 +2151,14 @@ class TestUnion:
     @mark.parametrize('op_name', [
         'grid_10tm_a',
     ])
-    def test_different_crs_classic(self, ntdb_zm_small_prj, grid_index_prj, mem_gpkg,
+    def test_different_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
                                    fc_name, extent, op_name):
         """
         Test sym diff with different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
-        operator = grid_index_prj[op_name].copy(
+        operator = grid_index[op_name].copy(
             f'{op_name}_subset', geopackage=mem_gpkg,
             where_clause="""DATANAME = '082O01-6'""")
         with UseGrids(True):

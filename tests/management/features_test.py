@@ -91,12 +91,12 @@ class TestMultiPartToSinglePart:
         ('toponymy_10tm_m_mp', ESRI, 102179, False, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
         ('toponymy_10tm_z_mp', ESRI, 102179, False, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
     ])
-    def test_output_crs(self, ntdb_zm_small_prj, mem_gpkg, fc_name, auth_name,
+    def test_output_crs(self, ntdb_zm_small, mem_gpkg, fc_name, auth_name,
                         srs_id, flag, extent):
         """
         Test multi to single with output CRS and different input spatial reference systems
         """
-        source = ntdb_zm_small_prj[fc_name]
+        source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(flag):
