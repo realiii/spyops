@@ -282,8 +282,11 @@ with Swap(Setting.XY_TOLERANCE, 0.001):
 ```
 
 The units of the `xy_tolerance` are interpreted as being the same as the coordinate reference system of the `source` 
-feature class in the function call.  Be cautious when working with a mixture of different coordinate reference systems
-that have different units (e.g. metres, feet, US Survey Feet, or decimal degrees).
+feature class in the function call.  In situatations where the `source` and / or `operator` units differ from one 
+another or are different from the `output_coordinate_system` units, the `xy_tolerance` will be converted to the correct
+units as based on the CRS of the `target` (either from `source` or from `output_coordinate_system`).
+Be cautious when working with a mixture of different coordinate reference systems that have different units 
+(e.g. metres, feet, US Survey Feet, decimal degrees, etc.).
 
 #### M/Z Options
 The `output_m_option` and `output_z_option` settings can be used to control how M and Z values are handled in the 
