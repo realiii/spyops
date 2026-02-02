@@ -16,9 +16,11 @@ from shapely.ops import transform
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
-from spyops.crs.util import crs_from_srs, get_crs_from_source, srs_from_crs
+from spyops.crs.util import (
+    crs_from_srs, get_crs_from_source, srs_from_crs)
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
+from spyops.environment.util import get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
@@ -28,7 +30,7 @@ from spyops.shared.enumeration import AttributeOption
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
+from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, XY_TOL
 from spyops.shared.util import make_unique_name
 
 
@@ -177,6 +179,16 @@ class AbstractQuery(metaclass=ABCMeta):
             elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
     # End source_transformer property
+
+    @cached_property
+    def grid_size(self) -> GRID_SIZE:
+        """
+        Grid Size
+        """
+        return get_grid_size(
+            source=self.source, xy_tolerance=self._xy_tolerance,
+            target_srs=self.spatial_reference_system)
+    # End grid_size property
 # End AbstractQuery class
 
 
