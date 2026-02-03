@@ -30,19 +30,6 @@ def set_extent(feature_class: 'FeatureClass') -> None:
 # End set_extent function
 
 
-def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
-    """
-    Get the Extent from the Spatial Index, fail over to the extent derived
-    from geometries.
-    """
-    extent = _extent_from_spatial_index(feature_class)
-    if isfinite(extent).all():
-        return extent
-    else:  # pragma: no cover
-        return get_extent(feature_class)
-# End _extent_from_index_or_geometry function
-
-
 def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     """
     Returns the extent from a feature class, use the extent if it has
@@ -80,6 +67,19 @@ def _extent_from_spatial_index(feature_class: 'FeatureClass') -> EXTENT:
         return empty
     return extent
 # End _extent_from_spatial_index function
+
+
+def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
+    """
+    Get the Extent from the Spatial Index, fail over to the extent derived
+    from geometries.
+    """
+    extent = _extent_from_spatial_index(feature_class)
+    if isfinite(extent).all():
+        return extent
+    else:  # pragma: no cover
+        return get_extent(feature_class)
+# End _extent_from_index_or_geometry function
 
 
 if __name__ == '__main__':  # pragma: no cover
