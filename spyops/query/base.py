@@ -96,6 +96,22 @@ class AbstractQuery(metaclass=ABCMeta):
         return field_count, insert_names, select_names
     # End _field_names_and_count method
 
+    def _get_transformer(self, feature_class: FeatureClass) \
+            -> Optional['Transformer']:
+        """
+        Get Transformer
+        """
+        if not (srs := self.spatial_reference_system):
+            return None
+        crs = crs_from_srs(srs)
+        fc_crs = crs_from_srs(feature_class.spatial_reference_system)
+        if transformer := get_geographic_transformation(
+                source_crs=fc_crs, target_crs=crs,
+                transformations=ANALYSIS_SETTINGS.geographic_transformations):
+            return transformer
+        return get_transform_best_guess(fc_crs, crs)
+    # End _get_transformer method
+
     @staticmethod
     def _concatenate(left: str, right: str) -> str:
         """
@@ -114,6 +130,51 @@ class AbstractQuery(metaclass=ABCMeta):
         return self._element
     # End source property
 
+    @cached_property
+    def source_crs(self) -> CRS:
+        """
+        Source CRS
+        """
+        return get_crs_from_source(self.source)
+    # End source_crs property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Source Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End source_transformer property
+
+    @cached_property
+    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the source.
+        """
+        if not isinstance(self.source, FeatureClass):
+            return None
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        return self.source.spatial_reference_system
+    # End spatial_reference_system property
+
+    @cached_property
+    def grid_size(self) -> GRID_SIZE:
+        """
+        Grid Size
+        """
+        return get_grid_size(
+            source=self.source, xy_tolerance=self._xy_tolerance,
+            target_srs=self.spatial_reference_system)
+    # End grid_size property
+
     @property
     @abstractmethod
     def select(self) -> str:  # pragma: no cover
@@ -131,67 +192,6 @@ class AbstractQuery(metaclass=ABCMeta):
         """
         pass
     # End insert property
-
-    @cached_property
-    def source_crs(self) -> CRS:
-        """
-        Source CRS
-        """
-        return get_crs_from_source(self.source)
-    # End source_crs property
-
-    @cached_property
-    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
-        """
-        Spatial Reference System, the output coordinate system of the query
-        which is determined by the output coordinate system of the analysis
-        environment and if not set, the spatial reference system of the source.
-        """
-        if not isinstance(self.source, FeatureClass):
-            return None
-        crs = ANALYSIS_SETTINGS.output_coordinate_system
-        if isinstance(crs, CRS):
-            return srs_from_crs(crs)
-        return self.source.spatial_reference_system
-    # End spatial_reference_system property
-
-    def _get_transformer(self, feature_class: FeatureClass) \
-            -> Optional['Transformer']:
-        """
-        Get Transformer
-        """
-        if not (srs := self.spatial_reference_system):
-            return None
-        crs = crs_from_srs(srs)
-        fc_crs = crs_from_srs(feature_class.spatial_reference_system)
-        if transformer := get_geographic_transformation(
-                source_crs=fc_crs, target_crs=crs,
-                transformations=ANALYSIS_SETTINGS.geographic_transformations):
-            return transformer
-        return get_transform_best_guess(fc_crs, crs)
-    # End _get_transformer method
-
-    @cached_property
-    def source_transformer(self) -> Callable | None:
-        """
-        Source Transformer
-        """
-        elm = self.source
-        transformer = self._get_transformer(elm)
-        return make_transformer_function(
-            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
-            transformer=transformer)
-    # End source_transformer property
-
-    @cached_property
-    def grid_size(self) -> GRID_SIZE:
-        """
-        Grid Size
-        """
-        return get_grid_size(
-            source=self.source, xy_tolerance=self._xy_tolerance,
-            target_srs=self.spatial_reference_system)
-    # End grid_size property
 # End AbstractQuery class
 
 
@@ -344,30 +344,6 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return HasZM(has_z=has_z, has_m=has_m)
     # End _has_zm property
 
-    @cached_property
-    def zm_config(self) -> 'ZMConfig':
-        """
-        ZM Configuration
-        """
-        return zm_config(self.source, self.operator)
-    # End zm_config property
-
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        return self.select_intersect
-    # End select property
-
-    @cached_property
-    def operator_extent(self) -> EXTENT:
-        """
-        Operator Extent
-        """
-        return extent_from_feature_class(self.operator)
-    # End operator_extent property
-
     def _shared_extent(self, element: FeatureClass) -> EXTENT:
         """
         Shared Extent between source and operator
@@ -387,6 +363,23 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return operator_box.intersection(source_box).bounds
     # End _shared_extent method
 
+    def _make_disjoint_select(self, element: FeatureClass) -> str:
+        """
+        Make Disjoint Select Statement using the input Element
+        """
+        *_, select_field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=select_field_names,
+                where_clause=SQL_FULL)
+        if not (where := self._spatial_index_where(
+                element, extent=self._shared_extent(element))):  # pragma: no cover
+            return EMPTY
+        return self._make_select(
+            element, field_names=select_field_names,
+            where_clause=where.format(NOT_IN))
+    # End _make_disjoint_select method
+
     @cached_property
     def has_intersection(self) -> bool:
         """
@@ -400,39 +393,21 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return operator_box.intersects(box(*self.source_extent, ccw=False))
     # End has_intersection property
 
-    @staticmethod
-    def _spatial_index_where(element: FeatureClass, extent: EXTENT) -> str:
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
         """
-        Make a where clause stub that can be used to select features which
-        intersect an extent. The query is based on a spatial index (if present).
+        ZM Configuration
         """
-        primary = element.primary_key_field
-        if not element.has_spatial_index or not primary:  # pragma: no cover
-            return EMPTY
-        min_x, min_y, max_x, max_y = extent
-        return f"""{primary.escaped_name} {{}} (
-            SELECT id  
-            FROM {element.spatial_index_name} 
-            WHERE minx <= {max_x} AND maxx >= {min_x} AND 
-                  miny <= {max_y} AND maxy >= {min_y})
-        """
-    # End _spatial_index_wheres function
+        return zm_config(self.source, self.operator)
+    # End zm_config property
 
     @property
-    def operator(self) -> FeatureClass:
+    def select(self) -> str:
         """
-        Operator
+        Selection Query
         """
-        return self._operator
-    # End operator property
-
-    @cached_property
-    def operator_crs(self) -> CRS:
-        """
-        Operator CRS
-        """
-        return get_crs_from_source(self.operator)
-    # End operator_crs property
+        return self.select_intersect
+    # End select property
 
     @property
     def select_operator(self) -> str:
@@ -458,41 +433,29 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return self._make_disjoint_select(self.source)
     # End select_disjoint property
 
-    def _make_intersection_query(self, element: FeatureClass) -> str:
+    @property
+    def operator(self) -> FeatureClass:
         """
-        Make Intersection Query
+        Operator
         """
-        *_, select_field_names = self._field_names_and_count(element)
-        if not self.has_intersection:
-            return self._make_select(
-                element, field_names=select_field_names,
-                where_clause=SQL_EMPTY)
-        if where := self._spatial_index_where(
-                element, extent=self._shared_extent(element)):
-            where = where.format(IN)
-        else:  # pragma: no cover
-            where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(element)
-        return self._make_select(
-            element, field_names=select_field_names, where_clause=where)
-    # End _make_intersection_query method
+        return self._operator
+    # End operator property
 
-    def _make_disjoint_select(self, element: FeatureClass) -> str:
+    @cached_property
+    def operator_crs(self) -> CRS:
         """
-        Make Disjoint Select Statement using the input Element
+        Operator CRS
         """
-        *_, select_field_names = self._field_names_and_count(element)
-        if not self.has_intersection:
-            return self._make_select(
-                element, field_names=select_field_names,
-                where_clause=SQL_FULL)
-        if not (where := self._spatial_index_where(
-                element, extent=self._shared_extent(element))):  # pragma: no cover
-            return EMPTY
-        return self._make_select(
-            element, field_names=select_field_names,
-            where_clause=where.format(NOT_IN))
-    # End _make_disjoint_select method
+        return get_crs_from_source(self.operator)
+    # End operator_crs property
+
+    @cached_property
+    def operator_extent(self) -> EXTENT:
+        """
+        Operator Extent
+        """
+        return extent_from_feature_class(self.operator)
+    # End operator_extent property
 
     @cached_property
     def operator_transformer(self) -> Callable | None:
@@ -575,6 +538,32 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         return clone_field(field, name=name, allow_null=True)
     # End _make_fid_field method
 
+    def _avoid_name_clash(self, field: 'Field') -> 'Field':
+        """
+        Avoid Name Clash with Source or Operator Fields
+        """
+        if self._attr_option != AttributeOption.ALL:
+            return field
+        # NOTE use slice (not unpacking) to avoid ValueError if no fields
+        src_fields = self._get_fields(self.source)
+        op_fields = self._get_fields(self.operator)
+        fields = [*src_fields, *op_fields]
+        field, = make_unique_fields(fields, [field])
+        return field
+    # End _avoid_name_clash method
+
+    def _build_insert(self, element: FeatureClass, fields: FIELDS) -> str:
+        """
+        Build Insert Statement from Fields
+        """
+        names = make_field_names(fields)
+        geom_name = get_geometry_column_name(element)
+        return self._make_insert(
+            element.escaped_name,
+            field_names=self._concatenate(geom_name, names),
+            field_count=len(fields) + 1)
+    # End _build_insert method
+
     @property
     def input_fid_source(self) -> 'Field':
         """
@@ -612,20 +601,6 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         return self._avoid_name_clash(field)
     # End output_fid_operator property
 
-    def _avoid_name_clash(self, field: 'Field') -> 'Field':
-        """
-        Avoid Name Clash with Source or Operator Fields
-        """
-        if self._attr_option != AttributeOption.ALL:
-            return field
-        # NOTE use slice (not unpacking) to avoid ValueError if no fields
-        src_fields = self._get_fields(self.source)
-        op_fields = self._get_fields(self.operator)
-        fields = [*src_fields, *op_fields]
-        field, = make_unique_fields(fields, [field])
-        return field
-    # End _avoid_name_clash method
-
     @property
     def insert(self) -> str:
         """
@@ -633,18 +608,6 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         return self._build_insert(self.target, fields=self._get_unique_fields())
     # End insert property
-
-    def _build_insert(self, element: FeatureClass, fields: FIELDS) -> str:
-        """
-        Build Insert Statement from Fields
-        """
-        names = make_field_names(fields)
-        geom_name = get_geometry_column_name(element)
-        return self._make_insert(
-            element.escaped_name,
-            field_names=self._concatenate(geom_name, names),
-            field_count=len(fields) + 1)
-    # End _build_insert method
 # End AbstractSpatialAttribute class
 
 
