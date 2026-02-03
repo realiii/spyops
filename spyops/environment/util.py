@@ -49,7 +49,8 @@ def _scale_factor(feature_class: 'FeatureClass') -> float:
     crs = get_crs_from_source(feature_class)
     pt = box(*extent, ccw=False).centroid
     if crs.is_projected:
-        transformer = Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
+        transformer = Transformer.from_crs(
+            crs, crs.geodetic_crs, always_xy=True)
         pt = transform(transformer.transform, pt)
     geod = crs.geodetic_crs.get_geod()
     center_x, center_y = pt.x, pt.y
