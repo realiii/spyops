@@ -8,14 +8,55 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Union
 
 from spyops.geometry.multi import build_multi
-from spyops.query.base import AbstractQuery, AbstractSpatialQuery
-from spyops.shared.constant import EMPTY
+from spyops.query.base import (
+    AbstractQuery, AbstractSourceQuery, AbstractSpatialQuery)
+from spyops.shared.constant import EMPTY, SQL_FULL
 from spyops.shared.field import make_field_names
 from spyops.shared.hint import ELEMENT, FIELDS
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
     from shapely import MultiLineString, MultiPoint, MultiPolygon
+
+
+class QuerySelect(AbstractSourceQuery):
+    """
+    Query for Select
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 where_clause: str = EMPTY) -> None:
+        """
+        Initialize the AbstractSourceQuery class
+        """
+        super().__init__(source, target=target, xy_tolerance=None)
+        self._where_clause: str = where_clause
+    # End init built-in
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_select(
+            elm, field_names=select_field_names,
+            where_clause=(self._where_clause or EMPTY).strip() or SQL_FULL)
+    # End select property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        elm = self.target
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End insert property
+# End QuerySelect class
 
 
 class QuerySplitByAttributes(AbstractQuery):
@@ -26,7 +67,7 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Initialize the QuerySplitByAttributes class
         """
-        super().__init__(element)
+        super().__init__(element, xy_tolerance=None)
         self._group_names: str = make_field_names(fields)
     # End init built-in
 
@@ -85,7 +126,7 @@ class QueryClip(AbstractSpatialQuery):
         """
         Multi-Part Geometry of the Operator Feature Class
         """
-        return build_multi(self.operator)
+        return build_multi(self.operator, transformer=self.operator_transformer)
     # End geometry property
 
     @property

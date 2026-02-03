@@ -10,6 +10,7 @@ from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from numpy import concatenate
 from shapely import STRtree, difference
 
 from spyops.environment import ANALYSIS_SETTINGS
@@ -25,14 +26,15 @@ from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
 from spyops.shared.constant import SQL_EMPTY, UNDERSCORE
 from spyops.shared.element import copy_element
-from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, FIELDS, FIELD_NAMES, GPKG, GRID_SIZE, XY_TOL)
 from spyops.shared.records import bulk_insert, extend_records
 from spyops.shared.util import (
     element_names, make_unique_name, make_valid_name)
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from shapely.geometry.base import BaseGeometry
+    from numpy import ndarray
     from spyops.geometry.config import GeometryConfig
     from spyops.query.analysis.overlay import (
         QueryIntersectClassic, QueryIntersectPairwise,
@@ -40,7 +42,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 QUERY_INT: TypeAlias = Union['QueryIntersectClassic', 'QueryIntersectPairwise']
-QUERY_SYN: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
+QUERY_SYM: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
 
 
 def _clip(*, source: FeatureClass, operator: FeatureClass,
@@ -48,13 +50,16 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
     """
     Internal Clip
     """
-    query = QueryClip(source=source, target=target, operator=operator)
+    query = QueryClip(source=source, target=target, operator=operator,
+                      xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_empty
     records = []
     insert_sql = query.insert
     geometry = query.geometry
+    grid_size = query.grid_size
     config = query.geometry_config
+    transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -62,14 +67,14 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries = to_shapely(features)
+            features, geometries = to_shapely(features, transformer=transformer)
             intersects = geometry.intersects(geometries)
             if not intersects.any():
                 continue
-            keepers = [f for f, keep in zip(features, intersects) if keep]
+            keepers = [f for f, has_intersection in zip(features, intersects)
+                       if has_intersection]
             geoms = geometry.intersection(
-                [g for g, keep in zip(geometries, intersects) if keep],
-                grid_size=xy_tolerance)
+                geometries[intersects], grid_size=grid_size)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
@@ -90,6 +95,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     query_select = query.select
     query_insert = query.insert
     source_name = query.source.name
+    transformer = query.source_transformer
     if ignore_zm_settings:
         z_option = OutputZOption.SAME
         m_option = OutputMOption.SAME
@@ -119,14 +125,16 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             with ExecuteMany(connection=cout, table=element) as executor:
                 insert_sql = query_insert.format(element.escaped_name)
                 bulk_insert(cursor, config=config, executor=executor,
-                            insert_sql=insert_sql)
+                            transformer=transformer, insert_sql=insert_sql)
     return elements
 # End _split_by_attributes function
 
 
-def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
-                overlay_geoms: list, target: FeatureClass,
-                config: 'GeometryConfig', xy_tolerance: XY_TOL) -> None:
+def _difference(*, source: FeatureClass, source_transformer: Callable | None,
+                select_sql: str, insert_sql: str,
+                overlay_geoms: 'ndarray', overlay_transformer: Callable | None,
+                target: FeatureClass, config: 'GeometryConfig',
+                grid_size: GRID_SIZE) -> None:
     """
     Internal Difference
     """
@@ -139,54 +147,69 @@ def _difference(*, source: FeatureClass, select_sql: str, insert_sql: str,
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries = to_shapely(features)
+            features, geometries = to_shapely(
+                features, transformer=source_transformer)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 results = [(g, attr) for g, (_, *attr) in
                            zip(geometries, features)]
                 extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
                 continue
-            changer_indexes, indexes = intersects
-            overlay = build_multi([overlay_geoms[i] for i in set(indexes)])
-            changer_indexes = set(changer_indexes)
-            keeper_indexes = set(range(len(geometries))) - changer_indexes
+            change_indexes, indexes = intersects
+            change_indexes = set(change_indexes)
+            keeper_indexes = list(set(range(len(geometries))) - change_indexes)
             keepers = [features[i] for i in keeper_indexes]
-            geoms = [geometries[i] for i in keeper_indexes]
-            if xy_tolerance is not None:
-                geoms = set_precision(geoms, grid_size=xy_tolerance)
+            geoms = geometries[keeper_indexes]
+            if grid_size is not None:
+                geoms = set_precision(geoms, grid_size=grid_size)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geoms, keepers)]
             extend_records(results, records=records, config=config)
-            changers = [features[i] for i in changer_indexes]
-            geoms = [geometries[i] for i in changer_indexes]
-            differences = difference(geoms, overlay, grid_size=xy_tolerance)
+
+            overlay = build_multi(
+                overlay_geoms[list(set(indexes))],
+                transformer=overlay_transformer)
+            change_indexes = list(change_indexes)
+            changers = [features[i] for i in change_indexes]
+            differences = difference(
+                geometries[change_indexes], overlay, grid_size=grid_size)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(differences, changers)]
             extend_records(results, records=records, config=config)
+
             executor(sql=insert_sql, data=records)
             records.clear()
 # End _difference function
 
 
-def _symmetrical_difference(*, query: QUERY_SYN, xy_tolerance: XY_TOL) -> None:
+def _symmetrical_difference(query: QUERY_SYM) -> None:
     """
     Internal Symmetrical Difference
     """
-    geoms = get_validated_geometries(query.operator)
-    _difference(source=query.source, select_sql=query.select_source,
-                insert_sql=query.source_config.insert, overlay_geoms=geoms,
-                target=query.target, config=query.geometry_config,
-                xy_tolerance=xy_tolerance)
-    geoms = get_validated_geometries(query.source)
-    _difference(source=query.operator, select_sql=query.select_operator,
-                insert_sql=query.operator_config.insert,
-                overlay_geoms=geoms, target=query.target,
-                config=query.geometry_config, xy_tolerance=xy_tolerance)
+    geoms = get_validated_geometries(
+        query.operator, transformer=query.operator_transformer)
+    _difference(
+        source=query.source, source_transformer=query.source_transformer,
+        select_sql=query.select_source, insert_sql=query.source_config.insert,
+        overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
+        target=query.target, config=query.geometry_config,
+        grid_size=query.grid_size)
+    geoms = get_validated_geometries(
+        query.source, transformer=query.source_transformer)
+    _difference(
+        source=query.operator, source_transformer=query.operator_transformer,
+        select_sql=query.select_operator, insert_sql=query.operator_config.insert,
+        overlay_geoms=geoms, overlay_transformer=query.source_transformer,
+        target=query.target, config=query.geometry_config,
+        grid_size=query.grid_size)
 # End _symmetrical_difference function
 
 
-def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
-        -> tuple[list[tuple], list['BaseGeometry']]:
+def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
+                            transformer: Callable | None) \
+        -> tuple[list[tuple], ndarray]:
     """
     Get Converted Operator Features and Geometries
     """
@@ -197,22 +220,24 @@ def _get_converted_operator(*, query: QUERY_INT, converter: Callable) \
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
+            features, geometries = to_shapely(features, transformer=transformer)
             op_features.extend(features)
-            op_geoms.extend(to_shapely(features))
-    return op_features, converter(op_geoms)
+            op_geoms.append(geometries)
+    return op_features, converter(concatenate(op_geoms))
 # End _get_converted_operator function
 
 
 def _intersect(*, query: QUERY_INT, op_features: list[tuple],
-               op_geoms: list['BaseGeometry'], src_convert: Callable,
-               xy_tolerance: XY_TOL) -> FeatureClass:
+               op_geoms: 'ndarray', src_convert: Callable) -> FeatureClass:
     """
     Internal Intersect
     """
     records = []
     tree = STRtree(op_geoms)
     insert_sql = query.insert
+    grid_size = query.grid_size
     config = query.geometry_config
+    transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
@@ -220,7 +245,8 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            geometries = src_convert(to_shapely(features))
+            features, geometries = to_shapely(features, transformer=transformer)
+            geometries = src_convert(geometries)
             intersects = tree.query(geometries, predicate='intersects')
             if not len(intersects):
                 continue
@@ -233,8 +259,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
                 op_geom = op_geoms[op_idx]
                 src_attrs = [features[idx][1:] for idx in indexes]
                 intersections = op_geom.intersection(
-                    [geometries[idx] for idx in indexes],
-                    grid_size=xy_tolerance)
+                    geometries[indexes], grid_size=grid_size)
                 results.extend([
                     (g, (*src_attr, *op_attr))
                     for g, src_attr in zip(intersections, src_attrs)])

@@ -6,7 +6,7 @@ Validation tests for Fields
 
 from pytest import raises, mark
 from fudgeo import Field
-from fudgeo.enumeration import SQLFieldType
+from fudgeo.enumeration import FieldType
 
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
 from spyops.validation import validate_field, validate_table
@@ -16,12 +16,12 @@ pytestmark = [mark.validation]
 
 
 @mark.parametrize('fld, exists, throws', [
-    (Field('NAME', data_type=SQLFieldType.text), True, False),
-    (Field('name', data_type=SQLFieldType.text), True, False),
-    (Field('asdf', data_type=SQLFieldType.text), True, True),
-    (Field('NAME', data_type=SQLFieldType.text), False, False),
-    (Field('name', data_type=SQLFieldType.text), False, False),
-    (Field('asdf', data_type=SQLFieldType.text), False, True),
+    (Field('NAME', data_type=FieldType.text), True, False),
+    (Field('name', data_type=FieldType.text), True, False),
+    (Field('asdf', data_type=FieldType.text), True, True),
+    (Field('NAME', data_type=FieldType.text), False, False),
+    (Field('name', data_type=FieldType.text), False, False),
+    (Field('asdf', data_type=FieldType.text), False, True),
     ('asdf', True, True),
     ('NAME', True, False),
     (('NAME', 'ANOTHER_NAME'), True, True),
@@ -44,18 +44,18 @@ def test_validate_field_multiple_fields(world_tables, fld, exists, throws):
 
 
 @mark.parametrize('data_type, data_types, single, throws', [
-    (SQLFieldType.float, (), True, False),
-    (SQLFieldType.float, REALS, True, False),
-    (SQLFieldType.float, TEXT_AND_NUMBERS, True, False),
-    (SQLFieldType.text, TEXT_AND_NUMBERS, True, False),
-    (SQLFieldType.text, REALS, True, True),
-    (SQLFieldType.text, SQLFieldType.boolean, True, True),
-    (SQLFieldType.float, (), False, False),
-    (SQLFieldType.float, REALS, False, False),
-    (SQLFieldType.float, TEXT_AND_NUMBERS, False, False),
-    (SQLFieldType.text, TEXT_AND_NUMBERS, False, False),
-    (SQLFieldType.text, REALS, False, True),
-    (SQLFieldType.text, SQLFieldType.boolean, False, True),
+    (FieldType.float, (), True, False),
+    (FieldType.float, REALS, True, False),
+    (FieldType.float, TEXT_AND_NUMBERS, True, False),
+    (FieldType.text, TEXT_AND_NUMBERS, True, False),
+    (FieldType.text, REALS, True, True),
+    (FieldType.text, FieldType.boolean, True, True),
+    (FieldType.float, (), False, False),
+    (FieldType.float, REALS, False, False),
+    (FieldType.float, TEXT_AND_NUMBERS, False, False),
+    (FieldType.text, TEXT_AND_NUMBERS, False, False),
+    (FieldType.text, REALS, False, True),
+    (FieldType.text, FieldType.boolean, False, True),
 ])
 def test_validate_field_data_type(data_type, data_types, single, throws):
     """
@@ -95,12 +95,12 @@ def test_validate_field_data_type_and_string_name(inputs, single, field):
 
 
 @mark.parametrize('fld, exists, throws', [
-    (Field('NAME', data_type=SQLFieldType.text), True, False),
-    (Field('name', data_type=SQLFieldType.text), True, False),
-    (Field('asdf', data_type=SQLFieldType.text), True, True),
-    (Field('NAME', data_type=SQLFieldType.text), False, False),
-    (Field('name', data_type=SQLFieldType.text), False, False),
-    (Field('asdf', data_type=SQLFieldType.text), False, True),
+    (Field('NAME', data_type=FieldType.text), True, False),
+    (Field('name', data_type=FieldType.text), True, False),
+    (Field('asdf', data_type=FieldType.text), True, True),
+    (Field('NAME', data_type=FieldType.text), False, False),
+    (Field('name', data_type=FieldType.text), False, False),
+    (Field('asdf', data_type=FieldType.text), False, True),
     ('asdf', True, True),
     ('NAME', True, False),
 ])

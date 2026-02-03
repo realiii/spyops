@@ -12,16 +12,23 @@ from warnings import warn
 from math import nan
 
 from bottleneck import nanmean
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from numpy import isnan, ndarray
+from pyproj import CRS
 from shapely import (
     GeometryCollection, LineString, LinearRing, MultiLineString, MultiPolygon,
-    Polygon, coverage_simplify, from_wkb, from_wkt, get_coordinates, get_rings,
-    line_merge, make_valid as _make_valid, polygonize as _polygonize,
-    set_precision as _set_precision)
+    Polygon, coverage_simplify, get_rings, set_precision as _set_precision)
+from shapely.constructive import (
+    make_valid as _make_valid, polygonize as _polygonize)
+from shapely.coordinates import get_coordinates
+from shapely.io import from_wkb, from_wkt
+from shapely.linear import line_merge
+from shapely.ops import transform
 
+from spyops.crs.transform import get_transforms
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
+from spyops.shared.constant import SRS_ID_WKB
 from spyops.shared.exception import OperationsWarning
 
 
@@ -50,7 +57,7 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                 lookup[tuple(key)].append(m)
     if isinstance(collections, GeometryCollection):
         collections = [collections]
-    planarized = []
+    wkb = []
     slicer = _get_slicer(has_z=has_z, has_m=has_m)
     for collections in collections:
         for geom in get_geoms_iter(collections):
@@ -58,10 +65,9 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                 geom, has_z=has_z, slicer=slicer, lookup=lookup)
             shape_type = geom.geom_type.upper()
             cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
-            # NOTE srs_id value does not matter, we are only dealing with WKB
-            planarized.append(from_wkb(cls(_adjust_coords(
-                coords, shape_type=shape_type), srs_id=-1).wkb))
-    return GeometryCollection(planarized)
+            wkb.append(cls(_adjust_coords(coords, shape_type=shape_type),
+                           srs_id=SRS_ID_WKB).wkb)
+    return GeometryCollection(from_wkb(wkb))
 # End polygonize function
 
 
@@ -115,7 +121,8 @@ def _get_slicer(*, has_z: bool, has_m: bool) -> itemgetter:
 # End _get_slicer function
 
 
-def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
+def _reapply_measures(geometry: 'BaseGeometry',
+                      result: 'BaseGeometry') -> 'BaseGeometry':
     """
     Reapply Measures
     """
@@ -130,8 +137,7 @@ def _reapply_measures(geometry: 'BaseGeometry', result: 'BaseGeometry'):
     coords = _build_coordinates(
         result, has_z=has_z, slicer=slicer, lookup=lookup)
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
-    # NOTE srs_id value does not matter, we are only dealing with WKB
-    return from_wkb(cls(coords, srs_id=-1).wkb)
+    return from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
 # End _reapply_measures function
 
 
@@ -183,9 +189,9 @@ def _adjust_coords(coords: list, shape_type: str) -> list:
     """
     Adjust Coordinates List based on Shape Type
     """
-    if shape_type == GeometryType.linestring:
+    if shape_type == ShapeType.linestring:
         coords, = coords
-    elif shape_type == GeometryType.multi_polygon:
+    elif shape_type == ShapeType.multi_polygon:
         coords = [coords]
     return coords
 # End _adjust_coords function
@@ -195,6 +201,21 @@ class _UseWorkarounds:
     """
     Use Workarounds for Shapely / GEOS
     """
+    @cached_property
+    def transform(self) -> bool:
+        """
+        Use workaround for transform (does not support Z and M because
+        set_coordinates does not support Z and M)
+        """
+        a = from_wkt('Point (0 0 0 0)')
+        _, best, _ = get_transforms(source_crs=CRS(4326), target_crs=CRS(3857))
+        try:
+            transform(best.transform, a)
+            return False
+        except ValueError:
+            return True
+    # End transform property
+
     @cached_property
     def make_valid(self) -> bool:
         """
@@ -316,7 +337,6 @@ class _UseWorkarounds:
         """
         Use workaround for ZM values sourced from both inputs?
         """
-        from shapely import from_wkt
         a = from_wkt('LineString (2 0 1111 2222, 5 0 3333 4444, 8 0 5555 6666)')
         b = from_wkt('LineString (0 0 1 2, 3 0 3 4, 6 0 5 6, 8 0 7 8)')
         bad = from_wkt('LineString (2 0 1111 2222, 3 0 3 4)')

@@ -8,8 +8,8 @@ from operator import eq, ge
 from typing import Callable, TYPE_CHECKING, Type, Optional, Union
 
 from fudgeo.constant import FETCH_SIZE
-from fudgeo.enumeration import GeometryType
-from numpy import ndarray
+from fudgeo.enumeration import ShapeType
+from numpy import asarray
 
 from shapely import (
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
@@ -22,6 +22,7 @@ from spyops.shared.exception import OperationsError
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
@@ -86,11 +87,11 @@ def get_geometry_dimension(feature_class: 'FeatureClass') -> int:
     Get Geometry Dimension
     """
     shape_type = feature_class.shape_type
-    if shape_type in (GeometryType.point, GeometryType.multi_point):
+    if shape_type in (ShapeType.point, ShapeType.multi_point):
         return 0
-    elif shape_type in (GeometryType.linestring, GeometryType.multi_linestring):
+    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
         return 1
-    elif shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
         return 2
     return -1
 # End get_geometry_dimension function
@@ -121,9 +122,9 @@ def check_dimension(a: int, name_a: str, b: int, name_b: str,
         op = ge
     if op(b, a):
         return
-    dim_type = {0: GeometryType.point,
-                1: GeometryType.linestring,
-                2: GeometryType.polygon}
+    dim_type = {0: ShapeType.point,
+                1: ShapeType.linestring,
+                2: ShapeType.polygon}
     raise OperationsError(
         f'Geometry dimension mismatch, cannot overlay '
         f'{name_a} {dim_type[a]} with {name_b} {dim_type[b]}')
@@ -146,39 +147,42 @@ def check_zm(a: tuple[bool, bool], name_a: str,
 # End check_zm function
 
 
-def get_validated_geometries(feature_class: 'FeatureClass') -> list:
+def get_validated_geometries(feature_class: 'FeatureClass',
+                             transformer: Callable | None) -> 'ndarray':
     """
     Get Validated Geometries forced to 2D
     """
     shape_type = feature_class.shape_type
-    if shape_type in (GeometryType.point, GeometryType.multi_point):
+    if shape_type in (ShapeType.point, ShapeType.multi_point):
         checker = check_point
-    elif shape_type in (GeometryType.linestring, GeometryType.multi_linestring):
+    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
         checker = check_linestring
-    elif shape_type in (GeometryType.polygon, GeometryType.multi_polygon):
+    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
         checker = check_polygon
     else:
         checker = nada
-    return _get_validated_geoms(feature_class, checker=checker)
+    return _get_validated_geoms(
+        feature_class, checker=checker, transformer=transformer)
 # End get_validated_geometries function
 
 
-def _get_validated_geoms(feature_class: 'FeatureClass',
-                         checker: Callable) -> list:
+def _get_validated_geoms(feature_class: 'FeatureClass', checker: Callable,
+                         transformer: Callable | None) -> 'ndarray':
     """
     Get Shapely Geometries from Feature Class, forcing to 2D.
     """
     geoms = []
     cursor = feature_class.select()
     while features := cursor.fetchmany(FETCH_SIZE):
-        geometries = to_shapely(features, option=DimensionOption.TWO_D)
+        _, geometries = to_shapely(
+            features, transformer=transformer, option=DimensionOption.TWO_D)
         _check_geometries(geometries, checker=checker, geoms=geoms)
-    return geoms
+    return asarray(geoms, dtype=object)
 # End _get_validated_geoms function
 
 
-def _check_geometries(geometries: Union[list, 'ndarray'],
-                      checker: Callable, geoms: list) -> None:
+def _check_geometries(geometries: 'ndarray', checker: Callable,
+                      geoms: list) -> None:
     """
     Check Geometries for validity and fix issues where possible
     """

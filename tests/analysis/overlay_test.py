@@ -2,15 +2,17 @@
 """
 Tests for Overlay
 """
-from spyops.analysis import union
 
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import GeometryType
-from pytest import mark, param, raises
+from fudgeo.enumeration import ShapeType
+from pyproj import CRS
+from pytest import mark, param, raises, approx
 
-from spyops.analysis.overlay import erase, intersect, symmetrical_difference
+from spyops.analysis.overlay import (
+    erase, intersect, symmetrical_difference, union)
 from spyops.environment.core import zm_config
+from spyops.shared.constant import EPSG
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
@@ -19,6 +21,8 @@ from spyops.environment.enumeration import (
 from spyops.query.analysis.overlay import QueryErase
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
+
+from tests.util import UseGrids
 
 
 pytestmark = [mark.overlay, mark.query]
@@ -48,8 +52,7 @@ class TestErase:
         ('airports_mp_p', 1, 10),
         param('roads_mp_l', 1, 14, marks=mark.slow),
     ])
-    def test_erase_reduced(self, inputs, world_features, fresh_gpkg, fc_name,
-                           xy_tolerance, count):
+    def test_reduced(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
         """
         Test erase -- reduced data for faster testing
         """
@@ -58,7 +61,7 @@ class TestErase:
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=xy_tolerance)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_{fc_name}', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -67,7 +70,7 @@ class TestErase:
         result = erase(source=subset, operator=eraser, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase_reduced method
+    # End test_reduced method
 
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -88,8 +91,8 @@ class TestErase:
         OutputMOption.ENABLED,
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_erase_reduced_zm(self, inputs, world_features, fresh_gpkg, fc_name,
-                              output_z_option, output_m_option, count):
+    def test_reduced_zm(self, inputs, world_features, fresh_gpkg, fc_name,
+                        output_z_option, output_m_option, count):
         """
         Test erase -- reduced data for faster testing -- with ZM
         """
@@ -98,7 +101,7 @@ class TestErase:
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_{fc_name}', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -112,9 +115,9 @@ class TestErase:
         assert len(result) == count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
-    # End test_erase_reduced_zm method
+    # End test_reduced_zm method
 
-    def test_erase_reduced_sans_attributes(self, inputs, world_features, fresh_gpkg):
+    def test_reduced_sans_attributes(self, inputs, world_features, fresh_gpkg):
         """
         Test erase -- reduced data for faster testing -- sans attributes
         """
@@ -122,7 +125,7 @@ class TestErase:
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -130,7 +133,7 @@ class TestErase:
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
         result = erase(source=subset, operator=eraser, target=target)
         assert len(result) == 245
-    # End test_erase_reduced_sans_attributes method
+    # End test_reduced_sans_attributes method
 
     @mark.parametrize('fc_name, count', [
         ('airports_p', 3464),
@@ -140,7 +143,7 @@ class TestErase:
         None,
         0.001,
     ])
-    def test_erase(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
+    def test_disjoint(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
         """
         Test erase - ensure that disjoint is exercised
         """
@@ -152,13 +155,13 @@ class TestErase:
         result = erase(source=source, operator=eraser, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase method
+    # End test_disjoint method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 191),
         (0.001, 203),
     ])
-    def test_erase_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test erase using a line feature class as the operator on a line feature class
         """
@@ -168,7 +171,7 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase_line_on_line method
+    # End test_line_on_line method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 13_958),
@@ -176,7 +179,7 @@ class TestErase:
         param(0.0000000001, 21_353, marks=mark.slow),
         param(0.1, 21_356, marks=mark.slow),
     ])
-    def test_erase_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test erase using a line feature class as the operator on a point feature class
         """
@@ -186,14 +189,14 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_erase_line_on_point method
+    # End test_line_on_point method
 
     @mark.parametrize('xy_tolerance', [
         None,
         param(0, marks=mark.slow),
         param(0.001, marks=mark.slow),
     ])
-    def test_erase_point_on_point(self, inputs, mem_gpkg, xy_tolerance):
+    def test_point_on_point(self, inputs, mem_gpkg, xy_tolerance):
         """
         Test erase using a point feature class as the operator on a point feature class
         """
@@ -207,7 +210,7 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target,
                        xy_tolerance=xy_tolerance)
         assert len(result) == 21_256
-    # End test_erase_point_on_point method
+    # End test_point_on_point method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -364,7 +367,7 @@ class TestErase:
         ('utmzone_continentish_a', 11_046),
         ('utmzone_sparse_a', 186_254),
     ])
-    def test_erase_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
         """
         Test erase using larger inputs
         """
@@ -373,7 +376,84 @@ class TestErase:
         target = FeatureClass(geopackage=mem_gpkg, name=name)
         result = erase(source=source, operator=operator, target=target)
         assert len(result) == count
-    # End test_erase_larger_inputs function
+    # End test_larger_inputs function
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0 )),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0 )),
+        ('transmission_4617_m_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
+                        fc_name, auth_name, srs_id, flag, extent, op_name,
+                        output_z, output_m):
+        """
+        Test erase with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = erase(source=source, operator=operator, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs(self, ntdb_zm_small, grid_index, mem_gpkg,
+                           fc_name, extent, op_name):
+        """
+        Test erase with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = erase(source=source, operator=operator, target=target)
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs method
 # End TestErase class
 
 
@@ -401,11 +481,9 @@ class TestIntersect:
         ('airports_mp_p', 1, 8),
         param('roads_mp_l', 1, 13, marks=mark.slow),
     ])
-    def test_intersect_setting(self, inputs, world_features, mem_gpkg, fc_name,
-                               xy_tolerance, feature_count):
+    def test_xy_tolerance_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, feature_count):
         """
         Test intersect using analysis settings for XY tolerance
-        and varying attribute option
         """
         operator = inputs['intersect_a']
         assert len(operator) == 5
@@ -415,7 +493,7 @@ class TestIntersect:
             result = intersect(source=source, operator=operator, target=target)
         assert len(result) < len(source)
         assert len(result) == feature_count
-    # End test_intersect_setting method
+    # End test_xy_tolerance_setting method
 
     @mark.parametrize('fc_name, option, field_count', [
         ('admin_a', AttributeOption.ALL, 25),
@@ -445,7 +523,7 @@ class TestIntersect:
         param('roads_l', AttributeOption.SANS_FID, 20, marks=mark.slow),
         ('admin_mp_a', AttributeOption.SANS_FID, 21),
     ])
-    def test_intersect_attribute_option(self, inputs, world_features, mem_gpkg, fc_name, option, field_count):
+    def test_attribute_option(self, inputs, world_features, mem_gpkg, fc_name, option, field_count):
         """
         Test intersect varying attribute option
         """
@@ -457,7 +535,7 @@ class TestIntersect:
                            attribute_option=option)
         assert len(result) < len(source)
         assert len(result.fields) == field_count
-    # End test_intersect_attribute_option method
+    # End test_attribute_option method
 
     @mark.parametrize('fc_name, algorithm_option, output_option, feature_count, throws', [
         ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0, False),
@@ -485,7 +563,7 @@ class TestIntersect:
         ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13, False),
         ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, False),
     ])
-    def test_intersect_output_type(self, inputs, world_features, mem_gpkg, fc_name,
+    def test_output_type(self, inputs, world_features, mem_gpkg, fc_name,
                                    algorithm_option, output_option, feature_count, throws):
         """
         Test intersect varying output types for each algorithm option
@@ -503,12 +581,12 @@ class TestIntersect:
                                algorithm_option=algorithm_option,
                                output_type_option=output_option)
             if output_option == OutputTypeOption.LINE:
-                assert GeometryType.linestring in result.shape_type
+                assert ShapeType.linestring in result.shape_type
             else:
-                assert GeometryType.point in result.shape_type
+                assert ShapeType.point in result.shape_type
             assert len(result) < len(source)
             assert len(result) == feature_count
-    # End test_intersect_output_type method
+    # End test_output_type method
 
     @mark.zm
     @mark.parametrize('fc_name, algorithm_option, output_option, feature_count', [
@@ -543,7 +621,7 @@ class TestIntersect:
         OutputMOption.ENABLED,
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
-    def test_intersect_output_type_zm(self, inputs, world_features, mem_gpkg,
+    def test_output_type_zm(self, inputs, world_features, mem_gpkg,
                                       fc_name, algorithm_option, output_option,
                                       output_z_option, output_m_option, feature_count):
         """
@@ -560,14 +638,14 @@ class TestIntersect:
                                algorithm_option=algorithm_option,
                                output_type_option=output_option)
         if output_option == OutputTypeOption.LINE:
-            assert GeometryType.linestring in result.shape_type
+            assert ShapeType.linestring in result.shape_type
         else:
-            assert GeometryType.point in result.shape_type
+            assert ShapeType.point in result.shape_type
         assert len(result) < len(source)
         assert len(result) == feature_count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
-    # End test_intersect_output_type_zm method
+    # End test_output_type_zm method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -884,8 +962,8 @@ class TestIntersect:
         ('airports_mp_p', 0.001, 12),
         param('roads_mp_l', 0.001, 21, marks=mark.slow),
     ])
-    def test_intersect_classic_setting(self, inputs, world_features, mem_gpkg,
-                                       fc_name, xy_tolerance, feature_count):
+    def test_classic_setting(self, inputs, world_features, mem_gpkg,
+                             fc_name, xy_tolerance, feature_count):
         """
         Test intersect using analysis settings -- classic algorithm
         """
@@ -898,7 +976,7 @@ class TestIntersect:
                 source=source, operator=operator, target=target,
                 algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
-    # End test_intersect_classic_setting method
+    # End test_classic_setting method
 
     @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
         (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 64, 11),
@@ -908,7 +986,7 @@ class TestIntersect:
         (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 380, 9),
         (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 380, 4),
     ])
-    def test_intersect_option(self, inputs, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+    def test_algorithm_option(self, inputs, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
         """
         Test Intersect with Options for Classic and Pairwise
         """
@@ -922,7 +1000,7 @@ class TestIntersect:
             algorithm_option=algorithm_option, attribute_option=attribute_option)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_intersect_option method
+    # End test_algorithm_option method
 
     @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
         (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 114, 4),
@@ -932,7 +1010,7 @@ class TestIntersect:
         (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 128, 2),
         (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 128, 4),
     ])
-    def test_intersect_option_sans_attributes(self, inputs, world_features, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+    def test_option_sans_attributes(self, inputs, world_features, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
         """
         Test Intersect with Options for Classic and Pairwise -- sans attributes
         """
@@ -945,14 +1023,14 @@ class TestIntersect:
                            algorithm_option=algorithm_option, attribute_option=attribute_option)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_intersect_option method
+    # End test_option_sans_attributes method
 
     @mark.parametrize('xy_tolerance, feature_count', [
         (None, 380),
         (0.001, 379),
         (0.05, 369),
     ])
-    def test_intersect_classic_xy_tolerance(self, inputs, mem_gpkg, xy_tolerance, feature_count):
+    def test_classic_xy_tolerance(self, inputs, mem_gpkg, xy_tolerance, feature_count):
         """
         Test Intersect classic with XY Tolerance
         """
@@ -962,7 +1040,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=AlgorithmOption.CLASSIC, xy_tolerance=xy_tolerance)
         assert len(result) == feature_count
-    # End test_intersect_classic_xy_tolerance method
+    # End test_classic_xy_tolerance method
 
     @mark.parametrize('option, xy_tolerance, count', [
         (AlgorithmOption.CLASSIC, None, 195),
@@ -970,7 +1048,7 @@ class TestIntersect:
         (AlgorithmOption.PAIRWISE, None, 195),
         (AlgorithmOption.PAIRWISE, 0.001, 209),
     ])
-    def test_intersect_line_on_line(self, world_features, inputs, mem_gpkg, option, xy_tolerance, count):
+    def test_line_on_line(self, world_features, inputs, mem_gpkg, option, xy_tolerance, count):
         """
         Test intersect using a line feature class as the operator on a line feature class
         """
@@ -980,7 +1058,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=option, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_intersect_line_on_line method
+    # End test_line_on_line method
 
     @mark.parametrize('option, xy_tolerance, count', [
         (AlgorithmOption.CLASSIC, None, 7524),
@@ -992,7 +1070,7 @@ class TestIntersect:
         param(AlgorithmOption.PAIRWISE, 0.0000000001, 3, marks=mark.large),
         param(AlgorithmOption.PAIRWISE, 0.1, 0, marks=mark.large),
     ])
-    def test_intersect_line_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
+    def test_line_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
         """
         Test intersect using a line feature class as the operator on a point feature class
         """
@@ -1002,7 +1080,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=option, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_intersect_line_on_point method
+    # End test_line_on_point method
 
     @mark.parametrize('option, xy_tolerance, count', [
         (AlgorithmOption.CLASSIC, None, 100),
@@ -1012,7 +1090,7 @@ class TestIntersect:
         (AlgorithmOption.PAIRWISE, 0, 100),
         (AlgorithmOption.PAIRWISE, 0.001, 100),
     ])
-    def test_intersect_point_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
+    def test_point_on_point(self, inputs, mem_gpkg, option, xy_tolerance, count):
         """
         Test intersect using a point feature class as the operator on a point feature class
         """
@@ -1025,7 +1103,7 @@ class TestIntersect:
         result = intersect(source=source, operator=operator, target=target,
                            algorithm_option=option, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_intersect_point_on_point method
+    # End test_point_on_point method
 
     @mark.benchmark
     @mark.parametrize('option, name, count', [
@@ -1034,7 +1112,7 @@ class TestIntersect:
         (AlgorithmOption.PAIRWISE, 'utmzone_continentish_a', 205_532),
         (AlgorithmOption.PAIRWISE, 'utmzone_sparse_a', 26_949),
     ])
-    def test_intersect_larger_inputs(self, inputs, world_features, mem_gpkg, option, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, option, name, count):
         """
         Test intersect using larger inputs
         """
@@ -1043,7 +1121,165 @@ class TestIntersect:
         target = FeatureClass(geopackage=mem_gpkg, name=name)
         result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
         assert len(result) == count
-    # End test_intersect_larger_inputs method
+    # End test_larger_inputs method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('transmission_4617_z_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test intersect with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.PAIRWISE)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.25001525878906, 51.0, -114.125, 51.11003494262695)),
+        ('hydro_6654_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+        ('hydro_lcc_a', (-1260769.625, 1417430.0, -1250397.75, 1429655.5)),
+        ('hydro_utm11_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test intersect with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.PAIRWISE)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_pairwise method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (692526.375, 5653596.5, 701490.4375, 5665959.5)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('transmission_4617_z_l', EPSG, 2955, False, (692509.5625, 5654147.0, 701508.4375, 5667420.5 )),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (693519.3125, 5654016.0, 701489.6875, 5666594.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                fc_name, auth_name, srs_id, flag, extent, op_name,
+                                output_z, output_m):
+        """
+        Test intersect with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.CLASSIC)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.25001525878906, 51.0, -114.125, 51.11003494262695)),
+        ('hydro_6654_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+        ('hydro_lcc_a', (-1260769.625, 1417430.0, -1250397.75, 1429655.5)),
+        ('hydro_utm11_a', (692529.4375, 5653599.5, 701493.5, 5665959.5)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                   fc_name, extent, op_name):
+        """
+        Test intersect with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = intersect(source=source, operator=operator, target=target,
+                               algorithm_option=AlgorithmOption.CLASSIC)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_classic method
 # End TestIntersect class
 
 
@@ -1083,9 +1319,8 @@ class TestSymmetricalDifference:
         ('transmission_l', 'transmission_zm_l', 21, 43),
         ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    def test_sym_diff_setting(self, ntdb_zm_tile, mem_gpkg,
-                              source_name, operator_name, feature_count,
-                              field_count):
+    def test_xy_tolerance_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                  operator_name, feature_count, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         """
@@ -1102,7 +1337,7 @@ class TestSymmetricalDifference:
                 attribute_option=AttributeOption.ALL)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_sym_diff_setting method
+    # End test_xy_tolerance_setting method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 194, 42),
@@ -1121,8 +1356,8 @@ class TestSymmetricalDifference:
         ('transmission_l', 'transmission_zm_l', 21, 43),
         ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    def test_sym_diff_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name, operator_name,
-                                      feature_count, field_count):
+    def test_xy_tolerance_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                          operator_name, feature_count, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
         """
@@ -1140,7 +1375,7 @@ class TestSymmetricalDifference:
                 algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_sym_diff_setting_classic method
+    # End test_xy_tolerance_setting_classic method
 
     @mark.zm
     @mark.parametrize('source_name, operator_name', [
@@ -1198,7 +1433,7 @@ class TestSymmetricalDifference:
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -1221,7 +1456,7 @@ class TestSymmetricalDifference:
         ('toponymy_mp', 'toponymy_mp', AttributeOption.ONLY_FID, 4),
         ('transmission_l', 'transmission_l', AttributeOption.ONLY_FID, 4),
     ])
-    def test_sym_diff_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
+    def test_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
                                        source_name, operator_name, option, field_count):
         """
         Test sym diff using analysis settings for XY tolerance
@@ -1238,7 +1473,7 @@ class TestSymmetricalDifference:
             source=source, operator=operator, target=target,
             attribute_option=option)
         assert len(result.fields) == field_count
-    # End test_sym_diff_attribute_option method
+    # End test_attribute_option method
 
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -1353,6 +1588,160 @@ class TestSymmetricalDifference:
         assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_pairwise method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                fc_name, auth_name, srs_id, flag, extent, op_name,
+                                output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_classic method
 # End TestSymmetricalDifference class
 
 
@@ -1389,8 +1778,8 @@ class TestUnion:
         ('structures_a', 'structures_zm_a', 34, 43),
         ('structures_zm_a', 'structures_zm_a', 34, 44),
     ])
-    def test_union_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
-                           operator_name, feature_count, field_count):
+    def test_xy_tolerance_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                  operator_name, feature_count, field_count):
         """
         Test union using analysis settings for XY tolerance
         """
@@ -1407,7 +1796,7 @@ class TestUnion:
                 attribute_option=AttributeOption.ALL)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_union_setting method
+    # End test_xy_tolerance_setting method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 227, 42),
@@ -1417,8 +1806,8 @@ class TestUnion:
         ('structures_a', 'structures_zm_a', 36, 43),
         ('structures_zm_a', 'structures_zm_a', 36, 44),
     ])
-    def test_union_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
-                                   operator_name, feature_count, field_count):
+    def test_xy_tolerance_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                          operator_name, feature_count, field_count):
         """
         Test union using analysis settings for XY tolerance
         """
@@ -1436,7 +1825,7 @@ class TestUnion:
                 algorithm_option=AlgorithmOption.CLASSIC)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_union_setting_classic method
+    # End test_xy_tolerance_setting_classic method
 
     @mark.zm
     @mark.parametrize('source_name, operator_name', [
@@ -1487,7 +1876,7 @@ class TestUnion:
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
         target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser)
+        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
         _, touches = query.select.split('WHERE', 1)
         subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
                              geopackage=fresh_gpkg)
@@ -1504,8 +1893,8 @@ class TestUnion:
         ('hydro_a', 'hydro_a', AttributeOption.ONLY_FID, 4),
         ('structures_a', 'structures_a', AttributeOption.ONLY_FID, 4),
     ])
-    def test_union_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
-                                       source_name, operator_name, option, field_count):
+    def test_attribute_option(self, inputs, ntdb_zm_tile, mem_gpkg,
+                              source_name, operator_name, option, field_count):
         """
         Test union using analysis settings for XY tolerance
         and varying attribute option
@@ -1521,7 +1910,7 @@ class TestUnion:
             source=source, operator=operator, target=target,
             attribute_option=option)
         assert len(result.fields) == field_count
-    # End test_union_attribute_option method
+    # End test_attribute_option method
 
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -1636,6 +2025,160 @@ class TestUnion:
         assert result.has_m == zm.m_enabled
         assert result.count == count
     # End test_target_full_disjoint_classic method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                 fc_name, auth_name, srs_id, flag, extent, op_name,
+                                 output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_pairwise method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_pairwise(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                    fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_pairwise method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                fc_name, auth_name, srs_id, flag, extent, op_name,
+                                output_z, output_m):
+        """
+        Test sym diff with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source, operator)
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_classic method
+
+    @mark.transform
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_4617_a', (-114.5, 51.0, -113.99998474121094, 51.25000762939453)),
+        ('hydro_6654_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_a', (-1276437.125, 1414240.375, -1239210.75, 1450238.625)),
+        ('hydro_utm11_a', (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+    ])
+    @mark.parametrize('op_name', [
+        'grid_10tm_a',
+    ])
+    def test_different_crs_classic(self, ntdb_zm_small, grid_index, mem_gpkg,
+                                   fc_name, extent, op_name):
+        """
+        Test sym diff with different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_clipped')
+        operator = grid_index[op_name].copy(
+            f'{op_name}_subset', geopackage=mem_gpkg,
+            where_clause="""DATANAME = '082O01-6'""")
+        with UseGrids(True):
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC)
+            assert approx(result.extent, abs=0.001) == extent
+            srs_id = source.spatial_reference_system.srs_id
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_different_crs_classic method
 # End TestUnion class
 
 

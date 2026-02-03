@@ -4,10 +4,13 @@ Query Classes for management.features module
 """
 
 
+from functools import cached_property
 from operator import attrgetter
+from typing import Callable, TYPE_CHECKING
 
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 
+from spyops.crs.transform import make_transformer_function
 from spyops.query.base import AbstractSourceQuery
 from spyops.shared.constant import (
     LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
@@ -17,19 +20,30 @@ from spyops.shared.field import (
 from spyops.shared.hint import FIELDS
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
     """
     Queries for MultiPart to SinglePart
     """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass') -> None:
+        """
+        Initialize the QueryMultiPartToSinglePart class
+        """
+        super().__init__(source, target=target, xy_tolerance=None)
+    # End init built-in
+
     @property
     def part_getter(self) -> attrgetter:
         """
         Part Getter
         """
         shape_type = self.source.shape_type
-        if shape_type == GeometryType.multi_point:
+        if shape_type == ShapeType.multi_point:
             name = POINTS_ATTR
-        elif shape_type == GeometryType.multi_linestring:
+        elif shape_type == ShapeType.multi_linestring:
             name = LINES_ATTR
         else:
             name = POLYGONS_ATTR
@@ -41,11 +55,11 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         Get Target Shape Type reducing from multi to single
         """
         shape_type = self.source.shape_type
-        if shape_type == GeometryType.multi_point:
-            return GeometryType.point
-        elif shape_type == GeometryType.multi_linestring:
-            return GeometryType.linestring
-        return GeometryType.polygon
+        if shape_type == ShapeType.multi_point:
+            return ShapeType.point
+        elif shape_type == ShapeType.multi_linestring:
+            return ShapeType.linestring
+        return ShapeType.polygon
     # End _get_target_shape_type method
 
     def _get_unique_fields(self) -> FIELDS:
@@ -91,6 +105,18 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             self.target.escaped_name, field_names=insert_names,
             field_count=len(fields) + 1)
     # End insert property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End source_transformer property
 # End QueryMultiPartToSinglePart class
 
 

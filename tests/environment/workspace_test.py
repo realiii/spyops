@@ -39,7 +39,7 @@ def test_scratch_workspace(fresh_gpkg):
     """
     original = ANALYSIS_SETTINGS.scratch_workspace
     with Swap(Setting.SCRATCH_WORKSPACE, fresh_gpkg) as s:
-        assert isinstance(s.cached_value, MemoryGeoPackage)
+        assert s.cached_value is None
         assert isinstance(s.swap_value, GeoPackage)
         assert ANALYSIS_SETTINGS.scratch_workspace is fresh_gpkg
     assert ANALYSIS_SETTINGS.scratch_workspace is original

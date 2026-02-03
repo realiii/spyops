@@ -8,7 +8,7 @@ from enum import StrEnum
 from functools import wraps
 from typing import Any, Callable, Type
 
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.enumeration import OutputTypeOption
@@ -86,7 +86,7 @@ class ValidateOutputType(AbstractValidate):
             if not get_geometry_dimension(kwargs[self._name]):
                 raise OperationsError(
                     f'{self._name} features class must be a '
-                    f'{GeometryType.linestring} or {GeometryType.polygon} '
+                    f'{ShapeType.linestring} or {ShapeType.polygon} '
                     f'shape type for Output Type "{OutputTypeOption.LINE}"')
             return func(**kwargs)
         # End wrapper function

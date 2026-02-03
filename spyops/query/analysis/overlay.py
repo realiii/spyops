@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING
 from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
+from numpy import concatenate
 from shapely import GeometryCollection
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
@@ -30,14 +31,14 @@ from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import (
-    ELEMENT, FIELDS, LINES, POINTS, POLYGONS, XY_TOL)
+from spyops.shared.hint import ELEMENT, FIELDS, XY_TOL
 from spyops.shared.util import element_names, make_unique_name
 from spyops.shared.records import extend_records, process_disjoint
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field
+    from numpy import ndarray
     from shapely import Polygon
 
 
@@ -45,15 +46,15 @@ class QueryErase(QueryClip):
     """
     Queries for Erase
     """
-    def process_disjoint(self, xy_tolerance: XY_TOL) -> None:
+    def process_disjoint(self) -> None:
         """
         Process Disjoint
         """
         query = QueryConfig(
             source=self.source, target=self.target,
             disjoint=self.select_disjoint, insert=self.insert,
-            config=self.geometry_config)
-        process_disjoint(query=query, xy_tolerance=xy_tolerance)
+            config=self.geometry_config, transformer=self.source_transformer)
+        process_disjoint(query=query, grid_size=self.grid_size)
     # End process_disjoint method
 # End QueryErase class
 
@@ -64,7 +65,7 @@ def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
     """
     Planarize Feature Class Factory
     """
-    polygons = GeometryType.polygon, GeometryType.multi_polygon
+    polygons = ShapeType.polygon, ShapeType.multi_polygon
     if source.shape_type in polygons:
         src_cls = PlanarizePolygonSource
     else:
@@ -87,8 +88,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     """
     Abstract Base Class for Planarizing Feature Classes
     """
-    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
-                 *, use_full_extent: bool, xy_tolerance: XY_TOL) -> None:
+    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass', *,
+                 use_full_extent: bool, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractPlanarize class
         """
@@ -179,18 +180,20 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
 
     @staticmethod
     def _fetch_features(feature_class: 'FeatureClass', sql: str) \
-            -> tuple[POLYGONS | LINES | POINTS, list[tuple]]:
+            -> tuple['ndarray', list[tuple]]:
         """
-        Fetch Features, return shapely geometries and attributes
+        Fetch Features, return shapely geometries and attributes, stay in
+        the original spatial reference system.
         """
         geoms = []
         attributes = []
         with feature_class.geopackage.connection as cin:
             cursor = cin.execute(sql)
             while features := cursor.fetchmany(FETCH_SIZE):
+                features, geometries = to_shapely(features, transformer=None)
                 attributes.extend([feature[1:] for feature in features])
-                geoms.extend(to_shapely(features))
-        return geoms, attributes
+                geoms.append(geometries)
+        return concatenate(geoms), attributes
     # End _fetch_features method
 
     def _make_planar_feature_class(self, feature_class: 'FeatureClass',
@@ -252,7 +255,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         """
         Shape Type
         """
-        return GeometryType.polygon
+        return ShapeType.polygon
     # End _shape_type property
 
     def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':
@@ -267,7 +270,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     # End _planarize method
 
     @staticmethod
-    def _build_planar_results(planarized: list['Polygon'], geoms: POLYGONS,
+    def _build_planar_results(planarized: list['Polygon'], geoms: 'ndarray',
                               attributes: list[tuple]) -> list[tuple]:
         """
         Build Planar Results
@@ -286,7 +289,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     # End _build_planar_results method
 
     @staticmethod
-    def _make_planarized_geometry(geoms: POLYGONS) -> list['Polygon']:
+    def _make_planarized_geometry(geoms: 'ndarray') -> list['Polygon']:
         """
         Make Planarized Geometry
         """
@@ -499,7 +502,8 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
     Queries for Intersect (Pairwise)
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
@@ -517,12 +521,12 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
         """
         if self._output_type_option == OutputTypeOption.LINE:
             if self.source.is_multi_part:
-                return GeometryType.multi_linestring
-            return GeometryType.linestring
+                return ShapeType.multi_linestring
+            return ShapeType.linestring
         elif self._output_type_option == OutputTypeOption.POINT:
             if self.source.is_multi_part:
-                return GeometryType.multi_point
-            return GeometryType.point
+                return ShapeType.multi_point
+            return ShapeType.point
         return self.source.shape_type
     # End _get_target_shape_type method
 # End QueryIntersectPairwise class
@@ -533,7 +537,8 @@ class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
     Queries for Intersect (Classic)
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
@@ -559,7 +564,8 @@ class QueryUnionPairwise(QueryIntersectPairwise):
     depending on the results of symmetrical difference.
     """
     def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
-                 target: 'FeatureClass', attribute_option: AttributeOption,
+                 target: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL, **kwargs) -> None:
         """
         Initialize the QueryUnionPairwise class
@@ -606,7 +612,8 @@ class QueryUnionClassic(ClassicMixin, QueryUnionPairwise):
     """
     def __init__(self, source: 'FeatureClass', source_fid: 'Field',
                  operator: 'FeatureClass', operator_fid: 'Field',
-                 target: 'FeatureClass', attribute_option: AttributeOption,
+                 target: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryUnionClassic class
@@ -700,8 +707,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         """
         Target Full
         """
-        process_disjoint(self.source_config, xy_tolerance=self._xy_tolerance)
-        process_disjoint(self.operator_config, xy_tolerance=self._xy_tolerance)
+        process_disjoint(self.source_config, grid_size=self.grid_size)
+        process_disjoint(self.operator_config, grid_size=self.grid_size)
         return self.target_empty
     # End target_full property
 
@@ -714,7 +721,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         config = geometry_config(target, cast_geom=self.zm_config.is_different)
         return QueryConfig(
             source=self.source, target=target, config=config,
-            disjoint=self._disjoint_source, insert=self._insert_source)
+            disjoint=self._disjoint_source, insert=self._insert_source,
+            transformer=self.source_transformer)
     # End source_config property
 
     @property
@@ -726,7 +734,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         config = geometry_config(target, cast_geom=self.zm_config.is_different)
         return QueryConfig(
             source=self.operator, target=target, config=config,
-            disjoint=self._disjoint_operator, insert=self._insert_operator)
+            disjoint=self._disjoint_operator, insert=self._insert_operator,
+            transformer=self.operator_transformer)
     # End operator_config property
 # End BaseQuerySymmetricalDifference class
 
@@ -744,7 +753,8 @@ class QuerySymmetricalDifferenceClassic(
     Query Symmetrical Difference Classic
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *,
+                 attribute_option: AttributeOption,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QuerySymmetricalDifferenceClassic class

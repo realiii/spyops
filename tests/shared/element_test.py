@@ -5,12 +5,12 @@ Tests for Feature Class Capabilities
 
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark
 
 from conftest import world_features
-from spyops.crs.util import from_crs, validate_srs
+from spyops.crs.util import srs_from_crs, validate_srs
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
@@ -38,11 +38,11 @@ pytestmark = [mark.crs, mark.element]
     (54051, 'ThirdParty', 54051, CUSTOM_THIRD_PARTY_AUTHORITY),
     (60000, 'ThirdParty', 60000, CUSTOM_THIRD_PARTY_AUTHORITY_60000),
 ])
-def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
+def test_srs_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
     """
-    Test from_crs where custom does not exist in geopackage
+    Test srs_from_crs where custom does not exist in geopackage
     """
-    srs = from_crs(CRS.from_wkt(wkt))
+    srs = srs_from_crs(CRS.from_wkt(wkt))
     if org_id_input:
         assert srs.srs_id == srs_id_input
         assert srs.organization == org_input
@@ -54,7 +54,7 @@ def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
         assert org.upper() == org_input.upper()
         assert org_id == org_id_input
     fc = create_feature_class(mem_gpkg, name='asdf', srs=srs,
-                              shape_type=GeometryType.point)
+                              shape_type=ShapeType.point)
     key = 'AUTHORITY'
     if key in wkt:
         srs = fc.spatial_reference_system
@@ -66,7 +66,7 @@ def test_from_crs_fresh(mem_gpkg, srs_id_input, org_input, org_id_input, wkt):
             assert srs.organization == org_input
         assert key in srs.definition
         assert org_input in srs.definition
-# End test_from_crs_fresh function
+# End test_srs_from_crs_fresh function
 
 
 @mark.parametrize('name, where_clause, count', [
@@ -129,13 +129,13 @@ def test_copy_feature_class_zm(world_features, mem_gpkg, name, where_clause, out
     source = world_features[name]
     target = FeatureClass(geopackage=mem_gpkg, name=name)
     with Swap(Setting.OUTPUT_Z_OPTION, output_z_option), Swap(Setting.OUTPUT_M_OPTION, output_m_option):
-        config = zm_config(source)
+        zm = zm_config(source)
         target = copy_feature_class(
-            source, target=target, where_clause=where_clause, config=config)
+            source, target=target, where_clause=where_clause, zm=zm)
     assert len(target) == count
-    assert target.has_z == config.z_enabled
-    assert target.has_m == config.m_enabled
-    cls = FUDGEO_GEOMETRY_LOOKUP[target.shape_type][config.z_enabled, config.m_enabled]
+    assert target.has_z == zm.z_enabled
+    assert target.has_m == zm.m_enabled
+    cls = FUDGEO_GEOMETRY_LOOKUP[target.shape_type][zm.z_enabled, zm.m_enabled]
     cursor = target.select()
     assert all(isinstance(g, cls) for g, in cursor.fetchall())
     assert all(not g.is_empty for g, in cursor.fetchall())

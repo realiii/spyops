@@ -4,7 +4,7 @@ Types
 """
 
 
-from typing import NamedTuple, TYPE_CHECKING, Union
+from typing import Callable, NamedTuple, TYPE_CHECKING, Union
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -43,6 +43,7 @@ class QueryConfig(NamedTuple):
     disjoint: str
     insert: str
     config: 'GeometryConfig'
+    transformer: Callable | None
 # End QueryConfig class
 
 

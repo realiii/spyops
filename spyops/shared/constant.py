@@ -25,7 +25,7 @@ CUSTOM_UPPER: str = CUSTOM.upper()
 NONE: str = 'NONE'
 EPSG: str = 'EPSG'
 ESRI: str = 'ESRI'
-
+SRS_ID_WKB: int = -1  # used where only need WKB
 
 ID_KEY: str = 'id'
 AUTHORITY_KEY: str = 'authority'
@@ -48,6 +48,11 @@ INCLUDE_M: str = 'include_m'
 HAS_Z_KEY: str = 'has_z'
 HAS_M_KEY: str = 'has_m'
 SRS_ID_KEY: str = 'srs_id'
+INCLUDE_VERTICAL_KEY: str = 'include_vertical'
+TRANSFORMER_KEY: str = 'transformer'
+
+DEGREE: str = 'degree'
+METRE: str = 'metre'
 
 FIELD: str = 'field'
 SOURCE: str = 'source'
@@ -69,6 +74,12 @@ NOT_IN: str = 'NOT IN'
 UNSUPPORTED_WKT: str = 'Unsupported WKT: {}'
 EMPTY_INPUT: str = '{}: {} is empty'
 UNABLE_TO_USE_CRS: str = 'Unable to use authority and code from {}'
+UNSUPPORTED_CRS: str = 'Unsupported CRS authority ({}) or code ({})'
+CRS_REQUIRED: str = 'A coordinate reference system is required'
+NO_TRANSFORMER: str = (
+    'No valid transformation exists for CRS {} ({}) and CRS {} ({})')
+INVALID_AOI: str = (
+    'The area of use "{}" does not intersect with the area of interest')
 
 
 BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',

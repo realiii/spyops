@@ -6,7 +6,7 @@ Tests for Geometry Util Module
 
 from fudgeo.constant import WGS84
 from fudgeo.geometry.point import Point
-from numpy import array, isnan
+from numpy import array, isnan, ndarray
 from warnings import simplefilter, catch_warnings
 from pytest import mark
 from shapely import (
@@ -100,10 +100,10 @@ def test_to_shapely(features, expected_count, expected_type):
     """
     Test to_shapely conversion from Fudgeo to Shapely geometries
     """
-    result = to_shapely(features)
-    assert isinstance(result, list)
-    assert len(result) == expected_count
-    assert all(isinstance(geom, expected_type) for geom in result)
+    _, geometries = to_shapely(features, transformer=None)
+    assert isinstance(geometries, ndarray)
+    assert len(geometries) == expected_count
+    assert all(isinstance(geom, expected_type) for geom in geometries)
 # End test_to_shapely function
 
 
@@ -111,6 +111,7 @@ def test_use_workarounds():
     """
     Test USE_WORKAROUNDS
     """
+    assert USE_WORKAROUNDS.transform is True
     assert USE_WORKAROUNDS.make_valid is True
     assert USE_WORKAROUNDS.simplify is True
     assert USE_WORKAROUNDS.coverage_simplify is True

@@ -11,7 +11,7 @@ from typing import Any, Callable, NamedTuple, TYPE_CHECKING, Type, Union
 
 from bottleneck import nanmean
 from fudgeo.geometry import LineStringM, LineStringZM
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from shapely import LineString, MultiLineString
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
@@ -23,7 +23,8 @@ from spyops.geometry.convert import GEOMETRY_CAST
 from spyops.geometry.util import get_geoms, nada
 from spyops.geometry.wa import USE_WORKAROUNDS
 from spyops.shared.constant import (
-    GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY)
+    GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY, SRS_ID_WKB)
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
@@ -97,19 +98,19 @@ def _combine_lines_workaround(geom: Union[LineString, MultiLineString]) \
     for *key, m in get_coordinates(geom, include_z=has_z, include_m=True):
         measures[tuple(key)].append(m)
     if isinstance(result, LineString):
-        return _make_measured_line(
-            result, has_z=has_z, cls=cls, measures=measures)
+        # noinspection PyTypeChecker
+        return from_wkb(_make_measured_line(
+            result, has_z=has_z, cls=cls, measures=measures))
     else:
-        lines = []
-        for line in get_geoms(result):
-            lines.append(_make_measured_line(
-                line, has_z=has_z, cls=cls, measures=measures))
-        return MultiLineString(lines)
+        wkb = [_make_measured_line(
+            line, has_z=has_z, cls=cls, measures=measures)
+            for line in get_geoms(result)]
+        return MultiLineString(from_wkb(wkb).tolist())
 # End _combine_lines_workaround function
 
 
 def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | LineStringM],
-                        measures: defaultdict[tuple[float, ...], list[float]]) -> LineString:
+                        measures: defaultdict[tuple[float, ...], list[float]]) -> bytes:
     """
     Make a Measured Line from a Shapely LineString, looking up measures
     based on the coordinates.
@@ -119,9 +120,7 @@ def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | 
     for key in coordinates:
         m = nanmean(measures.get(tuple(key), [nan]))
         coords.append((*key, m))
-    # NOTE srs_id value does not matter, we are only dealing with WKB
-    # noinspection PyTypeChecker
-    return from_wkb(cls(coords, srs_id=-1).wkb)
+    return cls(coords, srs_id=SRS_ID_WKB).wkb
 # End _make_measured_line function
 
 
@@ -129,7 +128,7 @@ def _get_combiner(shape_type: str, has_m: bool) -> Callable:
     """
     Get Combiner Function
     """
-    if GeometryType.linestring in shape_type:
+    if ShapeType.linestring in shape_type:
         if has_m and USE_WORKAROUNDS.line_merge:
             return _combine_lines_workaround
         else:

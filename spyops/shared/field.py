@@ -6,53 +6,53 @@ Field
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.enumeration import ShapeType, FieldType
 
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
 from spyops.shared.util import make_unique_name
 
 
-GEOM_TYPE_POINTS: NAMES = GeometryType.point, GeometryType.multi_point
-GEOM_TYPE_LINES: NAMES = GeometryType.linestring, GeometryType.multi_linestring
-GEOM_TYPE_POLYGONS: NAMES = GeometryType.polygon, GeometryType.multi_polygon
-GEOM_TYPE_MULTI: NAMES = (GeometryType.multi_point,
-                          GeometryType.multi_linestring,
-                          GeometryType.multi_polygon)
+GEOM_TYPE_POINTS: NAMES = ShapeType.point, ShapeType.multi_point
+GEOM_TYPE_LINES: NAMES = ShapeType.linestring, ShapeType.multi_linestring
+GEOM_TYPE_POLYGONS: NAMES = ShapeType.polygon, ShapeType.multi_polygon
+GEOM_TYPE_MULTI: NAMES = (ShapeType.multi_point,
+                          ShapeType.multi_linestring,
+                          ShapeType.multi_polygon)
 
 
 ALIAS_TYPE_LUT: dict[NAMES, str] = {
-    (SQLFieldType.boolean.casefold(),): SQLFieldType.boolean,
-    (SQLFieldType.blob.casefold(),): SQLFieldType.blob,
-    (SQLFieldType.tinyint.casefold(),): SQLFieldType.tinyint,
-    (SQLFieldType.smallint.casefold(),): SQLFieldType.smallint,
-    (SQLFieldType.mediumint.casefold(),): SQLFieldType.mediumint,
-    ('char', 'varchar', 'tinytext', SQLFieldType.text.casefold(), 'mediumtext',
-     'longtext', 'nchar', 'nvarchar', 'clob'): SQLFieldType.text,
-    ('numeric', 'decimal', SQLFieldType.real.casefold()): SQLFieldType.real,
-    (SQLFieldType.double.casefold(), 'double precision'): SQLFieldType.double,
-    (SQLFieldType.float.casefold(),): SQLFieldType.float,
-    (SQLFieldType.date.casefold(),): SQLFieldType.date,
-    (SQLFieldType.datetime.casefold(),): SQLFieldType.datetime,
-    ('time', SQLFieldType.timestamp.casefold()): SQLFieldType.timestamp,
-    ('int', SQLFieldType.integer.casefold(), 'bigint', 'int2',
-     'int4', 'int8'): SQLFieldType.integer,
+    (FieldType.boolean.casefold(),): FieldType.boolean,
+    (FieldType.blob.casefold(),): FieldType.blob,
+    (FieldType.tinyint.casefold(),): FieldType.tinyint,
+    (FieldType.smallint.casefold(),): FieldType.smallint,
+    (FieldType.mediumint.casefold(),): FieldType.mediumint,
+    ('char', 'varchar', 'tinytext', FieldType.text.casefold(), 'mediumtext',
+     'longtext', 'nchar', 'nvarchar', 'clob'): FieldType.text,
+    ('numeric', 'decimal', FieldType.real.casefold()): FieldType.real,
+    (FieldType.double.casefold(), 'double precision'): FieldType.double,
+    (FieldType.float.casefold(),): FieldType.float,
+    (FieldType.date.casefold(),): FieldType.date,
+    (FieldType.datetime.casefold(),): FieldType.datetime,
+    ('time', FieldType.timestamp.casefold()): FieldType.timestamp,
+    ('int', FieldType.integer.casefold(), 'bigint', 'int2',
+     'int4', 'int8'): FieldType.integer,
 }
 TYPE_ALIAS_LUT: dict[str, NAMES] = {
     v: k for k, v in ALIAS_TYPE_LUT.items()}
 
 
-DATES: NAMES = SQLFieldType.date, SQLFieldType.datetime, SQLFieldType.timestamp
-INTEGERS: NAMES = (SQLFieldType.tinyint, SQLFieldType.smallint,
-                   SQLFieldType.mediumint, SQLFieldType.integer)
-REALS: NAMES = SQLFieldType.float, SQLFieldType.double, SQLFieldType.real
-TEXTS: NAMES = SQLFieldType.text,
+DATES: NAMES = FieldType.date, FieldType.datetime, FieldType.timestamp
+INTEGERS: NAMES = (FieldType.tinyint, FieldType.smallint,
+                   FieldType.mediumint, FieldType.integer)
+REALS: NAMES = FieldType.float, FieldType.double, FieldType.real
+TEXTS: NAMES = FieldType.text,
 NUMBERS: NAMES = (*INTEGERS, *REALS)
 TEXT_AND_INTEGERS: NAMES = (*TEXTS, *INTEGERS)
 TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
-ORIG_FID: Field = Field('ORIG_FID', data_type=SQLFieldType.integer)
+ORIG_FID: Field = Field('ORIG_FID', data_type=FieldType.integer)
 
 
 def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,

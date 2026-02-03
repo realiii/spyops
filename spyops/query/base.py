@@ -6,13 +6,21 @@ Abstract Classes in support of Query objects
 
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
-from typing import TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
+from pyproj import CRS
 from shapely.creation import box
+from shapely.ops import transform
 
+from spyops.crs.transform import (
+    get_transform_best_guess, make_transformer_function)
+from spyops.crs.util import (
+    crs_from_srs, get_crs_from_source, srs_from_crs)
+from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
+from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
@@ -22,11 +30,13 @@ from spyops.shared.enumeration import AttributeOption
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, XY_TOL
+from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, XY_TOL
 from spyops.shared.util import make_unique_name
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import Field, SpatialReferenceSystem
+    from pyproj import Transformer
     from spyops.environment.core import ZMConfig
     from spyops.geometry.config import GeometryConfig
 
@@ -35,12 +45,13 @@ class AbstractQuery(metaclass=ABCMeta):
     """
     Base Query Support
     """
-    def __init__(self, element: ELEMENT) -> None:
+    def __init__(self, element: ELEMENT, *, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractQuery class
         """
         super().__init__()
         self._element: ELEMENT = element
+        self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
     @staticmethod
@@ -120,6 +131,67 @@ class AbstractQuery(metaclass=ABCMeta):
         """
         pass
     # End insert property
+
+    @cached_property
+    def source_crs(self) -> CRS:
+        """
+        Source CRS
+        """
+        return get_crs_from_source(self.source)
+    # End source_crs property
+
+    @cached_property
+    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the source.
+        """
+        if not isinstance(self.source, FeatureClass):
+            return None
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        return self.source.spatial_reference_system
+    # End spatial_reference_system property
+
+    def _get_transformer(self, feature_class: FeatureClass) \
+            -> Optional['Transformer']:
+        """
+        Get Transformer
+        """
+        if not (srs := self.spatial_reference_system):
+            return None
+        crs = crs_from_srs(srs)
+        fc_crs = crs_from_srs(feature_class.spatial_reference_system)
+        if transformer := get_geographic_transformation(
+                source_crs=fc_crs, target_crs=crs,
+                transformations=ANALYSIS_SETTINGS.geographic_transformations):
+            return transformer
+        return get_transform_best_guess(fc_crs, crs)
+    # End _get_transformer method
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Source Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End source_transformer property
+
+    @cached_property
+    def grid_size(self) -> GRID_SIZE:
+        """
+        Grid Size
+        """
+        return get_grid_size(
+            source=self.source, xy_tolerance=self._xy_tolerance,
+            target_srs=self.spatial_reference_system)
+    # End grid_size property
 # End AbstractQuery class
 
 
@@ -127,11 +199,12 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
     """
     Abstract Source Query
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass) -> None:
+    def __init__(self, source: FeatureClass, target: FeatureClass, *,
+                 xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source)
+        super().__init__(source, xy_tolerance=xy_tolerance)
         self._target: FeatureClass = target
     # End init built-in
 
@@ -207,7 +280,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         """
         return copy_feature_class(
             self.source, target=self._target, where_clause=SQL_FULL,
-            config=self.zm_config)
+            zm=self.zm_config)
     # End target_full property
 
     def _get_target_shape_type(self) -> str:
@@ -224,7 +297,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return create_feature_class(
             geopackage=self._target.geopackage, name=self._target.name,
             shape_type=shape_type, fields=self._get_unique_fields(),
-            srs=self.source.spatial_reference_system,
+            srs=self.spatial_reference_system,
             z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
     # End _create_feature_class method
 
@@ -253,11 +326,11 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     Abstract Spatial Query Support
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass) -> None:
+                 operator: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialQuery class
         """
-        super().__init__(source=source, target=target)
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._operator: FeatureClass = operator
     # End init built-in
 
@@ -295,22 +368,37 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return extent_from_feature_class(self.operator)
     # End operator_extent property
 
-    @cached_property
-    def shared_extent(self) -> EXTENT:
+    def _shared_extent(self, element: FeatureClass) -> EXTENT:
         """
         Shared Extent between source and operator
         """
-        shared = box(*self.operator_extent).intersection(
-            box(*self.source_extent))
-        return shared.bounds
-    # End shared_extent property
+        operator_box = box(*self.operator_extent)
+        source_box = box(*self.source_extent)
+        if element is self.source:
+            transformer = get_transform_best_guess(
+                self.operator_crs, self.source_crs)
+            if transformer:
+                operator_box = transform(transformer.transform, operator_box)
+        else:
+            transformer = get_transform_best_guess(
+                self.source_crs, self.operator_crs)
+            if transformer:
+                source_box = transform(transformer.transform, source_box)
+        return operator_box.intersection(source_box).bounds
+    # End _shared_extent method
 
     @cached_property
     def has_intersection(self) -> bool:
         """
         Has Intersection between source and operator
         """
-        return box(*self.operator_extent).intersects(box(*self.source_extent))
+        # NOTE get transform from operator to source
+        transformer = get_transform_best_guess(
+            self.operator_crs, self.source_crs)
+        operator_box = box(*self.operator_extent)
+        if transformer:
+            operator_box = transform(transformer.transform, operator_box)
+        return operator_box.intersects(box(*self.source_extent))
     # End has_intersection property
 
     @staticmethod
@@ -338,6 +426,14 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         return self._operator
     # End operator property
+
+    @cached_property
+    def operator_crs(self) -> CRS:
+        """
+        Operator CRS
+        """
+        return get_crs_from_source(self.operator)
+    # End operator_crs property
 
     @property
     def select_operator(self) -> str:
@@ -373,7 +469,7 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
                 element, field_names=select_field_names,
                 where_clause=SQL_EMPTY)
         if where := self._spatial_index_where(
-                element, extent=self.shared_extent):
+                element, extent=self._shared_extent(element)):
             where = where.format(IN)
         else:  # pragma: no cover
             where = SQL_FULL
@@ -392,12 +488,24 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
                 element, field_names=select_field_names,
                 where_clause=SQL_FULL)
         if not (where := self._spatial_index_where(
-                element, extent=self.shared_extent)):  # pragma: no cover
+                element, extent=self._shared_extent(element))):  # pragma: no cover
             return EMPTY
         return self._make_select(
             element, field_names=select_field_names,
             where_clause=where.format(NOT_IN))
     # End _make_disjoint_select method
+
+    @cached_property
+    def operator_transformer(self) -> Callable | None:
+        """
+        Operator Transformer
+        """
+        elm = self.operator
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End operator_transformer property
 # End AbstractSpatialQuery class
 
 
@@ -406,14 +514,14 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     Abstract class extending with attribute options
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, attribute_option: AttributeOption,
+                 operator: FeatureClass, attribute_option: AttributeOption, *,
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
-        super().__init__(source=source, target=target, operator=operator)
+        super().__init__(source, target=target, operator=operator,
+                         xy_tolerance=xy_tolerance)
         self._attr_option: AttributeOption = attribute_option
-        self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
     @cache
@@ -460,7 +568,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End _get_unique_fields method
 
     @staticmethod
-    def _make_fid_field(field: Field, element: ELEMENT) -> Field:
+    def _make_fid_field(field: 'Field', element: ELEMENT) -> 'Field':
         """
         Make FID Field
         """
@@ -469,7 +577,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End _make_fid_field method
 
     @property
-    def input_fid_source(self) -> Field:
+    def input_fid_source(self) -> 'Field':
         """
         Input FID for Source
         """
@@ -477,7 +585,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End input_fid_source property
 
     @property
-    def input_fid_operator(self) -> Field:
+    def input_fid_operator(self) -> 'Field':
         """
         Input FID for Operator
         """
@@ -485,7 +593,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End input_fid_operator property
 
     @cached_property
-    def output_fid_source(self) -> Field:
+    def output_fid_source(self) -> 'Field':
         """
         Output FID for Source
         """
@@ -494,7 +602,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End output_fid_source property
 
     @cached_property
-    def output_fid_operator(self) -> Field:
+    def output_fid_operator(self) -> 'Field':
         """
         Output FID for Operator
         """
@@ -505,7 +613,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         return self._avoid_name_clash(field)
     # End output_fid_operator property
 
-    def _avoid_name_clash(self, field: Field) -> Field:
+    def _avoid_name_clash(self, field: 'Field') -> 'Field':
         """
         Avoid Name Clash with Source or Operator Fields
         """

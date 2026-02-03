@@ -24,10 +24,6 @@ tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 MIT
 
-
-## Current Limitations
-* Feature classes used in extract or overlay operations must be in the same coordinate reference system
-
 ## Analysis
 ### Extract
 #### `clip`
@@ -259,32 +255,127 @@ with Swap(Setting.OVERWRITE, True):
     fc = clip(source, operator=operator, target=target)
 ```
 
-### Dimension
-In the dimension category, the `xy_tolerance` setting can be used to specify a tolerance value for XY coordinates.
-The `output_m_option` and `output_z_option` settings can be used to control how M and Z values are handled in the 
-output feature class based in the inputs. The `z_value` setting can be used to specify a constant Z 
-value for the output feature class when z values are present or specified for output.  The `z_value` will only be used
-to replace NaN values.
+### Coordinates
+#### Output Coordinate System
+The `output_coordinate_system` setting can be used to specify the coordinate reference system (CRS) for the `target`
+feature class.  The default is `None`, which means that the `target` feature class will have the CRS of the 
+`source` feature class.
 
+```python
+from pyproj import CRS
+from spyops.analysis.extract import clip
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
+
+# set globally, can be set using a pyproj CRS, 
+# fudgeo SpatialReferenceSystem object, or fudgeo FeatureClass object
+ANALYSIS_SETTINGS.output_coordinate_system = CRS(4326) 
+ANALYSIS_SETTINGS.output_coordinate_system = operator.spatial_reference_system 
+ANALYSIS_SETTINGS.output_coordinate_system = source
+
+# can clear the setting by using None
+ANALYSIS_SETTINGS.output_coordinate_system = None
+
+# or set via context during a function call
+with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+    fc = clip(source, operator=operator, target=target)
+
+# use None to ignore the current output_coordinate_system setting
+with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None):
+    fc = clip(source, operator=operator, target=target)
+```
+
+If the `source` and / or `operator` feature class(es) have different Spatial Reference Systems and 
+`geographic_transformations` (see below) are not specified then a "best guess" will be made as to the transformation
+needed to transform the `source` and / or `operator` feature class(es).
+
+#### Geographic Transformations
+The `geographic_transformations` setting can be used to specify transformations between coordinate systems and / or 
+datums.  When transforming spatial data having different datums it is essential to use the grid files to ensure that 
+the datum transformations are as accurate as possible.
+
+Use the `pyproj` [sync](https://pyproj4.github.io/pyproj/stable/cli.html#Sub-commands)
+to download grid files for geographic transformations.
+
+```commandline
+pyproj sync --verbose --all --include-already-downloaded --target-directory /Users/username/folder/grids
+```
+
+Once downloaded the grid files can be specified for use by `spyops` using the `configure_grids` function.
+
+```python
+from spyops.crs.util import configure_grids
+
+configure_grids('/Users/username/folder/grids')
+```
+
+Transformations can be specified `geographic_transformations` setting, transformations that apply to the 
+Spatial Reference Systems of the `source`, `operator` feature classes and / or the `output_coordinate_system` will be
+prefered when performing coordinate transformations.
+
+```python
+from pyproj import CRS
+from spyops.analysis.extract import clip
+from spyops.crs.transform import get_transforms
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
+
+output_crs = CRS(4326)
+
+# specify transformations for the source to the output coordinate system
+# this is just an example, in practice more likley to check the description
+# of the transformation to ensure a specific transformation is being used
+transformation = get_transforms(source, output_crs)
+if transformation.is_required:
+    if transformation.best:
+        xforms = [transformation.best]
+    else:
+        xforms = [o.transformer for o in transformation.options]
+else:
+    xforms = None
+with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, output_crs),
+      Swap(Setting.GEOGRAPHIC_TRANSFORMATIONS, xforms)):
+    fc = clip(source, operator=operator, target=target)
+```
+
+If no `geographic_transformations` are specified then a "best guess" will be made as to the transformation needed.
+The "best guess" is "best" based on `pyroj` determiniation and if this does not exist (for example, a grid file is 
+missing) then the first transformation in the list of available transformations is used.
+
+
+#### XY Tolerance
+In the dimension category, the `xy_tolerance` setting can be used to specify a tolerance value for XY coordinates.
 The default for `xy_tolerance` is `None`, for the most part it is recommended to use the default unless you have a 
 specific reason to change it, for example, if dealing with some dirty data or need to downgrade the data fidelity.
-The units of the tolerance value are the same as the coordinate reference system.
 
 ```python
 from spyops.analysis.extract import clip
 from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 
-# set on the function call as an argument
+# set on the function call as an argument in units of the source coordinate reference system
 fc = clip(source, operator=operator, target=target, xy_tolerance=0.001)
 
-# or set globally (not recommended)
-ANALYSIS_SETTINGS.xy_tolerance = 0.001  # in units of the coordinate reference system
+# or set globally (not recommended) in units of the source coordinate reference system
+ANALYSIS_SETTINGS.xy_tolerance = 0.001 
 
 # or set via context during a function call
 with Swap(Setting.XY_TOLERANCE, 0.001):
     fc = clip(source, operator=operator, target=target)
 ```
+
+The units of the `xy_tolerance` are interpreted as being the same as the coordinate reference system of the `source` 
+feature class in the function call.  In situatations where the `source` and / or `operator` units differ from one 
+another or are different from the `output_coordinate_system` units, the `xy_tolerance` will be converted to the correct
+units as based on the CRS of the `target` (either from `source` or from `output_coordinate_system`).
+Be cautious when working with a mixture of different coordinate reference systems that have different units 
+(e.g. metres, feet, US Survey Feet, decimal degrees, etc.).
+
+#### M/Z Options
+The `output_m_option` and `output_z_option` settings can be used to control how M and Z values are handled in the 
+output feature class based in the inputs. The `z_value` setting can be used to specify a constant Z 
+value for the output feature class when z values are present or specified for output.  The `z_value` will only be used
+to replace NaN values.
 
 The defaults for `output_m_option` and `output_z_option` are `OutputMOption.SAME` and `OutputZOption.SAME` respectively.
 `SAME` means that if an input feature class has M or Z values then the output feature class will have the same values.
@@ -364,3 +455,4 @@ with Swap(Setting.SCRATCH_FOLDER, path):
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
+* Settings support for coordinates `output_coordinate_system` and `geographic_transformations`

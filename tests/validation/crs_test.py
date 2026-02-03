@@ -9,17 +9,17 @@ from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 
 from spyops.shared.exception import OperationsError
-from spyops.validation import validate_same_crs
+from spyops.validation import validate_crs
 
 
 pytestmark = [mark.validation]
 
 
-def test_validate_same_crs(mem_gpkg):
+def test_validate_crs_same(mem_gpkg):
     """
-    Test validate same crs
+    Test validate crs -- same
     """
-    @validate_same_crs('a', 'b')
+    @validate_crs('a', 'b', same=True)
     def crs_function(a, b):
         pass
     srs_a = mem_gpkg.spatial_references[4326]
@@ -28,7 +28,23 @@ def test_validate_same_crs(mem_gpkg):
     fc_b = mem_gpkg.create_feature_class('bbb', srs=srs_b)
     with raises(OperationsError):
         crs_function(fc_a, fc_b)
-# End test_validate_same_crs function
+# End test_validate_crs_same function
+
+
+def test_validate_crs_invalid(mem_gpkg):
+    """
+    Test validate crs -- invalid Spatial Reference System
+    """
+    @validate_crs('a', 'b')
+    def crs_function(a, b):
+        pass
+    srs_a = mem_gpkg.spatial_references[4326]
+    srs_b = SpatialReferenceSystem(name='Unk', organization='ABCD', org_coord_sys_id=-1, definition='Undefined')
+    fc_a = mem_gpkg.create_feature_class('aaa', srs=srs_a)
+    fc_b = mem_gpkg.create_feature_class('bbb', srs=srs_b)
+    with raises(OperationsError):
+        crs_function(fc_a, fc_b)
+# End test_validate_crs_invalid function
 
 
 if __name__ == '__main__':  # pragma: no cover

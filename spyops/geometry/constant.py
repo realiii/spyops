@@ -6,7 +6,7 @@ Constants in support of Geometry
 
 from typing import Any
 
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiLineStringM, MultiLineStringZ, MultiLineStringZM, MultiPoint,
@@ -20,40 +20,40 @@ from shapely import (
 
 
 SHAPELY_GEOMETRY_LOOKUP: dict[str, tuple[Any, Any]] = {
-    GeometryType.point: (ShapelyPoint, ShapelyMultiPoint),
-    GeometryType.multi_point: (ShapelyPoint, ShapelyMultiPoint),
-    GeometryType.linestring: (ShapelyLineString, ShapelyMultiLineString),
-    GeometryType.multi_linestring: (ShapelyLineString, ShapelyMultiLineString),
-    GeometryType.polygon: (ShapelyPolygon, ShapelyMultiPolygon),
-    GeometryType.multi_polygon: (ShapelyPolygon, ShapelyMultiPolygon),
+    ShapeType.point: (ShapelyPoint, ShapelyMultiPoint),
+    ShapeType.multi_point: (ShapelyPoint, ShapelyMultiPoint),
+    ShapeType.linestring: (ShapelyLineString, ShapelyMultiLineString),
+    ShapeType.multi_linestring: (ShapelyLineString, ShapelyMultiLineString),
+    ShapeType.polygon: (ShapelyPolygon, ShapelyMultiPolygon),
+    ShapeType.multi_polygon: (ShapelyPolygon, ShapelyMultiPolygon),
 }
 FUDGEO_GEOMETRY_LOOKUP: dict[str, dict[tuple[bool, bool], Any]] = {
-    GeometryType.point: {
+    ShapeType.point: {
         (False, False): Point,
         (True, False): PointZ,
         (False, True): PointM,
         (True, True): PointZM},
-    GeometryType.multi_point: {
+    ShapeType.multi_point: {
         (False, False): MultiPoint,
         (True, False): MultiPointZ,
         (False, True): MultiPointM,
         (True, True): MultiPointZM},
-    GeometryType.linestring: {
+    ShapeType.linestring: {
         (False, False): LineString,
         (True, False): LineStringZ,
         (False, True): LineStringM,
         (True, True): LineStringZM},
-    GeometryType.multi_linestring: {
+    ShapeType.multi_linestring: {
         (False, False): MultiLineString,
         (True, False): MultiLineStringZ,
         (False, True): MultiLineStringM,
         (True, True): MultiLineStringZM},
-    GeometryType.polygon: {
+    ShapeType.polygon: {
         (False, False): Polygon,
         (True, False): PolygonZ,
         (False, True): PolygonM,
         (True, True): PolygonZM},
-    GeometryType.multi_polygon: {
+    ShapeType.multi_polygon: {
         (False, False): MultiPolygon,
         (True, False): MultiPolygonZ,
         (False, True): MultiPolygonM,

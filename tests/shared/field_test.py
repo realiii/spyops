@@ -5,7 +5,7 @@ Test Field
 
 
 from fudgeo import Field
-from fudgeo.enumeration import SQLFieldType
+from fudgeo.enumeration import FieldType
 from pytest import mark
 
 from spyops.shared.field import (
@@ -98,13 +98,13 @@ def test_clone_field():
     """
     Clone a Field, changing its name
     """
-    fld = Field(name='asdf', data_type=SQLFieldType.text, size=50,
+    fld = Field(name='asdf', data_type=FieldType.text, size=50,
                 is_nullable=False, default='ABCDEFG')
     cloned = clone_field(fld, 'qwer')
     assert fld != cloned
     assert fld is not cloned
     assert cloned == Field(
-        name='qwer', data_type=SQLFieldType.text, size=50,
+        name='qwer', data_type=FieldType.text, size=50,
         is_nullable=False, default='ABCDEFG'
     )
     cloned = clone_field(fld, 'qwer', allow_null=True)
@@ -121,8 +121,8 @@ def test_make_unique_fields(existing_names, new_names, expected):
     """
     Test make unique fields
     """
-    existing = [Field(n, data_type=SQLFieldType.text) for n in existing_names]
-    fields = [Field(n, data_type=SQLFieldType.text) for n in new_names]
+    existing = [Field(n, data_type=FieldType.text) for n in existing_names]
+    fields = [Field(n, data_type=FieldType.text) for n in new_names]
     unique_names = [f.name for f in make_unique_fields(existing, fields)]
     assert tuple(unique_names) == expected
 # End test_make_unique_fields function

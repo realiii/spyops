@@ -5,8 +5,8 @@ Extent functions
 
 
 from math import nan
+from typing import TYPE_CHECKING
 
-from fudgeo import FeatureClass
 from fudgeo.util import get_extent
 from numpy import isfinite
 
@@ -14,7 +14,11 @@ from spyops.shared.exception import OperationsError
 from spyops.shared.hint import EXTENT
 
 
-def set_extent(feature_class: FeatureClass) -> None:
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
+def set_extent(feature_class: 'FeatureClass') -> None:
     """
     Set Extent on a Feature Class using existing, spatial index, or
     geometry extents.
@@ -26,7 +30,7 @@ def set_extent(feature_class: FeatureClass) -> None:
 # End set_extent function
 
 
-def _extent_from_index_or_geometry(feature_class: FeatureClass) -> EXTENT:
+def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
     """
     Get the Extent from the Spatial Index, fail over to the extent derived
     from geometries.
@@ -39,7 +43,7 @@ def _extent_from_index_or_geometry(feature_class: FeatureClass) -> EXTENT:
 # End _extent_from_index_or_geometry function
 
 
-def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
+def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     """
     Returns the extent from a feature class, use the extent if it has
     been set, if not check the spatial index extent, failing over to
@@ -57,7 +61,7 @@ def extent_from_feature_class(feature_class: FeatureClass) -> EXTENT:
 # End extent_from_feature_class function
 
 
-def _extent_from_spatial_index(feature_class: FeatureClass) -> EXTENT:
+def _extent_from_spatial_index(feature_class: 'FeatureClass') -> EXTENT:
     """
     Extent from Spatial Index
     """

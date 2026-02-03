@@ -25,7 +25,7 @@ from spyops.shared.hint import XY_TOL
 from spyops.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
     validate_output_type, validate_overwrite_input, validate_result,
-    validate_same_crs, validate_xy_tolerance)
+    validate_crs, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -41,7 +41,7 @@ __all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 @validate_feature_class(TARGET, exists=False)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def erase(source: 'FeatureClass', operator: 'FeatureClass',
           target: 'FeatureClass', *,
@@ -52,15 +52,19 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
     Removes the portion of the input feature class that overlaps with the
     operator feature class.
     """
-    query = QueryErase(source, target=target, operator=operator)
+    query = QueryErase(source, target=target, operator=operator,
+                       xy_tolerance=xy_tolerance)
     if not query.has_intersection:
         return query.target_full
-    query.process_disjoint(xy_tolerance)
-    geoms = get_validated_geometries(query.operator)
-    _difference(source=query.source, select_sql=query.select_source,
-                insert_sql=query.insert, overlay_geoms=geoms,
-                target=query.target, config=query.geometry_config,
-                xy_tolerance=xy_tolerance)
+    query.process_disjoint()
+    geoms = get_validated_geometries(
+        query.operator, transformer=query.operator_transformer)
+    _difference(
+        source=query.source, source_transformer=query.source_transformer,
+        select_sql=query.select_source, insert_sql=query.insert,
+        overlay_geoms=geoms, overlay_transformer=query.operator_transformer,
+        target=query.target, config=query.geometry_config,
+        grid_size=query.grid_size)
     return query.target
 # End erase function
 
@@ -74,7 +78,7 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def intersect(source: 'FeatureClass', operator: 'FeatureClass',
@@ -103,9 +107,10 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
     src_convert, op_convert = get_geometry_converters(
         source, operator=operator, output_type_option=output_type_option)
     op_features, op_geoms = _get_converted_operator(
-        query=query, converter=op_convert)
+        query=query, converter=op_convert,
+        transformer=query.operator_transformer)
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
-                      src_convert=src_convert, xy_tolerance=xy_tolerance)
+                      src_convert=src_convert)
 # End intersect function
 
 
@@ -117,7 +122,7 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
                            target: 'FeatureClass', *,
@@ -137,7 +142,7 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
         cls = QuerySymmetricalDifferencePairwise
     query = cls(source=source, target=target, operator=operator,
                 attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-    _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
+    _symmetrical_difference(query)
     return query.target
 # End symmetrical_difference function
 
@@ -149,7 +154,7 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
-@validate_same_crs(SOURCE, OPERATOR)
+@validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def union(source: 'FeatureClass', operator: 'FeatureClass',
           target: 'FeatureClass', *,
@@ -171,7 +176,7 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
         cls = QuerySymmetricalDifferencePairwise
     query = cls(source=source, target=target, operator=operator,
                 attribute_option=attribute_option, xy_tolerance=xy_tolerance)
-    _symmetrical_difference(query=query, xy_tolerance=xy_tolerance)
+    _symmetrical_difference(query)
     if algorithm_option == AlgorithmOption.CLASSIC:
         cls = QueryUnionClassic
     else:
@@ -185,9 +190,10 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
     src_convert, op_convert = get_geometry_converters(
         source, operator=operator, output_type_option=OutputTypeOption.SAME)
     op_features, op_geoms = _get_converted_operator(
-        query=query, converter=op_convert)
+        query=query, converter=op_convert,
+        transformer=query.operator_transformer)
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
-                      src_convert=src_convert, xy_tolerance=xy_tolerance)
+                      src_convert=src_convert)
 # End union function
 
 

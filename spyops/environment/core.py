@@ -7,11 +7,13 @@ Environment / Analysis Settings
 from pathlib import Path
 from typing import NamedTuple
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, SpatialReferenceSystem
+from pyproj import CRS, Transformer
 
-from spyops.environment.workspace import _Workspace
-from spyops.environment.geometry import _GeometryDimensions
+from spyops.environment.coordinates import _Coordinates
 from spyops.environment.enumeration import OutputMOption, OutputZOption
+from spyops.environment.geometry import _GeometryDimensions
+from spyops.environment.workspace import _Workspace
 from spyops.shared.hint import GPKG, XY_TOL
 
 
@@ -19,7 +21,7 @@ class _AnalysisSettings:
     """
     Analysis Settings
     """
-    __slots__ = ['_overwrite', '_dimensions', '_workspace']
+    __slots__ = ['_overwrite', '_dimensions', '_workspace', '_coordinates']
 
     def __init__(self) -> None:
         """
@@ -29,6 +31,7 @@ class _AnalysisSettings:
         self._overwrite: bool = False
         self._dimensions: _GeometryDimensions = _GeometryDimensions()
         self._workspace: _Workspace = _Workspace()
+        self._coordinates: _Coordinates = _Coordinates()
     # End init built-in
 
     @property
@@ -126,6 +129,30 @@ class _AnalysisSettings:
     def scratch_workspace(self, value: GPKG | None) -> None:
         self._workspace.scratch = value
     # End scratch_workspace property
+
+    @property
+    def geographic_transformations(self) -> list[Transformer]:
+        """
+        Geographic Transformations
+        """
+        return self._coordinates.transformations
+
+    @geographic_transformations.setter
+    def geographic_transformations(self, value: Transformer | list[Transformer]) -> None:
+        self._coordinates.transformations = value
+    # End geographic_transformations property
+
+    @property
+    def output_coordinate_system(self) -> CRS | None:
+        """
+        Output Coordinate System
+        """
+        return self._coordinates.output
+
+    @output_coordinate_system.setter
+    def output_coordinate_system(self, value: CRS | SpatialReferenceSystem | FeatureClass | None) -> None:
+        self._coordinates.output = value
+    # End output_coordinate_system property
 # End _AnalysisSettings class
 
 

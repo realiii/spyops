@@ -4,9 +4,9 @@ Utility Functions
 """
 
 
-from typing import Any, TYPE_CHECKING, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
-from numpy import diff, ndarray, nonzero
+from numpy import array, diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 
@@ -64,19 +64,38 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 # End find_slice_indexes function
 
 
-def to_shapely(features: list[tuple], option: DimensionOption = DimensionOption.SAME) -> Union[list, 'ndarray']:
+def to_shapely(features: list[tuple], transformer: Callable | None,
+               option: DimensionOption = DimensionOption.SAME) \
+        -> tuple[list[tuple], 'ndarray']:
     """
-    To Shapely Geometry from Fudgeo
+    Convert to Shapely Geometry from Fudgeo Geometry, optionally changing
+    geometry dimension by forcing to 2D or 3D and/or transforming.
+
+    When a transformer is provided the geometries are transformed, validity
+    checked, and valid geometries (and corresponding features) are returned.
     """
-    geometries = [from_wkb(g.wkb) for g, *_ in features]
+    geometries = from_wkb([g.wkb for g, *_ in features])
+    if transformer:
+        geometries = transformer(geometries)
+        validity = get_validity(geometries, transformer)
+        features = [feature for feature, v in zip(features, validity) if v]
     if option == DimensionOption.TWO_D:
-        # noinspection PyTypeChecker
-        return force_2d(geometries)
+        geometries = force_2d(geometries)
     elif option == DimensionOption.THREE_D:
-        # noinspection PyTypeChecker
-        return force_3d(geometries)
-    return geometries
+        geometries = force_3d(geometries)
+    return features, geometries
 # End to_shapely function
+
+
+def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
+    """
+    Get Validity, True if geometry is valid and not empty and not None
+    """
+    if transformer is None:
+        return ones(len(geoms), dtype=bool)
+    return array([not (g is None or g.is_empty or not g.is_valid)
+                  for g in geoms], dtype=bool)
+# End get_validity function
 
 
 if __name__ == '__main__':  # pragma: no cover

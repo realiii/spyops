@@ -3,10 +3,17 @@
 Coordinate Reference System Functionality
 """
 
-from fudgeo import FeatureClass, SpatialReferenceSystem
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Union
+
+from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 from pyproj.enums import WktVersion
+from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
+from pyproj.network import set_network_enabled
+
 
 from spyops.crs.authority import Authority, authorities, to_authority
 from spyops.crs.enumeration import InfoOption
@@ -19,13 +26,34 @@ from spyops.shared.hint import GPKG
 from spyops.shared.util import safe_int
 
 
-def get_crs_from_source(source: CRS | FeatureClass) -> CRS:
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
+def configure_grids(network_enabled: bool | None = False,
+                    data_path: Path | None = None):
     """
-    Returns a CRS object from a geopackage feature class or CRS object
+    Configure grids
+    """
+    set_network_enabled(active=network_enabled)
+    if not data_path:
+        return
+    if isinstance(data_path, Path) and data_path.is_dir():
+        append_data_dir(str(data_path))
+# End configure_grids function
+
+
+def get_crs_from_source(source: Union[CRS, 'FeatureClass', SpatialReferenceSystem]) -> CRS:
+    """
+    Returns a CRS object from a Feature Class, Spatial Reference System,
+    or CRS object.
     """
     if isinstance(source, CRS):
         return source
-    srs = source.spatial_reference_system
+    if isinstance(source, SpatialReferenceSystem):
+        srs = source
+    else:
+        srs = source.spatial_reference_system
     # NOTE although a third party can store values in spatial reference
     #  table we should "make no assumptions" per the geopackage spec
     if crs := from_authority(auth_name=srs.organization, auth_code=srs.srs_id):
@@ -36,6 +64,35 @@ def get_crs_from_source(source: CRS | FeatureClass) -> CRS:
         msg = UNSUPPORTED_WKT.format(srs.definition)
         raise CoordinateSystemNotSupportedError(f'{msg}:\n{err}')
 # End get_crs_from_source function
+
+
+def srs_from_crs(crs: CRS) -> SpatialReferenceSystem:
+    """
+    Build a Spatial Reference System object from a CRS object
+    """
+    msg = UNABLE_TO_USE_CRS.format(crs.to_string())
+    authority = get_crs_authority(crs, option=InfoOption.ORIGINAL)
+    if not authority.is_valid:
+        raise CoordinateSystemNotSupportedError(msg)
+    org_name, org_code = authority.org_name_and_code()
+    if (org_code := safe_int(org_code)) is None:
+        raise CoordinateSystemNotSupportedError(msg)
+    # NOTE changed to WKT1_GDAL for similarity to QGIS, WKT1_ESRI does not
+    #  create Compound CRS on export (was just Projected). Using WKT1_GDAL
+    #  here also prevents ArcGIS Pro from going poof.
+    return SpatialReferenceSystem(
+        crs.name, organization=org_name, org_coord_sys_id=org_code,
+        definition=crs.to_wkt(version=WktVersion.WKT1_GDAL))
+# End srs_from_crs function
+
+
+def crs_from_srs(srs: SpatialReferenceSystem) -> CRS:
+    """
+    Returns a CRS object from a Spatial Reference System object.  Simple
+    alias function for get_crs_from_source.
+    """
+    return get_crs_from_source(source=srs)
+# End crs_from_srs function
 
 
 def from_authority(auth_name: str, auth_code: str | int) -> CRS | None:
@@ -64,96 +121,41 @@ def get_crs_authority(crs: CRS, option: InfoOption) -> Authority:
 # End get_crs_authority function
 
 
-def check_same_crs(a: CRS | FeatureClass, b: CRS | FeatureClass) -> None:
+def check_same_crs(a: Union[CRS, 'FeatureClass'],
+                   b: Union[CRS, 'FeatureClass']) -> None:
     """
-    Check Feature Classes have same CRS
+    Check Feature Classes have the same CRS
     """
-    if _equals(get_crs_from_source(a), get_crs_from_source(b)):
+    if equals(get_crs_from_source(a), get_crs_from_source(b)):
         return
     raise OperationsError('CRS for input feature classes must be the same')
 # End check_same_crs function
 
 
-def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
+def change_crs_dimension(source_crs: CRS, target_crs: CRS) -> tuple[CRS, CRS]:
     """
-    Returns the original crs if not compound, the horizontal component of a
-    compound crs if flag is True, the vertical component otherwise.
-    """
-    if not crs.is_compound:
-        return crs
-    if use_horizontal:
-        components = [crs for crs in crs.sub_crs_list if not crs.is_vertical]
-        type_ = 'horizontal'
-    else:
-        components = [crs for crs in crs.sub_crs_list if crs.is_vertical]
-        type_ = 'vertical'
-    # NOTE these cases do not exist in the proj db, but here for completeness
-    err_stub = 'compound CRS not supported'
-    if not len(components):
-        raise CoordinateSystemNotSupportedError(f'Non-{type_} {err_stub}')
-    if len(components) > 1:
-        raise CoordinateSystemNotSupportedError(
-            f'Multiple {type_} definitions in {err_stub}')
-    crs = components[0]
-    # NOTE this step added to get as much metadata onto the object as possible
-    if authority := to_authority(crs):
-        # NOTE should be singular here, only horizontal or only vertical
-        auth_name, auth_code = authority.pretty_name_and_code()
-        # NOTE check everywhere for possible CRS
-        if from_auth_crs := from_authority(auth_name, auth_code=auth_code):
-            return from_auth_crs
-    return crs
-# End _get_crs_component function
-
-
-def _change_crs_dimension(source_crs: CRS, target_crs: CRS) \
-        -> tuple[CRS, CRS, bool]:
-    """
-    Change CRS Dimensions to be internally consistent, return flag that
-    indicates the transformations will include vertical.
+    Change CRS Dimensions to be internally consistent.
     """
     # NOTE if source is not compound but target is compound make target 2D
     #  since we really cannot convert Z values not knowing the source VCS
     if not source_crs.is_compound and target_crs.is_compound:
-        return source_crs, target_crs.to_2d(), False
+        return source_crs, target_crs.to_2d()
     # NOTE if target is not compound but source is compound make source 2D
     #  this is a lossy operation but the user is choosing it, do not convert Z
     elif source_crs.is_compound and not target_crs.is_compound:
-        return source_crs.to_2d(), target_crs, False
-    # NOTE to get here we inputs both being 2D or both being 3D
-    has_vertical = source_crs.is_compound and target_crs.is_compound
-    return source_crs, target_crs, has_vertical
-# End _change_crs_dimension function
+        return source_crs.to_2d(), target_crs
+    return source_crs, target_crs
+# End change_crs_dimension function
 
 
-def _equals(source_crs: CRS, target_crs: CRS) -> bool:
+def equals(source_crs: CRS, target_crs: CRS) -> bool:
     """
     Check if Coordinate Reference Systems are equal, account for compound crs
-    adjusting to same dimension.
+    adjusting to the same dimension.
     """
-    source_crs, target_crs, _ = _change_crs_dimension(source_crs, target_crs)
+    source_crs, target_crs = change_crs_dimension(source_crs, target_crs)
     return source_crs.equals(target_crs, ignore_axis_order=True)
-# End _equals function
-
-
-def from_crs(crs: CRS) -> SpatialReferenceSystem:
-    """
-    Build a Spatial Reference System object from a CRS object
-    """
-    msg = UNABLE_TO_USE_CRS.format(crs.to_string())
-    authority = get_crs_authority(crs, option=InfoOption.ORIGINAL)
-    if not authority.is_valid:
-        raise CoordinateSystemNotSupportedError(msg)
-    org_name, org_code = authority.org_name_and_code()
-    if (org_code := safe_int(org_code)) is None:
-        raise CoordinateSystemNotSupportedError(msg)
-    # NOTE changed to WKT1_GDAL for similarity to QGIS, WKT1_ESRI does not
-    #  create Compound CRS on export (was just Projected). Using WKT1_GDAL
-    #  here also prevents ArcGIS Pro from going poof.
-    return SpatialReferenceSystem(
-        crs.name, organization=org_name, org_coord_sys_id=org_code,
-        definition=crs.to_wkt(version=WktVersion.WKT1_GDAL))
-# End from_crs function
+# End equals function
 
 
 def validate_srs(geopackage: GPKG, srs: SpatialReferenceSystem) \
@@ -201,6 +203,46 @@ def validate_srs(geopackage: GPKG, srs: SpatialReferenceSystem) \
         name=CUSTOM, organization=CUSTOM_UPPER, org_coord_sys_id=0,
         definition=wkt, srs_id=_get_srs_id(geopackage, wkt))
 # End validate_srs function
+
+
+def get_crs_horizontal_component(crs: CRS) -> CRS:
+    """
+    Get CRS Horizontal Component
+    """
+    return _get_crs_component(crs, use_horizontal=True)
+# End get_crs_horizontal_component function
+
+
+def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
+    """
+    Returns the original crs if not compound, the horizontal component of a
+    compound crs if flag is True, the vertical component otherwise.
+    """
+    if not crs.is_compound:
+        return crs
+    if use_horizontal:
+        components = [crs for crs in crs.sub_crs_list if not crs.is_vertical]
+        type_ = 'horizontal'
+    else:
+        components = [crs for crs in crs.sub_crs_list if crs.is_vertical]
+        type_ = 'vertical'
+    # NOTE these cases do not exist in the proj db, but here for completeness
+    err_stub = 'compound CRS not supported'
+    if not len(components):
+        raise CoordinateSystemNotSupportedError(f'Non-{type_} {err_stub}')
+    if len(components) > 1:
+        raise CoordinateSystemNotSupportedError(
+            f'Multiple {type_} definitions in {err_stub}')
+    crs = components[0]
+    # NOTE this step added to get as much metadata onto the object as possible
+    if authority := to_authority(crs):
+        # NOTE should be singular here, only horizontal or only vertical
+        auth_name, auth_code = authority.pretty_name_and_code()
+        # NOTE check everywhere for possible CRS
+        if from_auth_crs := from_authority(auth_name, auth_code=auth_code):
+            return from_auth_crs
+    return crs
+# End _get_crs_component function
 
 
 def _has_same_org_name(geopackage: GPKG, srs_id: int,

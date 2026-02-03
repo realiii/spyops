@@ -5,7 +5,7 @@ Records Helper Functions
 
 
 from math import nan
-from typing import TYPE_CHECKING, Type
+from typing import Callable, TYPE_CHECKING, Type
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
@@ -18,8 +18,8 @@ from shapely.io import from_wkb
 from spyops.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
 from spyops.geometry.wa import USE_WORKAROUNDS, set_precision
-from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z
-from spyops.shared.hint import XY_TOL
+from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, SRS_ID_WKB
+from spyops.shared.hint import GRID_SIZE
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,7 +30,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
-                executor: 'ExecuteMany', insert_sql: str) -> None:
+                executor: 'ExecuteMany', transformer: Callable | None,
+                insert_sql: str) -> None:
     """
     Bulk Insert
     """
@@ -38,18 +39,18 @@ def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
     while features := cursor.fetchmany(FETCH_SIZE):
         if not (features := filter_features(features)):
             continue
-        insert_many(config, executor=executor, insert_sql=insert_sql,
-                    features=features, records=records)
+        insert_many(config, executor=executor, transformer=transformer,
+                    insert_sql=insert_sql, features=features, records=records)
 # End bulk_insert function
 
 
 def insert_many(config: 'GeometryConfig', executor: 'ExecuteMany',
-                insert_sql: str, features: list[tuple],
-                records: list[tuple]) -> None:
+                transformer: Callable | None, insert_sql: str,
+                features: list[tuple], records: list[tuple]) -> None:
     """
     Insert Many
     """
-    geometries = to_shapely(features)
+    features, geometries = to_shapely(features, transformer=transformer)
     results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
     extend_records(results, records=records, config=config)
     executor(sql=insert_sql, data=records)
@@ -110,24 +111,23 @@ def _extend_measures(refined: list, cls: Type['AbstractGeometry']) -> list:
         for geom, attrs in refined:
             if not geom.has_m:
                 values, = get_coordinates(geom, **kwargs)
-                # NOTE srs_id value does not matter, only dealing with WKB
                 # noinspection PyUnresolvedReferences
-                geom = from_wkb(cls.from_tuple((*values, nan), srs_id=-1).wkb)
+                geom = from_wkb(cls.from_tuple(
+                    (*values, nan), srs_id=SRS_ID_WKB).wkb)
             corrected.append((geom, attrs))
     else:
         kwargs = {INCLUDE_Z: cls is MultiPointZM, INCLUDE_M: True}
         for geom, attrs in refined:
             if not geom.has_m:
                 coords = get_coordinates(geom, **kwargs)
-                # NOTE srs_id value does not matter, only dealing with WKB
                 # noinspection PyArgumentList
-                geom = from_wkb(cls(coords, srs_id=-1).wkb)
+                geom = from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
             corrected.append((geom, attrs))
     return corrected
 # End _extend_measures function
 
 
-def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
+def process_disjoint(query: 'QueryConfig', grid_size: GRID_SIZE) -> None:
     """
     Process Disjoint Features
     """
@@ -140,9 +140,10 @@ def process_disjoint(query: 'QueryConfig', xy_tolerance: XY_TOL) -> None:
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.disjoint)
         while features := cursor.fetchmany(FETCH_SIZE):
-            geometries = to_shapely(features)
-            if xy_tolerance is not None:
-                geometries = set_precision(geometries, grid_size=xy_tolerance)
+            features, geometries = to_shapely(
+                features, transformer=query.transformer)
+            if grid_size is not None:
+                geometries = set_precision(geometries, grid_size=grid_size)
             results = [(geom, attrs) for geom, (_, *attrs) in
                        zip(geometries, features)]
             extend_records(results, records=records, config=query.config)
