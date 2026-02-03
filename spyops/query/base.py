@@ -287,7 +287,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
                 element, extent=self._shared_extent(element)):
             where = where.format(IN)
             if where_clause:
-                where = f'{where} AND ({where_clause})'
+                where = f'({where}) AND ({where_clause})'
         else:  # pragma: no cover
             if where_clause:
                 where = where_clause
