@@ -10,7 +10,7 @@ from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import approx, mark, raises
 
-from spyops.environment import Setting
+from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.analysis.extract import (
     QueryClip, QuerySelect, QuerySplitByAttributes)
@@ -44,6 +44,25 @@ class TestQuerySelect:
         query = QuerySelect(source=source, target=target)
         assert query.grid_size is None
     # End test_grid_size method
+
+    def test_source_extent(self, world_features, mem_gpkg):
+        """
+        Test source extent
+        """
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='test_target')
+        where_clause = 'ASDF = 1234'
+        query = QuerySelect(source=source, target=target, where_clause=where_clause)
+        assert approx(query._shared_extent(query.source), abs=0.001) == (-180, -90, 180, 83.6654)
+        assert where_clause in query.select
+        with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, CRS(4326))):
+            assert approx(query._shared_extent(query.source), abs=0.001) == (-100, -60, 100, 83.6654)
+            assert '100' in query.select
+            assert '-100' in query.select
+            assert '-60' in query.select
+            assert '83.665' in query.select
+            assert where_clause in query.select
+    # End test_source_extent method
 # End TestQuerySelect class
 
 

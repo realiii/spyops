@@ -9,7 +9,7 @@ from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx
 
-from spyops.environment import OutputMOption, OutputZOption, Setting
+from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
@@ -108,6 +108,35 @@ class TestMultiPartToSinglePart:
             assert approx(result.extent, abs=0.001) == extent
             assert result.has_z == zm.z_enabled
             assert result.has_m == zm.m_enabled
+    # End test_output_crs method
+
+    @mark.parametrize('fc_name, pre_count, post_count', [
+        ('structures_6654_ma', 18, 1442),
+        ('structures_6654_zm_ma', 18, 1442),
+        ('transmission_6654_m_ml', 4, 50),
+        ('transmission_6654_z_ml', 4, 50),
+        ('toponymy_6654_m_mp', 1, 142),
+        ('toponymy_6654_z_mp', 1, 142),
+        ('structures_10tm_ma', 18, 1442),
+        ('structures_10tm_zm_ma', 18, 1442),
+        ('transmission_10tm_m_ml', 4, 50),
+        ('transmission_10tm_z_ml', 4, 50),
+        ('toponymy_10tm_m_mp', 1, 142),
+        ('toponymy_10tm_z_mp', 1, 142),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, fc_name, pre_count, post_count):
+        """
+        Test multi to single with extent set, because these features are
+        so highly grouped the small extent does not filter out many, extent
+        is applied to the source features before processing
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        crs = CRS(4326)
+        assert len(source) == pre_count
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.2, 51.05, -114.05, 51.15, crs)):
+            result = multipart_to_singlepart(source=source, target=target)
+            assert len(result) == post_count
     # End test_output_crs method
 # End TestMultiPartToSinglePart class
 

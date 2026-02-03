@@ -15,6 +15,7 @@ from pytest import approx, mark, param, raises
 
 from spyops.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
+from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
@@ -116,6 +117,29 @@ class TestSelect:
         result = select(source=source, target=target, where_clause=where_clause)
         assert len(result) == count
     # End test_select method
+
+    @mark.parametrize('fc_name, where_clause, count', [
+        ('lakes_a', None, 7),
+        ('lakes_a', '', 7),
+        ('lakes_a', 'SQKM > 5000', 5),
+        ('disputed_boundaries_l', None, 40),
+        ('disputed_boundaries_l', '', 40),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', 40),
+        ('cities_p', None, 310),
+        ('cities_p', '', 310),
+        ('cities_p', 'POP IS NULL', 241),
+        ('cities_p', 'POP > 0', 69),
+    ])
+    def test_select_with_extent(self, world_features, mem_gpkg, fc_name, where_clause, count):
+        """
+        Test select with Extent
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, CRS(4326))):
+            result = select(source=source, target=target, where_clause=where_clause)
+            assert len(result) == count
+    # End test_select_with_extent method
 
     @mark.zm
     @mark.parametrize('fc_name, where_clause, output_z_option, output_m_option, count', [
