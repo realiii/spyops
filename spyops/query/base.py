@@ -37,6 +37,8 @@ from spyops.shared.util import make_unique_name
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Field, SpatialReferenceSystem
     from pyproj import Transformer
+    from shapely import Polygon
+    from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig
     from spyops.geometry.config import GeometryConfig
 
@@ -215,6 +217,112 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return validate_fields(self.source, fields=self.source.fields)
     # End _get_unique_fields method
 
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        return self.source.shape_type
+    # End _get_target_shape_type method
+
+    def _create_feature_class(self, shape_type: str,
+                              has_zm: HasZM) -> FeatureClass:
+        """
+        Create Feature Class
+        """
+        return create_feature_class(
+            geopackage=self._target.geopackage, name=self._target.name,
+            shape_type=shape_type, fields=self._get_unique_fields(),
+            srs=self.spatial_reference_system,
+            z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
+    # End _create_feature_class method
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        return HasZM(has_z=self.source.has_z, has_m=self.source.has_m)
+    # End _has_zm property
+
+    def _make_full_query(self, element: FeatureClass) -> str:
+        """
+        Make Full Query, return all features
+        """
+        where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(element)
+        return self._make_select(
+            element, field_names=select_field_names, where_clause=where)
+    # End _make_full_query method
+
+    def _shared_extent(self, element: FeatureClass) -> EXTENT:
+        """
+        Shared Extent between source and operator
+        """
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return self.source_extent
+        polygon = self._get_extent_polygon(extent, crs=self.source_crs)
+        return polygon.intersection(box(*self.source_extent, ccw=False)).bounds
+    # End _shared_extent method
+
+    @staticmethod
+    def _get_extent_polygon(extent: 'Extent', crs: 'CRS') -> 'Polygon':
+        """
+        Get Extent Polygon in the specified Coordinate Reference System
+        """
+        polygon = extent.polygon
+        if transformer := get_transform_best_guess(extent.crs, crs):
+            polygon = transform(transformer.transform, polygon)
+        return polygon
+    # End _get_extent_polygon method
+
+    def _make_intersection_query(self, element: FeatureClass) -> str:
+        """
+        Make Intersection Query
+        """
+        *_, select_field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=select_field_names,
+                where_clause=SQL_EMPTY)
+        if where := self._spatial_index_where(
+                element, extent=self._shared_extent(element)):
+            where = where.format(IN)
+        else:  # pragma: no cover
+            where = SQL_FULL
+        *_, select_field_names = self._field_names_and_count(element)
+        return self._make_select(
+            element, field_names=select_field_names, where_clause=where)
+    # End _make_intersection_query method
+
+    @staticmethod
+    def _spatial_index_where(element: FeatureClass, extent: EXTENT) -> str:
+        """
+        Make a where clause stub that can be used to select features which
+        intersect an extent. The query is based on a spatial index (if present).
+        """
+        primary = element.primary_key_field
+        if not element.has_spatial_index or not primary:  # pragma: no cover
+            return EMPTY
+        min_x, min_y, max_x, max_y = extent
+        return f"""{primary.escaped_name} {{}} (
+            SELECT id  
+            FROM {element.spatial_index_name} 
+            WHERE minx <= {max_x} AND maxx >= {min_x} AND 
+                  miny <= {max_y} AND maxy >= {min_y})
+        """
+    # End _spatial_index_wheres function
+
+    @cached_property
+    def has_intersection(self) -> bool:
+        """
+        Has Intersection between source and operator
+        """
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return True
+        polygon = self._get_extent_polygon(extent, crs=self.source_crs)
+        return polygon.intersects(box(*self.source_extent, ccw=False))
+    # End has_intersection property
+
     @cached_property
     def zm_config(self) -> 'ZMConfig':
         """
@@ -231,14 +339,6 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return geometry_config(
             self.target, cast_geom=self.zm_config.is_different)
     # End geometry_config property
-
-    @property
-    def source(self) -> FeatureClass:
-        """
-        Source
-        """
-        return self._element
-    # End source property
 
     @property
     def select_source(self) -> str:
@@ -282,42 +382,6 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
             self.source, target=self._target, where_clause=SQL_FULL,
             zm=self.zm_config)
     # End target_full property
-
-    def _get_target_shape_type(self) -> str:
-        """
-        Get Target Shape Type based on Output Type Option and Source Shape Type
-        """
-        return self.source.shape_type
-    # End _get_target_shape_type method
-
-    def _create_feature_class(self, shape_type: str, has_zm: HasZM) -> FeatureClass:
-        """
-        Create Feature Class
-        """
-        return create_feature_class(
-            geopackage=self._target.geopackage, name=self._target.name,
-            shape_type=shape_type, fields=self._get_unique_fields(),
-            srs=self.spatial_reference_system,
-            z_enabled=has_zm.has_z, m_enabled=has_zm.has_m)
-    # End _create_feature_class method
-
-    @property
-    def _has_zm(self) -> HasZM:
-        """
-        Has ZM
-        """
-        return HasZM(has_z=self.source.has_z, has_m=self.source.has_m)
-    # End _has_zm property
-
-    def _make_full_query(self, element: FeatureClass) -> str:
-        """
-        Make Full Query, return all features
-        """
-        where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(element)
-        return self._make_select(
-            element, field_names=select_field_names, where_clause=where)
-    # End _make_full_query method
 # End AbstractSourceQuery class
 
 
