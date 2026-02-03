@@ -488,28 +488,15 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     # End zm_config property
 
     @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        return self.select_intersect
-    # End select property
-
-    @property
     def select_operator(self) -> str:
         """
         Selection Query for Operator
         """
-        return self._make_intersection_query(self.operator)
+        elm = self.operator
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_intersection_query(
+            elm, field_names=select_field_names)
     # End select_operator property
-
-    @property
-    def select_intersect(self) -> str:
-        """
-        Selection query for intersection
-        """
-        return self._make_intersection_query(self.source)
-    # End select_intersect property
 
     @property
     def select_disjoint(self) -> str:
