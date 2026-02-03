@@ -246,6 +246,7 @@ The default for `spyops` is to avoid overwriting existing GeoPackages, Feature C
 ```python
 from spyops.analysis.extract import clip
 from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
 
 # set overwrite globally
 ANALYSIS_SETTINGS.overwrite = True
@@ -304,9 +305,10 @@ pyproj sync --verbose --all --include-already-downloaded --target-directory /Use
 Once downloaded the grid files can be specified for use by `spyops` using the `configure_grids` function.
 
 ```python
+from pathlib import Path
 from spyops.crs.util import configure_grids
 
-configure_grids('/Users/username/folder/grids')
+configure_grids(data_path=Path('/Users/username/folder/grids'))
 ```
 
 Transformations can be specified `geographic_transformations` setting, transformations that apply to the 
@@ -314,17 +316,24 @@ Spatial Reference Systems of the `source`, `operator` feature classes and / or t
 prefered when performing coordinate transformations.
 
 ```python
-from pyproj import CRS
+from pyproj import CRS, Transformer
 from spyops.analysis.extract import clip
 from spyops.crs.transform import get_transforms
+from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 
 output_crs = CRS(4326)
+source_crs = crs_from_srs(source.spatial_reference_system)
+# simple example using the suggested transformation, ensure always_xy is True
+xform = Transformer.from_crs(source_crs, output_crs, always_xy=True, only_best=True)
 
-# specify transformations for the source to the output coordinate system
-# this is just an example, in practice more likley to check the description
-# of the transformation to ensure a specific transformation is being used
+with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, output_crs),
+      Swap(Setting.GEOGRAPHIC_TRANSFORMATIONS, xform)):
+    fc = clip(source, operator=operator, target=target)
+
+# use the get_transforms function to understand if a transformation is required,
+# access the best option (based on pyproj best available), or access all options
 transformation = get_transforms(source, output_crs)
 if transformation.is_required:
     if transformation.best:
