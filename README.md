@@ -24,10 +24,6 @@ tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 MIT
 
-
-## Current Limitations
-* Feature classes used in extract or overlay operations must be in the same coordinate reference system
-
 ## Analysis
 ### Extract
 #### `clip`
@@ -289,10 +285,64 @@ with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None):
     fc = clip(source, operator=operator, target=target)
 ```
 
-If `geographic_transformations` are not specified (see below) then a "best guess" will be made as to the transformation
-needed to convert the CRS of the `source` and / or `operator` feature class(es) to the `output_coordinate_system`.
+If the `source` and / or `operator` feature class(es) have different Spatial Reference Systems and 
+`geographic_transformations` (see below) are not specified then a "best guess" will be made as to the transformation
+needed to transform the `source` and / or `operator` feature class(es).
 
-### Dimension
+#### Geographic Transformations
+The `geographic_transformations` setting can be used to specify transformations between coordinate systems and / or 
+datums.  When transforming spatial data having different datums it is essential to use the grid files to ensure that 
+the datum transformations are as accurate as possible.
+
+Use the `pyproj` [sync](https://pyproj4.github.io/pyproj/stable/cli.html#Sub-commands)
+to download grid files for geographic transformations.
+
+```commandline
+pyproj sync --verbose --all --include-already-downloaded --target-directory /Users/username/folder/grids
+```
+
+Once downloaded the grid files can be specified for use by `spyops` using the `configure_grids` function.
+
+```python
+from spyops.crs.util import configure_grids
+
+configure_grids('/Users/username/folder/grids')
+```
+
+Transformations can be specified `geographic_transformations` setting, transformations that apply to the 
+Spatial Reference Systems of the `source`, `operator` feature classes and / or the `output_coordinate_system` will be
+prefered when performing coordinate transformations.
+
+```python
+from pyproj import CRS
+from spyops.analysis.extract import clip
+from spyops.crs.transform import get_transforms
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
+
+output_crs = CRS(4326)
+
+# specify transformations for the source to the output coordinate system
+# this is just an example, in practice more likley to check the description
+# of the transformation to ensure a specific transformation is being used
+transformation = get_transforms(source, output_crs)
+if transformation.is_required:
+    if transformation.best:
+        xforms = [transformation.best]
+    else:
+        xforms = [o.transformer for o in transformation.options]
+else:
+    xforms = None
+with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, output_crs),
+      Swap(Setting.GEOGRAPHIC_TRANSFORMATIONS, xforms)):
+    fc = clip(source, operator=operator, target=target)
+```
+
+If no `geographic_transformations` are specified then a "best guess" will be made as to the transformation needed.
+The "best guess" is "best" based on `pyroj` determiniation and if this does not exist (for example, a grid file is 
+missing) then the first transformation in the list of available transformations is used.
+
+
 #### XY Tolerance
 In the dimension category, the `xy_tolerance` setting can be used to specify a tolerance value for XY coordinates.
 The default for `xy_tolerance` is `None`, for the most part it is recommended to use the default unless you have a 
@@ -405,4 +455,4 @@ with Swap(Setting.SCRATCH_FOLDER, path):
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
-* Settings support for coordinates `output_coordinate_system`
+* Settings support for coordinates `output_coordinate_system` and `geographic_transformations`
