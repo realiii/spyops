@@ -51,6 +51,22 @@ class TestExtent:
         extent = Extent(polygon=None, crs=CRS(4326))
         assert extent.polygon.is_empty
     # End test_empty_polygon method
+
+    def test_equality(self):
+        """
+        Test equality
+        """
+        a = Extent.from_bounds(1, 2, 3, 4, crs=CRS(4326))
+        b = Extent.from_bounds(1, 2, 3, 4, crs=CRS(4326))
+        assert a == b
+    # End test_equality method
+
+    def test_truth(self):
+        """
+        Test truth
+        """
+        assert bool(Extent(None, crs=CRS(4326))) is False
+    # End test_truth method
 # End TestExtent class
 
 

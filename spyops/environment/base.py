@@ -9,9 +9,11 @@ from typing import Self, TYPE_CHECKING
 from numpy import isnan
 from shapely import Polygon
 from shapely.creation import box
+from shapely.lib import force_2d
 
 from spyops.crs.util import get_crs_from_source
 from spyops.geometry.extent import extent_from_feature_class
+from spyops.geometry.wa import make_valid
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
@@ -31,6 +33,22 @@ class Extent:
         self._crs: 'CRS' = crs
     # End init built-in
 
+    def __bool__(self) -> bool:
+        """
+        Boolean Value
+        """
+        return not self.polygon.is_empty and self.polygon.is_valid
+    # End bool built-in
+
+    def __eq__(self, other: Self) -> bool:
+        """
+        Equality
+        """
+        if not isinstance(other, Extent):
+            return NotImplemented
+        return self.polygon == other.polygon and self.crs == other.crs
+    # End eq built-in
+
     @staticmethod
     def _check_polygon(polygon: Polygon | None) -> Polygon:
         """
@@ -40,7 +58,9 @@ class Extent:
             return Polygon()
         if not isinstance(polygon, Polygon):
             raise TypeError(f'Expected Polygon, got {type(polygon).__name__}')
-        return polygon
+        if not polygon.is_valid:
+            polygon = make_valid(polygon)
+        return force_2d(polygon)
     # End _check_polygon method
 
     @property
