@@ -47,7 +47,7 @@ def _scale_factor(feature_class: 'FeatureClass') -> float:
     if isnan(extent).any():
         return 1
     crs = get_crs_from_source(feature_class)
-    pt = box(*extent).centroid
+    pt = box(*extent, ccw=False).centroid
     if crs.is_projected:
         transformer = Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
         pt = transform(transformer.transform, pt)

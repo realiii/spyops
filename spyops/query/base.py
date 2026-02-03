@@ -372,8 +372,8 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Shared Extent between source and operator
         """
-        operator_box = box(*self.operator_extent)
-        source_box = box(*self.source_extent)
+        operator_box = box(*self.operator_extent, ccw=False)
+        source_box = box(*self.source_extent, ccw=False)
         if element is self.source:
             transformer = get_transform_best_guess(
                 self.operator_crs, self.source_crs)
@@ -395,10 +395,10 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         # NOTE get transform from operator to source
         transformer = get_transform_best_guess(
             self.operator_crs, self.source_crs)
-        operator_box = box(*self.operator_extent)
+        operator_box = box(*self.operator_extent, ccw=False)
         if transformer:
             operator_box = transform(transformer.transform, operator_box)
-        return operator_box.intersects(box(*self.source_extent))
+        return operator_box.intersects(box(*self.source_extent, ccw=False))
     # End has_intersection property
 
     @staticmethod
