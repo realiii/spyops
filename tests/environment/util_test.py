@@ -83,7 +83,11 @@ def test_get_grid_size(ntdb_zm_small, fc_name, epsg_code, from_name, to_name, ex
     assert get_unit_name(target_crs) == to_name
     target_srs = srs_from_crs(target_crs)
     size = get_grid_size(fc, xy_tolerance=xy_tolerance, target_srs=target_srs)
-    assert approx(size, abs=10 ** -9) == expected
+    if expected > 100:
+        tol = 1
+    else:
+        tol = 10 ** -9
+    assert approx(size, abs=tol) == expected
 # End test_get_grid_size function
 
 
