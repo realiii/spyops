@@ -10,6 +10,7 @@ from typing import NamedTuple
 from fudgeo import FeatureClass, SpatialReferenceSystem
 from pyproj import CRS, Transformer
 
+from spyops.environment.base import Extent
 from spyops.environment.coordinates import _Coordinates
 from spyops.environment.enumeration import OutputMOption, OutputZOption
 from spyops.environment.geometry import _GeometryDimensions
@@ -129,6 +130,18 @@ class _AnalysisSettings:
     def scratch_workspace(self, value: GPKG | None) -> None:
         self._workspace.scratch = value
     # End scratch_workspace property
+
+    @property
+    def extent(self) -> Extent | None:
+        """
+        Processing Extent
+        """
+        return self._coordinates.extent
+
+    @extent.setter
+    def extent(self, value: Extent | None) -> None:
+        self._coordinates.extent = value
+    # End extent property
 
     @property
     def geographic_transformations(self) -> list[Transformer]:

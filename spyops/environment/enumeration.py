@@ -24,6 +24,7 @@ class Setting(StrEnum):
 
     OUTPUT_COORDINATE_SYSTEM = auto()
     GEOGRAPHIC_TRANSFORMATIONS = auto()
+    EXTENT = auto()
 # End Setting class
 
 
