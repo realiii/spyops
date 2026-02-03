@@ -305,9 +305,10 @@ pyproj sync --verbose --all --include-already-downloaded --target-directory /Use
 Once downloaded the grid files can be specified for use by `spyops` using the `configure_grids` function.
 
 ```python
+from pathlib import Path
 from spyops.crs.util import configure_grids
 
-configure_grids('/Users/username/folder/grids')
+configure_grids(data_path=Path('/Users/username/folder/grids'))
 ```
 
 Transformations can be specified `geographic_transformations` setting, transformations that apply to the 
