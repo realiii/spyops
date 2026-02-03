@@ -392,7 +392,6 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Has Intersection between source and operator
         """
-        # NOTE get transform from operator to source
         transformer = get_transform_best_guess(
             self.operator_crs, self.source_crs)
         operator_box = box(*self.operator_extent, ccw=False)
