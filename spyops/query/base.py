@@ -452,19 +452,38 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     def _make_disjoint_select(self, element: FeatureClass) -> str:
         """
         Make Disjoint Select Statement using the input Element
+        and accounting for the analysis extent
         """
-        *_, select_field_names = self._field_names_and_count(element)
+        extent_where = self._get_extent_where(element)
+        *_, field_names = self._field_names_and_count(element)
         if not self.has_intersection:
             return self._make_select(
-                element, field_names=select_field_names,
-                where_clause=SQL_FULL)
+                element, field_names=field_names,
+                where_clause=extent_where or SQL_FULL)
         if not (where := self._spatial_index_where(
                 element, extent=self._shared_extent(element))):  # pragma: no cover
-            return EMPTY
+            return extent_where or SQL_FULL
+        where = where.format(NOT_IN)
+        if extent_where:
+            where = f'({where}) AND ({extent_where})'
         return self._make_select(
-            element, field_names=select_field_names,
-            where_clause=where.format(NOT_IN))
+            element, field_names=field_names, where_clause=where)
     # End _make_disjoint_select method
+
+    def _get_extent_where(self, element: FeatureClass) -> str:
+        """
+        Get where clause that accounts for the analysis extent
+        """
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return EMPTY
+        if element is self.source:
+            crs = self.source_crs
+        else:
+            crs = self.operator_crs
+        polygon = self._get_extent_polygon(extent, crs=crs)
+        return self._spatial_index_where(
+            element, extent=polygon.bounds).format(IN)
+    # End _get_extent_where method
 
     @cached_property
     def has_intersection(self) -> bool:
