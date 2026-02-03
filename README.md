@@ -246,6 +246,7 @@ The default for `spyops` is to avoid overwriting existing GeoPackages, Feature C
 ```python
 from spyops.analysis.extract import clip
 from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
 
 # set overwrite globally
 ANALYSIS_SETTINGS.overwrite = True
