@@ -107,40 +107,6 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         pass
     # End call built-in
 
-    @property
-    @abstractmethod
-    def _shape_type(self) -> str:  # pragma: no cover
-        """
-        Shape Type
-        """
-        pass
-    # End _shape_type property
-
-    @property
-    @abstractmethod
-    def temporary_fid_field(self) -> 'Field':  # pragma: no cover
-        """
-        Temporary FID Field
-        """
-        pass
-    # End temporary_fid_field property
-
-    @abstractmethod
-    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':  # pragma: no cover
-        """
-        Planarized Feature Class
-        """
-        pass
-    # End _planarize method
-
-    @cached_property
-    def scratch(self) -> MemoryGeoPackage:
-        """
-        Scratch GeoPackage
-        """
-        return MemoryGeoPackage.create()
-    # End scratch property
-
     def _make_insert_sql(self, planar: 'FeatureClass', fields: FIELDS) -> str:
         """
         Make Insert SQL for the Planar Feature Class
@@ -223,6 +189,40 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
     # End _field_names_and_count method
+
+    @property
+    @abstractmethod
+    def _shape_type(self) -> str:  # pragma: no cover
+        """
+        Shape Type
+        """
+        pass
+    # End _shape_type property
+
+    @abstractmethod
+    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':  # pragma: no cover
+        """
+        Planarized Feature Class
+        """
+        pass
+    # End _planarize method
+
+    @property
+    @abstractmethod
+    def temporary_fid_field(self) -> 'Field':  # pragma: no cover
+        """
+        Temporary FID Field
+        """
+        pass
+    # End temporary_fid_field property
+
+    @cached_property
+    def scratch(self) -> MemoryGeoPackage:
+        """
+        Scratch GeoPackage
+        """
+        return MemoryGeoPackage.create()
+    # End scratch property
 
     @property
     def select(self) -> str:
@@ -430,24 +430,6 @@ class ClassicMixin:
     Mixin for Shared Classic Capabilities
     """
     # noinspection PyUnresolvedReferences
-    @property
-    def input_fid_source(self) -> 'Field':
-        """
-        Input FID for Source
-        """
-        return self._input_fid_source
-    # End input_fid_source property
-
-    # noinspection PyUnresolvedReferences
-    @property
-    def input_fid_operator(self) -> 'Field':
-        """
-        Input FID for Operator
-        """
-        return self._input_fid_operator
-    # End input_fid_operator property
-
-    # noinspection PyUnresolvedReferences
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields and Rename Primary Key Columns if included
@@ -494,6 +476,24 @@ class ClassicMixin:
             fields = [element.primary_key_field, *fields]
         return fields
     # End _get_fields method
+
+    # noinspection PyUnresolvedReferences
+    @property
+    def input_fid_source(self) -> 'Field':
+        """
+        Input FID for Source
+        """
+        return self._input_fid_source
+    # End input_fid_source property
+
+    # noinspection PyUnresolvedReferences
+    @property
+    def input_fid_operator(self) -> 'Field':
+        """
+        Input FID for Operator
+        """
+        return self._input_fid_operator
+    # End input_fid_operator property
 # End ClassicMixin class
 
 

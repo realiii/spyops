@@ -35,21 +35,6 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         super().__init__(source, target=target, xy_tolerance=None)
     # End init built-in
 
-    @property
-    def part_getter(self) -> attrgetter:
-        """
-        Part Getter
-        """
-        shape_type = self.source.shape_type
-        if shape_type == ShapeType.multi_point:
-            name = POINTS_ATTR
-        elif shape_type == ShapeType.multi_linestring:
-            name = LINES_ATTR
-        else:
-            name = POLYGONS_ATTR
-        return attrgetter(name)
-    # End part_getter property
-
     def _get_target_shape_type(self) -> str:
         """
         Get Target Shape Type reducing from multi to single
@@ -117,6 +102,21 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
     # End source_transformer property
+
+    @property
+    def part_getter(self) -> attrgetter:
+        """
+        Part Getter
+        """
+        shape_type = self.source.shape_type
+        if shape_type == ShapeType.multi_point:
+            name = POINTS_ATTR
+        elif shape_type == ShapeType.multi_linestring:
+            name = LINES_ATTR
+        else:
+            name = POLYGONS_ATTR
+        return attrgetter(name)
+    # End part_getter property
 # End QueryMultiPartToSinglePart class
 
 
