@@ -434,8 +434,8 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Shared Extent between source and operator
         """
-        operator_box = box(*self.operator_extent, ccw=False)
         source_box = box(*self.source_extent, ccw=False)
+        operator_box = box(*self.operator_extent, ccw=False)
         if element is self.source:
             transformer = get_transform_best_guess(
                 self.operator_crs, self.source_crs)
