@@ -11,6 +11,7 @@ from typing import Callable, TYPE_CHECKING
 from fudgeo.enumeration import ShapeType
 
 from spyops.crs.transform import make_transformer_function
+from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import AbstractSourceQuery
 from spyops.shared.constant import (
     LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
@@ -73,6 +74,9 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         geom_type = get_geometry_column_name(
             self.source, include_geom_type=True)
         select_names = self._concatenate(geom_type, select_names)
+        if ANALYSIS_SETTINGS.extent:
+            return self._make_intersection_query(
+                self.source, field_names=select_names)
         return self._make_select(
             self.source, field_names=select_names, where_clause=SQL_FULL)
     # End select property

@@ -275,23 +275,26 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return polygon
     # End _get_extent_polygon method
 
-    def _make_intersection_query(self, element: FeatureClass) -> str:
+    def _make_intersection_query(self, element: FeatureClass, field_names: str,
+                                 where_clause: str = EMPTY) -> str:
         """
         Make Intersection Query
         """
-        *_, select_field_names = self._field_names_and_count(element)
         if not self.has_intersection:
             return self._make_select(
-                element, field_names=select_field_names,
-                where_clause=SQL_EMPTY)
+                element, field_names=field_names, where_clause=SQL_EMPTY)
         if where := self._spatial_index_where(
                 element, extent=self._shared_extent(element)):
             where = where.format(IN)
+            if where_clause:
+                where = f'{where} AND ({where_clause})'
         else:  # pragma: no cover
-            where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(element)
+            if where_clause:
+                where = where_clause
+            else:
+                where = SQL_FULL
         return self._make_select(
-            element, field_names=select_field_names, where_clause=where)
+            element, field_names=field_names, where_clause=where)
     # End _make_intersection_query method
 
     @staticmethod
@@ -339,6 +342,25 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return geometry_config(
             self.target, cast_geom=self.zm_config.is_different)
     # End geometry_config property
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        return self.select_intersect
+    # End select property
+
+    @property
+    def select_intersect(self) -> str:
+        """
+        Selection query for intersection
+        """
+        elm = self.source
+        *_, select_field_names = self._field_names_and_count(elm)
+        return self._make_intersection_query(
+            elm, field_names=select_field_names)
+    # End select_intersect property
 
     @property
     def select_source(self) -> str:

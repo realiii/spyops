@@ -7,6 +7,7 @@ Query Classes for analysis.extract module
 from functools import cached_property
 from typing import TYPE_CHECKING, Union
 
+from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
     AbstractQuery, AbstractSourceQuery, AbstractSpatialQuery)
@@ -40,9 +41,12 @@ class QuerySelect(AbstractSourceQuery):
         """
         elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
+        where_clause = (self._where_clause or EMPTY).strip() or SQL_FULL
+        if ANALYSIS_SETTINGS.extent:
+            return self._make_intersection_query(
+                elm, field_names=select_field_names, where_clause=where_clause)
         return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=(self._where_clause or EMPTY).strip() or SQL_FULL)
+            elm, field_names=select_field_names, where_clause=where_clause)
     # End select property
 
     @property
