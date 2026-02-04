@@ -169,7 +169,6 @@ class TestQueryClip:
         """
         source = world_features['admin_a']
         operator = inputs['clipper_a']
-        print(operator.extent)
         target = FeatureClass(mem_gpkg, 'test_target')
         query = QueryClip(source, operator=operator, target=target, xy_tolerance=None)
         with Swap(Setting.EXTENT, Extent.from_bounds(6.75, 46.5, 16.5, 51.5, crs=CRS(4326))):

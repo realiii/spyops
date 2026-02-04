@@ -953,7 +953,6 @@ class TestSplit:
         Test split with extent
         """
         splitter = inputs['splitter_a']
-        print(splitter.extent)
         assert len(splitter) == 5
         source = world_features[fc_name]
         field = Field('NAME', data_type=FieldType.text)
