@@ -302,25 +302,37 @@ class TestSplitByAttributes:
     """
     Test Split By Attributes
     """
-    @mark.parametrize('fields, count', [
-        (Field('ISO_CC', data_type='TEXT'), 3),
-        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
-        ('ISO_CC', 3),
-        (('ISO_CC', 'LAND_TYPE'), 7),
+    @mark.parametrize('fields, split_count, total_count', [
+        (Field('ISO_CC', data_type='TEXT'), 224, 5824),
+        param((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 580, 5824, marks=mark.slow),
+        param('ISO_CC', 224, 5824, marks=mark.slow),
+        param(('ISO_CC', 'LAND_TYPE'), 580, 5824, marks=mark.slow),
     ])
-    def test_features(self, world_features, mem_gpkg, fields, count):
+    def test_records(self, world_tables, mem_gpkg, fields, split_count, total_count):
+        """
+        Test split_by_attributes for tables
+        """
+        source = world_tables['admin']
+        results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
+        assert len(results) == split_count
+        assert sum([len(r) for r in results]) == total_count
+    # End test_records method
+
+    @mark.parametrize('fields, split_count, total_count', [
+        (Field('ISO_CC', data_type='TEXT'), 7, 49),
+        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7, 49),
+        ('ISO_CC', 7, 49),
+        (('ISO_CC', 'LAND_TYPE'), 7, 49),
+    ])
+    def test_features(self, world_features, mem_gpkg, fields, split_count, total_count):
         """
         Test split_by_attributes for feature classes
         """
-        subset = 120
         source = world_features['admin_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
-        results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == subset
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+            results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
+            assert len(results) == split_count
+            assert sum([len(r) for r in results]) == total_count
     # End test_features method
 
     @mark.zm
