@@ -961,7 +961,7 @@ class TestSplit:
         ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 8),
         param('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14, marks=mark.slow),
     ])
-    def test_split_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
+    def test_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
                       output_z_option, output_m_option, element_count, record_count):
         """
         Test split using ZM settings
@@ -980,7 +980,7 @@ class TestSplit:
         assert sum(len(r) for r in results) == record_count
         assert all([target.has_z == zm.z_enabled for target in results])
         assert all([target.has_m == zm.m_enabled for target in results])
-    # End test_split_zm method
+    # End test_zm method
 
     @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
         ('admin_a', None, 4, 114),
@@ -996,7 +996,7 @@ class TestSplit:
         ('airports_mp_p', 0.001, 4, 8),
         param('roads_mp_l', 0.001, 4, 14, marks=mark.slow),
     ])
-    def test_split_setting(self, tmp_path, inputs, world_features, mem_gpkg,
+    def test_setting(self, tmp_path, inputs, world_features, mem_gpkg,
                            fc_name, xy_tolerance, element_count, record_count):
         """
         Test split using analysis settings
@@ -1012,7 +1012,7 @@ class TestSplit:
             results = split(source=source, operator=splitter, field=field, geopackage=None)
         assert len(results) == element_count
         assert sum(len(r) for r in results) == record_count
-    # End test_split_setting method
+    # End test_setting method
 
     @mark.zm
     @mark.parametrize('fc_name', [
