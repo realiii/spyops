@@ -13,7 +13,7 @@ from pytest import approx, mark, raises
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.analysis.extract import (
-    QueryClip, QuerySelect, QuerySplitByAttributes)
+    QueryClip, QuerySelect, QuerySplit, QuerySplitByAttributes)
 from spyops.geometry.config import GeometryConfig
 
 
@@ -176,6 +176,24 @@ class TestQueryClip:
             assert '51.5' in query.select_operator
     # End test_source_extent method
 # End TestQueryClip class
+
+
+class TestQuerySplit:
+    """
+    Test QuerySplit class
+    """
+    def test_source_extent(self, world_features, inputs, mem_gpkg):
+        """
+        Test source extent
+        """
+        splitter = inputs['splitter_a']
+        source = world_features['admin_a']
+        query = QuerySplit(source, operator=splitter, target=None, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_source_extent method
+# End TestQuerySplit class
 
 
 if __name__ == '__main__':  # pragma: no cover
