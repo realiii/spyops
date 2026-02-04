@@ -130,7 +130,7 @@ class TestSelect:
         ('cities_p', 'POP IS NULL', 241),
         ('cities_p', 'POP > 0', 69),
     ])
-    def test_select_with_extent(self, world_features, mem_gpkg, fc_name, where_clause, count):
+    def test_extent(self, world_features, mem_gpkg, fc_name, where_clause, count):
         """
         Test select with Extent
         """
@@ -139,7 +139,7 @@ class TestSelect:
         with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, CRS(4326))):
             result = select(source=source, target=target, where_clause=where_clause)
             assert len(result) == count
-    # End test_select_with_extent method
+    # End test_extent method
 
     @mark.zm
     @mark.parametrize('fc_name, where_clause, output_z_option, output_m_option, count', [
