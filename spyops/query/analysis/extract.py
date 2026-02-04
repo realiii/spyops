@@ -7,17 +7,19 @@ Query Classes for analysis.extract module
 from functools import cached_property
 from typing import TYPE_CHECKING, Union
 
+from fudgeo import FeatureClass
+
+from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
     AbstractQuery, AbstractSourceQuery, AbstractSpatialQuery)
-from spyops.shared.constant import EMPTY, SQL_FULL
+from spyops.shared.constant import EMPTY, IN, SQL_FULL
 from spyops.shared.field import make_field_names
-from spyops.shared.hint import ELEMENT, FIELDS
+from spyops.shared.hint import ELEMENT, EXTENT, FIELDS
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
     from shapely import MultiLineString, MultiPoint, MultiPolygon
 
 
@@ -25,7 +27,7 @@ class QuerySelect(AbstractSourceQuery):
     """
     Query for Select
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSourceQuery class
@@ -75,6 +77,23 @@ class QuerySplitByAttributes(AbstractQuery):
         self._group_names: str = make_field_names(fields)
     # End init built-in
 
+    def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
+        """
+        Make a where clause stub that can be used to select features which
+        intersect an extent. The query is based on a spatial index (if present).
+        """
+        if not isinstance(element, FeatureClass):
+            return EMPTY
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return EMPTY
+        polygon = self._get_extent_polygon(
+            extent, crs=crs_from_srs(element.spatial_reference_system))
+        if index_where := super()._spatial_index_where(
+                element, extent=polygon.bounds):
+            index_where = f'WHERE ({index_where.format(IN)})'
+        return index_where
+    # End _spatial_index_where function
+
     @property
     def select(self) -> str:
         """
@@ -82,17 +101,17 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
         primary = elm.primary_key_field.escaped_name
-        sub = f"""
-            SELECT {primary}
+        where_clause = f"""
+            {primary} IN (SELECT {primary}
             FROM (SELECT {primary}, 
                          dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
-                  FROM {elm.escaped_name})
-            WHERE __DRID__ = ?
+                  FROM {elm.escaped_name} {index_where})
+            WHERE __DRID__ = ?) 
         """
         return self._make_select(
-            elm, field_names=select_field_names,
-            where_clause=f'{primary} IN ({sub})')
+            elm, field_names=select_field_names, where_clause=where_clause)
     # End select property
 
     @property
@@ -101,11 +120,12 @@ class QuerySplitByAttributes(AbstractQuery):
         Groups
         """
         elm = self.source
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
         return f"""
             SELECT DISTINCT * 
             FROM (SELECT dense_rank() OVER (
                     ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
-            FROM {elm.escaped_name})
+            FROM {elm.escaped_name} {index_where})
         """
     # End groups property
 
