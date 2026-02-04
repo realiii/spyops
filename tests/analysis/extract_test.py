@@ -495,7 +495,7 @@ class TestClip:
         assert len(result) == count
     # End test_clip method
 
-    def test_clip_sans_attributes(self, inputs, world_features, mem_gpkg):
+    def test_sans_attributes(self, inputs, world_features, mem_gpkg):
         """
         Test clip sans attributes
         """
@@ -505,13 +505,13 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name='sans')
         result = clip(source=source, operator=clipper, target=target)
         assert len(result) == 107
-    # End test_clip_sans_attributes method
+    # End test_sans_attributes method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 195),
         (0.001, 209),
     ])
-    def test_clip_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a line feature class as the operator on a line feature class
         """
@@ -520,7 +520,7 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name='riv')
         result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_clip_line_on_line method
+    # End test_line_on_line method
 
     @mark.parametrize('xy_tolerance, count', [
         param(None, 7398, marks=mark.slow),
@@ -528,7 +528,7 @@ class TestClip:
         (0.0000000001, 3),
         param(0.1, 0, marks=mark.slow),
     ])
-    def test_clip_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a line feature class as the operator on a point feature class
         """
@@ -537,14 +537,14 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name='riv')
         result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_clip_line_on_point method
+    # End test_line_on_point method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 97),
         (0, 97),
         (0.001, 97),
     ])
-    def test_clip_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a point feature class as the operator on a point feature class
         """
@@ -557,7 +557,7 @@ class TestClip:
             target = FeatureClass(geopackage=mem_gpkg, name='riv')
             result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
             assert len(result) == count
-    # End test_clip_point_on_point method
+    # End test_point_on_point method
 
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 89),
@@ -579,7 +579,7 @@ class TestClip:
         ('airports_mp_p', 1, 4),
         param('roads_mp_l', 1, 8, marks=mark.slow),
     ])
-    def test_clip_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
+    def test_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
         """
         Test clip using analysis settings
         """
@@ -591,14 +591,14 @@ class TestClip:
             result = clip(source=source, operator=clipper, target=target)
         assert len(result) < len(source)
         assert len(result) == count
-    # End test_clip_setting method
+    # End test_setting method
 
     @mark.benchmark
     @mark.parametrize('name, count', [
         ('utmzone_continentish_a', 200_915),
         ('utmzone_sparse_a', 26_602),
     ])
-    def test_clip_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
         """
         Test clip using larger inputs
         """
@@ -607,7 +607,7 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name=name)
         result = clip(source=source, operator=operator, target=target)
         assert len(result) == count
-    # End test_clip_larger_inputs method
+    # End test_larger_inputs method
 
     @mark.zm
     @mark.parametrize('fc_name', [
