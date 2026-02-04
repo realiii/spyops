@@ -98,6 +98,21 @@ class TestQuerySplitByAttributes:
         query = QuerySplitByAttributes(element, fields)
         assert query.grid_size is None
     # End test_grid_size method
+
+    def test_source_extent(self, world_features, mem_gpkg):
+        """
+        Test source extent
+        """
+        source = world_features['admin_a']
+        fields = (Field('ISO_CC', data_type=FieldType.text),
+                  Field('LAND_TYPE', data_type=FieldType.text))
+        query = QuerySplitByAttributes(source, fields=fields)
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 10, 30, 20, crs=CRS(4326))):
+            assert '20' in query.select
+            print(query.select)
+            assert '30' in query.groups
+            print(query.groups)
+    # End test_source_extent method
 # End TestQuerySplitByAttributes class
 
 
