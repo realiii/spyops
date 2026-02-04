@@ -164,6 +164,20 @@ class TestQueryClip:
             assert approx(query.grid_size, abs=10**-9) == expected
         assert query.has_intersection is True
     # End test_grid_size method
+
+    def test_source_extent(self, world_features, inputs, mem_gpkg):
+        """
+        Test source extent
+        """
+        source = world_features['admin_a']
+        operator = inputs['clipper_a']
+        print(operator.extent)
+        target = FeatureClass(mem_gpkg, 'test_target')
+        query = QueryClip(source, operator=operator, target=target, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(6.75, 46.5, 16.5, 51.5, crs=CRS(4326))):
+            assert '46.5' in query.select_source
+            assert '51.5' in query.select_operator
+    # End test_source_extent method
 # End TestQueryClip class
 
 

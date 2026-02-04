@@ -150,7 +150,9 @@ class QueryClip(AbstractSpatialQuery):
         """
         Multi-Part Geometry of the Operator Feature Class
         """
-        return build_multi(self.operator, transformer=self.operator_transformer)
+        return build_multi(
+            self.operator, select_sql=self.select_operator,
+            transformer=self.operator_transformer)
     # End geometry property
 
     @property

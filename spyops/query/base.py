@@ -292,24 +292,52 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return polygon.intersection(box(*self.source_extent, ccw=False)).bounds
     # End _shared_extent method
 
+    def _make_disjoint_select(self, element: FeatureClass) -> str:
+        """
+        Make Disjoint Select Statement using the input Element
+        and accounting for the analysis extent
+        """
+        extent_where = self._get_extent_where(element)
+        *_, field_names = self._field_names_and_count(element)
+        if not self.has_intersection:
+            return self._make_select(
+                element, field_names=field_names,
+                where_clause=extent_where or SQL_FULL)
+        if not (where := self._spatial_index_where(
+                element, extent=self._shared_extent(element))):  # pragma: no cover
+            return extent_where or SQL_FULL
+        where = where.format(NOT_IN)
+        if extent_where:
+            where = f'({where}) AND ({extent_where})'
+        return self._make_select(
+            element, field_names=field_names, where_clause=where)
+    # End _make_disjoint_select method
+
+    def _get_extent_where(self, element: FeatureClass) -> str:
+        """
+        Get where clause that accounts for the analysis extent
+
+        In this implementation it is always empty since we have the analysis
+        extent already accounted for in the shared extent method.
+        """
+        return EMPTY
+    # End _get_extent_where method
+
     def _make_intersection_query(self, element: FeatureClass, field_names: str,
                                  where_clause: str = EMPTY) -> str:
         """
         Make Intersection Query
         """
+        extent_where = self._get_extent_where(element)
         if not self.has_intersection:
             return self._make_select(
                 element, field_names=field_names, where_clause=SQL_EMPTY)
         if where := self._spatial_index_where(
                 element, extent=self._shared_extent(element)):
-            where = where.format(IN)
-            if where_clause:
-                where = f'({where}) AND ({where_clause})'
+            clauses = extent_where, where.format(IN), where_clause
         else:  # pragma: no cover
-            if where_clause:
-                where = where_clause
-            else:
-                where = SQL_FULL
+            clauses = extent_where, where_clause or SQL_FULL
+        where = ' AND '.join(f'({w})' for w in clauses if w)
         return self._make_select(
             element, field_names=field_names, where_clause=where)
     # End _make_intersection_query method

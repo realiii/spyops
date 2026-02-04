@@ -177,7 +177,7 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
 
             overlay = build_multi(
                 overlay_geoms[list(set(indexes))],
-                transformer=overlay_transformer)
+                transformer=overlay_transformer, select_sql=None)
             change_indexes = list(change_indexes)
             changers = [features[i] for i in change_indexes]
             differences = difference(
@@ -196,7 +196,8 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
     Internal Symmetrical Difference
     """
     geoms = get_validated_geometries(
-        query.operator, transformer=query.operator_transformer)
+        query.operator, select_sql=query.select_operator,
+        transformer=query.operator_transformer)
     _difference(
         source=query.source, source_transformer=query.source_transformer,
         select_sql=query.select_source, insert_sql=query.source_config.insert,
@@ -204,7 +205,8 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
         target=query.target, config=query.geometry_config,
         grid_size=query.grid_size)
     geoms = get_validated_geometries(
-        query.source, transformer=query.source_transformer)
+        query.source, select_sql=query.select_source,
+        transformer=query.source_transformer)
     _difference(
         source=query.operator, source_transformer=query.operator_transformer,
         select_sql=query.select_operator, insert_sql=query.operator_config.insert,

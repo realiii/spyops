@@ -540,20 +540,23 @@ class TestClip:
     # End test_clip_line_on_point method
 
     @mark.parametrize('xy_tolerance, count', [
-        (None, 100),
-        (0, 100),
-        (0.001, 100),
+        (None, 97),
+        (0, 97),
+        (0.001, 97),
     ])
     def test_clip_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a point feature class as the operator on a point feature class
         """
-        clipper = inputs['river_p'].copy(name='river_p_clipper', where_clause='fid <= 100', geopackage=mem_gpkg)
-        assert len(clipper) == 100
+        clipper = inputs['river_p']
+        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=CRS(4326))):
+            clipper = select(clipper, target=FeatureClass(geopackage=mem_gpkg, name='river_subset_p'))
         source = inputs['river_p']
-        target = FeatureClass(geopackage=mem_gpkg, name='riv')
-        result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
-        assert len(result) == count
+        # NOTE this has no real effect on the result, but it does test the extent
+        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=CRS(4326))):
+            target = FeatureClass(geopackage=mem_gpkg, name='riv')
+            result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+            assert len(result) == count
     # End test_clip_point_on_point method
 
     @mark.parametrize('fc_name, xy_tolerance, count', [
