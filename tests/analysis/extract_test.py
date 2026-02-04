@@ -22,7 +22,6 @@ from spyops.environment.enumeration import (
 from spyops.shared.constant import EPSG, ESRI
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
-from spyops.shared.util import element_names, make_unique_name
 from tests.util import UseGrids
 
 
@@ -337,29 +336,23 @@ class TestSplitByAttributes:
 
     @mark.zm
     @mark.parametrize('fields, output_z_option, output_m_option, count', [
-        (('ISO_CC', 'LAND_TYPE'), OutputZOption.SAME, OutputMOption.SAME, 7),
-        (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 7),
-        (('ISO_CC', 'LAND_TYPE'), OutputZOption.DISABLED, OutputMOption.DISABLED, 7),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.SAME, OutputMOption.SAME, 49),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 49),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.DISABLED, OutputMOption.DISABLED, 49),
     ])
     def test_features_zm(self, world_features, mem_gpkg, fields,
-                                             output_z_option, output_m_option, count):
+                         output_z_option, output_m_option, count):
         """
         Test split_by_attributes for feature classes with ZM settings
         """
-        subset = 120
         source = world_features['admin_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
-
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
-              Swap(Setting.Z_VALUE, 123.456)):
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326)))):
             zm = zm_config(source)
             results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == subset
+        assert sum([len(r) for r in results]) == count
         assert all([target.has_z == zm.z_enabled for target in results])
         assert all([target.has_m == zm.m_enabled for target in results])
     # End test_features_zm method
@@ -368,37 +361,30 @@ class TestSplitByAttributes:
         """
         Test split_by_attributes for feature classes sans attributes
         """
-        count = 15
         source = world_features['admin_sans_attr_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {count}""", geopackage=mem_gpkg)
-        results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == count
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+            results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
+            assert len(results) == 49
+            assert sum([len(r) for r in results]) == 49
     # End test_features_sans_attributes method
 
-    @mark.parametrize('fields, count', [
-        (Field('ISO_CC', data_type='TEXT'), 3),
-        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
-        ('ISO_CC', 3),
-        (('ISO_CC', 'LAND_TYPE'), 7),
+    @mark.parametrize('fields, split_count, total_count', [
+        (Field('ISO_CC', data_type='TEXT'), 7, 49),
+        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7, 49),
+        ('ISO_CC', 7, 49),
+        (('ISO_CC', 'LAND_TYPE'), 7, 49),
     ])
-    def test_features_with_settings(self, world_features, mem_gpkg, fields, count):
+    def test_features_with_settings(self, world_features, mem_gpkg, fields, split_count, total_count):
         """
         Test split_by_attributes for feature classes with analysis settings
         """
-        subset = 120
         source = world_features['admin_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+            source = select(source, target=FeatureClass(geopackage=mem_gpkg, name=source.name))
         with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
             results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == subset
+            assert len(results) == split_count
+            assert sum([len(r) for r in results]) == total_count
     # End test_features_with_settings method
 
     @mark.benchmark
