@@ -940,6 +940,30 @@ class TestSplit:
         assert sum(len(r) for r in results) == record_count
     # End test_split method
 
+    @mark.parametrize('fc_name, element_count, record_count', [
+        ('admin_a', 4, 101),
+        ('airports_p', 4, 38),
+        ('roads_l', 4, 2194),
+        ('admin_mp_a', 4, 60),
+        ('airports_mp_p', 4, 8),
+        ('roads_mp_l', 4, 14),
+    ])
+    def test_extent(self, inputs, world_features, mem_gpkg, fc_name, element_count, record_count):
+        """
+        Test split with extent
+        """
+        splitter = inputs['splitter_a']
+        print(splitter.extent)
+        assert len(splitter) == 5
+        source = world_features[fc_name]
+        field = Field('NAME', data_type=FieldType.text)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            results = split(source=source, operator=splitter, field=field,
+                            geopackage=mem_gpkg, xy_tolerance=None)
+            assert len(results) == element_count
+            assert sum(len(r) for r in results) == record_count
+    # End test_extent method
+
     @mark.zm
     @mark.parametrize('fc_name, xy_tolerance, output_z_option, output_m_option, element_count, record_count', [
         ('admin_a', None, OutputZOption.SAME, OutputMOption.SAME, 4, 114),
