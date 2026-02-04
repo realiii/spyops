@@ -109,9 +109,7 @@ class TestQuerySplitByAttributes:
         query = QuerySplitByAttributes(source, fields=fields)
         with Swap(Setting.EXTENT, Extent.from_bounds(20, 10, 30, 20, crs=CRS(4326))):
             assert '20' in query.select
-            print(query.select)
             assert '30' in query.groups
-            print(query.groups)
     # End test_source_extent method
 # End TestQuerySplitByAttributes class
 
