@@ -115,6 +115,34 @@ class AbstractQuery(metaclass=ABCMeta):
     # End _get_transformer method
 
     @staticmethod
+    def _get_extent_polygon(extent: 'Extent', crs: 'CRS') -> 'Polygon':
+        """
+        Get Extent Polygon in the specified Coordinate Reference System
+        """
+        polygon = extent.polygon
+        if transformer := get_transform_best_guess(extent.crs, crs):
+            polygon = transform(transformer.transform, polygon)
+        return polygon
+    # End _get_extent_polygon method
+
+    def _spatial_index_where(self, element: FeatureClass, extent: EXTENT) -> str:
+        """
+        Make a where clause stub that can be used to select features which
+        intersect an extent. The query is based on a spatial index (if present).
+        """
+        primary = element.primary_key_field
+        if not element.has_spatial_index or not primary:  # pragma: no cover
+            return EMPTY
+        min_x, min_y, max_x, max_y = extent
+        return f"""{primary.escaped_name} {{}} (
+            SELECT id  
+            FROM {element.spatial_index_name} 
+            WHERE minx <= {max_x} AND maxx >= {min_x} AND 
+                  miny <= {max_y} AND maxy >= {min_y})
+        """
+    # End _spatial_index_where function
+
+    @staticmethod
     def _concatenate(left: str, right: str) -> str:
         """
         Conditionally Concatenate field names
@@ -264,17 +292,6 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return polygon.intersection(box(*self.source_extent, ccw=False)).bounds
     # End _shared_extent method
 
-    @staticmethod
-    def _get_extent_polygon(extent: 'Extent', crs: 'CRS') -> 'Polygon':
-        """
-        Get Extent Polygon in the specified Coordinate Reference System
-        """
-        polygon = extent.polygon
-        if transformer := get_transform_best_guess(extent.crs, crs):
-            polygon = transform(transformer.transform, polygon)
-        return polygon
-    # End _get_extent_polygon method
-
     def _make_intersection_query(self, element: FeatureClass, field_names: str,
                                  where_clause: str = EMPTY) -> str:
         """
@@ -296,24 +313,6 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         return self._make_select(
             element, field_names=field_names, where_clause=where)
     # End _make_intersection_query method
-
-    @staticmethod
-    def _spatial_index_where(element: FeatureClass, extent: EXTENT) -> str:
-        """
-        Make a where clause stub that can be used to select features which
-        intersect an extent. The query is based on a spatial index (if present).
-        """
-        primary = element.primary_key_field
-        if not element.has_spatial_index or not primary:  # pragma: no cover
-            return EMPTY
-        min_x, min_y, max_x, max_y = extent
-        return f"""{primary.escaped_name} {{}} (
-            SELECT id  
-            FROM {element.spatial_index_name} 
-            WHERE minx <= {max_x} AND maxx >= {min_x} AND 
-                  miny <= {max_y} AND maxy >= {min_y})
-        """
-    # End _spatial_index_wheres function
 
     @cached_property
     def has_intersection(self) -> bool:
