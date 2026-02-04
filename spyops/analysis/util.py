@@ -90,6 +90,8 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     Internal Split by Attributes
     """
     elements = {}
+    is_feature_class = isinstance(source, FeatureClass)
+    cls = source.__class__
     target_names = element_names(geopackage)
     query = QuerySplitByAttributes(element=source, fields=group_fields)
     query_select = query.select
@@ -106,7 +108,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
           query.source.geopackage.connection as cin,
           Swap(Setting.OUTPUT_Z_OPTION, z_option),
           Swap(Setting.OUTPUT_M_OPTION, m_option)):
-        if isinstance(source, FeatureClass):
+        if is_feature_class:
             is_different = zm_config(source).is_different
         else:
             is_different = False
@@ -118,14 +120,18 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             name = make_unique_name(name, names=target_names)
             element = copy_element(
                 source=source, where_clause=SQL_EMPTY,
-                target=FeatureClass(geopackage=geopackage, name=name))
+                target=cls(geopackage=geopackage, name=name))
             elements[tuple(group)] = element
-            config = geometry_config(element, cast_geom=is_different)
             cursor = cin.execute(query_select, (i,))
+            insert_sql = query_insert.format(element.escaped_name)
             with ExecuteMany(connection=cout, table=element) as executor:
-                insert_sql = query_insert.format(element.escaped_name)
-                bulk_insert(cursor, config=config, executor=executor,
-                            transformer=transformer, insert_sql=insert_sql)
+                if is_feature_class:
+                    config = geometry_config(element, cast_geom=is_different)
+                    bulk_insert(cursor, config=config, executor=executor,
+                                transformer=transformer, insert_sql=insert_sql)
+                else:
+                    while records := cursor.fetchmany(FETCH_SIZE):
+                        executor(sql=insert_sql, data=records)
     return elements
 # End _split_by_attributes function
 
