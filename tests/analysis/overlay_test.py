@@ -1014,6 +1014,31 @@ class TestIntersect:
     # End test_algorithm_option method
 
     @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
+        (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 42, 11),
+        (AlgorithmOption.PAIRWISE, AttributeOption.SANS_FID, 42, 9),
+        (AlgorithmOption.PAIRWISE, AttributeOption.ONLY_FID, 42, 4),
+        (AlgorithmOption.CLASSIC, AttributeOption.ALL, 244, 11),
+        (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 244, 9),
+        (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 244, 4),
+    ])
+    def test_algorithm_option_extent(self, inputs, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+        """
+        Test Intersect with Options for Classic and Pairwise using Extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['int_flavor_a']
+        target = FeatureClass(
+            geopackage=mem_gpkg,
+            name=f'{str(algorithm_option)}_{attribute_option}_a')
+        with Swap(Setting.EXTENT, Extent.from_bounds(9, 47.3, 14, 50.5, crs=CRS(4326))):
+            result = intersect(
+                source=source, operator=operator, target=target,
+                algorithm_option=algorithm_option, attribute_option=attribute_option)
+            assert len(result) == feature_count
+            assert len(result.fields) == field_count
+    # End test_algorithm_option_extent method
+
+    @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
         (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 114, 4),
         (AlgorithmOption.PAIRWISE, AttributeOption.SANS_FID, 114, 2),
         (AlgorithmOption.PAIRWISE, AttributeOption.ONLY_FID, 114, 4),
