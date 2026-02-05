@@ -146,7 +146,8 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
