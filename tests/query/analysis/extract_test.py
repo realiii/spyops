@@ -163,9 +163,9 @@ class TestQueryClip:
         assert query.has_intersection is True
     # End test_grid_size method
 
-    def test_source_extent(self, world_features, inputs, mem_gpkg):
+    def test_extent(self, world_features, inputs, mem_gpkg):
         """
-        Test source extent
+        Test extent
         """
         source = world_features['admin_a']
         operator = inputs['clipper_a']
@@ -174,7 +174,7 @@ class TestQueryClip:
         with Swap(Setting.EXTENT, Extent.from_bounds(6.75, 46.5, 16.5, 51.5, crs=CRS(4326))):
             assert '46.5' in query.select_source
             assert '51.5' in query.select_operator
-    # End test_source_extent method
+    # End test_extent method
 # End TestQueryClip class
 
 
@@ -182,9 +182,9 @@ class TestQuerySplit:
     """
     Test QuerySplit class
     """
-    def test_source_extent(self, world_features, inputs, mem_gpkg):
+    def test_extent(self, world_features, inputs, mem_gpkg):
         """
-        Test source extent
+        Test extent
         """
         splitter = inputs['splitter_a']
         source = world_features['admin_a']
@@ -192,7 +192,7 @@ class TestQuerySplit:
         with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
-    # End test_source_extent method
+    # End test_extent method
 # End TestQuerySplit class
 
 
