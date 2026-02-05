@@ -6,8 +6,10 @@ Test for Overlay Query Classes
 
 from fudgeo import FeatureClass, Field
 from fudgeo.enumeration import FieldType
+from pyproj import CRS
 from pytest import mark, param
 
+from spyops.environment import Extent
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
@@ -115,6 +117,22 @@ class TestQueryIntersectPairwise:
         assert not len(query.target_empty)
         assert ' INTO cities_____p' in query.insert
     # End test_target_empty method
+
+    def test_extent(self, world_features, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        cites = world_features['cities_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='cities')
+        query = QueryIntersectPairwise(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
 # End TestQueryIntersectPairwise class
 
 
@@ -198,6 +216,23 @@ class TestPlanarizePolygons:
                                     use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
+
+    @mark.parametrize('use_full_extent', [
+        True, False
+    ])
+    def test_planarize_source_extent(self, inputs, world_features, mem_gpkg, use_full_extent):
+        """
+        Test Planarize Source Multi Part on a non FID column and using extent
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = PlanarizePolygonSource(
+            source=source, operator=operator,
+            use_full_extent=use_full_extent, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in ps.select
+            assert ' 52.0 ' in ps.select
+    # End test_planarize_source_extent method
 # End TestPlanarizePolygons class
 
 
