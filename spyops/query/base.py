@@ -276,10 +276,10 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Make Full Query, return all features
         """
-        where = SQL_FULL
-        *_, select_field_names = self._field_names_and_count(element)
+        where = self._get_extent_where(element) or SQL_FULL
+        *_, field_names = self._field_names_and_count(element)
         return self._make_select(
-            element, field_names=select_field_names, where_clause=where)
+            element, field_names=field_names, where_clause=where)
     # End _make_full_query method
 
     def _shared_extent(self, element: FeatureClass) -> EXTENT:
