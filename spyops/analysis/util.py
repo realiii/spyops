@@ -218,7 +218,7 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
 
 def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
                             transformer: Callable | None) \
-        -> tuple[list[tuple], ndarray]:
+        -> tuple[list[tuple], 'ndarray']:
     """
     Get Converted Operator Features and Geometries
     """
