@@ -420,6 +420,22 @@ class TestQueryIntersectClassic:
             output_type_option=OutputTypeOption.SAME)
         assert sql in query.insert
     # End test_insert method
+
+    def test_extent(self, world_features, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        cites = world_features['cities_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='cities')
+        query = QueryIntersectClassic(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
 # End TestQueryIntersectClassic class
 
 
