@@ -384,9 +384,8 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         Selection query for intersection
         """
         elm = self.source
-        *_, select_field_names = self._field_names_and_count(elm)
-        return self._make_intersection_query(
-            elm, field_names=select_field_names)
+        *_, field_names = self._field_names_and_count(elm)
+        return self._make_intersection_query(elm, field_names=field_names)
     # End select_intersect property
 
     @property
@@ -539,9 +538,9 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         Selection Query for Operator
         """
         elm = self.operator
-        *_, select_field_names = self._field_names_and_count(elm)
+        *_, field_names = self._field_names_and_count(elm)
         return self._make_intersection_query(
-            elm, field_names=select_field_names)
+            elm, field_names=field_names)
     # End select_operator property
 
     @property
