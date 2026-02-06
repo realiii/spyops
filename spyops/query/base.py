@@ -108,12 +108,21 @@ class AbstractQuery(metaclass=ABCMeta):
             return None
         crs = crs_from_srs(srs)
         fc_crs = crs_from_srs(feature_class.spatial_reference_system)
+        return self._get_transformer_or_guess(fc_crs, crs)
+    # End _get_transformer method
+
+    @staticmethod
+    def _get_transformer_or_guess(from_crs: CRS, to_crs: CRS) \
+            -> Optional['Transformer']:
+        """
+        Get Transformer from Geographic Transformations or Best Guess
+        """
         if transformer := get_geographic_transformation(
-                source_crs=fc_crs, target_crs=crs,
+                source_crs=from_crs, target_crs=to_crs,
                 transformations=ANALYSIS_SETTINGS.geographic_transformations):
             return transformer
-        return get_transform_best_guess(fc_crs, crs)
-    # End _get_transformer method
+        return get_transform_best_guess(from_crs, to_crs)
+    # End _get_transformer_or_guess method
 
     @staticmethod
     def _get_extent_polygon(extent: 'Extent', crs: 'CRS') -> 'Polygon':
