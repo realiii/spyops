@@ -15,13 +15,13 @@ from pytest import approx, mark, param, raises
 
 from spyops.analysis.extract import (
     clip, select, split, split_by_attributes, table_select)
+from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.shared.constant import EPSG, ESRI
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
-from spyops.shared.util import element_names, make_unique_name
 from tests.util import UseGrids
 
 
@@ -116,6 +116,29 @@ class TestSelect:
         result = select(source=source, target=target, where_clause=where_clause)
         assert len(result) == count
     # End test_select method
+
+    @mark.parametrize('fc_name, where_clause, count', [
+        ('lakes_a', None, 7),
+        ('lakes_a', '', 7),
+        ('lakes_a', 'SQKM > 5000', 5),
+        ('disputed_boundaries_l', None, 40),
+        ('disputed_boundaries_l', '', 40),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', 40),
+        ('cities_p', None, 310),
+        ('cities_p', '', 310),
+        ('cities_p', 'POP IS NULL', 241),
+        ('cities_p', 'POP > 0', 69),
+    ])
+    def test_extent(self, world_features, mem_gpkg, fc_name, where_clause, count):
+        """
+        Test select with Extent
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, CRS(4326))):
+            result = select(source=source, target=target, where_clause=where_clause)
+            assert len(result) == count
+    # End test_extent method
 
     @mark.zm
     @mark.parametrize('fc_name, where_clause, output_z_option, output_m_option, count', [
@@ -278,52 +301,58 @@ class TestSplitByAttributes:
     """
     Test Split By Attributes
     """
-    @mark.parametrize('fields, count', [
-        (Field('ISO_CC', data_type='TEXT'), 3),
-        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
-        ('ISO_CC', 3),
-        (('ISO_CC', 'LAND_TYPE'), 7),
+    @mark.parametrize('fields, split_count, total_count', [
+        (Field('ISO_CC', data_type='TEXT'), 224, 5824),
+        param((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 580, 5824, marks=mark.slow),
+        param('ISO_CC', 224, 5824, marks=mark.slow),
+        param(('ISO_CC', 'LAND_TYPE'), 580, 5824, marks=mark.slow),
     ])
-    def test_features(self, world_features, mem_gpkg, fields, count):
+    def test_records(self, world_tables, mem_gpkg, fields, split_count, total_count):
+        """
+        Test split_by_attributes for tables
+        """
+        source = world_tables['admin']
+        results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
+        assert len(results) == split_count
+        assert sum([len(r) for r in results]) == total_count
+    # End test_records method
+
+    @mark.parametrize('fields, split_count, total_count', [
+        (Field('ISO_CC', data_type='TEXT'), 7, 49),
+        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7, 49),
+        ('ISO_CC', 7, 49),
+        (('ISO_CC', 'LAND_TYPE'), 7, 49),
+    ])
+    def test_features(self, world_features, mem_gpkg, fields, split_count, total_count):
         """
         Test split_by_attributes for feature classes
         """
-        subset = 120
         source = world_features['admin_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
-        results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == subset
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+            results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
+            assert len(results) == split_count
+            assert sum([len(r) for r in results]) == total_count
     # End test_features method
 
     @mark.zm
     @mark.parametrize('fields, output_z_option, output_m_option, count', [
-        (('ISO_CC', 'LAND_TYPE'), OutputZOption.SAME, OutputMOption.SAME, 7),
-        (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 7),
-        (('ISO_CC', 'LAND_TYPE'), OutputZOption.DISABLED, OutputMOption.DISABLED, 7),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.SAME, OutputMOption.SAME, 49),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.ENABLED, OutputMOption.ENABLED, 49),
+        (('ISO_CC', 'LAND_TYPE'), OutputZOption.DISABLED, OutputMOption.DISABLED, 49),
     ])
     def test_features_zm(self, world_features, mem_gpkg, fields,
-                                             output_z_option, output_m_option, count):
+                         output_z_option, output_m_option, count):
         """
         Test split_by_attributes for feature classes with ZM settings
         """
-        subset = 120
         source = world_features['admin_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
-
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
-              Swap(Setting.Z_VALUE, 123.456)):
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326)))):
             zm = zm_config(source)
             results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == subset
+        assert sum([len(r) for r in results]) == count
         assert all([target.has_z == zm.z_enabled for target in results])
         assert all([target.has_m == zm.m_enabled for target in results])
     # End test_features_zm method
@@ -332,37 +361,30 @@ class TestSplitByAttributes:
         """
         Test split_by_attributes for feature classes sans attributes
         """
-        count = 15
         source = world_features['admin_sans_attr_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {count}""", geopackage=mem_gpkg)
-        results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == count
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+            results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
+            assert len(results) == 49
+            assert sum([len(r) for r in results]) == 49
     # End test_features_sans_attributes method
 
-    @mark.parametrize('fields, count', [
-        (Field('ISO_CC', data_type='TEXT'), 3),
-        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7),
-        ('ISO_CC', 3),
-        (('ISO_CC', 'LAND_TYPE'), 7),
+    @mark.parametrize('fields, split_count, total_count', [
+        (Field('ISO_CC', data_type='TEXT'), 7, 49),
+        ((Field('ISO_CC', data_type='TEXT'), Field('LAND_TYPE', data_type='TEXT')), 7, 49),
+        ('ISO_CC', 7, 49),
+        (('ISO_CC', 'LAND_TYPE'), 7, 49),
     ])
-    def test_features_with_settings(self, world_features, mem_gpkg, fields, count):
+    def test_features_with_settings(self, world_features, mem_gpkg, fields, split_count, total_count):
         """
         Test split_by_attributes for feature classes with analysis settings
         """
-        subset = 120
         source = world_features['admin_a']
-        names = element_names(world_features)
-        source = source.copy(
-            make_unique_name(source.name, names=names),
-            where_clause=f"""fid <= {subset}""", geopackage=mem_gpkg)
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+            source = select(source, target=FeatureClass(geopackage=mem_gpkg, name=source.name))
         with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
             results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
-        assert len(results) == count
-        assert sum([len(r) for r in results]) == subset
+            assert len(results) == split_count
+            assert sum([len(r) for r in results]) == total_count
     # End test_features_with_settings method
 
     @mark.benchmark
@@ -380,6 +402,22 @@ class TestSplitByAttributes:
             source=source, group_fields=fields, geopackage=mem_gpkg)
         assert len(results) == count
     # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('fix_name, name, fields, count', [
+        ('inputs', 'utmzone_continentish_a', ('ZONE', 'ROW_'), 20),
+        ('inputs', 'utmzone_sparse_a', ('ZONE', 'ROW_'), 4),
+    ])
+    def test_larger_inputs_extent(self, request, inputs, mem_gpkg, fix_name, name, fields, count):
+        """
+        Test split by attributes using larger inputs and an extent
+        """
+        source = request.getfixturevalue(fix_name)[name]
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            results = split_by_attributes(
+                source=source, group_fields=fields, geopackage=mem_gpkg)
+        assert len(results) == count
+    # End test_larger_inputs_extent method
 
     @mark.zm
     @mark.transform
@@ -473,7 +511,7 @@ class TestClip:
         assert len(result) == count
     # End test_clip method
 
-    def test_clip_sans_attributes(self, inputs, world_features, mem_gpkg):
+    def test_sans_attributes(self, inputs, world_features, mem_gpkg):
         """
         Test clip sans attributes
         """
@@ -483,13 +521,13 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name='sans')
         result = clip(source=source, operator=clipper, target=target)
         assert len(result) == 107
-    # End test_clip_sans_attributes method
+    # End test_sans_attributes method
 
     @mark.parametrize('xy_tolerance, count', [
         (None, 195),
         (0.001, 209),
     ])
-    def test_clip_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_line(self, world_features, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a line feature class as the operator on a line feature class
         """
@@ -498,7 +536,7 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name='riv')
         result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_clip_line_on_line method
+    # End test_line_on_line method
 
     @mark.parametrize('xy_tolerance, count', [
         param(None, 7398, marks=mark.slow),
@@ -506,7 +544,7 @@ class TestClip:
         (0.0000000001, 3),
         param(0.1, 0, marks=mark.slow),
     ])
-    def test_clip_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_line_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a line feature class as the operator on a point feature class
         """
@@ -515,24 +553,27 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name='riv')
         result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
         assert len(result) == count
-    # End test_clip_line_on_point method
+    # End test_line_on_point method
 
     @mark.parametrize('xy_tolerance, count', [
-        (None, 100),
-        (0, 100),
-        (0.001, 100),
+        (None, 97),
+        (0, 97),
+        (0.001, 97),
     ])
-    def test_clip_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
+    def test_point_on_point(self, inputs, mem_gpkg, xy_tolerance, count):
         """
         Test clipping using a point feature class as the operator on a point feature class
         """
-        clipper = inputs['river_p'].copy(name='river_p_clipper', where_clause='fid <= 100', geopackage=mem_gpkg)
-        assert len(clipper) == 100
+        clipper = inputs['river_p']
+        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=CRS(4326))):
+            clipper = select(clipper, target=FeatureClass(geopackage=mem_gpkg, name='river_subset_p'))
         source = inputs['river_p']
-        target = FeatureClass(geopackage=mem_gpkg, name='riv')
-        result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
-        assert len(result) == count
-    # End test_clip_point_on_point method
+        # NOTE this has no real effect on the result, but it does test the extent
+        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=CRS(4326))):
+            target = FeatureClass(geopackage=mem_gpkg, name='riv')
+            result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
+            assert len(result) == count
+    # End test_point_on_point method
 
     @mark.parametrize('fc_name, xy_tolerance, count', [
         ('admin_a', None, 89),
@@ -554,7 +595,7 @@ class TestClip:
         ('airports_mp_p', 1, 4),
         param('roads_mp_l', 1, 8, marks=mark.slow),
     ])
-    def test_clip_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
+    def test_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, count):
         """
         Test clip using analysis settings
         """
@@ -566,14 +607,14 @@ class TestClip:
             result = clip(source=source, operator=clipper, target=target)
         assert len(result) < len(source)
         assert len(result) == count
-    # End test_clip_setting method
+    # End test_setting method
 
     @mark.benchmark
     @mark.parametrize('name, count', [
         ('utmzone_continentish_a', 200_915),
         ('utmzone_sparse_a', 26_602),
     ])
-    def test_clip_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
         """
         Test clip using larger inputs
         """
@@ -582,7 +623,24 @@ class TestClip:
         target = FeatureClass(geopackage=mem_gpkg, name=name)
         result = clip(source=source, operator=operator, target=target)
         assert len(result) == count
-    # End test_clip_larger_inputs method
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('name, count', [
+        ('utmzone_continentish_a', 64),
+        ('utmzone_sparse_a', 50),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, name, count):
+        """
+        Test clip using larger inputs and an extent
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'clip_{name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            result = clip(source=source, operator=operator, target=target)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -915,6 +973,29 @@ class TestSplit:
         assert sum(len(r) for r in results) == record_count
     # End test_split method
 
+    @mark.parametrize('fc_name, element_count, record_count', [
+        ('admin_a', 4, 101),
+        ('airports_p', 4, 38),
+        ('roads_l', 4, 2194),
+        ('admin_mp_a', 4, 60),
+        ('airports_mp_p', 4, 8),
+        ('roads_mp_l', 4, 14),
+    ])
+    def test_extent(self, inputs, world_features, mem_gpkg, fc_name, element_count, record_count):
+        """
+        Test split with extent
+        """
+        splitter = inputs['splitter_a']
+        assert len(splitter) == 5
+        source = world_features[fc_name]
+        field = Field('NAME', data_type=FieldType.text)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            results = split(source=source, operator=splitter, field=field,
+                            geopackage=mem_gpkg, xy_tolerance=None)
+            assert len(results) == element_count
+            assert sum(len(r) for r in results) == record_count
+    # End test_extent method
+
     @mark.zm
     @mark.parametrize('fc_name, xy_tolerance, output_z_option, output_m_option, element_count, record_count', [
         ('admin_a', None, OutputZOption.SAME, OutputMOption.SAME, 4, 114),
@@ -936,7 +1017,7 @@ class TestSplit:
         ('airports_mp_p', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 8),
         param('roads_mp_l', None, OutputZOption.DISABLED, OutputMOption.DISABLED, 4, 14, marks=mark.slow),
     ])
-    def test_split_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
+    def test_zm(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance,
                       output_z_option, output_m_option, element_count, record_count):
         """
         Test split using ZM settings
@@ -955,7 +1036,7 @@ class TestSplit:
         assert sum(len(r) for r in results) == record_count
         assert all([target.has_z == zm.z_enabled for target in results])
         assert all([target.has_m == zm.m_enabled for target in results])
-    # End test_split_zm method
+    # End test_zm method
 
     @mark.parametrize('fc_name, xy_tolerance, element_count, record_count', [
         ('admin_a', None, 4, 114),
@@ -971,7 +1052,7 @@ class TestSplit:
         ('airports_mp_p', 0.001, 4, 8),
         param('roads_mp_l', 0.001, 4, 14, marks=mark.slow),
     ])
-    def test_split_setting(self, tmp_path, inputs, world_features, mem_gpkg,
+    def test_setting(self, tmp_path, inputs, world_features, mem_gpkg,
                            fc_name, xy_tolerance, element_count, record_count):
         """
         Test split using analysis settings
@@ -987,7 +1068,7 @@ class TestSplit:
             results = split(source=source, operator=splitter, field=field, geopackage=None)
         assert len(results) == element_count
         assert sum(len(r) for r in results) == record_count
-    # End test_split_setting method
+    # End test_setting method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -1147,7 +1228,7 @@ class TestSplit:
         ('utmzone_continentish_a', 708),
         ('utmzone_sparse_a', 228),
     ])
-    def test_split_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
         """
         Test split using larger inputs
         """
@@ -1155,7 +1236,23 @@ class TestSplit:
         source = world_features['admin_a']
         results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
         assert len(results) == count
-    # End test_split_larger_inputs method
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('name, count', [
+        ('utmzone_continentish_a', 20),
+        ('utmzone_sparse_a', 4),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, name, count):
+        """
+        Test split using larger inputs
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
+            assert len(results) == count
+    # End test_larger_inputs_extent method
 
     @mark.zm
     @mark.transform

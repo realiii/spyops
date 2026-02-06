@@ -11,6 +11,7 @@ from pytest import mark, param, raises, approx
 
 from spyops.analysis.overlay import (
     erase, intersect, symmetrical_difference, union)
+from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.shared.constant import EPSG
 from spyops.shared.element import copy_element
@@ -18,7 +19,6 @@ from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from spyops.query.analysis.overlay import QueryErase
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
 
@@ -60,16 +60,11 @@ class TestErase:
         assert len(eraser) == 5
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=xy_tolerance)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_{fc_name}', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
-        target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
-        result = erase(source=subset, operator=eraser, target=target,
-                       xy_tolerance=xy_tolerance)
-        assert len(result) == count
+        with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
+            target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
+            result = erase(source=source, operator=eraser, target=target,
+                           xy_tolerance=xy_tolerance)
+            assert len(result) == count
     # End test_reduced method
 
     @mark.zm
@@ -100,18 +95,13 @@ class TestErase:
         assert len(eraser) == 5
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_{fc_name}', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
-              Swap(Setting.Z_VALUE, 123.456)):
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.EXTENT, Extent.from_feature_class(eraser))):
             zm = zm_config(source, eraser)
-            result = erase(source=subset, operator=eraser, target=target)
+            result = erase(source=source, operator=eraser, target=target)
         assert len(result) == count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
@@ -124,15 +114,10 @@ class TestErase:
         eraser = inputs['intersect_sans_attr_a']
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
-        result = erase(source=subset, operator=eraser, target=target)
-        assert len(result) == 245
+        with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
+            result = erase(source=source, operator=eraser, target=target)
+            assert len(result) == 245
     # End test_reduced_sans_attributes method
 
     @mark.parametrize('fc_name, count', [
@@ -377,6 +362,23 @@ class TestErase:
         result = erase(source=source, operator=operator, target=target)
         assert len(result) == count
     # End test_larger_inputs function
+
+    @mark.benchmark
+    @mark.parametrize('name, count', [
+        ('utmzone_continentish_a', 15),
+        ('utmzone_sparse_a', 31),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, name, count):
+        """
+        Test erase using larger inputs
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'erase_{name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            result = erase(source=source, operator=operator, target=target)
+            assert len(result) == count
+    # End test_larger_inputs_extent function
 
     @mark.zm
     @mark.transform
@@ -1003,6 +1005,31 @@ class TestIntersect:
     # End test_algorithm_option method
 
     @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
+        (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 42, 11),
+        (AlgorithmOption.PAIRWISE, AttributeOption.SANS_FID, 42, 9),
+        (AlgorithmOption.PAIRWISE, AttributeOption.ONLY_FID, 42, 4),
+        (AlgorithmOption.CLASSIC, AttributeOption.ALL, 244, 11),
+        (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 244, 9),
+        (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 244, 4),
+    ])
+    def test_algorithm_option_extent(self, inputs, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+        """
+        Test Intersect with Options for Classic and Pairwise using Extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['int_flavor_a']
+        target = FeatureClass(
+            geopackage=mem_gpkg,
+            name=f'{str(algorithm_option)}_{attribute_option}_a')
+        with Swap(Setting.EXTENT, Extent.from_bounds(9, 47.3, 14, 50.5, crs=CRS(4326))):
+            result = intersect(
+                source=source, operator=operator, target=target,
+                algorithm_option=algorithm_option, attribute_option=attribute_option)
+            assert len(result) == feature_count
+            assert len(result.fields) == field_count
+    # End test_algorithm_option_extent method
+
+    @mark.parametrize('algorithm_option, attribute_option, feature_count, field_count', [
         (AlgorithmOption.PAIRWISE, AttributeOption.ALL, 114, 4),
         (AlgorithmOption.PAIRWISE, AttributeOption.SANS_FID, 114, 2),
         (AlgorithmOption.PAIRWISE, AttributeOption.ONLY_FID, 114, 4),
@@ -1118,10 +1145,29 @@ class TestIntersect:
         """
         operator = inputs[name]
         source = world_features['admin_a']
-        target = FeatureClass(geopackage=mem_gpkg, name=name)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'intersect_{option}_{name}')
         result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
         assert len(result) == count
     # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('option, name, count', [
+        (AlgorithmOption.CLASSIC, 'utmzone_continentish_a', 123),
+        (AlgorithmOption.CLASSIC, 'utmzone_sparse_a', 58),
+        (AlgorithmOption.PAIRWISE, 'utmzone_continentish_a', 123),
+        (AlgorithmOption.PAIRWISE, 'utmzone_sparse_a', 58),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, option, name, count):
+        """
+        Test intersect using larger inputs and extent
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'intersect_{option}_{name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
 
     @mark.zm
     @mark.transform
@@ -1287,6 +1333,39 @@ class TestSymmetricalDifference:
     """
     Tests for Symmetrical Difference
     """
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 16_457),
+        (AlgorithmOption.PAIRWISE, 16_328),
+    ])
+    def test_larger_inputs(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test symmetrical difference using larger inputs
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'symdiff_{option}')
+        result = symmetrical_difference(source=source, operator=operator, target=target, algorithm_option=option)
+        assert len(result) == count
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 7593),
+        (AlgorithmOption.PAIRWISE, 7475),
+    ])
+    def test_larger_inputs_extent(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test symmetrical difference using larger inputs and extent
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'symdiff_{option}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+            result = symmetrical_difference(source=source, operator=operator, target=target, algorithm_option=option)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
+
     def test_holes_and_shifted(self, inputs, mem_gpkg):
         """
         Test for symmetric difference using small datasets
@@ -1319,10 +1398,10 @@ class TestSymmetricalDifference:
         ('transmission_l', 'transmission_zm_l', 21, 43),
         ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    def test_xy_tolerance_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
-                                  operator_name, feature_count, field_count):
+    def test_xy_tolerance_setting_pairwise(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                           operator_name, feature_count, field_count):
         """
-        Test sym diff using analysis settings for XY tolerance
+        Test sym diff using analysis settings for XY tolerance and pairwise algorithm
         """
         source = ntdb_zm_tile[source_name].copy(
             name=f'{source_name}_source', geopackage=mem_gpkg,
@@ -1337,7 +1416,7 @@ class TestSymmetricalDifference:
                 attribute_option=AttributeOption.ALL)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_xy_tolerance_setting method
+    # End test_xy_tolerance_setting_pairwise method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 194, 42),
@@ -1376,6 +1455,64 @@ class TestSymmetricalDifference:
         assert len(result) == feature_count
         assert len(result.fields) == field_count
     # End test_xy_tolerance_setting_classic method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_zm_a', 133, 43),
+        ('structures_a', 'structures_zm_a', 30, 43),
+        ('structures_p', 'structures_zm_p', 571, 38),
+        ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
+        ('transmission_l', 'transmission_zm_l', 20, 43),
+    ])
+    def test_extent_setting_pairwise(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                     operator_name, feature_count, field_count):
+        """
+        Test sym diff using an extent and pairwise algorithm
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        print(source.extent)
+        print(operator.extent)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL,
+                algorithm_option=AlgorithmOption.PAIRWISE)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_extent_setting_pairwise method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_zm_a', 133, 43),
+        ('structures_a', 'structures_zm_a', 34, 43),
+        ('structures_p', 'structures_zm_p', 571, 38),
+        ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
+        ('transmission_l', 'transmission_zm_l', 20, 43),
+    ])
+    def test_extent_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                    operator_name, feature_count, field_count):
+        """
+        Test sym diff using an extent and classic algorithm
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+            result = symmetrical_difference(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL,
+                algorithm_option=AlgorithmOption.CLASSIC)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_extent_setting_classic method
 
     @mark.zm
     @mark.parametrize('source_name, operator_name', [
@@ -1429,19 +1566,14 @@ class TestSymmetricalDifference:
         """
         Test sym diff -- reduced data for faster testing -- sans attributes
         """
-        eraser = inputs['intersect_sans_attr_a']
-        assert len(eraser) == 5
+        operator = inputs['intersect_sans_attr_a']
+        assert len(operator) == 5
         source = world_features['admin_sans_attr_a']
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
-        result = symmetrical_difference(source=subset, operator=eraser, target=target)
-        assert len(result) == 245
-        assert len(result.fields) == 4
+        with Swap(Setting.EXTENT, Extent.from_feature_class(operator)):
+            result = symmetrical_difference(source=source, operator=operator, target=target)
+            assert len(result) == 245
+            assert len(result.fields) == 4
     # End test_sans_attributes method
 
     @mark.parametrize('source_name, operator_name, option, field_count', [
@@ -1749,6 +1881,39 @@ class TestUnion:
     """
     Tests for Union
     """
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 16_514),
+        (AlgorithmOption.PAIRWISE, 16_384),
+    ])
+    def test_larger_inputs(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test union using larger inputs
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'union_{option}')
+        result = union(source=source, operator=operator, target=target, algorithm_option=option)
+        assert len(result) == count
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 7645),
+        (AlgorithmOption.PAIRWISE, 7526),
+    ])
+    def test_larger_inputs_extent(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test union using larger inputs and extent
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'union_{option}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+            result = union(source=source, operator=operator, target=target, algorithm_option=option)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
+
     @mark.parametrize('algorithm_option, feature_count, hole_count, shifted_count', [
         (AlgorithmOption.PAIRWISE, 50, 18, 18),
         (AlgorithmOption.CLASSIC, 82, 29, 29),
@@ -1797,6 +1962,55 @@ class TestUnion:
         assert len(result) == feature_count
         assert len(result.fields) == field_count
     # End test_xy_tolerance_setting method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_zm_a', 157, 43),
+        ('structures_a', 'structures_zm_a', 31, 43),
+    ])
+    def test_extent_setting_pairwise(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                     operator_name, feature_count, field_count):
+        """
+        Test union using an extent and pairwise algorithm
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+            result = union(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_extent_setting_pairwise method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_zm_a', 157, 43),
+        ('structures_a', 'structures_zm_a', 35, 43),
+    ])
+    def test_extent_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                    operator_name, feature_count, field_count):
+        """
+        Test union using an extent and classic algorithm
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC,
+                attribute_option=AttributeOption.ALL)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_extent_setting_classic method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 227, 42),
@@ -1872,19 +2086,14 @@ class TestUnion:
         """
         Test union -- reduced data for faster testing -- sans attributes
         """
-        eraser = inputs['intersect_sans_attr_a']
-        assert len(eraser) == 5
+        operator = inputs['intersect_sans_attr_a']
+        assert len(operator) == 5
         source = world_features['admin_sans_attr_a']
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
-        result = union(source=subset, operator=eraser, target=target)
-        assert len(result) == 359
-        assert len(result.fields) == 4
+        with Swap(Setting.EXTENT, Extent.from_feature_class(operator)):
+            result = union(source=source, operator=operator, target=target)
+            assert len(result) == 359
+            assert len(result.fields) == 4
     # End test_sans_attributes method
 
     @mark.parametrize('source_name, operator_name, option, field_count', [

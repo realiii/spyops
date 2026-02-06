@@ -8,7 +8,7 @@ from pyproj import CRS
 from pytest import mark
 
 from spyops.crs.transform import get_transform_best_guess
-from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.context import Swap
 
 
@@ -48,6 +48,20 @@ def test_geographic_transformations():
         assert ANALYSIS_SETTINGS.geographic_transformations == [transformer]
     assert ANALYSIS_SETTINGS.geographic_transformations is original
 # End test_geographic_transformations function
+
+
+def test_extent():
+    """
+    Test extent
+    """
+    original = ANALYSIS_SETTINGS.extent
+    extent = Extent.from_bounds(0, 0, 1, 1, CRS(4326))
+    with Swap(Setting.EXTENT, extent) as s:
+        assert s.cached_value is original
+        assert isinstance(s.swap_value, Extent)
+        assert ANALYSIS_SETTINGS.extent == extent
+    assert ANALYSIS_SETTINGS.extent is original
+# End test_extent function
 
 
 if __name__ == '__main__':  # pragma: no cover

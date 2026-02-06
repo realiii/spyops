@@ -20,7 +20,7 @@ from spyops.geometry.validate import (
     check_polygon)
 
 
-def build_multi(features: FeatureClass | ndarray | None,
+def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
                 transformer: Callable | None) \
         -> MultiPoint | MultiLineString | MultiPolygon | None:
     """
@@ -38,17 +38,20 @@ def build_multi(features: FeatureClass | ndarray | None,
             features = transformer(features)
             features = features[get_validity(features, transformer=transformer)]
     if shape_type in (ShapeType.point, ShapeType.multi_point):
-        return _multi_point(features, transformer=transformer)
+        return _multi_point(
+            features, select_sql=select_sql, transformer=transformer)
     elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
-        return _multi_linestring(features, transformer=transformer)
+        return _multi_linestring(
+            features, select_sql=select_sql, transformer=transformer)
     elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
-        return _multi_polygon(features, transformer=transformer)
+        return _multi_polygon(
+            features, select_sql=select_sql, transformer=transformer)
     else:
         raise ValueError(f'Unsupported shape type: {shape_type}')
 # End build_multi function
 
 
-def _multi_polygon(features: FeatureClass | ndarray,
+def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
                    transformer: Callable | None) -> MultiPolygon:
     """
     Build MultiPolygon from Polygon or MultiPolygon Feature Class or Geometries
@@ -56,7 +59,8 @@ def _multi_polygon(features: FeatureClass | ndarray,
     checker = check_polygon
     if isinstance(features, FeatureClass):
         geoms = _get_validated_geoms(
-            features, checker=checker, transformer=transformer)
+            features, select_sql=select_sql, checker=checker,
+            transformer=transformer)
     else:
         geoms = []
         _check_geometries(features, checker=checker, geoms=geoms)
@@ -70,7 +74,7 @@ def _multi_polygon(features: FeatureClass | ndarray,
 # End _multi_polygon function
 
 
-def _multi_linestring(features: FeatureClass | ndarray,
+def _multi_linestring(features: FeatureClass | ndarray, select_sql: str | None,
                       transformer: Callable | None) -> MultiLineString:
     """
     Build MultiLineString from LineString or MultiLineString Feature Class
@@ -80,7 +84,8 @@ def _multi_linestring(features: FeatureClass | ndarray,
     checker = check_linestring
     if isinstance(features, FeatureClass):
         geoms = _get_validated_geoms(
-            features, checker=checker, transformer=transformer)
+            features, select_sql=select_sql, checker=checker,
+            transformer=transformer)
         geoms = geoms.tolist()
     else:
         _check_geometries(features, checker=checker, geoms=geoms)
@@ -90,7 +95,7 @@ def _multi_linestring(features: FeatureClass | ndarray,
 # End _multi_linestring function
 
 
-def _multi_point(features: FeatureClass | ndarray,
+def _multi_point(features: FeatureClass | ndarray, select_sql: str | None,
                  transformer: Callable | None) -> MultiPoint:
     """
     Build MultiPoint from Point or MultiPoint Feature Class
@@ -98,7 +103,8 @@ def _multi_point(features: FeatureClass | ndarray,
     checker = check_point
     if isinstance(features, FeatureClass):
         geoms = _get_validated_geoms(
-            features, checker=checker, transformer=transformer)
+            features, select_sql=select_sql, checker=checker,
+            transformer=transformer)
     else:
         geoms = []
         _check_geometries(features, checker=checker, geoms=geoms)

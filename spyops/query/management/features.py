@@ -11,6 +11,7 @@ from typing import Callable, TYPE_CHECKING
 from fudgeo.enumeration import ShapeType
 
 from spyops.crs.transform import make_transformer_function
+from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import AbstractSourceQuery
 from spyops.shared.constant import (
     LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
@@ -34,21 +35,6 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         """
         super().__init__(source, target=target, xy_tolerance=None)
     # End init built-in
-
-    @property
-    def part_getter(self) -> attrgetter:
-        """
-        Part Getter
-        """
-        shape_type = self.source.shape_type
-        if shape_type == ShapeType.multi_point:
-            name = POINTS_ATTR
-        elif shape_type == ShapeType.multi_linestring:
-            name = LINES_ATTR
-        else:
-            name = POLYGONS_ATTR
-        return attrgetter(name)
-    # End part_getter property
 
     def _get_target_shape_type(self) -> str:
         """
@@ -88,6 +74,9 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         geom_type = get_geometry_column_name(
             self.source, include_geom_type=True)
         select_names = self._concatenate(geom_type, select_names)
+        if ANALYSIS_SETTINGS.extent:
+            return self._make_intersection_query(
+                self.source, field_names=select_names)
         return self._make_select(
             self.source, field_names=select_names, where_clause=SQL_FULL)
     # End select property
@@ -117,6 +106,21 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
     # End source_transformer property
+
+    @property
+    def part_getter(self) -> attrgetter:
+        """
+        Part Getter
+        """
+        shape_type = self.source.shape_type
+        if shape_type == ShapeType.multi_point:
+            name = POINTS_ATTR
+        elif shape_type == ShapeType.multi_linestring:
+            name = LINES_ATTR
+        else:
+            name = POLYGONS_ATTR
+        return attrgetter(name)
+    # End part_getter property
 # End QueryMultiPartToSinglePart class
 
 

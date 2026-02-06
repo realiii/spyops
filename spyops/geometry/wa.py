@@ -29,8 +29,7 @@ from spyops.crs.transform import get_transforms
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
 from spyops.shared.constant import SRS_ID_WKB
-from spyops.shared.exception import OperationsWarning
-
+from spyops.shared.exception import ShapelyWarning
 
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -90,7 +89,7 @@ def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
         if is_polygon and has_m:
             warn(f'Setting precision on measured polygons changes the measure '
                  f'value for the last point in the polygon. '
-                 f'ref shapely/shapely#2402', OperationsWarning)
+                 f'ref shapely/shapely#2402', category=ShapelyWarning)
     # noinspection PyTypeChecker
     return _set_precision(geometry, grid_size=grid_size, mode=mode, **kwargs)
 # End set_precision function

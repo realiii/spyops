@@ -32,6 +32,20 @@ class OperationsError(BaseError):
 # End OperationsError class
 
 
+class OverwriteError(OperationsError):
+    """
+    Overwrite Error
+    """
+# End OverwriteError class
+
+
+class GeometryDimensionError(OperationsError):
+    """
+    Geometry Dimension Error
+    """
+# End GeometryDimensionError class
+
+
 class CoordinateSystemNotSupportedError(OperationsError):
     """
     Coordinate System Not Supported Error
@@ -39,18 +53,67 @@ class CoordinateSystemNotSupportedError(OperationsError):
 # End CoordinateSystemNotSupportedError class
 
 
-class NoValidTransformerError(BaseError):
+class CoordinateSystemDifferentError(OperationsError):
+    """
+    Coordinate System Different Error
+    """
+# End CoordinateSystemDifferentError class
+
+
+class CoordinateSystemNotSupportedWarning(OperationsWarning):
+    """
+    Coordinate System Not Supported Warning
+    """
+# End CoordinateSystemNotSupportedWarning class
+
+
+class NoValidTransformerError(OperationsError):
     """
     No Valid Transformation Exists
     """
 # End NoValidTransformerError class
 
 
-class InvalidAreaOfInterestError(BaseError):
+class InvalidAreaOfInterestError(OperationsError):
     """
     Invalid or Inappropriate AOI Error
     """
 # End InvalidAreaOfInterestError class
+
+
+class BadExtentWarning(OperationsWarning):
+    """
+    Bad Extent Warning
+    """
+# End BadExtentWarning class
+
+
+class BadExtentError(OperationsError):
+    """
+    Bad Extent Error
+    """
+# End BadExtentError class
+
+
+class ShapelyWarning(OperationsWarning):
+    """
+    Shapely Warning
+    """
+# End ShapelyWarning class
+
+
+class NoResultWarning(OperationsWarning):
+    """
+    No Result Warning
+    """
+# End NoResultWarning class
+
+
+class EmptyResultWarning(OperationsWarning):
+    """
+    Empty Result Warning
+    """
+# End EmptyResultWarning class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -6,21 +6,44 @@ Test for Overlay Query Classes
 
 from fudgeo import FeatureClass, Field
 from fudgeo.enumeration import FieldType
+from pyproj import CRS
 from pytest import mark, param
 
+from spyops.environment import Extent
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.query.analysis.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
-    PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise,
+    PlanarizePolygonSource, QueryErase, QueryIntersectClassic,
+    QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 
 pytestmark = [mark.overlay, mark.query]
+
+
+class TestErase:
+    """
+    Test Query Erase
+    """
+    def test_extent(self, inputs, world_features, mem_gpkg):
+        """
+        Test extent
+        """
+        eraser = inputs['eraser_a']
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='test_target')
+        query = QueryErase(source=source, operator=eraser, target=target, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
+            assert '16.477' in query.select
+            assert '(fid NOT IN ' in query.select_disjoint
+            assert '(fid IN ' in query.select_disjoint
+    # End test_extent method
+# End TestErase class
 
 
 class TestQueryIntersectPairwise:
@@ -115,6 +138,22 @@ class TestQueryIntersectPairwise:
         assert not len(query.target_empty)
         assert ' INTO cities_____p' in query.insert
     # End test_target_empty method
+
+    def test_extent(self, world_features, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        cites = world_features['cities_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='cities')
+        query = QueryIntersectPairwise(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
 # End TestQueryIntersectPairwise class
 
 
@@ -128,7 +167,8 @@ class TestPlanarizePolygons:
         """
         operator = inputs['intersect_a']
         source = inputs['int_flavor_a']
-        ps = PlanarizePolygonSource(source=source, operator=operator, use_full_extent=False, xy_tolerance=None)
+        ps = PlanarizePolygonSource(source=source, operator=operator,
+                                    use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'fid_int_flavor_a'
         fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
@@ -198,6 +238,27 @@ class TestPlanarizePolygons:
                                     use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
+
+    @mark.parametrize('cls', [
+        PlanarizePolygonSource,
+        PlanarizePolygonOperator
+    ])
+    @mark.parametrize('use_full_extent', [
+        True, False
+    ])
+    def test_planarize_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
+        """
+        Test Planarize Source Multi Part on a non FID column and using extent
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = cls(
+            source=source, operator=operator,
+            use_full_extent=use_full_extent, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in ps.select
+            assert ' 52.0 ' in ps.select
+    # End test_planarize_extent method
 # End TestPlanarizePolygons class
 
 
@@ -205,6 +266,27 @@ class TestPlanarizeGeneral:
     """
     Test Planarize Line Strings and Points
     """
+    @mark.parametrize('cls', [
+        PlanarizeGeneralSource,
+        PlanarizeGeneralOperator
+    ])
+    @mark.parametrize('use_full_extent', [
+        True, False
+    ])
+    def test_planarize_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
+        """
+        Test Planarize Source Multi Part on a non FID column and using extent
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = cls(
+            source=source, operator=operator,
+            use_full_extent=use_full_extent, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in ps.select
+            assert ' 52.0 ' in ps.select
+    # End test_planarize_extent method
+
     def test_planarize_source(self, inputs, world_features, mem_gpkg):
         """
         Test Planarize Source
@@ -384,6 +466,22 @@ class TestQueryIntersectClassic:
             output_type_option=OutputTypeOption.SAME)
         assert sql in query.insert
     # End test_insert method
+
+    def test_extent(self, world_features, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        cites = world_features['cities_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='cities')
+        query = QueryIntersectClassic(
+            source=cites, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            output_type_option=OutputTypeOption.SAME)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
 # End TestQueryIntersectClassic class
 
 
@@ -471,6 +569,21 @@ class TestQuerySymmetricalDifferencePairwise:
         assert target.name in insert
     # End test_insert_operator method
 
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QuerySymmetricalDifferencePairwise(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     @mark.zm
     @mark.parametrize('fc_name, count', [
         ('hydro_a', 88),
@@ -536,6 +649,21 @@ class TestQuerySymmetricalDifferenceClassic:
     """
     Test QuerySymmetricalDifferenceClassic
     """
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QuerySymmetricalDifferenceClassic(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     @mark.parametrize('option, sql', [
         (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_clipper_a, ID'),
         (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_clipper_a'),
@@ -760,6 +888,21 @@ class TestQueryUnionPairwise:
     """
     Test QueryUnionPairwise
     """
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QueryUnionPairwise(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     @mark.parametrize('option, names', [
         (AttributeOption.ALL, 'geom "[Polygon]", fid, ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
         (AttributeOption.ONLY_FID, 'geom "[Polygon]", fid'),
@@ -864,6 +1007,23 @@ class TestQueryUnionClassic:
     """
     Test QueryUnionClassic
     """
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QueryUnionClassic(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            source_fid=Field('a', data_type=FieldType.integer),
+            operator_fid=Field('b', data_type=FieldType.integer))
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     def test_input_fid(self, inputs, world_features, mem_gpkg):
         """
         Test Input FID values

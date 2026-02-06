@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from fudgeo.util import get_extent
 from numpy import isfinite
 
-from spyops.shared.exception import OperationsError
+from spyops.shared.exception import BadExtentError
 from spyops.shared.hint import EXTENT
 
 
@@ -25,22 +25,9 @@ def set_extent(feature_class: 'FeatureClass') -> None:
     """
     try:
         feature_class.extent = extent_from_feature_class(feature_class)
-    except OperationsError:  # pragma: no cover
+    except BadExtentError:  # pragma: no cover
         return
 # End set_extent function
-
-
-def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
-    """
-    Get the Extent from the Spatial Index, fail over to the extent derived
-    from geometries.
-    """
-    extent = _extent_from_spatial_index(feature_class)
-    if isfinite(extent).all():
-        return extent
-    else:  # pragma: no cover
-        return get_extent(feature_class)
-# End _extent_from_index_or_geometry function
 
 
 def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
@@ -56,7 +43,7 @@ def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     if isfinite(extent).all():
         return extent
     else:  # pragma: no cover
-        raise OperationsError(
+        raise BadExtentError(
             f'{feature_class.name} is empty or only contains empty geometries')
 # End extent_from_feature_class function
 
@@ -80,6 +67,19 @@ def _extent_from_spatial_index(feature_class: 'FeatureClass') -> EXTENT:
         return empty
     return extent
 # End _extent_from_spatial_index function
+
+
+def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
+    """
+    Get the Extent from the Spatial Index, fail over to the extent derived
+    from geometries.
+    """
+    extent = _extent_from_spatial_index(feature_class)
+    if isfinite(extent).all():
+        return extent
+    else:  # pragma: no cover
+        return get_extent(feature_class)
+# End _extent_from_index_or_geometry function
 
 
 if __name__ == '__main__':  # pragma: no cover

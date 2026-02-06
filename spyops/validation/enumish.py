@@ -12,7 +12,7 @@ from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.enumeration import OutputTypeOption
-from spyops.shared.exception import OperationsError
+from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_enumeration
 from spyops.validation.base import AbstractValidate, AbstractValidateArgument
 
@@ -84,7 +84,7 @@ class ValidateOutputType(AbstractValidate):
             if kwargs[self._enum_name] != OutputTypeOption.LINE:
                 return func(**kwargs)
             if not get_geometry_dimension(kwargs[self._name]):
-                raise OperationsError(
+                raise GeometryDimensionError(
                     f'{self._name} features class must be a '
                     f'{ShapeType.linestring} or {ShapeType.polygon} '
                     f'shape type for Output Type "{OutputTypeOption.LINE}"')

@@ -11,7 +11,7 @@ from typing import Callable
 from fudgeo import FeatureClass, Table
 
 from spyops.geometry.extent import set_extent
-from spyops.shared.exception import OperationsWarning
+from spyops.shared.exception import EmptyResultWarning, NoResultWarning
 from spyops.shared.hint import ELEMENT
 from spyops.validation.base import AbstractValidate
 
@@ -49,10 +49,11 @@ def _check_output(element: ELEMENT) -> ELEMENT:
     Check element for existence and content, warn if not present or empty
     """
     if not element:
-        warn(f'{element.name} was not created', OperationsWarning)
+        warn(f'{element.name} was not created', category=NoResultWarning)
         return element
     if not len(element):
-        warn(f'{element.name} created but contains no rows', OperationsWarning)
+        warn(f'{element.name} created but contains no rows',
+             category=EmptyResultWarning)
         return element
     return element
 # End _check_output function

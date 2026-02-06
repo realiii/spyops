@@ -90,12 +90,13 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
     Internal Split by Attributes
     """
     elements = {}
+    is_feature_class = isinstance(source, FeatureClass)
+    cls = source.__class__
     target_names = element_names(geopackage)
     query = QuerySplitByAttributes(element=source, fields=group_fields)
     query_select = query.select
     query_insert = query.insert
     source_name = query.source.name
-    transformer = query.source_transformer
     if ignore_zm_settings:
         z_option = OutputZOption.SAME
         m_option = OutputMOption.SAME
@@ -106,10 +107,12 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
           query.source.geopackage.connection as cin,
           Swap(Setting.OUTPUT_Z_OPTION, z_option),
           Swap(Setting.OUTPUT_M_OPTION, m_option)):
-        if isinstance(source, FeatureClass):
+        if is_feature_class:
             is_different = zm_config(source).is_different
+            transformer = query.source_transformer
         else:
             is_different = False
+            transformer = None
         cursor = cin.execute(query.groups)
         groups = cursor.fetchall()
         for i, *group in groups:
@@ -118,14 +121,18 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             name = make_unique_name(name, names=target_names)
             element = copy_element(
                 source=source, where_clause=SQL_EMPTY,
-                target=FeatureClass(geopackage=geopackage, name=name))
+                target=cls(geopackage=geopackage, name=name))
             elements[tuple(group)] = element
-            config = geometry_config(element, cast_geom=is_different)
             cursor = cin.execute(query_select, (i,))
+            insert_sql = query_insert.format(element.escaped_name)
             with ExecuteMany(connection=cout, table=element) as executor:
-                insert_sql = query_insert.format(element.escaped_name)
-                bulk_insert(cursor, config=config, executor=executor,
-                            transformer=transformer, insert_sql=insert_sql)
+                if is_feature_class:
+                    config = geometry_config(element, cast_geom=is_different)
+                    bulk_insert(cursor, config=config, executor=executor,
+                                transformer=transformer, insert_sql=insert_sql)
+                else:
+                    while records := cursor.fetchmany(FETCH_SIZE):
+                        executor(sql=insert_sql, data=records)
     return elements
 # End _split_by_attributes function
 
@@ -170,7 +177,7 @@ def _difference(*, source: FeatureClass, source_transformer: Callable | None,
 
             overlay = build_multi(
                 overlay_geoms[list(set(indexes))],
-                transformer=overlay_transformer)
+                transformer=overlay_transformer, select_sql=None)
             change_indexes = list(change_indexes)
             changers = [features[i] for i in change_indexes]
             differences = difference(
@@ -189,7 +196,8 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
     Internal Symmetrical Difference
     """
     geoms = get_validated_geometries(
-        query.operator, transformer=query.operator_transformer)
+        query.operator, select_sql=query.select_operator,
+        transformer=query.operator_transformer)
     _difference(
         source=query.source, source_transformer=query.source_transformer,
         select_sql=query.select_source, insert_sql=query.source_config.insert,
@@ -197,7 +205,8 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
         target=query.target, config=query.geometry_config,
         grid_size=query.grid_size)
     geoms = get_validated_geometries(
-        query.source, transformer=query.source_transformer)
+        query.source, select_sql=query.select_source,
+        transformer=query.source_transformer)
     _difference(
         source=query.operator, source_transformer=query.operator_transformer,
         select_sql=query.select_operator, insert_sql=query.operator_config.insert,
@@ -209,7 +218,7 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
 
 def _get_converted_operator(*, query: QUERY_INT, converter: Callable,
                             transformer: Callable | None) \
-        -> tuple[list[tuple], ndarray]:
+        -> tuple[list[tuple], 'ndarray']:
     """
     Get Converted Operator Features and Geometries
     """
