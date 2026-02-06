@@ -218,16 +218,20 @@ class TestPlanarizePolygons:
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_planarize_source_multi_part method
 
+    @mark.parametrize('cls', [
+        PlanarizePolygonSource,
+        PlanarizePolygonOperator
+    ])
     @mark.parametrize('use_full_extent', [
         True, False
     ])
-    def test_planarize_source_extent(self, inputs, world_features, mem_gpkg, use_full_extent):
+    def test_planarize_source_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
         """
         Test Planarize Source Multi Part on a non FID column and using extent
         """
         operator = inputs['rivers_portion_l']
         source = world_features['admin_mp_a']
-        ps = PlanarizePolygonSource(
+        ps = cls(
             source=source, operator=operator,
             use_full_extent=use_full_extent, xy_tolerance=None)
         with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
