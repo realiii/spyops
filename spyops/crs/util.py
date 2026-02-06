@@ -21,7 +21,7 @@ from spyops.shared.constant import (
     BAD_SRS_DEFINITIONS, CUSTOM, CUSTOM_RANGE_START, CUSTOM_UPPER, EMPTY, NONE,
     UNABLE_TO_USE_CRS, UNDEFINED, UNSUPPORTED_WKT)
 from spyops.shared.exception import (
-    CoordinateSystemNotSupportedError, OperationsError)
+    CoordinateSystemDifferentError, CoordinateSystemNotSupportedError)
 from spyops.shared.hint import GPKG
 from spyops.shared.util import safe_int
 
@@ -129,7 +129,8 @@ def check_same_crs(a: Union[CRS, 'FeatureClass'],
     """
     if equals(get_crs_from_source(a), get_crs_from_source(b)):
         return
-    raise OperationsError('CRS for input feature classes must be the same')
+    raise CoordinateSystemDifferentError(
+        'CRS for input feature classes must be the same')
 # End check_same_crs function
 
 

@@ -10,7 +10,7 @@ from typing import Any, Callable, ClassVar
 from fudgeo import FeatureClass, MemoryGeoPackage, Table
 
 from spyops.shared.constant import PADDED_PIPE
-from spyops.shared.exception import OperationsError
+from spyops.shared.exception import OverwriteError
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateTypeExists
 
@@ -179,7 +179,7 @@ class ValidateOverwriteInput(AbstractValidate):
             return
         if not self._check_same_geopackage(target, other):
             return
-        raise OperationsError(
+        raise OverwriteError(
             f'Value for output argument {self._target} is same as value '
             f'for input argument {name}')
     # End _check_same method

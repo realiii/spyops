@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from fudgeo.util import get_extent
 from numpy import isfinite
 
-from spyops.shared.exception import OperationsError
+from spyops.shared.exception import BadExtentError
 from spyops.shared.hint import EXTENT
 
 
@@ -25,7 +25,7 @@ def set_extent(feature_class: 'FeatureClass') -> None:
     """
     try:
         feature_class.extent = extent_from_feature_class(feature_class)
-    except OperationsError:  # pragma: no cover
+    except BadExtentError:  # pragma: no cover
         return
 # End set_extent function
 
@@ -43,7 +43,7 @@ def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     if isfinite(extent).all():
         return extent
     else:  # pragma: no cover
-        raise OperationsError(
+        raise BadExtentError(
             f'{feature_class.name} is empty or only contains empty geometries')
 # End extent_from_feature_class function
 

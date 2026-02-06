@@ -12,7 +12,7 @@ from pyproj import CRS
 
 from spyops.crs.util import check_same_crs, get_crs_from_source
 from spyops.shared.exception import (
-    CoordinateSystemNotSupportedError, OperationsError, OperationsWarning)
+    CoordinateSystemNotSupportedError, CoordinateSystemNotSupportedWarning)
 from spyops.shared.hint import NAMES
 from spyops.validation.base import AbstractValidate
 
@@ -74,9 +74,9 @@ class ValidateCRS(AbstractValidate):
             except CoordinateSystemNotSupportedError as err:
                 valid = False
                 warn(f'{feature_class.name} has an unsupported CRS\n{err}',
-                     OperationsWarning)
+                     category=CoordinateSystemNotSupportedWarning)
         if not valid:
-            raise OperationsError(
+            raise CoordinateSystemNotSupportedError(
                 'One or more feature classes have an unsupported '
                 'Spatial Reference System, check warnings for details')
         return crs

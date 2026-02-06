@@ -17,7 +17,7 @@ from shapely import (
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import get_geoms_iter, nada, to_shapely
 from spyops.geometry.wa import make_valid
-from spyops.shared.exception import OperationsError
+from spyops.shared.exception import GeometryDimensionError
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -125,7 +125,7 @@ def check_dimension(a: int, name_a: str, b: int, name_b: str,
     dim_type = {0: ShapeType.point,
                 1: ShapeType.linestring,
                 2: ShapeType.polygon}
-    raise OperationsError(
+    raise GeometryDimensionError(
         f'Geometry dimension mismatch, cannot overlay '
         f'{name_a} {dim_type[a]} with {name_b} {dim_type[b]}')
 # End check_dimension function
@@ -141,7 +141,7 @@ def check_zm(a: tuple[bool, bool], name_a: str,
     stub = 'has_z=%s / has_m=%s'
     props_a = stub % a
     props_b = stub % b
-    raise OperationsError(
+    raise GeometryDimensionError(
         f'Geometry ZM mismatch, cannot overlay '
         f'{name_a} {props_a} with {name_b} {props_b}')
 # End check_zm function
