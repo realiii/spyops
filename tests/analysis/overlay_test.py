@@ -1893,6 +1893,55 @@ class TestUnion:
     # End test_xy_tolerance_setting method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_zm_a', 157, 43),
+        ('structures_a', 'structures_zm_a', 31, 43),
+    ])
+    def test_extent_setting_pairwise(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                     operator_name, feature_count, field_count):
+        """
+        Test union using an extent and pairwise algorithm
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+            result = union(
+                source=source, operator=operator, target=target,
+                attribute_option=AttributeOption.ALL)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_extent_setting_pairwise method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
+        ('hydro_a', 'hydro_zm_a', 157, 43),
+        ('structures_a', 'structures_zm_a', 35, 43),
+    ])
+    def test_extent_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                    operator_name, feature_count, field_count):
+        """
+        Test union using an extent and classic algorithm
+        """
+        source = ntdb_zm_tile[source_name].copy(
+            name=f'{source_name}_source', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-1', '082O01-2')""")
+        operator = ntdb_zm_tile[operator_name].copy(
+            name=f'{operator_name}_operator', geopackage=mem_gpkg,
+            where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+            result = union(
+                source=source, operator=operator, target=target,
+                algorithm_option=AlgorithmOption.CLASSIC,
+                attribute_option=AttributeOption.ALL)
+        assert len(result) == feature_count
+        assert len(result.fields) == field_count
+    # End test_extent_setting_classic method
+
+    @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 227, 42),
         ('hydro_a', 'hydro_zm_a', 227, 43),
         ('hydro_zm_a', 'hydro_zm_a', 227, 44),
