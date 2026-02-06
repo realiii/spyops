@@ -481,13 +481,13 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         source_box = box(*self.source_extent, ccw=False)
         operator_box = box(*self.operator_extent, ccw=False)
         if element is self.source:
-            transformer = get_transform_best_guess(
-                self.operator_crs, self.source_crs)
+            transformer = self._get_transformer_or_guess(
+                from_crs=self.operator_crs, to_crs=self.source_crs)
             if transformer:
                 operator_box = transform(transformer.transform, operator_box)
         else:
-            transformer = get_transform_best_guess(
-                self.source_crs, self.operator_crs)
+            transformer = self._get_transformer_or_guess(
+                from_crs=self.source_crs, to_crs=self.operator_crs)
             if transformer:
                 source_box = transform(transformer.transform, source_box)
         return operator_box.intersection(source_box).bounds
@@ -534,8 +534,8 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Has Intersection between source and operator
         """
-        transformer = get_transform_best_guess(
-            self.operator_crs, self.source_crs)
+        transformer = self._get_transformer_or_guess(
+            from_crs=self.operator_crs, to_crs=self.source_crs)
         operator_box = box(*self.operator_extent, ccw=False)
         if transformer:
             operator_box = transform(transformer.transform, operator_box)
