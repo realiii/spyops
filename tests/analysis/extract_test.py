@@ -403,6 +403,22 @@ class TestSplitByAttributes:
         assert len(results) == count
     # End test_larger_inputs method
 
+    @mark.benchmark
+    @mark.parametrize('fix_name, name, fields, count', [
+        ('inputs', 'utmzone_continentish_a', ('ZONE', 'ROW_'), 20),
+        ('inputs', 'utmzone_sparse_a', ('ZONE', 'ROW_'), 4),
+    ])
+    def test_larger_inputs_extent(self, request, inputs, mem_gpkg, fix_name, name, fields, count):
+        """
+        Test split by attributes using larger inputs and an extent
+        """
+        source = request.getfixturevalue(fix_name)[name]
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            results = split_by_attributes(
+                source=source, group_fields=fields, geopackage=mem_gpkg)
+        assert len(results) == count
+    # End test_larger_inputs_extent method
+
     @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
@@ -608,6 +624,23 @@ class TestClip:
         result = clip(source=source, operator=operator, target=target)
         assert len(result) == count
     # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('name, count', [
+        ('utmzone_continentish_a', 64),
+        ('utmzone_sparse_a', 50),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, name, count):
+        """
+        Test clip using larger inputs and an extent
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'clip_{name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            result = clip(source=source, operator=operator, target=target)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
 
     @mark.zm
     @mark.parametrize('fc_name', [
@@ -1203,7 +1236,23 @@ class TestSplit:
         source = world_features['admin_a']
         results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
         assert len(results) == count
-    # End test_split_larger_inputs method
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('name, count', [
+        ('utmzone_continentish_a', 20),
+        ('utmzone_sparse_a', 4),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, name, count):
+        """
+        Test split using larger inputs
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
+            assert len(results) == count
+    # End test_larger_inputs_extent method
 
     @mark.zm
     @mark.transform
