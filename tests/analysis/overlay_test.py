@@ -1333,6 +1333,39 @@ class TestSymmetricalDifference:
     """
     Tests for Symmetrical Difference
     """
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 16_457),
+        (AlgorithmOption.PAIRWISE, 16_328),
+    ])
+    def test_larger_inputs(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test symmetrical difference using larger inputs
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'symdiff_{option}')
+        result = symmetrical_difference(source=source, operator=operator, target=target, algorithm_option=option)
+        assert len(result) == count
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 7593),
+        (AlgorithmOption.PAIRWISE, 7475),
+    ])
+    def test_larger_inputs_extent(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test symmetrical difference using larger inputs and extent
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'symdiff_{option}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+            result = symmetrical_difference(source=source, operator=operator, target=target, algorithm_option=option)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
+
     def test_holes_and_shifted(self, inputs, mem_gpkg):
         """
         Test for symmetric difference using small datasets
@@ -1848,6 +1881,39 @@ class TestUnion:
     """
     Tests for Union
     """
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 16_514),
+        (AlgorithmOption.PAIRWISE, 16_384),
+    ])
+    def test_larger_inputs(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test union using larger inputs
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'union_{option}')
+        result = union(source=source, operator=operator, target=target, algorithm_option=option)
+        assert len(result) == count
+    # End test_larger_inputs method
+
+    @mark.benchmark
+    @mark.parametrize('option, count', [
+        (AlgorithmOption.CLASSIC, 7645),
+        (AlgorithmOption.PAIRWISE, 7526),
+    ])
+    def test_larger_inputs_extent(self, ntdb_zm, mem_gpkg, option, count):
+        """
+        Test union using larger inputs and extent
+        """
+        source = ntdb_zm['hydro_a']
+        operator = ntdb_zm['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'union_{option}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+            result = union(source=source, operator=operator, target=target, algorithm_option=option)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
+
     @mark.parametrize('algorithm_option, feature_count, hole_count, shifted_count', [
         (AlgorithmOption.PAIRWISE, 50, 18, 18),
         (AlgorithmOption.CLASSIC, 82, 29, 29),
