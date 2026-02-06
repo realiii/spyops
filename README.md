@@ -351,7 +351,29 @@ If no `geographic_transformations` are specified then a "best guess" will be mad
 The "best guess" is "best" based on `pyroj` determiniation and if this does not exist (for example, a grid file is 
 missing) then the first transformation in the list of available transformations is used.
 
+#### Extent
+The `extent` setting can be used to restrict processing to a specific area of interest.  The `extent` limits the 
+features used in processing, any feature that is within or touches the extent will be considered for processing, 
+there is no clipping performed by the extent.  A coordinate reference system must be specified for the extent when 
+using bounds or a polygon.
 
+```python
+from pyproj import CRS
+from shapely.creation import box
+from spyops.analysis.overlay import erase
+from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
+from spyops.environment.context import Swap
+
+# extent can be specified using shapely polygon, a fudgeo feature class, or bounds 
+extent = Extent(box(-120, 30, -100, 50, crs=CRS(4326)))
+extent = Extent.from_feature_class(operator)
+extent = Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))
+
+with Swap(Setting.EXTENT, extent):
+    fc = erase(source=source, operator=operator, target=target)
+```
+
+### Geometry Dimensions
 #### XY Tolerance
 In the dimension category, the `xy_tolerance` setting can be used to specify a tolerance value for XY coordinates.
 The default for `xy_tolerance` is `None`, for the most part it is recommended to use the default unless you have a 
@@ -464,4 +486,4 @@ with Swap(Setting.SCRATCH_FOLDER, path):
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
-* Settings support for coordinates `output_coordinate_system` and `geographic_transformations`
+* Settings support for coordinates `output_coordinate_system`,  `geographic_transformations`, and `extent`
