@@ -846,6 +846,21 @@ class TestQueryUnionPairwise:
     """
     Test QueryUnionPairwise
     """
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QueryUnionPairwise(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     @mark.parametrize('option, names', [
         (AttributeOption.ALL, 'geom "[Polygon]", fid, ID, NAME, "WHEN", EXAMPLE_JSON, BOB, NOT_NOW'),
         (AttributeOption.ONLY_FID, 'geom "[Polygon]", fid'),
@@ -950,6 +965,23 @@ class TestQueryUnionClassic:
     """
     Test QueryUnionClassic
     """
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QueryUnionClassic(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None,
+            source_fid=Field('a', data_type=FieldType.integer),
+            operator_fid=Field('b', data_type=FieldType.integer))
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     def test_input_fid(self, inputs, world_features, mem_gpkg):
         """
         Test Input FID values
