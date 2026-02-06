@@ -1145,7 +1145,7 @@ class TestIntersect:
         """
         operator = inputs[name]
         source = world_features['admin_a']
-        target = FeatureClass(geopackage=mem_gpkg, name=name)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'intersect_{option}_{name}')
         result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
         assert len(result) == count
     # End test_larger_inputs method
