@@ -7,9 +7,11 @@ Abstract Classes in support of Query objects
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from typing import Callable, Optional, TYPE_CHECKING
+from warnings import warn
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
+from numpy import isfinite
 from pyproj import CRS
 from shapely.creation import box
 from shapely.ops import transform
@@ -27,6 +29,7 @@ from spyops.shared.constant import (
     EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
+from spyops.shared.exception import BadExtentWarning
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
@@ -131,6 +134,9 @@ class AbstractQuery(metaclass=ABCMeta):
         polygon = extent.polygon
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
             polygon = transform(transformer.transform, polygon)
+            if not isfinite(polygon.bounds).all():
+                warn('Bad extent polygon after transformation, extent will '
+                     'be ignored', category=BadExtentWarning)
         return polygon
     # End _get_extent_polygon method
 
@@ -142,6 +148,8 @@ class AbstractQuery(metaclass=ABCMeta):
         """
         primary = element.primary_key_field
         if not element.has_spatial_index or not primary:  # pragma: no cover
+            return EMPTY
+        if not isfinite(extent).all():
             return EMPTY
         min_x, min_y, max_x, max_y = extent
         return f"""{primary.escaped_name} {{}} (
