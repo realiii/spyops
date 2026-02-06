@@ -124,13 +124,12 @@ class AbstractQuery(metaclass=ABCMeta):
         return get_transform_best_guess(from_crs, to_crs)
     # End _get_transformer_or_guess method
 
-    @staticmethod
-    def _get_extent_polygon(extent: 'Extent', crs: 'CRS') -> 'Polygon':
+    def _get_extent_polygon(self, extent: 'Extent', crs: 'CRS') -> 'Polygon':
         """
         Get Extent Polygon in the specified Coordinate Reference System
         """
         polygon = extent.polygon
-        if transformer := get_transform_best_guess(extent.crs, crs):
+        if transformer := self._get_transformer_or_guess(extent.crs, crs):
             polygon = transform(transformer.transform, polygon)
         return polygon
     # End _get_extent_polygon method
