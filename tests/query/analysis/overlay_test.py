@@ -523,6 +523,21 @@ class TestQuerySymmetricalDifferencePairwise:
         assert target.name in insert
     # End test_insert_operator method
 
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QuerySymmetricalDifferencePairwise(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     @mark.zm
     @mark.parametrize('fc_name, count', [
         ('hydro_a', 88),
@@ -588,6 +603,21 @@ class TestQuerySymmetricalDifferenceClassic:
     """
     Test QuerySymmetricalDifferenceClassic
     """
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        operator = inputs['intersect_a']
+        source = inputs['clipper_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='ttt')
+        query = QuerySymmetricalDifferenceClassic(
+            source=source, target=target, operator=operator,
+            attribute_option=AttributeOption.ALL, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in query.select_source
+            assert ' 52.0 ' in query.select_operator
+    # End test_extent method
+
     @mark.parametrize('option, sql', [
         (AttributeOption.ALL, 'SELECT SHAPE "[Polygon]", fid_clipper_a, ID'),
         (AttributeOption.ONLY_FID, 'SELECT SHAPE "[Polygon]", fid_clipper_a'),
