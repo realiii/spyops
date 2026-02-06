@@ -363,6 +363,23 @@ class TestErase:
         assert len(result) == count
     # End test_larger_inputs function
 
+    @mark.benchmark
+    @mark.parametrize('name, count', [
+        ('utmzone_continentish_a', 15),
+        ('utmzone_sparse_a', 31),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, name, count):
+        """
+        Test erase using larger inputs
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'erase_{name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            result = erase(source=source, operator=operator, target=target)
+            assert len(result) == count
+    # End test_larger_inputs_extent function
+
     @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
