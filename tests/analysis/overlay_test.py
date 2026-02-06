@@ -19,7 +19,6 @@ from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from spyops.query.analysis.overlay import QueryErase
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
 
@@ -96,18 +95,13 @@ class TestErase:
         assert len(eraser) == 5
         source = world_features[fc_name]
         assert source.is_multi_part == ('mp' in fc_name)
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_{fc_name}')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_{fc_name}', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
-              Swap(Setting.Z_VALUE, 123.456)):
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.EXTENT, Extent.from_feature_class(eraser))):
             zm = zm_config(source, eraser)
-            result = erase(source=subset, operator=eraser, target=target)
+            result = erase(source=source, operator=eraser, target=target)
         assert len(result) == count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
@@ -120,15 +114,10 @@ class TestErase:
         eraser = inputs['intersect_sans_attr_a']
         assert len(eraser) == 5
         source = world_features['admin_sans_attr_a']
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
-        result = erase(source=subset, operator=eraser, target=target)
-        assert len(result) == 245
+        with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
+            result = erase(source=source, operator=eraser, target=target)
+            assert len(result) == 245
     # End test_reduced_sans_attributes method
 
     @mark.parametrize('fc_name, count', [
@@ -1508,19 +1497,14 @@ class TestSymmetricalDifference:
         """
         Test sym diff -- reduced data for faster testing -- sans attributes
         """
-        eraser = inputs['intersect_sans_attr_a']
-        assert len(eraser) == 5
+        operator = inputs['intersect_sans_attr_a']
+        assert len(operator) == 5
         source = world_features['admin_sans_attr_a']
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
-        result = symmetrical_difference(source=subset, operator=eraser, target=target)
-        assert len(result) == 245
-        assert len(result.fields) == 4
+        with Swap(Setting.EXTENT, Extent.from_feature_class(operator)):
+            result = symmetrical_difference(source=source, operator=operator, target=target)
+            assert len(result) == 245
+            assert len(result.fields) == 4
     # End test_sans_attributes method
 
     @mark.parametrize('source_name, operator_name, option, field_count', [
@@ -2000,19 +1984,14 @@ class TestUnion:
         """
         Test union -- reduced data for faster testing -- sans attributes
         """
-        eraser = inputs['intersect_sans_attr_a']
-        assert len(eraser) == 5
+        operator = inputs['intersect_sans_attr_a']
+        assert len(operator) == 5
         source = world_features['admin_sans_attr_a']
-        target = FeatureClass(geopackage=fresh_gpkg, name=f'temp_sans_attr_a')
-        query = QueryErase(source=source, target=target, operator=eraser, xy_tolerance=None)
-        _, touches = query.select.split('WHERE', 1)
-        subset = source.copy(f'subset_sans_attr_a', where_clause=touches,
-                             geopackage=fresh_gpkg)
-        assert len(subset) <= len(source)
         target = FeatureClass(geopackage=fresh_gpkg, name='sans_attr_a')
-        result = union(source=subset, operator=eraser, target=target)
-        assert len(result) == 359
-        assert len(result.fields) == 4
+        with Swap(Setting.EXTENT, Extent.from_feature_class(operator)):
+            result = union(source=source, operator=operator, target=target)
+            assert len(result) == 359
+            assert len(result.fields) == 4
     # End test_sans_attributes method
 
     @mark.parametrize('source_name, operator_name, option, field_count', [
