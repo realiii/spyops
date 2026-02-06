@@ -116,5 +116,12 @@ class EmptyResultWarning(OperationsWarning):
 # End EmptyResultWarning class
 
 
+class TransformationGuessWarning(OperationsWarning):
+    """
+    Transformation Guess Warning
+    """
+# End TransformationGuessWarning class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
