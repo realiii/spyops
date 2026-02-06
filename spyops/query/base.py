@@ -70,7 +70,8 @@ class AbstractQuery(metaclass=ABCMeta):
     # End _make_select function
 
     @staticmethod
-    def _make_insert(element_name: str, field_names: str, field_count: int) -> str:
+    def _make_insert(element_name: str, field_names: str,
+                     field_count: int) -> str:
         """
         Make SQL statement for Insert
         """
@@ -125,7 +126,8 @@ class AbstractQuery(metaclass=ABCMeta):
         return polygon
     # End _get_extent_polygon method
 
-    def _spatial_index_where(self, element: FeatureClass, extent: EXTENT) -> str:
+    def _spatial_index_where(self, element: FeatureClass,
+                             extent: EXTENT) -> str:
         """
         Make a where clause stub that can be used to select features which
         intersect an extent. The query is based on a spatial index (if present).
