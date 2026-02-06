@@ -245,6 +245,27 @@ class TestPlanarizeGeneral:
     """
     Test Planarize Line Strings and Points
     """
+    @mark.parametrize('cls', [
+        PlanarizeGeneralSource,
+        PlanarizeGeneralOperator
+    ])
+    @mark.parametrize('use_full_extent', [
+        True, False
+    ])
+    def test_planarize_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
+        """
+        Test Planarize Source Multi Part on a non FID column and using extent
+        """
+        operator = inputs['rivers_portion_l']
+        source = world_features['admin_mp_a']
+        ps = cls(
+            source=source, operator=operator,
+            use_full_extent=use_full_extent, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+            assert ' 7.0 ' in ps.select
+            assert ' 52.0 ' in ps.select
+    # End test_planarize_extent method
+
     def test_planarize_source(self, inputs, world_features, mem_gpkg):
         """
         Test Planarize Source
