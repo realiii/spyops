@@ -1150,6 +1150,25 @@ class TestIntersect:
         assert len(result) == count
     # End test_larger_inputs method
 
+    @mark.benchmark
+    @mark.parametrize('option, name, count', [
+        (AlgorithmOption.CLASSIC, 'utmzone_continentish_a', 123),
+        (AlgorithmOption.CLASSIC, 'utmzone_sparse_a', 58),
+        (AlgorithmOption.PAIRWISE, 'utmzone_continentish_a', 123),
+        (AlgorithmOption.PAIRWISE, 'utmzone_sparse_a', 58),
+    ])
+    def test_larger_inputs_extent(self, inputs, world_features, mem_gpkg, option, name, count):
+        """
+        Test intersect using larger inputs and extent
+        """
+        operator = inputs[name]
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'intersect_{option}_{name}')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+            result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
+            assert len(result) == count
+    # End test_larger_inputs_extent method
+
     @mark.zm
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
