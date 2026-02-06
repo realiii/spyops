@@ -450,21 +450,6 @@ class TestErase:
             assert result.spatial_reference_system.org_coord_sys_id == srs_id
             assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs method
-
-    def test_source_extent(self, inputs, world_features, mem_gpkg):
-        """
-        Test source extent
-        """
-        eraser = inputs['eraser_a']
-
-        source = world_features['admin_a']
-        target = FeatureClass(geopackage=mem_gpkg, name='test_target')
-        query = QueryErase(source=source, operator=eraser, target=target, xy_tolerance=None)
-        with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
-            assert '16.477' in query.select
-            assert '(fid NOT IN ' in query.select_disjoint
-            assert '(fid IN ' in query.select_disjoint
-    # End test_source_extent method
 # End TestErase class
 
 

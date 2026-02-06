@@ -16,13 +16,34 @@ from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.query.analysis.overlay import (
     PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
-    PlanarizePolygonSource, QueryIntersectClassic, QueryIntersectPairwise,
+    PlanarizePolygonSource, QueryErase, QueryIntersectClassic,
+    QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 
 pytestmark = [mark.overlay, mark.query]
+
+
+class TestErase:
+    """
+    Test Query Erase
+    """
+    def test_extent(self, inputs, world_features, mem_gpkg):
+        """
+        Test extent
+        """
+        eraser = inputs['eraser_a']
+        source = world_features['admin_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='test_target')
+        query = QueryErase(source=source, operator=eraser, target=target, xy_tolerance=None)
+        with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
+            assert '16.477' in query.select
+            assert '(fid NOT IN ' in query.select_disjoint
+            assert '(fid IN ' in query.select_disjoint
+    # End test_extent method
+# End TestErase class
 
 
 class TestQueryIntersectPairwise:
