@@ -1355,10 +1355,10 @@ class TestSymmetricalDifference:
         ('transmission_l', 'transmission_zm_l', 21, 43),
         ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
-    def test_xy_tolerance_setting(self, ntdb_zm_tile, mem_gpkg, source_name,
-                                  operator_name, feature_count, field_count):
+    def test_xy_tolerance_setting_pairwise(self, ntdb_zm_tile, mem_gpkg, source_name,
+                                           operator_name, feature_count, field_count):
         """
-        Test sym diff using analysis settings for XY tolerance
+        Test sym diff using analysis settings for XY tolerance and pairwise algorithm
         """
         source = ntdb_zm_tile[source_name].copy(
             name=f'{source_name}_source', geopackage=mem_gpkg,
@@ -1373,7 +1373,7 @@ class TestSymmetricalDifference:
                 attribute_option=AttributeOption.ALL)
         assert len(result) == feature_count
         assert len(result.fields) == field_count
-    # End test_xy_tolerance_setting method
+    # End test_xy_tolerance_setting_pairwise method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 194, 42),
