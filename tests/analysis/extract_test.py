@@ -1195,7 +1195,7 @@ class TestSplit:
         ('utmzone_continentish_a', 708),
         ('utmzone_sparse_a', 228),
     ])
-    def test_split_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
+    def test_larger_inputs(self, inputs, world_features, mem_gpkg, name, count):
         """
         Test split using larger inputs
         """
