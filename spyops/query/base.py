@@ -26,7 +26,8 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
-    EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
+    EMPTY, IN, NOT_IN, QUESTION, SKIP_FILE_PREFIXES, SQL_EMPTY, SQL_FULL,
+    UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -135,8 +136,9 @@ class AbstractQuery(metaclass=ABCMeta):
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
             polygon = transform(transformer.transform, polygon)
             if not isfinite(polygon.bounds).all():
-                warn('Bad extent polygon after transformation, extent will '
-                     'be ignored', category=BadExtentWarning)
+                warn('\nBad extent polygon after transformation, '
+                     'extent will be ignored', category=BadExtentWarning,
+                     skip_file_prefixes=SKIP_FILE_PREFIXES)
         return polygon
     # End _get_extent_polygon method
 
