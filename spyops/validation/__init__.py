@@ -32,6 +32,14 @@ validate_result = ValidateResult
 validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
 
+# NOTE commonly used configurations
+validate_target_element = partial(
+    validate_element, name=TARGET, exists=False, is_output=True)
+validate_target_feature_class = partial(
+    validate_feature_class, name=TARGET, exists=False, is_output=True)
+validate_target_table = partial(
+    validate_table, name=TARGET, exists=False, is_output=True)
+
 
 if __name__ == '__main__':  # pragma: no cover
     pass
