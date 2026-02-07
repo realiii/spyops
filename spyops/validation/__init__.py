@@ -3,6 +3,10 @@
 Validation
 """
 
+
+from functools import partial
+
+from spyops.shared.constant import TARGET
 from spyops.validation.container import ValidateGeopackage
 from spyops.validation.crs import ValidateCRS
 from spyops.validation.element import (
