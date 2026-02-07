@@ -24,6 +24,9 @@ class ValidateGeopackage(AbstractValidateTypeExists):
     def __init__(self, name: str = GEOPACKAGE, *, exists: bool = True) -> None:
         """
         Initialize the ValidateGeopackage class
+
+        :param name: Name of the argument to validate
+        :param exists: Ensure that the specified geopackage exists
         """
         super().__init__(name=name, exists=exists)
     # End init built-in

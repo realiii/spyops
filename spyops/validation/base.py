@@ -58,6 +58,8 @@ class AbstractValidateArgument(AbstractValidate, metaclass=ABCMeta):
     def __init__(self, name: str) -> None:
         """
         Initialize the AbstractValidateArgument class
+
+        :param name: Name of the argument to validate
         """
         super().__init__()
         self._name: str = name
@@ -123,6 +125,9 @@ class AbstractValidateTypeExists(AbstractValidateType):
     def __init__(self, name: str, *, exists: bool = True) -> None:
         """
         Initialize the ValidateContent class
+
+        :param name: Name of the argument to validate
+        :param exists: Ensure that the specified item exists
         """
         super().__init__(name=name)
         self._exists: bool = exists
