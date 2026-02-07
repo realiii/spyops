@@ -11,6 +11,7 @@ from typing import Any, Callable, ClassVar
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.constant import PADDED_PIPE
+from spyops.shared.hint import GPKG
 
 
 class AbstractValidate(metaclass=ABCMeta):
@@ -84,8 +85,7 @@ class AbstractValidateType(AbstractValidateArgument, metaclass=ABCMeta):
     """
     _types: ClassVar[tuple[type, ...]] = ()
 
-    @staticmethod
-    def _check_element(obj: Any) -> Any:
+    def _check_element(self, obj: Any) -> Any:
         """
         Check Element
         """
@@ -93,8 +93,15 @@ class AbstractValidateType(AbstractValidateArgument, metaclass=ABCMeta):
             return obj
         if not (settings_gpkg := ANALYSIS_SETTINGS.current_workspace):
             return obj
-        return settings_gpkg[obj]
+        return self._by_name(obj, settings_gpkg)
     # End _check_element method
+
+    def _by_name(self, obj: str, geopackage: GPKG) -> Any:
+        """
+        Check for an element by Name
+        """
+        return geopackage[obj]
+    # End _by_name method
 
     def _validate_type(self, obj: Any) -> None:
         """

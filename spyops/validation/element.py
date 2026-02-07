@@ -11,7 +11,7 @@ from fudgeo import FeatureClass, MemoryGeoPackage, Table
 
 from spyops.shared.constant import PADDED_PIPE
 from spyops.shared.exception import OverwriteError
-from spyops.shared.hint import ELEMENT, NAMES
+from spyops.shared.hint import ELEMENT, GPKG, NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateTypeExists
 
 
@@ -20,12 +20,13 @@ class ValidateContent(AbstractValidateTypeExists):
     Validate Content
     """
     def __init__(self, name: str, *, exists: bool = True,
-                 has_content: bool = True) -> None:
+                 has_content: bool = True, is_output: bool = False) -> None:
         """
         Initialize the ValidateContent class
         """
         super().__init__(name=name, exists=exists)
         self._has_content: bool = has_content
+        self._is_output: bool = is_output
     # End init built-in
 
     def _validate_content(self, obj: Any) -> None:
@@ -46,6 +47,15 @@ class ValidateContent(AbstractValidateTypeExists):
         obj = super()._get_object(kwargs)
         return self._check_element(obj)
     # End _get_object method
+
+    def _by_name(self, obj: str, geopackage: GPKG) -> Any:
+        """
+        Check for an element by Name
+        """
+        if self._is_output:
+            return Table(geopackage=geopackage, name=obj)
+        return geopackage[obj]
+    # End _by_name method
 
     def _validation(self, obj: Any) -> None:
         """
@@ -79,13 +89,15 @@ class ValidateFeatureClass(ValidateContent):
     _types: ClassVar[tuple[type, ...]] = FeatureClass,
 
     def __init__(self, name: str, *, exists: bool = True,
-                 has_content: bool = True, geometry_types: NAMES = (),
+                 has_content: bool = True, is_output: bool = False,
+                 geometry_types: NAMES = (),
                  has_z: bool = False, has_m: bool = False,
                  add_index: bool = True) -> None:
         """
         Initialize the ValidateFeatureClass class
         """
-        super().__init__(name=name, exists=exists, has_content=has_content)
+        super().__init__(name=name, exists=exists, is_output=is_output,
+                         has_content=has_content)
         self._geometry_types: NAMES = geometry_types
         self._has_z: bool = has_z
         self._has_m: bool = has_m
