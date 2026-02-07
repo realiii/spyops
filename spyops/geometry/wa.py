@@ -87,7 +87,7 @@ def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
             is_polygon = isinstance(geometry, (Polygon, MultiPolygon))
             has_m = geometry.has_m
         if is_polygon and has_m:
-            warn(f'\nSetting precision on measured polygons changes the '
+            warn(f'Setting precision on measured polygons changes the '
                  f'measure value for the last point in the polygon. '
                  f'ref shapely/shapely#2402', category=ShapelyWarning,
                  skip_file_prefixes=SKIP_FILE_PREFIXES)

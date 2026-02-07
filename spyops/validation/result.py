@@ -51,11 +51,11 @@ def _check_output(element: ELEMENT) -> ELEMENT:
     """
     if not element:
         name = getattr(element, NAME_ATTR, 'Output result')
-        warn(f'\n{name} was not created', category=NoResultWarning,
+        warn(f'{name} was not created', category=NoResultWarning,
              skip_file_prefixes=SKIP_FILE_PREFIXES)
         return element
     if not len(element):
-        warn(f'\n{element.name} created but contains no rows',
+        warn(f'{element.name} created but contains no rows',
              category=EmptyResultWarning, skip_file_prefixes=SKIP_FILE_PREFIXES)
         return element
     return element

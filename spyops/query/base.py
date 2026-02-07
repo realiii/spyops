@@ -136,7 +136,7 @@ class AbstractQuery(metaclass=ABCMeta):
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
             polygon = transform(transformer.transform, polygon)
             if not isfinite(polygon.bounds).all():
-                warn('\nBad extent polygon after transformation, '
+                warn('Bad extent polygon after transformation, '
                      'extent will be ignored', category=BadExtentWarning,
                      skip_file_prefixes=SKIP_FILE_PREFIXES)
         return polygon

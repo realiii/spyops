@@ -74,7 +74,7 @@ class ValidateCRS(AbstractValidate):
                 crs.append(get_crs_from_source(feature_class))
             except CoordinateSystemNotSupportedError as err:
                 valid = False
-                warn(f'\n{feature_class.name} has an unsupported CRS\n{err}',
+                warn(f'{feature_class.name} has an unsupported CRS: {err}',
                      category=CoordinateSystemNotSupportedWarning,
                      skip_file_prefixes=SKIP_FILE_PREFIXES)
         if not valid:
