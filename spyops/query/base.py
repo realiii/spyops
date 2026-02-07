@@ -495,27 +495,6 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         return operator_box.intersection(source_box).bounds
     # End _shared_extent method
 
-    def _make_disjoint_select(self, element: FeatureClass) -> str:
-        """
-        Make Disjoint Select Statement using the input Element
-        and accounting for the analysis extent
-        """
-        extent_where = self._get_extent_where(element)
-        *_, field_names = self._field_names_and_count(element)
-        if not self.has_intersection:
-            return self._make_select(
-                element, field_names=field_names,
-                where_clause=extent_where or SQL_FULL)
-        if not (where := self._spatial_index_where(
-                element, extent=self._shared_extent(element))):  # pragma: no cover
-            return extent_where or SQL_FULL
-        where = where.format(NOT_IN)
-        if extent_where:
-            where = f'({where}) AND ({extent_where})'
-        return self._make_select(
-            element, field_names=field_names, where_clause=where)
-    # End _make_disjoint_select method
-
     def _get_extent_where(self, element: FeatureClass) -> str:
         """
         Get where clause that accounts for the analysis extent
