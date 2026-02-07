@@ -68,7 +68,7 @@ class UseGrids:
 # End UseGrids class
 
 
-@mark.parametrize('crs_from, crs_to, aoi, check_validity, expected, is_best, flag, throw', [
+@mark.parametrize('from_code, to_code, aoi, check_validity, expected, is_best, flag, throw', [
     (26714, 9311, None, False, 1, True, False, None),  # conversion only
     (26714, 32164, None, False, 1, False, False, None),  # transform, no grids
     (26714, 32164, None, False,  5, True, True, None),  # transform with grids
@@ -116,13 +116,13 @@ class UseGrids:
     (32665, 32065, AreaOfInterest(-90, 27, -89, 28), True, 6, True, False, None),
     (32665, 32065, AreaOfInterest(-90, 27, -89, 28), True, 6, True, True, None),
 ])
-def test_get_transforms(crs_from, crs_to, aoi, check_validity,
+def test_get_transforms(from_code, to_code, aoi, check_validity,
                         expected, is_best, flag, throw):
     """
     Test getting transform object lists
     """
     with UseGrids(flag):
-        crs1, crs2 = CRS(crs_from), CRS(crs_to)
+        crs1, crs2 = CRS(from_code), CRS(to_code)
         if throw is not None:
             with raises(throw):
                 get_transforms(crs1, crs2, aoi)
