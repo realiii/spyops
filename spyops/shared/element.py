@@ -16,6 +16,7 @@ from spyops.crs.transform import (
 from spyops.crs.util import crs_from_srs, srs_from_crs, validate_srs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, ZMConfig, zm_config
+from spyops.environment.util import get_geographic_transformation
 from spyops.geometry.config import geometry_config
 from spyops.shared.constant import QUESTION
 from spyops.shared.exception import OperationsError
@@ -37,7 +38,10 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
     else:
         srs = srs_from_crs(crs)
         source_crs = crs_from_srs(source.spatial_reference_system)
-        transformer = get_transform_best_guess(source_crs, crs)
+        if not (transformer := get_geographic_transformation(
+                source_crs=source_crs, target_crs=crs,
+                transformations=ANALYSIS_SETTINGS.geographic_transformations)):
+            transformer = get_transform_best_guess(source_crs, crs)
         transformer = make_transformer_function(
             source.shape_type, has_z=source.has_z, has_m=source.has_m,
             transformer=transformer)

@@ -26,7 +26,8 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
-    EMPTY, IN, NOT_IN, QUESTION, SQL_EMPTY, SQL_FULL, UNDERSCORE)
+    EMPTY, IN, NOT_IN, QUESTION, SKIP_FILE_PREFIXES, SQL_EMPTY, SQL_FULL,
+    UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -135,8 +136,9 @@ class AbstractQuery(metaclass=ABCMeta):
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
             polygon = transform(transformer.transform, polygon)
             if not isfinite(polygon.bounds).all():
-                warn('Bad extent polygon after transformation, extent will '
-                     'be ignored', category=BadExtentWarning)
+                warn('Bad extent polygon after transformation, '
+                     'extent will be ignored', category=BadExtentWarning,
+                     skip_file_prefixes=SKIP_FILE_PREFIXES)
         return polygon
     # End _get_extent_polygon method
 
@@ -481,38 +483,17 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         source_box = box(*self.source_extent, ccw=False)
         operator_box = box(*self.operator_extent, ccw=False)
         if element is self.source:
-            transformer = get_transform_best_guess(
-                self.operator_crs, self.source_crs)
+            transformer = self._get_transformer_or_guess(
+                from_crs=self.operator_crs, to_crs=self.source_crs)
             if transformer:
                 operator_box = transform(transformer.transform, operator_box)
         else:
-            transformer = get_transform_best_guess(
-                self.source_crs, self.operator_crs)
+            transformer = self._get_transformer_or_guess(
+                from_crs=self.source_crs, to_crs=self.operator_crs)
             if transformer:
                 source_box = transform(transformer.transform, source_box)
         return operator_box.intersection(source_box).bounds
     # End _shared_extent method
-
-    def _make_disjoint_select(self, element: FeatureClass) -> str:
-        """
-        Make Disjoint Select Statement using the input Element
-        and accounting for the analysis extent
-        """
-        extent_where = self._get_extent_where(element)
-        *_, field_names = self._field_names_and_count(element)
-        if not self.has_intersection:
-            return self._make_select(
-                element, field_names=field_names,
-                where_clause=extent_where or SQL_FULL)
-        if not (where := self._spatial_index_where(
-                element, extent=self._shared_extent(element))):  # pragma: no cover
-            return extent_where or SQL_FULL
-        where = where.format(NOT_IN)
-        if extent_where:
-            where = f'({where}) AND ({extent_where})'
-        return self._make_select(
-            element, field_names=field_names, where_clause=where)
-    # End _make_disjoint_select method
 
     def _get_extent_where(self, element: FeatureClass) -> str:
         """
@@ -534,8 +515,8 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Has Intersection between source and operator
         """
-        transformer = get_transform_best_guess(
-            self.operator_crs, self.source_crs)
+        transformer = self._get_transformer_or_guess(
+            from_crs=self.operator_crs, to_crs=self.source_crs)
         operator_box = box(*self.operator_extent, ccw=False)
         if transformer:
             operator_box = transform(transformer.transform, operator_box)

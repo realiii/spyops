@@ -7,7 +7,7 @@ Utility Functions
 from math import hypot
 from typing import Optional, TYPE_CHECKING
 
-from numpy import isnan
+from numpy import isfinite
 from pyproj import Transformer
 from shapely.creation import box
 from shapely.ops import transform
@@ -44,8 +44,8 @@ def _scale_factor(feature_class: 'FeatureClass') -> float:
     no scaling will occur.
     """
     extent = extent_from_feature_class(feature_class)
-    if isnan(extent).any():
-        return 1
+    if not isfinite(extent).all():
+        return 1.
     crs = get_crs_from_source(feature_class)
     pt = box(*extent, ccw=False).centroid
     if crs.is_projected:

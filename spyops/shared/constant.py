@@ -4,6 +4,12 @@ Constants
 """
 
 
+from pathlib import Path
+
+
+SKIP_FILE_PREFIXES: tuple[str, ...] = str(Path(__file__).parent.parent),
+
+
 QUESTION: str = '?'
 PIPE: str = '|'
 SPACE: str = ' '

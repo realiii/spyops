@@ -288,7 +288,8 @@ with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None):
 
 If the `source` and / or `operator` feature class(es) have different Spatial Reference Systems and 
 `geographic_transformations` (see below) are not specified then a "best guess" will be made as to the transformation
-needed to transform the `source` and / or `operator` feature class(es).
+needed to transform the `source` and / or `operator` feature class(es).  When a transformation guess is used, a 
+warning will be shown that describes the guess.
 
 #### Geographic Transformations
 The `geographic_transformations` setting can be used to specify transformations between coordinate systems and / or 

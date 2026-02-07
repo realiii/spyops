@@ -6,6 +6,7 @@ Transformation Helpers
 
 from functools import partial
 from typing import Callable, Optional, TYPE_CHECKING, Union
+from warnings import warn
 
 from numpy import array, isfinite
 from pyproj import CRS, Transformer
@@ -19,10 +20,10 @@ from spyops.crs.util import (
 from spyops.geometry.transform import GEOMETRY_TRANSFORM
 from spyops.shared.constant import (
     CRS_REQUIRED, HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, INVALID_AOI,
-    NO_TRANSFORMER, TRANSFORMER_KEY, UNSUPPORTED_CRS)
+    NO_TRANSFORMER, SKIP_FILE_PREFIXES, TRANSFORMER_KEY, UNSUPPORTED_CRS)
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError, InvalidAreaOfInterestError,
-    NoValidTransformerError)
+    NoValidTransformerError, TransformationGuessWarning)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -103,10 +104,17 @@ def get_transform_best_guess(source_crs: CRS, target_crs: CRS) -> Transformer | 
         return None
     is_required, best, options = get_transforms(
         source_crs, target_crs, check_validity=False)
-    if not is_required or best:
-        return best
-    first, *_ = options
-    return first.transformer
+    if not is_required:
+        return None
+    if not best:
+        first, *_ = options
+        best = first.transformer
+    warn(f'Guessed best geographic transformation from CRS '
+         f'{source_crs.name!r} to CRS {target_crs.name!r} using:'
+         f'{best.description!r}',
+         category=TransformationGuessWarning,
+         skip_file_prefixes=SKIP_FILE_PREFIXES)
+    return best
 # End get_transform_best_guess function
 
 
