@@ -33,7 +33,8 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
     """
     Create Table
 
-    Create a new table in a geopackage with specified fields
+    Create a new table in a geopackage with specified fields and
+    optional description.
     """
     overwrite = ANALYSIS_SETTINGS.overwrite
     name = make_valid_name(name, prefix='tbl')
