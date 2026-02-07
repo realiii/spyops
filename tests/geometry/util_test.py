@@ -14,6 +14,7 @@ from shapely import (
     MultiPolygon, get_coordinates, from_wkt)
 from shapely.geometry.base import GeometrySequence
 
+from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
     find_slice_indexes, get_geoms, get_geoms_iter,
     nada, to_shapely)
@@ -96,11 +97,16 @@ def test_get_geoms_iter(geom, expected_count, expected_type):
     ([(Point(x=0.0, y=0.0, srs_id=WGS84),)], 1, ShapelyPoint),
     ([(Point(x=1.0, y=2.0, srs_id=WGS84),), (Point(x=3.0, y=4.0, srs_id=WGS84),)], 2, ShapelyPoint),
 ])
-def test_to_shapely(features, expected_count, expected_type):
+@mark.parametrize('option', [
+    DimensionOption.TWO_D,
+    DimensionOption.THREE_D,
+    DimensionOption.SAME,
+])
+def test_to_shapely(features, expected_count, expected_type, option):
     """
     Test to_shapely conversion from Fudgeo to Shapely geometries
     """
-    _, geometries = to_shapely(features, transformer=None)
+    _, geometries = to_shapely(features, transformer=None, option=option)
     assert isinstance(geometries, ndarray)
     assert len(geometries) == expected_count
     assert all(isinstance(geom, expected_type) for geom in geometries)
