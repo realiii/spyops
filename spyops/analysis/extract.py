@@ -11,7 +11,6 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from spyops.analysis.util import _clip, _split_by_attributes
-from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.analysis.extract import QuerySelect, QuerySplit
 from spyops.shared.constant import (
     FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET, UNDERSCORE)
