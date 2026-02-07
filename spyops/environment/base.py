@@ -45,7 +45,7 @@ class Extent:
         """
         Equality
         """
-        if not isinstance(other, Extent):
+        if not isinstance(other, Extent):  # pragma: no cover
             return NotImplemented
         return self.polygon == other.polygon and self.crs == other.crs
     # End eq built-in

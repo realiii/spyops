@@ -38,7 +38,7 @@ class _Workspace:
         """
         try:
             return Path(gettempdir())
-        except FileNotFoundError:
+        except FileNotFoundError:  # pragma: no cover
             return None
     # End _get_temp_path method
 

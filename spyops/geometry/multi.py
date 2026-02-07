@@ -46,7 +46,7 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
     elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
         return _multi_polygon(
             features, select_sql=select_sql, transformer=transformer)
-    else:
+    else:  # pragma: no cover
         raise ValueError(f'Unsupported shape type: {shape_type}')
 # End build_multi function
 
