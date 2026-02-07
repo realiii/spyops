@@ -109,8 +109,9 @@ def get_transform_best_guess(source_crs: CRS, target_crs: CRS) -> Transformer | 
     if not best:
         first, *_ = options
         best = first.transformer
-    warn(f'\nGuessed best geographic transformation between source CRS '
-         f'{source_crs.name} and {target_crs.name} as {best.description}',
+    warn(f'Guessed best geographic transformation from CRS '
+         f'{source_crs.name!r} to CRS {target_crs.name!r} using:'
+         f'{best.description!r}',
          category=TransformationGuessWarning,
          skip_file_prefixes=SKIP_FILE_PREFIXES)
     return best
