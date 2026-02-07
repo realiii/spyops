@@ -111,6 +111,14 @@ def test_transform_polygon_invalid():
 # End test_transform_polygon_invalid function
 
 
+def test_get_validity():
+    """
+    Test get_validity, no transformer
+    """
+    assert get_validity([1, 2, 3], None).tolist() == [True, True, True]
+# End test_get_validity function
+
+
 @mark.parametrize('wkt', [
     'Polygon ((0 0 0 0, 1 1 1 1, 0 1 2 3, 1 0 4 5, 0 0 0 0))',
     'Polygon ((0 0 0 0, 0 0 0 0, 0 0 0 0, 0 0 0 0, 0 0 0 0))',
