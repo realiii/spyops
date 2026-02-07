@@ -25,7 +25,7 @@ from spyops.environment.context import Swap
 from tests.util import UseGrids
 
 
-pytestmark = [mark.overlay, mark.query]
+pytestmark = [mark.overlay, mark.analysis]
 
 
 class TestErase:

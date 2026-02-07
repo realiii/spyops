@@ -10,6 +10,9 @@ from shapely import force_2d
 from shapely import LineString, Polygon, Point, MultiPoint
 
 
+pytestmark = [mark.geometry]
+
+
 @fixture(scope='module')
 def poly_a() -> Polygon:
     """
