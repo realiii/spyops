@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.constant import SOURCE
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
+from spyops.shared.util import make_valid_name
 from spyops.validation import validate_element, validate_geopackage
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -35,6 +36,7 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
     Create a new table in a geopackage with specified fields
     """
     overwrite = ANALYSIS_SETTINGS.overwrite
+    name = make_valid_name(name, prefix='tbl')
     return geopackage.create_table(
         name, fields=fields, description=description, overwrite=overwrite)
 # End create_table function
