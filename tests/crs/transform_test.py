@@ -6,6 +6,7 @@ Tests for Transformation Helpers
 
 from os.path import pathsep
 from pathlib import Path
+from warnings import simplefilter, catch_warnings
 
 from pyproj import CRS, Transformer
 from pyproj.aoi import AreaOfInterest
@@ -13,11 +14,11 @@ from pyproj.datadir import append_data_dir, get_data_dir, set_data_dir
 from pytest import mark, raises
 
 from spyops.crs.transform import (
-    get_transforms, _validate_crs_for_transform, _validate_aoi_for_crs,
-    _make_boxes)
+    get_transform_best_guess, get_transforms, _validate_crs_for_transform,
+    _validate_aoi_for_crs, _make_boxes)
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError,
-    InvalidAreaOfInterestError, NoValidTransformerError)
+    InvalidAreaOfInterestError, NoValidTransformerError, OperationsWarning)
 
 
 pytestmark = [mark.crs]
@@ -140,6 +141,29 @@ def test_get_transforms(from_code, to_code, aoi, check_validity,
         assert isinstance(best, bool)
         assert is_best is best
 # End test_get_transforms function
+
+
+@mark.parametrize('from_code, to_code, flag, has_warning', [
+    (4326, 4326, False, False),
+    (26714, 32164, False, True),
+    (4267, 4326, False, True),
+    (32665, 32065, False, True),
+    (26714, 32164, True, True),
+    (4267, 4326, True, True),
+    (32665, 32065, True, True),
+])
+def test_get_transform_best_guess(from_code, to_code, flag, has_warning):
+    """
+    Test get_transform_best_guess
+    """
+    with catch_warnings(record=True) as ws:
+        simplefilter('always')
+        with UseGrids(flag):
+            get_transform_best_guess(source_crs=CRS(from_code), target_crs=CRS(to_code))
+            if has_warning:
+                assert len(ws) == 2 - flag
+                assert issubclass(ws[-1].category, OperationsWarning)
+# End test_get_transform_best_guess function
 
 
 @mark.parametrize('crs, expected, throw', [
