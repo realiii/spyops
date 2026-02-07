@@ -4,8 +4,12 @@ Tests for Indexes
 """
 
 from fudgeo.enumeration import ShapeType
+from pytest import mark
 
 from spyops.management import add_spatial_index, remove_spatial_index
+
+
+pytestmark = [mark.management, mark.indexes]
 
 
 def test_add_spatial_index(mem_gpkg):

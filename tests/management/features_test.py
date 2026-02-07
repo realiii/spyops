@@ -20,6 +20,9 @@ from spyops.shared.field import ORIG_FID
 from tests.util import UseGrids
 
 
+pytestmark = [mark.management, mark.features]
+
+
 class TestMultiPartToSinglePart:
     """
     Test multipart to single part

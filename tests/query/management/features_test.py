@@ -13,7 +13,7 @@ from spyops.environment.context import Swap
 from spyops.query.management.features import QueryMultiPartToSinglePart
 
 
-pytestmark = [mark.features, mark.query]
+pytestmark = [mark.features, mark.query, mark.management]
 
 
 class TestQueryMultiPartToSinglePart:

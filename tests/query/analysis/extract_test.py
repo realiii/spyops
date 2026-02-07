@@ -17,7 +17,7 @@ from spyops.query.analysis.extract import (
 from spyops.geometry.config import GeometryConfig
 
 
-pytestmark = [mark.extract, mark.query]
+pytestmark = [mark.extract, mark.query, mark.analysis]
 
 
 class TestQuerySelect:

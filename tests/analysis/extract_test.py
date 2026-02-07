@@ -25,7 +25,7 @@ from spyops.environment.context import Swap
 from tests.util import UseGrids
 
 
-pytestmark = [mark.extract]
+pytestmark = [mark.extract, mark.analysis]
 
 
 class TestTableSelect:

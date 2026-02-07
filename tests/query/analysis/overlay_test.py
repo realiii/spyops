@@ -23,7 +23,7 @@ from spyops.query.analysis.overlay import (
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 
-pytestmark = [mark.overlay, mark.query]
+pytestmark = [mark.overlay, mark.query, mark.analysis]
 
 
 class TestErase:
