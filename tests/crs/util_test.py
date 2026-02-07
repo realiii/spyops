@@ -77,6 +77,7 @@ def test_check_same_crs():
     """
     Check Same CRS
     """
+    check_same_crs(CRS(4326), CRS(4326))
     with raises(OperationsError):
         check_same_crs(CRS(4326), CRS(8780))
 # End test_check_same_crs function
