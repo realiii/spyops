@@ -14,7 +14,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['add_spatial_index']
+__all__ = ['add_spatial_index', 'remove_spatial_index']
 
 
 @validate_result()
@@ -29,6 +29,20 @@ def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     source.add_spatial_index()
     return source
 # End add_spatial_index function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, has_content=False)
+def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
+    """
+    Remove Spatial Index
+
+    Removes the spatial index from the input feature class.  If no spatial
+    index exists, no action is taken.
+    """
+    source.remove_spatial_index()
+    return source
+# End remove_spatial_index function
 
 
 if __name__ == '__main__':  # pragma: no cover
