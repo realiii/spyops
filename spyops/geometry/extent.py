@@ -39,7 +39,7 @@ def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     extent = feature_class.extent
     if isfinite(extent).all():
         return extent
-    extent = _extent_from_index_or_geometry(feature_class)
+    extent = extent_from_index_or_geometry(feature_class)
     if isfinite(extent).all():
         return extent
     else:  # pragma: no cover
@@ -69,7 +69,7 @@ def _extent_from_spatial_index(feature_class: 'FeatureClass') -> EXTENT:
 # End _extent_from_spatial_index function
 
 
-def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
+def extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
     """
     Get the Extent from the Spatial Index, fail over to the extent derived
     from geometries.
@@ -79,7 +79,7 @@ def _extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
         return extent
     else:  # pragma: no cover
         return get_extent(feature_class)
-# End _extent_from_index_or_geometry function
+# End extent_from_index_or_geometry function
 
 
 if __name__ == '__main__':  # pragma: no cover
