@@ -4,7 +4,7 @@ Data Management for Tables
 """
 
 
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.constant import SOURCE
@@ -18,7 +18,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Table
 
 
-__all__ = ['get_count', 'create_table', 'delete_rows']
+__all__ = ['get_count', 'create_table', 'delete_rows', 'truncate_table']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -58,6 +58,10 @@ def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     source.delete(where_clause=where_clause)
     return source
 # End delete_rows function
+
+
+# Aliases
+truncate_table: Callable[[ELEMENT, str], ELEMENT] = delete_rows
 
 
 if __name__ == '__main__':  # pragma: no cover
