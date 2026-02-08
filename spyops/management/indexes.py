@@ -42,7 +42,7 @@ def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     Removes the spatial index from the input feature class.  If no spatial
     index exists, no action is taken.
     """
-    source.remove_spatial_index()
+    source.drop_spatial_index()
     return source
 # End remove_spatial_index function
 
@@ -74,7 +74,7 @@ def remove_attribute_index(source: ELEMENT, name: str) -> ELEMENT:
     Removes the attribute index from the input table or feature class.  If no
     attribute index exists, no action is taken.
     """
-    source.remove_attribute_index(name)
+    source.drop_attribute_index(name)
     return source
 # End remove_attribute_index function
 
