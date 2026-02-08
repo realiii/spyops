@@ -13,17 +13,18 @@ from spyops.geometry.util import filter_features
 from spyops.query.management.features import QueryMultiPartToSinglePart
 from spyops.shared.constant import SOURCE, TARGET
 from spyops.shared.field import GEOM_TYPE_MULTI
+from spyops.shared.hint import ELEMENT
 from spyops.shared.records import insert_many
 from spyops.validation import (
-    validate_feature_class, validate_overwrite_input, validate_result,
-    validate_target_feature_class)
+    validate_element, validate_feature_class, validate_overwrite_input,
+    validate_result, validate_target_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['multipart_to_singlepart', 'explode']
+__all__ = ['multipart_to_singlepart', 'explode', 'delete_features']
 
 
 @validate_result()
@@ -60,6 +61,19 @@ def multipart_to_singlepart(source: 'FeatureClass',
             parts.clear()
     return query.target
 # End multipart_to_singlepart function
+
+
+@validate_result()
+@validate_element(SOURCE, has_content=False)
+def delete_features(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
+    """
+    Delete rows from a Table or Feature Class
+
+    Deletes rows from a table or feature class using a where clause (optional).
+    """
+    source.delete(where_clause=where_clause)
+    return source
+# End delete_features function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
