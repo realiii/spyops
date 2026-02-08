@@ -52,6 +52,8 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
 def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     """
     Delete rows from a Table or Feature Class
+
+    Deletes rows from a table or feature class using a where clause (optional).
     """
     source.delete(where_clause=where_clause)
     return source
