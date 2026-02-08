@@ -49,7 +49,22 @@ MIT
 * added `intersect` (Analysis - Overlay)
 * added `symmetrical_difference` (Analysis - Overlay)
 * added `union` (Analysis - Overlay)
+* added `delete_features` (Management - Features)
 * added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
+* added `create_feature_class` (Management - Feature Class)
+* added `recalculate_feature_class_extent` (Management - Feature Class)
+* added `add_field` (Management - Fields) with support for multiple
+* added `calculate_field` (Management - Fields)
+* added `delete_field` (Management - Fields)
+* added `copy` (Management - General)
+* added `delete` (Management - General) with support for multiple
+* added `add_attribute_index` (Management - Indexes)
+* added `add_spatial_index` (Management - Indexes)
+* added `remove_attribute_index` (Management - Indexes)
+* added `remove_spatial_index` (Management - Indexes)
+* added `create_table` (Management - Table)
+* added `delete_rows` (Management - Table) and aliased as `truncate_table`
+* added `get_count` (Management - Table)
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
