@@ -23,6 +23,11 @@ class ValidateContent(AbstractValidateTypeExists):
                  has_content: bool = True, is_output: bool = False) -> None:
         """
         Initialize the ValidateContent class
+
+        :param name: Name of the argument to validate
+        :param exists: Ensure that the specified item exists
+        :param has_content: Ensure that the specified item has content
+        :param is_output: Distinguish between input and output items
         """
         super().__init__(name=name, exists=exists)
         self._has_content: bool = has_content
@@ -72,6 +77,46 @@ class ValidateElement(ValidateContent):
     """
     _types: ClassVar[tuple[type, ...]] = FeatureClass, Table
 # End ValidateElement class
+
+
+class ValidateElements(ValidateElement):
+    """
+    Validate Elements
+    """
+    def _get_object(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        obj = []
+        for o in self._make_iterable(super()._get_object(kwargs)):
+            obj.append(self._check_element(o))
+        return obj
+    # End _get_object method
+
+    def _validate_exists(self, obj: Any) -> None:
+        """
+        Validate Exists
+        """
+        for o in obj:
+            super()._validate_exists(o)
+    # End _validate_exists method
+
+    def _validate_type(self, obj: Any) -> None:
+        """
+        Validate Type
+        """
+        for o in obj:
+            super()._validate_type(o)
+    # End _validate_type method
+
+    def _validation(self, obj: Any) -> None:
+        """
+        Validation
+        """
+        for o in obj:
+            self._validate_content(o)
+    # End _validation method
+# End ValidateElements class
 
 
 class ValidateTable(ValidateContent):
