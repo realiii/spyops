@@ -24,8 +24,20 @@ tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 MIT
 
-## Release History
 
+## Capabilities
+* [Analysis - Extract](https://github.com/realiii/spyops/wiki/Analysis#extract)
+* [Analysis - Overlay](https://github.com/realiii/spyops/wiki/Analysis#overlay)
+* [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
+* [Management - Feature Class](https://github.com/realiii/spyops/wiki/Data-Management#feature-class)
+* [Management - Fields](https://github.com/realiii/spyops/wiki/Data-Management#fields)
+* [Management - General](https://github.com/realiii/spyops/wiki/Data-Management#general)
+* [Management - Indexes](https://github.com/realiii/spyops/wiki/Data-Management#indexes)
+* [Management - Table](https://github.com/realiii/spyops/wiki/Data-Management#table)
+* [Settings](https://github.com/realiii/spyops/wiki/Settings)
+
+
+## Release History
 ### v0.0.1
 * internal release
 * added `clip` (Analysis - Extract)
@@ -37,7 +49,7 @@ MIT
 * added `intersect` (Analysis - Overlay)
 * added `symmetrical_difference` (Analysis - Overlay)
 * added `union` (Analysis - Overlay)
-* added `multipart_to_singlepart` (Management - Features) and alias as `explode`
+* added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
 * Settings support for `overwrite`
 * Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 * Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
