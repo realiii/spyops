@@ -16,7 +16,7 @@ from spyops.validation import (
     validate_element, validate_elements, validate_field)
 
 
-__all__ = ['delete_field', 'add_fields', 'calculate_field']
+__all__ = ['delete_field', 'add_field', 'calculate_field']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -35,8 +35,8 @@ def delete_field(source: ELEMENT, fields: FIELDS | FIELD_NAMES) -> ELEMENT:
 @validate_element(SOURCE, has_content=False)
 @validate_field(FIELDS_ARG, exists=False)
 @validate_elements(ELEMENTS_ARG, has_content=False)
-def add_fields(source: ELEMENT, *, fields: FIELDS = (),
-               elements: ELEMENTS = ()) -> ELEMENT:
+def add_field(source: ELEMENT, *, fields: FIELDS = (),
+              elements: ELEMENTS = ()) -> ELEMENT:
     """
     Add Fields to a Table or Feature Class
 
@@ -56,7 +56,7 @@ def add_fields(source: ELEMENT, *, fields: FIELDS = (),
         grouped[field.name.casefold()].append(field)
     source.add_fields([f for f, *_ in grouped.values()])
     return source
-# End add_fields function
+# End add_field function
 
 
 @validate_element(SOURCE)

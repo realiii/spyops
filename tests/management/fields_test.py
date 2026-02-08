@@ -7,7 +7,7 @@ Tests for Fields
 from fudgeo import Field
 from pytest import mark
 
-from spyops.management import add_fields, calculate_field, delete_field
+from spyops.management import add_field, calculate_field, delete_field
 
 pytestmark = [mark.management, mark.field]
 
@@ -31,25 +31,25 @@ def test_delete_field(world_tables, mem_gpkg):
 
 def test_add_fields(world_tables, mem_gpkg):
     """
-    Test add_fields
+    Test add_field
     """
     name = 'admin'
     table = world_tables[name].copy(
         name=name, geopackage=mem_gpkg, where_clause='ISO_CC = "BR"')
     assert len(table.fields) == 16
-    add_fields(table)
+    add_field(table)
     assert len(table.fields) == 16
-    add_fields(table, elements=table)
+    add_field(table, elements=table)
     assert len(table.fields) == 16
-    add_fields(table, elements=world_tables['cities'])
+    add_field(table, elements=world_tables['cities'])
     assert len(table.fields) == 27
-    add_fields(table, fields=Field('pop_est', data_type='REAL'))
+    add_field(table, fields=Field('pop_est', data_type='REAL'))
     assert len(table.fields) == 28
-    add_fields(table, fields=[Field('pop_est', data_type='REAL'),
-                              Field('pop_density', data_type='REAL')])
+    add_field(table, fields=[Field('pop_est', data_type='REAL'),
+                             Field('pop_density', data_type='REAL')])
     assert len(table.fields) == 29
-    add_fields(table, elements=[world_tables['cities'],
-                                world_tables['disputed_boundaries']])
+    add_field(table, elements=[world_tables['cities'],
+                               world_tables['disputed_boundaries']])
     assert len(table.fields) == 30
 # End test_add_fields function
 
