@@ -17,7 +17,6 @@ if TYPE_CHECKING:  # pragma: no cover
 __all__ = ['add_spatial_index', 'remove_spatial_index']
 
 
-@validate_result()
 @validate_feature_class(SOURCE, has_content=False)
 def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     """
@@ -31,7 +30,6 @@ def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
 # End add_spatial_index function
 
 
-@validate_result()
 @validate_feature_class(SOURCE, has_content=False)
 def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     """
