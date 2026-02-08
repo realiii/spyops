@@ -4,9 +4,10 @@ Tests for Fields
 """
 
 
+from fudgeo import Field
 from pytest import mark
 
-from spyops.management import delete_field
+from spyops.management import add_fields, delete_field
 
 pytestmark = [mark.management, mark.field]
 
@@ -26,6 +27,29 @@ def test_delete_field(world_tables, mem_gpkg):
     delete_field(table, fields=['disputed', 'notes'])
     assert len(table.fields) == 12
 # End test_delete_field function
+
+
+def test_add_fields(world_tables, mem_gpkg):
+    """
+    Test add_fields
+    """
+    name = 'admin'
+    table = world_tables[name].copy(
+        name=name, geopackage=mem_gpkg, where_clause='ISO_CC = "BR"')
+    assert len(table.fields) == 16
+    add_fields(table)
+    assert len(table.fields) == 16
+    add_fields(table, elements=table)
+    assert len(table.fields) == 16
+    add_fields(table, elements=world_tables['cities'])
+    assert len(table.fields) == 27
+    add_fields(table, fields=Field('pop_est', data_type='REAL'))
+    assert len(table.fields) == 28
+    add_fields(table, fields=[Field('pop_est', data_type='REAL'), Field('pop_density', data_type='REAL')])
+    assert len(table.fields) == 29
+    add_fields(table, elements=[world_tables['cities'], world_tables['disputed_boundaries']])
+    assert len(table.fields) == 30
+# End test_add_fields function
 
 
 if __name__ == '__main__':  # pragma: no cover

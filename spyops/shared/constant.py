@@ -62,6 +62,7 @@ METRE: str = 'metre'
 
 FIELD: str = 'field'
 FIELDS_ARG: str = 'fields'
+ELEMENTS_ARG: str = 'elements'
 SOURCE: str = 'source'
 OPERATOR: str = 'operator'
 TARGET: str = 'target'
