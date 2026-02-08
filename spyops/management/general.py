@@ -14,6 +14,9 @@ from spyops.validation import (
     validate_target_element)
 
 
+__all__ = ['copy', 'delete']
+
+
 @validate_element(SOURCE, has_content=False)
 @validate_target_element()
 @validate_overwrite_input(TARGET, SOURCE)
