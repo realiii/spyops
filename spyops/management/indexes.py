@@ -6,18 +6,20 @@ Data Management for Indexes
 
 from typing import TYPE_CHECKING
 
-from spyops.shared.constant import SOURCE
-from spyops.validation import validate_feature_class, validate_result
+from spyops.shared.constant import INDEX_FIELDS, SOURCE
+from spyops.shared.field import TEXT_AND_NUMBERS
+from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES
+from spyops.validation import (
+    validate_element, validate_feature_class, validate_field)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['add_spatial_index', 'remove_spatial_index']
+__all__ = ['add_spatial_index', 'remove_spatial_index', 'add_attribute_index']
 
 
-@validate_result()
 @validate_feature_class(SOURCE, has_content=False)
 def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     """
@@ -31,7 +33,6 @@ def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
 # End add_spatial_index function
 
 
-@validate_result()
 @validate_feature_class(SOURCE, has_content=False)
 def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     """
@@ -43,6 +44,25 @@ def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     source.remove_spatial_index()
     return source
 # End remove_spatial_index function
+
+
+@validate_element(SOURCE, has_content=False)
+@validate_field(INDEX_FIELDS, data_types=TEXT_AND_NUMBERS, element_name=SOURCE)
+def add_attribute_index(source: ELEMENT, name: str,
+                        index_fields: FIELDS | FIELD_NAMES, *,
+                        is_unique: bool = False,
+                        is_ascending: bool = True) -> ELEMENT:
+    """
+    Add Attribute Index
+
+    Creates an attribute index on the input table or feature class.  If an
+    attribute index already exists, it is not recreated.
+    """
+    source.add_attribute_index(
+        name=name, fields=index_fields, is_unique=is_unique,
+        is_ascending=is_ascending)
+    return source
+# End add_attribute_index function
 
 
 if __name__ == '__main__':  # pragma: no cover
