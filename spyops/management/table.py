@@ -10,10 +10,15 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.constant import SOURCE
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
 from spyops.shared.util import make_valid_name
-from spyops.validation import validate_element, validate_geopackage
+from spyops.validation import (
+    validate_element, validate_geopackage)
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Table
+
+
+__all__ = ['get_count', 'create_table', 'delete_rows']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -41,6 +46,16 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
     return geopackage.create_table(
         name, fields=fields, description=description, overwrite=overwrite)
 # End create_table function
+
+
+@validate_element(SOURCE, has_content=False)
+def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
+    """
+    Delete rows from a Table or Feature Class
+    """
+    source.delete(where_clause=where_clause)
+    return source
+# End delete_rows function
 
 
 if __name__ == '__main__':  # pragma: no cover

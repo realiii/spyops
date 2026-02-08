@@ -8,7 +8,7 @@ from spyops.management.feature_class import recalculate_feature_class_extent
 from spyops.management.features import multipart_to_singlepart, explode
 from spyops.management.general import copy, delete
 from spyops.management.indexes import add_spatial_index, remove_spatial_index
-from spyops.management.table import get_count, create_table
+from spyops.management.table import get_count, create_table, delete_rows
 
 
 __all__ = [
@@ -21,6 +21,7 @@ __all__ = [
     'copy',
     'recalculate_feature_class_extent',
     'delete',
+    'delete_rows',
 ]
 
 
