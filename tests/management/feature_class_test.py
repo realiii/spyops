@@ -2,15 +2,15 @@
 """
 Tests for Feature Class
 """
-from fudgeo import FeatureClass, GeoPackage
+
+
+from fudgeo import FeatureClass
 from fudgeo.constant import FID, SHAPE
 from numpy import isfinite
 from pytest import approx, mark
 
-from spyops.management import delete_features
 from spyops.management.feature_class import (
-    create_feature_class,
-    recalculate_feature_class_extent)
+    create_feature_class, recalculate_feature_class_extent)
 
 
 pytestmark = [mark.management, mark.feature_class]
@@ -41,27 +41,6 @@ def test_create_feature_class(mem_gpkg):
     assert result.name == 'test_fc'
     assert [f.name for f in result.fields] == [FID, SHAPE]
 # End test_create_feature_class function
-
-
-def test_delete_features(grid_index, fresh_gpkg):
-    """
-    Test delete_features
-    """
-    name = 'grid_a_copy'
-    grid = grid_index['grid_a'].copy(name, geopackage=fresh_gpkg)
-    assert len(grid) == 8
-    delete_features(grid, where_clause='FID >= 5')
-    assert len(grid) == 4
-    delete_features(grid)
-    assert len(grid) == 0
-    path = fresh_gpkg.path
-    assert path.exists()
-    fresh_gpkg.connection.close()
-    gpkg = GeoPackage(path)
-    fc = gpkg[name]
-    assert fc
-    assert fc.is_empty
-# End test_delete_features function
 
 
 if __name__ == '__main__':  # pragma: no cover

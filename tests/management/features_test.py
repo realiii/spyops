@@ -4,7 +4,7 @@ Tests for Features
 """
 
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, GeoPackage
 from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx
@@ -13,7 +13,7 @@ from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
-from spyops.management import multipart_to_singlepart
+from spyops.management import delete_features, multipart_to_singlepart
 from spyops.shared.constant import EPSG, ESRI
 from spyops.shared.field import ORIG_FID
 
@@ -142,6 +142,27 @@ class TestMultiPartToSinglePart:
             assert len(result) == post_count
     # End test_output_crs method
 # End TestMultiPartToSinglePart class
+
+
+def test_delete_features(grid_index, fresh_gpkg):
+    """
+    Test delete_features
+    """
+    name = 'grid_a_copy'
+    grid = grid_index['grid_a'].copy(name, geopackage=fresh_gpkg)
+    assert len(grid) == 8
+    delete_features(grid, where_clause='FID >= 5')
+    assert len(grid) == 4
+    delete_features(grid)
+    assert len(grid) == 0
+    path = fresh_gpkg.path
+    assert path.exists()
+    fresh_gpkg.connection.close()
+    gpkg = GeoPackage(path)
+    fc = gpkg[name]
+    assert fc
+    assert fc.is_empty
+# End test_delete_features function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -4,9 +4,10 @@ Package Initialization
 """
 
 from spyops.management.feature_class import (
-    delete_features, recalculate_feature_class_extent)
-from spyops.management.features import explode, multipart_to_singlepart
-from spyops.management.fields import add_fields, calculate_field, delete_field
+    create_feature_class, recalculate_feature_class_extent)
+from spyops.management.features import (
+    delete_features, explode, multipart_to_singlepart)
+from spyops.management.fields import add_field, calculate_field, delete_field
 from spyops.management.general import copy, delete
 from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
@@ -31,8 +32,9 @@ __all__ = [
     'add_attribute_index',
     'remove_attribute_index',
     'delete_field',
-    'add_fields',
+    'add_field',
     'calculate_field',
+    'create_feature_class',
 ]
 
 
