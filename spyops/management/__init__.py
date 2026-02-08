@@ -8,7 +8,8 @@ from spyops.management.feature_class import (
 from spyops.management.features import explode, multipart_to_singlepart
 from spyops.management.general import copy, delete
 from spyops.management.indexes import (
-    add_attribute_index, add_spatial_index, remove_spatial_index)
+    add_attribute_index, add_spatial_index, remove_attribute_index,
+    remove_spatial_index)
 from spyops.management.table import (
     create_table, delete_rows, get_count, truncate_table)
 
@@ -27,6 +28,7 @@ __all__ = [
     'delete_features',
     'truncate_table',
     'add_attribute_index',
+    'remove_attribute_index',
 ]
 
 

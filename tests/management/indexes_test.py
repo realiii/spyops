@@ -9,7 +9,9 @@ from sqlite3 import IntegrityError
 from fudgeo.enumeration import ShapeType
 from pytest import mark, raises
 
-from spyops.management import add_spatial_index, remove_spatial_index
+from spyops.management import (
+    add_spatial_index, remove_attribute_index,
+    remove_spatial_index)
 from spyops.management.indexes import add_attribute_index
 
 
@@ -74,6 +76,25 @@ def test_add_attribute_index(world_tables, mem_gpkg, is_ascending, is_unique):
         assert result is table
         assert table._check_index_exists(index_name)
 # End test_add_attribute_index function
+
+
+def test_remove_attribute_index(world_tables, mem_gpkg):
+    """
+    Test remove_attribute_index
+    """
+    name = 'admin'
+    table = world_tables[name].copy(
+        name=name, geopackage=mem_gpkg, where_clause='ISO_CC = "BR"')
+    assert len(table) == 62
+    index_name = 'test_index'
+    field_names = ['NAME', 'ISO_CC']
+    assert not table._check_index_exists(index_name)
+    add_attribute_index(table, index_name, index_fields=field_names)
+    assert table._check_index_exists(index_name)
+    remove_attribute_index(table, 'asdf')
+    remove_attribute_index(table, index_name)
+    assert not table._check_index_exists(index_name)
+# End remove_attribute_index function
 
 
 if __name__ == '__main__':  # pragma: no cover

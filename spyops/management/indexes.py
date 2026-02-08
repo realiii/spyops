@@ -17,7 +17,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['add_spatial_index', 'remove_spatial_index', 'add_attribute_index']
+__all__ = ['add_spatial_index', 'remove_spatial_index', 'add_attribute_index',
+           'remove_attribute_index']
 
 
 @validate_feature_class(SOURCE, has_content=False)
@@ -59,10 +60,23 @@ def add_attribute_index(source: ELEMENT, name: str,
     attribute index already exists, it is not recreated.
     """
     source.add_attribute_index(
-        name=name, fields=index_fields, is_unique=is_unique,
+        name, fields=index_fields, is_unique=is_unique,
         is_ascending=is_ascending)
     return source
 # End add_attribute_index function
+
+
+@validate_element(SOURCE, has_content=False)
+def remove_attribute_index(source: ELEMENT, name: str) -> ELEMENT:
+    """
+    Remove Attribute Index
+
+    Removes the attribute index from the input table or feature class.  If no
+    attribute index exists, no action is taken.
+    """
+    source.remove_attribute_index(name)
+    return source
+# End remove_attribute_index function
 
 
 if __name__ == '__main__':  # pragma: no cover
