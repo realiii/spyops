@@ -27,6 +27,9 @@ class ValidateCRS(AbstractValidate):
     def __init__(self, *names: str, same: bool = False) -> None:
         """
         Initialize the ValidateCRS class
+
+        :param names: Names of the argument to validate
+        :param same: Coordinate Reference Systems must be the same
         """
         super().__init__()
         self._names: NAMES = names

@@ -21,6 +21,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, SpatialReferenceSystem
 
 
+__all__ = ['recalculate_feature_class_extent', 'create_feature_class']
+
+
 @validate_feature_class(SOURCE)
 def recalculate_feature_class_extent(source: 'FeatureClass') -> 'FeatureClass':
     """

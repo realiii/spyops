@@ -8,9 +8,13 @@ from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.shared.constant import SOURCE, TARGET
 from spyops.shared.element import copy_element
-from spyops.shared.hint import ELEMENT
+from spyops.shared.hint import ELEMENT, ELEMENTS
 from spyops.validation import (
-    validate_element, validate_overwrite_input, validate_target_element)
+    validate_element, validate_elements, validate_overwrite_input,
+    validate_target_element)
+
+
+__all__ = ['copy', 'delete']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -32,6 +36,19 @@ def copy(source: ELEMENT, target: ELEMENT) -> ELEMENT:
         element = copy_element(source=source, target=target)
     return element
 # End copy function
+
+
+@validate_elements(SOURCE, has_content=False)
+def delete(source: ELEMENT | ELEMENTS) -> bool:
+    """
+    Delete Table(s) and/or Feature Class(es)
+    """
+    if not source:
+        return False
+    for element in source:
+        element.drop()
+    return True
+# End delete function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -20,8 +20,8 @@ from spyops.shared.field import (
     GEOM_TYPE_POLYGONS)
 from spyops.shared.util import element_names, make_unique_name
 from spyops.validation import (
-    validate_element, validate_feature_class, validate_geometry_dimension,
-    validate_overwrite_input, validate_table)
+    validate_element, validate_elements, validate_feature_class,
+    validate_geometry_dimension, validate_overwrite_input, validate_table)
 from spyops.validation.result import _check_output
 
 
@@ -74,6 +74,24 @@ def test_validate_element_type(exists, has_content):
 # End test_validate_element_type function
 
 
+@mark.parametrize('exists, has_content', [
+    (True, True),
+    (True, False),
+    (False, False),
+    (False, True),
+])
+def test_validate_elements_type(exists, has_content):
+    """
+    Test validate elements type
+    """
+    @validate_elements('element', exists=exists, has_content=has_content)
+    def element_function(element):
+        pass
+    with raises(TypeError):
+        element_function(element=Ellipsis)
+# End test_validate_elements_type function
+
+
 @mark.parametrize('name, exists, has_content', [
     ('admin_a', True, True),
     ('admin_a', True, False),
@@ -115,6 +133,45 @@ def test_validate_element_data_type(world_features, world_tables, mem_gpkg, name
     else:
         element_function(element=e)
 # End test_validate_element_data_type function
+
+
+@mark.parametrize('name, exists, has_content', [
+    ('admin_a', True, True),
+    ('admin_a', True, False),
+    ('admin_a', False, False),
+    ('admin_a', False, True),
+    ('admin', True, True),
+    ('admin', True, False),
+    ('admin', False, False),
+    ('admin', False, True),
+    (None, True, False),
+    (None, False, False),
+    (None, False, True),
+    ('', True, True),
+    ('', True, False),
+    ('', False, False),
+    ('', False, True),
+])
+def test_validate_elements_data_type(world_features, world_tables, mem_gpkg, name, exists, has_content):
+    """
+    Test validate element
+    """
+    @validate_elements('element', exists=exists, has_content=has_content)
+    def element_function(element):
+        pass
+    if name is None:
+        names = element_names(mem_gpkg)
+        e = Table.create(mem_gpkg, name=make_unique_name(str(name), names=names), fields=())
+    elif not name:
+        e = Table(mem_gpkg, name='asdf')
+    else:
+        e = world_features[name] or world_tables[name]
+    if name == '' and exists:
+        with raises(ValueError):
+            element_function(element=e)
+    else:
+        element_function(element=e)
+# End test_validate_elements_data_type function
 
 
 @mark.parametrize('name, geometry_types, throws', [

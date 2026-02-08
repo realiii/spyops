@@ -24,6 +24,9 @@ class ValidateEnumeration(AbstractValidateArgument):
     def __init__(self, name: str, enum: Type[StrEnum]) -> None:
         """
         Initialize the ValidateEnumeration class
+
+        :param name: Name of the argument to validate
+        :param enum: Enumeration to validate against
         """
         super().__init__(name)
         self._enum: Type[StrEnum] = enum

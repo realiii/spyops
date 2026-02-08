@@ -9,7 +9,7 @@ from pytest import mark
 
 from spyops.environment import Setting
 from spyops.environment.context import Swap
-from spyops.management import copy
+from spyops.management import copy, delete
 
 pytestmark = [mark.management, mark.general]
 
@@ -30,6 +30,24 @@ def test_copy(ntdb_zm_small, mem_gpkg):
     assert result.has_m == source.has_m
     assert result.spatial_reference_system == source.spatial_reference_system
 # End test_copy function
+
+
+def test_delete(ntdb_zm_small, mem_gpkg):
+    """
+    Test delete function
+    """
+    source = ntdb_zm_small['hydro_zm_a']
+    target_name = 'hydro_a_copy'
+    with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        result = copy(source, target_name)
+        result = delete([result])
+        assert result is True
+        result = copy(source, target_name)
+        result = delete([result] * 2)
+        assert result is True
+        result = delete([])
+        assert result is False
+# End test_delete function
 
 
 if __name__ == '__main__':  # pragma: no cover

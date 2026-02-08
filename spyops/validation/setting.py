@@ -20,6 +20,8 @@ class ValidateXYTolerance(AbstractValidate):
     def __init__(self, name: str = str(Setting.XY_TOLERANCE)) -> None:
         """
         Initialize the ValidateXYTolerance class
+
+        :param name: Name of the argument to validate
         """
         super().__init__()
         self._name: str = name
