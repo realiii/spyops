@@ -16,7 +16,7 @@ introduction to the way in which GeoPackages are handled in `spyops` refer to th
 
 ## Python Compatibility
 
-The `spyops` library is compatible with Python 3.11 to 3.14.  Developed and 
+The `spyops` library is compatible with Python 3.12 to 3.14.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
