@@ -15,7 +15,8 @@ from spyops.shared.element import create_feature_class as _create_feature_class
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
-    validate_element, validate_feature_class, validate_geopackage)
+    validate_element, validate_feature_class, validate_geopackage,
+    validate_result)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -61,6 +62,7 @@ def create_feature_class(geopackage: GPKG, name: str,
 # End create_feature_class function
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 def delete_features(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     """
