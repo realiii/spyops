@@ -45,9 +45,11 @@ def test_add_fields(world_tables, mem_gpkg):
     assert len(table.fields) == 27
     add_fields(table, fields=Field('pop_est', data_type='REAL'))
     assert len(table.fields) == 28
-    add_fields(table, fields=[Field('pop_est', data_type='REAL'), Field('pop_density', data_type='REAL')])
+    add_fields(table, fields=[Field('pop_est', data_type='REAL'),
+                              Field('pop_density', data_type='REAL')])
     assert len(table.fields) == 29
-    add_fields(table, elements=[world_tables['cities'], world_tables['disputed_boundaries']])
+    add_fields(table, elements=[world_tables['cities'],
+                                world_tables['disputed_boundaries']])
     assert len(table.fields) == 30
 # End test_add_fields function
 
