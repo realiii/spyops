@@ -61,6 +61,7 @@ DEGREE: str = 'degree'
 METRE: str = 'metre'
 
 FIELD: str = 'field'
+FIELDS_ARG: str = 'fields'
 SOURCE: str = 'source'
 OPERATOR: str = 'operator'
 TARGET: str = 'target'
