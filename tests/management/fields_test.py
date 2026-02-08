@@ -7,7 +7,7 @@ Tests for Fields
 from fudgeo import Field
 from pytest import mark
 
-from spyops.management import add_fields, delete_field
+from spyops.management import add_fields, calculate_field, delete_field
 
 pytestmark = [mark.management, mark.field]
 
@@ -52,6 +52,21 @@ def test_add_fields(world_tables, mem_gpkg):
                                 world_tables['disputed_boundaries']])
     assert len(table.fields) == 30
 # End test_add_fields function
+
+
+def test_calculate_field(world_tables, mem_gpkg):
+    """
+    Test calculate_field
+    """
+    name = 'admin'
+    table = world_tables[name].copy(
+        name=name, geopackage=mem_gpkg, where_clause='ISO_CC = "BR"')
+    calculate_field(table, 'ISO_CC', expression='ISO_CC || ISO_CC')
+    where_clause = 'ISO_CC = "BRBR"'
+    cursor = table.select(where_clause=where_clause)
+    assert len(cursor.fetchall()) == 62
+    calculate_field(table, 'ISO_CC', expression='NAME', where_clause=where_clause)
+# End test_calculate_field function
 
 
 if __name__ == '__main__':  # pragma: no cover

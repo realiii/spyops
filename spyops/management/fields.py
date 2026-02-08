@@ -6,13 +6,17 @@ Data Management for Fields
 
 from collections import defaultdict
 
-from spyops.shared.constant import ELEMENTS_ARG, FIELDS_ARG, SOURCE
+from fudgeo import Field
+
+from spyops.shared.constant import (
+    ELEMENTS_ARG, EMPTY, FIELD, FIELDS_ARG,
+    SOURCE)
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
     validate_element, validate_elements, validate_field)
 
 
-__all__ = ['delete_field', 'add_fields']
+__all__ = ['delete_field', 'add_fields', 'calculate_field']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -53,6 +57,32 @@ def add_fields(source: ELEMENT, *, fields: FIELDS = (),
     source.add_fields([f for f, *_ in grouped.values()])
     return source
 # End add_fields function
+
+
+@validate_element(SOURCE)
+@validate_field(FIELD, single=True, element_name=SOURCE)
+def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
+                    where_clause: str = '') -> ELEMENT:
+    """
+    Calculate Field
+
+    Calculate a value into an existing field using a SQL expression based
+    on field names, database functions, etc. Optionally, use a where clause
+    to restrict the calculation to a subset of rows.
+    """
+    if not where_clause:
+        where_clause = EMPTY
+    else:
+        where_clause = f'WHERE {where_clause}'
+    with source.geopackage.connection as conn:
+        # noinspection SqlWithoutWhere
+        conn.execute(f"""
+            UPDATE {source.escaped_name}  
+            SET {field.escaped_name} = {expression} 
+            {where_clause}
+        """)
+    return source
+# End calculate_field function
 
 
 if __name__ == '__main__':  # pragma: no cover
