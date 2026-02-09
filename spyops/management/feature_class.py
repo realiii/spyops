@@ -41,8 +41,8 @@ def recalculate_feature_class_extent(source: 'FeatureClass') -> 'FeatureClass':
 
 @validate_geopackage()
 def create_feature_class(geopackage: GPKG, name: str,
-                         srs: 'SpatialReferenceSystem',
-                         *, fields: FIELDS = (), description: str = '',
+                         srs: 'SpatialReferenceSystem', *,
+                         fields: FIELDS = (), description: str = '',
                          shape_type: str = ShapeType.polygon,
                          z_enabled: bool = False,
                          m_enabled: bool = False) -> 'FeatureClass':
