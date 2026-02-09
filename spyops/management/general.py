@@ -20,7 +20,7 @@ __all__ = ['copy', 'delete']
 @validate_element(SOURCE, has_content=False)
 @validate_target_element()
 @validate_overwrite_input(TARGET, SOURCE)
-def copy(source: ELEMENT, target: ELEMENT) -> ELEMENT:
+def copy(source: ELEMENT, target: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     """
     Copy Table or Feature Class
 
@@ -33,7 +33,7 @@ def copy(source: ELEMENT, target: ELEMENT) -> ELEMENT:
           Swap(Setting.EXTENT, None), Swap(Setting.Z_VALUE, None),
           Swap(Setting.OUTPUT_M_OPTION, OutputMOption.SAME),
           Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.SAME)):
-        element = copy_element(source=source, target=target)
+        element = copy_element(source, target=target, where_clause=where_clause)
     return element
 # End copy function
 
