@@ -98,6 +98,7 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
         zm = ZMConfig(is_different=False, z_enabled=z_enabled, m_enabled=m_enabled)
     else:
         zm = zm_config(HasZM(has_z=z_enabled, has_m=m_enabled))
+    # noinspection PyArgumentEqualDefault
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
         z_enabled=zm.z_enabled, m_enabled=zm.m_enabled, fields=fields,
