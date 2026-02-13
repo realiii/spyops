@@ -36,5 +36,15 @@ class OutputTypeOption(StrEnum):
 # End OutputTypeOption class
 
 
+class FieldProperty(StrEnum):
+    """
+    Field Property
+    """
+    ALIAS = auto()
+    COMMENT = auto()
+    NAME = auto()
+# End FieldProperty class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
