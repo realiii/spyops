@@ -53,6 +53,7 @@ MIT
 * added `create_feature_class` (Management - Feature Class)
 * added `recalculate_feature_class_extent` (Management - Feature Class)
 * added `add_field` (Management - Fields) with support for multiple
+* added `alter_field` (Management - Fields)
 * added `calculate_field` (Management - Fields)
 * added `delete_field` (Management - Fields)
 * added `copy` (Management - General)
