@@ -160,7 +160,8 @@ def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:
     else:
         is_nullable = field.is_nullable
     return Field(name=name, data_type=field.data_type, size=field.size,
-                 is_nullable=is_nullable, default=field.default)
+                 is_nullable=is_nullable, default=field.default,
+                 alias=field.alias, comment=field.comment)
 # End clone_field method
 
 
