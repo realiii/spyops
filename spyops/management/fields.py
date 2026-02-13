@@ -7,16 +7,17 @@ Data Management for Fields
 from collections import defaultdict
 
 from fudgeo import Field
+from fudgeo.enumeration import FieldPropertyType
 
 from spyops.shared.constant import (
-    ELEMENTS_ARG, EMPTY, FIELD, FIELDS_ARG,
-    SOURCE)
+    ELEMENTS_ARG, EMPTY, FIELD, FIELDS_ARG, FIELD_PROPERTY, SOURCE)
+from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
-    validate_element, validate_elements, validate_field)
+    validate_element, validate_elements, validate_enumeration, validate_field)
 
 
-__all__ = ['delete_field', 'add_field', 'calculate_field']
+__all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -83,6 +84,35 @@ def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
         """)
     return source
 # End calculate_field function
+
+
+@validate_element(SOURCE, has_content=False)
+@validate_field(FIELD, single=True, element_name=SOURCE)
+@validate_enumeration(FIELD_PROPERTY, FieldProperty)
+def alter_field(source: ELEMENT, field: Field | str, *,
+                field_property: FieldProperty = FieldProperty.NAME,
+                value: str | None) -> ELEMENT:
+    """
+    Alter Field
+
+    Alter an existing field in a Table or Feature Class by updating the
+    field name, adding / updating a field alias, or adding / updating
+    a field comment.
+    """
+    lut = {FieldProperty.ALIAS: FieldPropertyType.alias,
+           FieldProperty.COMMENT: FieldPropertyType.comment}
+    if field_property == FieldProperty.NAME:
+        if not value or not str(value).strip():
+            raise ValueError('Value must be specified for field name.')
+        source.rename_field(field, name=value)
+    elif field_property in lut:
+        prop_name = lut[field_property]
+        source.geopackage.enable_schema_extension()
+        source.geopackage.schema.set_field_property(
+            table_name=source.name, column_name=field.name,
+            prop_name=prop_name, value=value)
+    return source
+# End alter_field function
 
 
 if __name__ == '__main__':  # pragma: no cover
