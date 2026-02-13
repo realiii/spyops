@@ -4,9 +4,8 @@ Spatial Python Operations (SPyOps) is an evolving collection of GIS Analysis, Sp
 Operations, and Spatial Data Management functionality built on top of the OGC GeoPackage format.  The end goal is 
 to provide open source access to enterprise level spatial analysis and data management functionality.
 
-For details on OGC GeoPackages, please see the [OGC web page](http://www.geopackage.org/) and for a short
-introduction to the way in which GeoPackages are handled in `spyops` refer to the
-[`fudgeo` package](https://pypi.org/project/fudgeo/) 
+For a short introduction to the way in which GeoPackages are handled in `spyops` refer to
+[`fudgeo`](https://pypi.org/project/fudgeo/) 
 
 
 ## Installation
@@ -54,6 +53,7 @@ MIT
 * added `create_feature_class` (Management - Feature Class)
 * added `recalculate_feature_class_extent` (Management - Feature Class)
 * added `add_field` (Management - Fields) with support for multiple
+* added `alter_field` (Management - Fields)
 * added `calculate_field` (Management - Fields)
 * added `delete_field` (Management - Fields)
 * added `copy` (Management - General)

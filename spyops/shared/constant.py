@@ -61,6 +61,7 @@ DEGREE: str = 'degree'
 METRE: str = 'metre'
 
 FIELD: str = 'field'
+FIELD_PROPERTY: str = 'field_property'
 FIELDS_ARG: str = 'fields'
 ELEMENTS_ARG: str = 'elements'
 SOURCE: str = 'source'
