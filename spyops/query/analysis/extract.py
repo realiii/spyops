@@ -13,8 +13,8 @@ from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
-    AbstractQuery, AbstractSourceQuery, AbstractSpatialQuery)
-from spyops.shared.constant import EMPTY, IN, SQL_FULL
+    AbstractQuery, AbstractSpatialQuery, BaseQuerySelect)
+from spyops.shared.constant import EMPTY, IN
 from spyops.shared.field import make_field_names
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS
 
@@ -23,45 +23,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely import MultiLineString, MultiPoint, MultiPolygon
 
 
-class QuerySelect(AbstractSourceQuery):
+class QuerySelect(BaseQuerySelect):
     """
     Query for Select
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
-                 where_clause: str = EMPTY) -> None:
-        """
-        Initialize the AbstractSourceQuery class
-        """
-        super().__init__(source, target=target, xy_tolerance=None)
-        self._where_clause: str = where_clause
-    # End init built-in
-
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        elm = self.source
-        *_, select_field_names = self._field_names_and_count(elm)
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_FULL
-        if ANALYSIS_SETTINGS.extent:
-            return self._make_intersection_query(
-                elm, field_names=select_field_names, where_clause=where_clause)
-        return self._make_select(
-            elm, field_names=select_field_names, where_clause=where_clause)
-    # End select property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        elm = self.target
-        field_count, insert_field_names, _ = self._field_names_and_count(elm)
-        return self._make_insert(
-            elm.escaped_name, field_names=insert_field_names,
-            field_count=field_count)
-    # End insert property
 # End QuerySelect class
 
 
