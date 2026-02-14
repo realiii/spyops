@@ -48,6 +48,7 @@ MIT
 * added `intersect` (Analysis - Overlay)
 * added `symmetrical_difference` (Analysis - Overlay)
 * added `union` (Analysis - Overlay)
+* added `copy_features` (Management - Features)
 * added `delete_features` (Management - Features)
 * added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
 * added `create_feature_class` (Management - Feature Class)
