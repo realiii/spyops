@@ -2,18 +2,20 @@
 """
 Tests for Features
 """
-
+from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, GeoPackage
 from fudgeo.enumeration import ShapeType
 from pyproj import CRS
-from pytest import mark, param, approx
+from pytest import mark, param, approx, raises
 
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
-from spyops.management import delete_features, multipart_to_singlepart
+from spyops.management import (
+    copy_features, delete_features,
+    multipart_to_singlepart)
 from spyops.shared.constant import EPSG, ESRI
 from spyops.shared.field import ORIG_FID
 
@@ -25,7 +27,7 @@ pytestmark = [mark.management, mark.features]
 
 class TestMultiPartToSinglePart:
     """
-    Test multipart to single part
+    Test multipart to single-part
     """
     @mark.zm
     @mark.parametrize('fc_name, count', [
@@ -164,6 +166,210 @@ def test_delete_features(grid_index, fresh_gpkg):
     assert fc.is_empty
 # End test_delete_features function
 
+class TestCopyFeatures:
+    """
+    Test copy_features
+    """
+    @mark.parametrize('fc_name, where_clause, count', [
+        ('lakes_a', None, 39),
+        ('lakes_a', '', 39),
+        ('lakes_a', 'SQKM > 5000', 28),
+        ('disputed_boundaries_l', None, 561),
+        ('disputed_boundaries_l', '', 561),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', 364),
+        ('cities_p', None, 2540),
+        ('cities_p', '', 2540),
+        ('cities_p', 'POP IS NULL', 1377),
+        ('cities_p', 'POP < 0', 0),
+    ])
+    def test_copy_features(self, world_features, mem_gpkg, fc_name, where_clause, count):
+        """
+        Test copy_features
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        result = copy_features(source=source, target=target, where_clause=where_clause)
+        assert len(result) == count
+    # End test_copy_features method
+
+    @mark.parametrize('fc_name, where_clause, count', [
+        ('lakes_a', None, 7),
+        ('lakes_a', '', 7),
+        ('lakes_a', 'SQKM > 5000', 5),
+        ('disputed_boundaries_l', None, 40),
+        ('disputed_boundaries_l', '', 40),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', 40),
+        ('cities_p', None, 310),
+        ('cities_p', '', 310),
+        ('cities_p', 'POP IS NULL', 241),
+        ('cities_p', 'POP > 0', 69),
+    ])
+    def test_extent(self, world_features, mem_gpkg, fc_name, where_clause, count):
+        """
+        Test copy_features with Extent
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, CRS(4326))):
+            result = copy_features(source=source, target=target, where_clause=where_clause)
+            assert len(result) == count
+    # End test_extent method
+
+    @mark.zm
+    @mark.parametrize('fc_name, where_clause, output_z_option, output_m_option, count', [
+        ('lakes_a', 'SQKM > 5000', OutputZOption.SAME, OutputMOption.SAME, 28),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.SAME, OutputMOption.SAME, 364),
+        ('cities_p', 'POP IS NULL', OutputZOption.SAME, OutputMOption.SAME, 1377),
+        ('lakes_a', 'SQKM > 5000', OutputZOption.ENABLED, OutputMOption.ENABLED, 28),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.ENABLED, OutputMOption.ENABLED, 364),
+        ('cities_p', 'POP IS NULL', OutputZOption.ENABLED, OutputMOption.ENABLED, 1377),
+        ('lakes_a', 'SQKM > 5000', OutputZOption.DISABLED, OutputMOption.DISABLED, 28),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary"', OutputZOption.DISABLED, OutputMOption.DISABLED, 364),
+        ('cities_p', 'POP IS NULL', OutputZOption.DISABLED, OutputMOption.DISABLED, 1377),
+    ])
+    def test_zm(self, world_features, mem_gpkg, fc_name, where_clause, output_z_option, output_m_option, count):
+        """
+        Test copy_features with ZM settings
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
+              Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.Z_VALUE, 123.456)):
+            zm = zm_config(source)
+            result = copy_features(source=source, target=target, where_clause=where_clause)
+        assert len(result) == count
+        assert target.has_z == zm.z_enabled
+        assert target.has_m == zm.m_enabled
+    # End test_zm method
+
+    def test_sans_attrs(self, inputs, world_features, mem_gpkg):
+        """
+        Test copy_features sans attributes
+        """
+        where_clause = 'fid <= 10'
+        fc_name = 'intersect_sans_attr_a'
+        source = inputs[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        result = copy_features(source=source, target=target, where_clause=where_clause)
+        assert len(result) == 5
+        fc_name = 'admin_sans_attr_a'
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        result = copy_features(source=source, target=target, where_clause=where_clause)
+        assert len(result) == 10
+    # End test_sans_attrs method
+
+    @mark.parametrize('fc_name, where_clause', [
+        ('admin_a', 'ISO = "BR"'),
+        ('disputed_boundaries_l', 'Description = "Disputed Boundary'),
+        ('cities_p', 'POP ISNULL()'),
+        ('cities_p', 'POP <<>> 0'),
+    ])
+    def test_bad_sql(self, world_features, mem_gpkg, fc_name, where_clause):
+        """
+        Test copy_features bad SQL
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        with raises(OperationalError):
+            copy_features(source=source, target=target, where_clause=where_clause)
+    # End test_bad_sql method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
+        ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_4617_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('transmission_4617_m_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5)),
+        ('toponymy_4617_m_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('toponymy_4617_z_p', EPSG, 2955, False, (675601.0, 5653706.5, 710185.125, 5681412.0)),
+        ('hydro_4617_a', ESRI, 102179, False, (35000.796875, 5647522.5, 70211.8828125, 5675482.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, False, (35000.796875, 5647522.5, 70211.8828125, 5675482.0)),
+        ('transmission_4617_m_l', ESRI, 102179, False, (34973.9453125, 5647476.0, 70037.765625, 5675522.0)),
+        ('transmission_4617_z_l', ESRI, 102179, False, (34973.9453125, 5647476.0, 70037.765625, 5675522.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('toponymy_4617_z_p', ESRI, 102179, False, (35596.453125, 5647816.0, 70112.4921875, 5675320.0)),
+        ('hydro_4617_a', ESRI, 102179, True, (34997.60546875, 5647514.0, 70209.1640625, 5675475.0)),
+        ('hydro_4617_zm_a', ESRI, 102179, True, (34997.60546875, 5647514.0, 70209.1640625, 5675475.0)),
+        ('transmission_4617_m_l', ESRI, 102179, True, (34970.6953125, 5647467.0, 70035.03125, 5675514.0)),
+        ('transmission_4617_z_l', ESRI, 102179, True, (34970.6953125, 5647467.0, 70035.03125, 5675514.0)),
+        ('toponymy_4617_m_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+        ('toponymy_4617_z_p', ESRI, 102179, True, (35593.41796875, 5647808.0, 70109.640625, 5675312.5)),
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small, mem_gpkg, fc_name, auth_name,
+                        srs_id, flag, extent, output_z, output_m):
+        """
+        Test copy_features with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(flag)):
+            zm = zm_config(source)
+            result = copy_features(source=source, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert len(result) == len(source)
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name', [
+        param('hydro_6654_a', marks=mark.large),
+        param('hydro_6654_m_a', marks=mark.large),
+        'hydro_6654_z_a',
+        'hydro_6654_zm_a',
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs_include_vertical(self, ntdb_zm_small, mem_gpkg, fc_name, output_z, output_m):
+        """
+        Test copy_features with output compound CRS coming from a compound CRS
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        srs_id = 6893
+        crs = CRS(srs_id)
+        assert crs.is_compound
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              UseGrids(True)):
+            zm = zm_config(source)
+            result = copy_features(source=source, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert len(result) == len(source)
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs_include_vertical method
+# End TestCopyFeatures class
 
 if __name__ == '__main__':  # pragma: no cover
     pass
