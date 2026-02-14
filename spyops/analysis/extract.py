@@ -21,8 +21,10 @@ from spyops.shared.records import insert_many
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
-    validate_geometry_dimension, validate_geopackage, validate_overwrite_input,
-    validate_result, validate_crs, validate_table,
+    validate_geometry_dimension, validate_geopackage,
+    validate_operator_feature_class, validate_overwrite_input,
+    validate_overwrite_source, validate_result, validate_crs,
+    validate_source_feature_class, validate_table,
     validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
@@ -37,7 +39,7 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_result()
 @validate_table(SOURCE)
 @validate_target_table()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def table_select(source: 'Table', target: 'Table', *,
                  where_clause: str = '') -> 'Table':
     """
@@ -51,9 +53,9 @@ def table_select(source: 'Table', target: 'Table', *,
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
+@validate_source_feature_class()
 @validate_target_feature_class()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def select(source: FeatureClass, target: FeatureClass, *,
            where_clause: str = '') -> FeatureClass:
     """
@@ -100,8 +102,8 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR)
+@validate_source_feature_class()
+@validate_operator_feature_class()
 @validate_target_feature_class()
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
@@ -121,7 +123,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
+@validate_source_feature_class()
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
 @validate_geopackage()

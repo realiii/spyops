@@ -10,11 +10,10 @@ from fudgeo.enumeration import ShapeType
 from numpy import isfinite
 
 from spyops.geometry.extent import extent_from_index_or_geometry
-from spyops.shared.constant import SOURCE
 from spyops.shared.element import create_feature_class as _create_feature_class
 from spyops.shared.hint import FIELDS, GPKG
 from spyops.shared.util import make_valid_name
-from spyops.validation import validate_feature_class, validate_geopackage
+from spyops.validation import validate_geopackage, validate_source_feature_class
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -24,7 +23,7 @@ if TYPE_CHECKING:  # pragma: no cover
 __all__ = ['recalculate_feature_class_extent', 'create_feature_class']
 
 
-@validate_feature_class(SOURCE)
+@validate_source_feature_class()
 def recalculate_feature_class_extent(source: 'FeatureClass') -> 'FeatureClass':
     """
     Recalculate Extent of Feature Class

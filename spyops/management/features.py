@@ -17,7 +17,8 @@ from spyops.shared.hint import ELEMENT
 from spyops.shared.records import insert_many
 from spyops.validation import (
     validate_element, validate_feature_class, validate_overwrite_input,
-    validate_result, validate_target_feature_class)
+    validate_overwrite_source, validate_result, validate_source_feature_class,
+    validate_target_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,7 +31,7 @@ __all__ = ['multipart_to_singlepart', 'explode', 'delete_features']
 @validate_result()
 @validate_feature_class(SOURCE, geometry_types=GEOM_TYPE_MULTI)
 @validate_target_feature_class()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def multipart_to_singlepart(source: 'FeatureClass',
                             target: 'FeatureClass') -> 'FeatureClass':
     """
