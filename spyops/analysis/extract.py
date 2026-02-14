@@ -7,8 +7,6 @@ Extraction
 from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, MemoryGeoPackage
-from fudgeo.constant import FETCH_SIZE
-from fudgeo.context import ExecuteMany
 
 from spyops.analysis.util import _clip, _split_by_attributes
 from spyops.query.analysis.extract import QuerySelect, QuerySplit
@@ -17,12 +15,14 @@ from spyops.shared.constant import (
 from spyops.shared.element import copy_element
 from spyops.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
-from spyops.shared.records import insert_many
+from spyops.shared.records import select_and_transform_features
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
-    validate_geometry_dimension, validate_geopackage, validate_overwrite_input,
-    validate_result, validate_crs, validate_table,
+    validate_geometry_dimension, validate_geopackage,
+    validate_operator_feature_class, validate_overwrite_input,
+    validate_overwrite_source, validate_result, validate_crs,
+    validate_source_feature_class, validate_table,
     validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
@@ -37,7 +37,7 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 @validate_result()
 @validate_table(SOURCE)
 @validate_target_table()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def table_select(source: 'Table', target: 'Table', *,
                  where_clause: str = '') -> 'Table':
     """
@@ -51,9 +51,9 @@ def table_select(source: 'Table', target: 'Table', *,
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
+@validate_source_feature_class()
 @validate_target_feature_class()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def select(source: FeatureClass, target: FeatureClass, *,
            where_clause: str = '') -> FeatureClass:
     """
@@ -62,21 +62,8 @@ def select(source: FeatureClass, target: FeatureClass, *,
     Select features from a feature class using a where clause (optional) and
     write results to a target feature class.
     """
-    records = []
     query = QuerySelect(source, target=target, where_clause=where_clause)
-    query_select = query.select
-    query_insert = query.insert
-    transformer = query.source_transformer
-    config = query.geometry_config
-    with (target.geopackage.connection as cout,
-          source.geopackage.connection as cin,
-          ExecuteMany(connection=cout, table=target) as executor):
-        cursor = cin.execute(query_select)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            insert_many(
-                config, executor=executor, transformer=transformer,
-                insert_sql=query_insert, features=features, records=records)
-    return query.target
+    return select_and_transform_features(query)
 # End select function
 
 
@@ -100,8 +87,8 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR)
+@validate_source_feature_class()
+@validate_operator_feature_class()
 @validate_target_feature_class()
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
@@ -121,7 +108,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
+@validate_source_feature_class()
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
 @validate_geopackage()

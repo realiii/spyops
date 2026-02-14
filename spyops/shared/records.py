@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Records Helper Functions
+Records / Features Helper Functions
 """
 
 
@@ -24,8 +24,10 @@ from spyops.shared.hint import GRID_SIZE
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Cursor
+    from fudgeo import FeatureClass
     from fudgeo.geometry.base import AbstractGeometry
     from spyops.geometry.config import GeometryConfig
+    from spyops.query.base import BaseQuerySelect
     from spyops.shared.base import QueryConfig
 
 
@@ -150,6 +152,27 @@ def process_disjoint(query: 'QueryConfig', grid_size: GRID_SIZE) -> None:
             executor(sql=insert_sql, data=records)
             records.clear()
 # End process_disjoint function
+
+
+def select_and_transform_features(query: 'BaseQuerySelect') -> 'FeatureClass':
+    """
+    Select and Transform Features
+    """
+    records = []
+    query_select = query.select
+    query_insert = query.insert
+    transformer = query.source_transformer
+    config = query.geometry_config
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query_select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            insert_many(
+                config, executor=executor, transformer=transformer,
+                insert_sql=query_insert, features=features, records=records)
+    return query.target
+# End select_and_transform_features function
 
 
 if __name__ == '__main__':  # pragma: no cover

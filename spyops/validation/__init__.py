@@ -6,7 +6,7 @@ Validation
 
 from functools import partial
 
-from spyops.shared.constant import TARGET
+from spyops.shared.constant import OPERATOR, SOURCE, TARGET
 from spyops.validation.container import ValidateGeopackage
 from spyops.validation.crs import ValidateCRS
 from spyops.validation.element import (
@@ -34,13 +34,16 @@ validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
 
 # NOTE commonly used configurations
+validate_source_feature_class = partial(validate_feature_class, name=SOURCE)
+validate_operator_feature_class = partial(validate_feature_class, name=OPERATOR)
 validate_target_element = partial(
     validate_element, name=TARGET, exists=False, is_output=True)
 validate_target_feature_class = partial(
     validate_feature_class, name=TARGET, exists=False, is_output=True)
 validate_target_table = partial(
     validate_table, name=TARGET, exists=False, is_output=True)
-
+validate_overwrite_source = partial(
+    validate_overwrite_input, TARGET, SOURCE)
 
 if __name__ == '__main__':  # pragma: no cover
     pass

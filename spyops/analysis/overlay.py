@@ -24,8 +24,10 @@ from spyops.shared.field import GEOM_TYPE_POLYGONS
 from spyops.shared.hint import XY_TOL
 from spyops.validation import (
     validate_enumeration, validate_feature_class, validate_geometry_dimension,
-    validate_output_type, validate_overwrite_input, validate_result,
-    validate_crs, validate_target_feature_class, validate_xy_tolerance)
+    validate_operator_feature_class, validate_output_type,
+    validate_overwrite_input, validate_result, validate_crs,
+    validate_source_feature_class, validate_target_feature_class,
+    validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -36,8 +38,8 @@ __all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR)
+@validate_source_feature_class()
+@validate_operator_feature_class()
 @validate_target_feature_class()
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
@@ -71,8 +73,8 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR)
+@validate_source_feature_class()
+@validate_operator_feature_class()
 @validate_target_feature_class()
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_enumeration(OUTPUT_TYPE_OPTION, OutputTypeOption)
@@ -116,8 +118,8 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE)
-@validate_feature_class(OPERATOR)
+@validate_source_feature_class()
+@validate_operator_feature_class()
 @validate_target_feature_class()
 @validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)

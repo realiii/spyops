@@ -10,27 +10,30 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from spyops.geometry.util import filter_features
-from spyops.query.management.features import QueryMultiPartToSinglePart
+from spyops.query.management.features import (
+    QueryCopyFeatures, QueryMultiPartToSinglePart)
 from spyops.shared.constant import SOURCE, TARGET
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import ELEMENT
-from spyops.shared.records import insert_many
+from spyops.shared.records import insert_many, select_and_transform_features
 from spyops.validation import (
     validate_element, validate_feature_class, validate_overwrite_input,
-    validate_result, validate_target_feature_class)
+    validate_overwrite_source, validate_result, validate_source_feature_class,
+    validate_target_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['multipart_to_singlepart', 'explode', 'delete_features']
+__all__ = ['multipart_to_singlepart', 'explode', 'delete_features',
+           'copy_features']
 
 
 @validate_result()
 @validate_feature_class(SOURCE, geometry_types=GEOM_TYPE_MULTI)
 @validate_target_feature_class()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def multipart_to_singlepart(source: 'FeatureClass',
                             target: 'FeatureClass') -> 'FeatureClass':
     """
@@ -74,6 +77,23 @@ def delete_features(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     source.delete(where_clause=where_clause)
     return source
 # End delete_features function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_target_feature_class()
+@validate_overwrite_source()
+def copy_features(source: 'FeatureClass', target: 'FeatureClass', *,
+                  where_clause: str = '') -> 'FeatureClass':
+    """
+    Copy Features
+
+    Copies features from one feature class to another.  Optionally, select
+    features using a where clause.
+    """
+    query = QueryCopyFeatures(source, target=target, where_clause=where_clause)
+    return select_and_transform_features(query)
+# End copy_features function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

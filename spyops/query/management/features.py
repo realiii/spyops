@@ -12,7 +12,7 @@ from fudgeo.enumeration import ShapeType
 
 from spyops.crs.transform import make_transformer_function
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.query.base import AbstractSourceQuery
+from spyops.query.base import AbstractSourceQuery, BaseQuerySelect
 from spyops.shared.constant import (
     LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
 from spyops.shared.field import (
@@ -122,6 +122,13 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         return attrgetter(name)
     # End part_getter property
 # End QueryMultiPartToSinglePart class
+
+
+class QueryCopyFeatures(BaseQuerySelect):
+    """
+    Query for Copy Features
+    """
+# End QueryCopyFeatures class
 
 
 if __name__ == '__main__':  # pragma: no cover

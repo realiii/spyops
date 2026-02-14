@@ -6,11 +6,11 @@ General Data Management
 
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
-from spyops.shared.constant import SOURCE, TARGET
+from spyops.shared.constant import SOURCE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, ELEMENTS
 from spyops.validation import (
-    validate_element, validate_elements, validate_overwrite_input,
+    validate_element, validate_elements, validate_overwrite_source,
     validate_target_element)
 
 
@@ -19,7 +19,7 @@ __all__ = ['copy', 'delete']
 
 @validate_element(SOURCE, has_content=False)
 @validate_target_element()
-@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_source()
 def copy(source: ELEMENT, target: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     """
     Copy Table or Feature Class
