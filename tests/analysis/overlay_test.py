@@ -566,7 +566,7 @@ class TestIntersect:
         ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, False),
     ])
     def test_output_type(self, inputs, world_features, mem_gpkg, fc_name,
-                                   algorithm_option, output_option, feature_count, throws):
+                         algorithm_option, output_option, feature_count, throws):
         """
         Test intersect varying output types for each algorithm option
         """
