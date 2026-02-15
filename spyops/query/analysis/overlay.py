@@ -189,6 +189,37 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         return concatenate(geoms), attributes
     # End _fetch_features method
 
+    def _planarize(self, feature_class: 'FeatureClass',
+                   sql: str) -> 'FeatureClass':
+        """
+        Planarized Feature Class
+        """
+        geoms, attributes = self._fetch_features(feature_class, sql=sql)
+        planarized = self._make_planarized_geometry(geoms)
+        results = self._build_planar_results(
+            planarized, geoms=geoms, attributes=attributes)
+        return self._save_planarized(feature_class, results=results)
+    # End _planarize method
+
+    @staticmethod
+    def _build_planar_results(planarized: list, geoms: 'ndarray',
+                              attributes: list[tuple]) -> list[tuple]:
+        """
+        Build Planar Results
+        """
+        tree = STRtree(geoms)
+        points = [p.representative_point() for p in planarized]
+        intersects = tree.query(points, predicate='intersects')
+        grouper = defaultdict(list)
+        for plan_idx, orig_idx in intersects.T.tolist():
+            grouper[orig_idx].append(plan_idx)
+        results = []
+        for orig_idx, indexes in grouper.items():
+            attrs = attributes[orig_idx]
+            results.extend([(planarized[idx], attrs) for idx in indexes])
+        return results
+    # End _build_planar_results method
+
     def _make_planar_feature_class(self, feature_class: 'FeatureClass',
                                    fields: FIELDS) -> 'FeatureClass':
         """
@@ -258,36 +289,6 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         """
         return ShapeType.polygon
     # End _shape_type property
-
-    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':
-        """
-        Planarized Feature Class
-        """
-        geoms, attributes = self._fetch_features(feature_class, sql=sql)
-        planarized = self._make_planarized_geometry(geoms)
-        results = self._build_planar_results(
-            planarized, geoms=geoms, attributes=attributes)
-        return self._save_planarized(feature_class, results=results)
-    # End _planarize method
-
-    @staticmethod
-    def _build_planar_results(planarized: list['Polygon'], geoms: 'ndarray',
-                              attributes: list[tuple]) -> list[tuple]:
-        """
-        Build Planar Results
-        """
-        tree = STRtree(geoms)
-        points = [p.representative_point() for p in planarized]
-        intersects = tree.query(points, predicate='intersects')
-        grouper = defaultdict(list)
-        for plan_idx, orig_idx in intersects.T.tolist():
-            grouper[orig_idx].append(plan_idx)
-        results = []
-        for orig_idx, indexes in grouper.items():
-            attrs = attributes[orig_idx]
-            results.extend([(planarized[idx], attrs) for idx in indexes])
-        return results
-    # End _build_planar_results method
 
     @staticmethod
     def _make_planarized_geometry(geoms: 'ndarray') -> list['Polygon']:
