@@ -40,6 +40,15 @@ def inputs(data_path) -> Generator[GeoPackage, None, None]:
 
 
 @fixture(scope='session')
+def planar(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    Planar
+    """
+    yield from _open_geopackage(data_path.joinpath('planar.gpkg'))
+# End planar function
+
+
+@fixture(scope='session')
 def ntdb_zm_meh(data_path) -> Generator[GeoPackage, None, None]:
     """
     NTDB Clipped to sixteen 50K tiles around YYC, Z values in these
