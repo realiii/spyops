@@ -107,6 +107,33 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         pass
     # End call built-in
 
+    @staticmethod
+    @abstractmethod
+    def _make_planarized_geometry(geoms: 'ndarray') -> list:
+        """
+        Make Planarized Geometry
+        """
+        pass
+    # End _make_planarized_geometry method
+
+    @property
+    @abstractmethod
+    def _shape_type(self) -> str:  # pragma: no cover
+        """
+        Shape Type
+        """
+        pass
+    # End _shape_type property
+
+    @property
+    @abstractmethod
+    def temporary_fid_field(self) -> 'Field':  # pragma: no cover
+        """
+        Temporary FID Field
+        """
+        pass
+    # End temporary_fid_field property
+
     def _make_insert_sql(self, planar: 'FeatureClass', fields: FIELDS) -> str:
         """
         Make Insert SQL for the Planar Feature Class
@@ -189,32 +216,6 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
     # End _field_names_and_count method
-
-    @property
-    @abstractmethod
-    def _shape_type(self) -> str:  # pragma: no cover
-        """
-        Shape Type
-        """
-        pass
-    # End _shape_type property
-
-    @abstractmethod
-    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':  # pragma: no cover
-        """
-        Planarized Feature Class
-        """
-        pass
-    # End _planarize method
-
-    @property
-    @abstractmethod
-    def temporary_fid_field(self) -> 'Field':  # pragma: no cover
-        """
-        Temporary FID Field
-        """
-        pass
-    # End temporary_fid_field property
 
     @cached_property
     def scratch(self) -> MemoryGeoPackage:
