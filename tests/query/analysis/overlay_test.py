@@ -228,7 +228,7 @@ class TestPlanarizePolygons:
         assert len(fc) == 13
     # End test_operator_holes method
 
-    def test_source_multi_part(self, inputs, world_features, mem_gpkg):
+    def test_source_multi_part_non_fid(self, inputs, world_features, mem_gpkg):
         """
         Test Planarize Source Multi Part on a non FID column
         """
@@ -237,7 +237,7 @@ class TestPlanarizePolygons:
         ps = PlanarizePolygonSource(source=source, operator=operator,
                                     use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
-    # End test_source_multi_part method
+    # End test_source_multi_part_non_fid method
 
     @mark.parametrize('cls', [
         PlanarizePolygonSource,
