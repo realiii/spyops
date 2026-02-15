@@ -308,15 +308,17 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
 # End AbstractPlanarizePolygon class
 
 
-class PlanarizePolygonSource(AbstractPlanarizePolygon):
+class PlanarizeSourceMixin:
     """
-    Planarize a source polygon feature class
+    Planarize Source Mixin
     """
     def __call__(self) -> tuple['FeatureClass', 'Field']:
         """
         Make Class Callable
         """
+        # noinspection PyUnresolvedReferences
         fid = self.source.primary_key_field
+        # noinspection PyUnresolvedReferences
         return self._planarize(self.source, sql=self.select), fid
     # End call built-in
 
@@ -325,20 +327,23 @@ class PlanarizePolygonSource(AbstractPlanarizePolygon):
         """
         Temporary FID Field
         """
+        # noinspection PyUnresolvedReferences
         return self.output_fid_source
     # End temporary_fid_field property
-# End PlanarizePolygonSource class
+# End PlanarizeSourceMixin class
 
 
-class PlanarizePolygonOperator(AbstractPlanarizePolygon):
+class PlanarizeOperatorMixin:
     """
-    Planarize an operator polygon feature class
+    Planarize Operator Mixin
     """
     def __call__(self) -> tuple['FeatureClass', 'Field']:
         """
         Make Class Callable
         """
+        # noinspection PyUnresolvedReferences
         fid = self.operator.primary_key_field
+        # noinspection PyUnresolvedReferences
         return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in
 
@@ -347,8 +352,24 @@ class PlanarizePolygonOperator(AbstractPlanarizePolygon):
         """
         Temporary FID Field
         """
+        # noinspection PyUnresolvedReferences
         return self.output_fid_operator
     # End temporary_fid_field property
+# End PlanarizeOperatorMixin class
+
+
+class PlanarizePolygonSource(PlanarizeSourceMixin, AbstractPlanarizePolygon):
+    """
+    Planarize a source polygon feature class
+    """
+# End PlanarizePolygonSource class
+
+
+class PlanarizePolygonOperator(PlanarizeOperatorMixin,
+                               AbstractPlanarizePolygon):
+    """
+    Planarize an operator polygon feature class
+    """
 # End PlanarizePolygonOperator class
 
 
