@@ -66,12 +66,17 @@ def _planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
     Planarize Feature Class Factory
     """
     polygons = ShapeType.polygon, ShapeType.multi_polygon
+    lines = ShapeType.linestring, ShapeType.multi_linestring
     if source.shape_type in polygons:
         src_cls = PlanarizePolygonSource
+    elif source.shape_type in lines:
+        src_cls = PlanarizeLineStringSource
     else:
         src_cls = PlanarizeGeneralSource
     if operator.shape_type in polygons:
         op_cls = PlanarizePolygonOperator
+    elif operator.shape_type in lines:
+        op_cls = PlanarizeLineStringOperator
     else:
         op_cls = PlanarizeGeneralOperator
     source, source_fid = src_cls(
