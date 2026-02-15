@@ -19,7 +19,7 @@ from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
 from spyops.environment.core import zm_config
-from spyops.geometry.config import geometry_config
+from spyops.geometry.config import geometry_config, get_combiner
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
@@ -39,7 +39,7 @@ from spyops.shared.records import extend_records, process_disjoint
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field
     from numpy import ndarray
-    from shapely import Polygon
+    from shapely import LineString, Polygon
 
 
 class QueryErase(QueryClip):
@@ -371,6 +371,46 @@ class PlanarizePolygonOperator(PlanarizeOperatorMixin,
     Planarize an operator polygon feature class
     """
 # End PlanarizePolygonOperator class
+
+
+class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
+    """
+    Abstract Class for Planarizing a LineString Feature Class
+    """
+    @property
+    def _shape_type(self) -> str:
+        """
+        Shape Type
+        """
+        return ShapeType.linestring
+    # End _shape_type property
+
+    @staticmethod
+    def _make_planarized_geometry(geoms: 'ndarray') -> list['LineString']:
+        """
+        Make Planarized Geometry
+        """
+        has_m = any(geom.has_m for geom in geoms)
+        combiner = get_combiner(ShapeType.linestring, has_m=has_m)
+        return list(get_geoms_iter(combiner(union_all(geoms))))
+    # End _make_planarized_geometry method
+# End AbstractPlanarizeLineString class
+
+
+class PlanarizeLineStringSource(PlanarizeSourceMixin,
+                                AbstractPlanarizeLineString):
+    """
+    Planarize a source LineString feature class
+    """
+# End PlanarizeLineStringSource class
+
+
+class PlanarizeLineStringOperator(PlanarizeOperatorMixin,
+                                  AbstractPlanarizeLineString):
+    """
+    Planarize an operator LineString feature class
+    """
+# End PlanarizeLineStringOperator class
 
 
 class AbstractPlanarizeGeneral(AbstractPlanarize, metaclass=ABCMeta):
