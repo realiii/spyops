@@ -417,7 +417,8 @@ class AbstractPlanarizeGeneral(AbstractPlanarize, metaclass=ABCMeta):
     """
     Abstract Class for Planarizing a LineString or Point Feature Class
     """
-    def _planarize(self, feature_class: 'FeatureClass', sql: str) -> 'FeatureClass':
+    def _planarize(self, feature_class: 'FeatureClass',
+                   sql: str) -> 'FeatureClass':
         """
         Planarized Feature Class
         """
