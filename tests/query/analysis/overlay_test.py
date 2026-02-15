@@ -161,7 +161,7 @@ class TestPlanarizePolygons:
     """
     Test Planarize Polygons
     """
-    def test_planarize_source(self, inputs, mem_gpkg):
+    def test_source(self, inputs, mem_gpkg):
         """
         Test Planarize Source
         """
@@ -174,9 +174,9 @@ class TestPlanarizePolygons:
         assert fid_fld.name == 'fid'
         assert fc.field_names == ['fid', 'SHAPE', 'fid_int_flavor_a', 'id']
         assert len(fc) == 268
-    # End test_planarize_source method
+    # End test_source method
 
-    def test_planarize_source_zm(self, grid_index, ntdb_zm_meh, mem_gpkg):
+    def test_source_zm(self, grid_index, ntdb_zm_meh, mem_gpkg):
         """
         Test Planarize Source
         """
@@ -192,9 +192,9 @@ class TestPlanarizePolygons:
             'ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER', 'DATANAME',
             'ACCURACY', 'FILE_NAME', 'CODE']
         assert len(fc) == 1550
-    # End test_planarize_source_zm method
+    # End test_source_zm method
 
-    def test_planarize_operator(self, inputs, mem_gpkg):
+    def test_operator(self, inputs, mem_gpkg):
         """
         Test Planarize Operator
         """
@@ -209,9 +209,9 @@ class TestPlanarizePolygons:
             'fid', 'SHAPE', 'fid_intersect_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 9
-    # End test_planarize_operator method
+    # End test_operator method
 
-    def test_planarize_operator_holes(self, inputs, mem_gpkg):
+    def test_operator_holes(self, inputs, mem_gpkg):
         """
         Test Planarize Operator using feature class with holes
         """
@@ -226,9 +226,9 @@ class TestPlanarizePolygons:
             'fid', 'SHAPE', 'fid_intersect_holes_a', 'ID', 'NAME', 'WHEN',
             'EXAMPLE_JSON', 'BOB', 'NOT_NOW']
         assert len(fc) == 13
-    # End test_planarize_operator_holes method
+    # End test_operator_holes method
 
-    def test_planarize_source_multi_part(self, inputs, world_features, mem_gpkg):
+    def test_source_multi_part(self, inputs, world_features, mem_gpkg):
         """
         Test Planarize Source Multi Part on a non FID column
         """
@@ -237,7 +237,7 @@ class TestPlanarizePolygons:
         ps = PlanarizePolygonSource(source=source, operator=operator,
                                     use_full_extent=False, xy_tolerance=None)
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
-    # End test_planarize_source_multi_part method
+    # End test_source_multi_part method
 
     @mark.parametrize('cls', [
         PlanarizePolygonSource,
@@ -246,7 +246,7 @@ class TestPlanarizePolygons:
     @mark.parametrize('use_full_extent', [
         True, False
     ])
-    def test_planarize_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
+    def test_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
         """
         Test Planarize Source Multi Part on a non FID column and using extent
         """
@@ -258,7 +258,7 @@ class TestPlanarizePolygons:
         with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
             assert ' 7.0 ' in ps.select
             assert ' 52.0 ' in ps.select
-    # End test_planarize_extent method
+    # End test_extent method
 # End TestPlanarizePolygons class
 
 
