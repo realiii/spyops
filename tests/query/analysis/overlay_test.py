@@ -239,6 +239,20 @@ class TestPlanarizePolygons:
         assert ps.temporary_fid_field.name == 'OBJECTID_admin_mp_a'
     # End test_source_multi_part_non_fid method
 
+    def test_source_multi_part(self, planar, inputs):
+        """
+        Test Planarize Source Multi Part
+        """
+        operator = inputs['int_flavor_a']
+        source = planar['hydro_ma']
+        assert len(source) == 6
+        ps = PlanarizePolygonSource(source=source, operator=operator,
+                                    use_full_extent=True, xy_tolerance=None)
+        fc, fid_field = ps()
+        assert len(fc) == 380
+        assert fid_field.name == 'fid'
+    # End test_source_multi_part method
+
     @mark.parametrize('cls', [
         PlanarizePolygonSource,
         PlanarizePolygonOperator
