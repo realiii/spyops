@@ -456,6 +456,14 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
         """
         return self.output_fid_source
     # End temporary_fid_field property
+
+    @staticmethod
+    def _make_planarized_geometry(geoms: 'ndarray') -> list:
+        """
+        Make Planarized Geometry
+        """
+        return []
+    # End _make_planarized_geometry method
 # End PlanarizeGeneralSource class
 
 
@@ -486,6 +494,14 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
         """
         return self.output_fid_operator
     # End temporary_fid_field property
+
+    @staticmethod
+    def _make_planarized_geometry(geoms: 'ndarray') -> list:
+        """
+        Make Planarized Geometry
+        """
+        return []
+    # End _make_planarized_geometry method
 # End PlanarizeGeneralOperator class
 
 
