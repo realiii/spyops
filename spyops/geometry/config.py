@@ -53,7 +53,7 @@ def geometry_config(target: 'FeatureClass', cast_geom: bool) -> GeometryConfig:
     shape_type = target.shape_type
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
     filter_types = SHAPELY_GEOMETRY_LOOKUP[shape_type]
-    combiner = _get_combiner(shape_type, has_m=has_m)
+    combiner = get_combiner(shape_type, has_m=has_m)
     srs_id = target.spatial_reference_system.srs_id
     if cast_geom:
         caster = GEOMETRY_CAST[target.shape_type]
@@ -124,7 +124,7 @@ def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | 
 # End _make_measured_line function
 
 
-def _get_combiner(shape_type: str, has_m: bool) -> Callable:
+def get_combiner(shape_type: str, has_m: bool) -> Callable:
     """
     Get Combiner Function
     """
@@ -134,7 +134,7 @@ def _get_combiner(shape_type: str, has_m: bool) -> Callable:
         else:
             return _combine_lines
     return nada
-# End _get_combiner function
+# End get_combiner function
 
 
 if __name__ == '__main__':  # pragma: no cover
