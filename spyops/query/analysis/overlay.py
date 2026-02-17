@@ -19,7 +19,8 @@ from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
 from spyops.environment.core import zm_config
-from spyops.geometry.config import geometry_config, get_combiner
+from spyops.environment.util import tolerance_scale_factor
+from spyops.geometry.config import geometry_config
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
@@ -424,9 +425,7 @@ class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
         """
         Make Planarized Geometry
         """
-        has_m = any(geom.has_m for geom in geoms)
-        combiner = get_combiner(ShapeType.linestring, has_m=has_m)
-        return list(get_geoms_iter(combiner(union_all(geoms))))
+        return list(get_geoms_iter(union_all(geoms)))
     # End _make_planarized_geometry method
 # End AbstractPlanarizeLineString class
 
