@@ -157,11 +157,11 @@ class TestQueryIntersectPairwise:
 # End TestQueryIntersectPairwise class
 
 
-class TestPlanarizePolygons:
+class TestPlanarizePolygon:
     """
-    Test Planarize Polygons
+    Test Planarize Polygon
     """
-    def test_source(self, inputs, mem_gpkg):
+    def test_source(self, inputs):
         """
         Test Planarize Source
         """
@@ -176,9 +176,9 @@ class TestPlanarizePolygons:
         assert len(fc) == 268
     # End test_source method
 
-    def test_source_zm(self, grid_index, ntdb_zm_meh, mem_gpkg):
+    def test_source_zm(self, grid_index, ntdb_zm_meh):
         """
-        Test Planarize Source
+        Test Planarize Source ZM
         """
         operator = grid_index['grid_a']
         source = ntdb_zm_meh['structures_zm_a']
@@ -194,7 +194,7 @@ class TestPlanarizePolygons:
         assert len(fc) == 1550
     # End test_source_zm method
 
-    def test_operator(self, inputs, mem_gpkg):
+    def test_operator(self, inputs):
         """
         Test Planarize Operator
         """
@@ -211,7 +211,7 @@ class TestPlanarizePolygons:
         assert len(fc) == 9
     # End test_operator method
 
-    def test_operator_holes(self, inputs, mem_gpkg):
+    def test_operator_holes(self, inputs):
         """
         Test Planarize Operator using feature class with holes
         """
@@ -228,7 +228,7 @@ class TestPlanarizePolygons:
         assert len(fc) == 13
     # End test_operator_holes method
 
-    def test_source_multi_part_non_fid(self, inputs, world_features, mem_gpkg):
+    def test_source_multi_part_non_fid(self, inputs, world_features):
         """
         Test Planarize Source Multi Part on a non FID column
         """
@@ -260,9 +260,9 @@ class TestPlanarizePolygons:
     @mark.parametrize('use_full_extent', [
         True, False
     ])
-    def test_extent(self, cls, inputs, world_features, mem_gpkg, use_full_extent):
+    def test_extent(self, cls, inputs, world_features, use_full_extent):
         """
-        Test Planarize Source Multi Part on a non FID column and using extent
+        Test Planarize using Extent
         """
         operator = inputs['rivers_portion_l']
         source = world_features['admin_mp_a']
@@ -273,7 +273,9 @@ class TestPlanarizePolygons:
             assert ' 7.0 ' in ps.select
             assert ' 52.0 ' in ps.select
     # End test_extent method
-# End TestPlanarizePolygons class
+# End TestPlanarizePolygon class
+
+
 
 
 class TestPlanarizeGeneral:
