@@ -303,6 +303,14 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
     """
     Abstract Class for Planarizing a Polygon Feature Class
     """
+    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
+        """
+        Get Intersections
+        """
+        points = point_on_surface(planarized)
+        return tree.query(points, predicate='intersects')
+    # End _get_intersections method
+
     @property
     def _shape_type(self) -> str:
         """
