@@ -7,7 +7,7 @@ Query Classes for analysis.overlay module
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
@@ -15,6 +15,8 @@ from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import ShapeType
 from numpy import concatenate
 from shapely import GeometryCollection
+from shapely.constructive import point_on_surface
+from shapely.linear import line_interpolate_point
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
@@ -412,6 +414,17 @@ class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
     """
     Abstract Class for Planarizing a LineString Feature Class
     """
+    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
+        """
+        Get Intersections
+        """
+        micro = 10 ** -6
+        distance = tolerance_scale_factor(self._element) * micro
+        points = line_interpolate_point(
+            planarized, distance=0.5, normalized=True)
+        return tree.query(points, predicate='dwithin', distance=distance)
+    # End _get_intersections method
+
     @property
     def _shape_type(self) -> str:
         """
