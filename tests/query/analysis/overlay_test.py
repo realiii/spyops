@@ -9,15 +9,17 @@ from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import mark, param
 
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.query.analysis.overlay import (
-    PlanarizeGeneralOperator, PlanarizeGeneralSource, PlanarizePolygonOperator,
-    PlanarizePolygonSource, QueryErase, QueryIntersectClassic,
-    QueryIntersectPairwise,
+    PlanarizeGeneralOperator, PlanarizeGeneralSource,
+    PlanarizeLineStringOperator, PlanarizeLineStringSource,
+    PlanarizePolygonOperator, PlanarizePolygonSource, QueryErase,
+    QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.element import copy_element
@@ -276,6 +278,67 @@ class TestPlanarizePolygon:
 # End TestPlanarizePolygon class
 
 
+class TestPlanarizeLineString:
+    """
+    Test Planarize LineString
+    """
+    def test_source(self, grid_index, planar):
+        """
+        Test Planarize Source
+        """
+        operator = grid_index['grid_a']
+        source = planar['road_seg_dis_l']
+        crs = get_crs_from_source(source)
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.28, 51.125, -114.21, 51.185, crs=crs)):
+            ps = PlanarizeLineStringSource(
+                source=source, operator=operator,
+                use_full_extent=False, xy_tolerance=None)
+            assert ps.temporary_fid_field.name == 'fid_road_seg_dis_l'
+            fc, fid_fld = ps()
+        assert fid_fld.name == 'fid'
+        assert fc.field_names == ['fid', 'SHAPE', 'fid_road_seg_dis_l', 'L_STNAME_C', 'L_PLACENAM']
+        assert len(fc) == 1474
+    # End test_source method
+
+    def test_source_zm(self, grid_index, planar):
+        """
+        Test Planarize Source ZM
+        """
+        operator = grid_index['grid_a']
+        source = planar['transmission_zm_l']
+        assert len(source) == 66
+        ps = PlanarizeLineStringSource(
+            source=source, operator=operator,
+            use_full_extent=False, xy_tolerance=None)
+        assert ps.temporary_fid_field.name == 'fid_transmission_zm_l'
+        fc, fid_fld = ps()
+        assert fid_fld.name == 'fid'
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_transmission_zm_l', 'FEATURE_ID', 'PART_ID',
+            'OBJECTID_1', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER',
+            'DATANAME', 'ACCURACY', 'FILE_NAME', 'CODE']
+        assert len(fc) == 95
+    # End test_source_zm method
+
+    def test_operator(self, grid_index, planar):
+        """
+        Test Planarize Operator
+        """
+        source = grid_index['grid_a']
+        operator = planar['transmission_zm_l']
+        po = PlanarizeLineStringOperator(
+            source=source, operator=operator,
+            use_full_extent=False, xy_tolerance=None)
+        assert po.temporary_fid_field.name == 'fid_transmission_zm_l'
+        fc, fid_fld = po()
+        assert fid_fld.name == 'fid'
+        assert fc.field_names == [
+            'fid', 'SHAPE', 'fid_transmission_zm_l', 'FEATURE_ID', 'PART_ID',
+            'OBJECTID_1', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER',
+            'DATANAME', 'ACCURACY', 'FILE_NAME', 'CODE']
+        assert len(fc) == 95
+    # End test_operator method
+# End TestPlanarizeLineString class
 
 
 class TestPlanarizeGeneral:
