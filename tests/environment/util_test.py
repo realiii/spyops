@@ -14,7 +14,7 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.context import Swap
 from spyops.environment.enumeration import Setting
 from spyops.environment.util import (
-    as_title, _scale_factor, get_geographic_transformation, get_grid_size)
+    as_title, tolerance_scale_factor, get_geographic_transformation, get_grid_size)
 
 
 pytestmark = [mark.environment]
@@ -47,10 +47,10 @@ def test_as_title(value, expected):
 ])
 def test_scale_factor(ntdb_zm_small, fc_name, expected):
     """
-    Test _scale_factor
+    Test tolerance_scale_factor
     """
     fc = ntdb_zm_small[fc_name]
-    assert approx(_scale_factor(fc), abs=10 ** -9) == expected
+    assert approx(tolerance_scale_factor(fc), abs=10 ** -9) == expected
 # End test_scale_factor function
 
 
