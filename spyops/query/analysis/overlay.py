@@ -13,7 +13,7 @@ from fudgeo import MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import ShapeType
-from numpy import concatenate
+from numpy import array, concatenate
 from shapely import GeometryCollection
 from shapely.constructive import point_on_surface
 from shapely.linear import line_interpolate_point
@@ -487,6 +487,13 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
         return self._planarize(self.source, sql=self.select), fid
     # End call built-in
 
+    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
+        """
+        Get Intersections
+        """
+        return array([], dtype=int)
+    # End _get_intersections method
+
     @property
     def _shape_type(self) -> str:
         """
@@ -524,6 +531,13 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
         fid = self.operator.primary_key_field
         return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in
+
+    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
+        """
+        Get Intersections
+        """
+        return array([], dtype=int)
+    # End _get_intersections method
 
     @property
     def _shape_type(self) -> str:
