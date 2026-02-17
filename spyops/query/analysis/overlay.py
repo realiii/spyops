@@ -102,6 +102,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
             source=source, operator=operator, target=None,
             attribute_option=AttributeOption.ALL, xy_tolerance=xy_tolerance)
         self._use_full_extent: bool = use_full_extent
+        self._distance_element: Optional['FeatureClass'] = None
     # End init built-in
 
     @abstractmethod
@@ -346,9 +347,11 @@ class PlanarizeSourceMixin:
         Make Class Callable
         """
         # noinspection PyUnresolvedReferences
-        fid = self.source.primary_key_field
+        element = self.source
+        self._distance_element = element
+        fid = element.primary_key_field
         # noinspection PyUnresolvedReferences
-        return self._planarize(self.source, sql=self.select), fid
+        return self._planarize(element, sql=self.select), fid
     # End call built-in
 
     @property
@@ -371,9 +374,11 @@ class PlanarizeOperatorMixin:
         Make Class Callable
         """
         # noinspection PyUnresolvedReferences
-        fid = self.operator.primary_key_field
+        element = self.operator
+        self._distance_element = element
+        fid = element.primary_key_field
         # noinspection PyUnresolvedReferences
-        return self._planarize(self.operator, sql=self.select_operator), fid
+        return self._planarize(element, sql=self.select_operator), fid
     # End call built-in
 
     @property
