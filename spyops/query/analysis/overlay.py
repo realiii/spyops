@@ -206,24 +206,40 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         return self._save_planarized(feature_class, results=results)
     # End _planarize method
 
-    @staticmethod
-    def _build_planar_results(planarized: list, geoms: 'ndarray',
+    def _build_planar_results(self, planarized: list, geoms: 'ndarray',
                               attributes: list[tuple]) -> list[tuple]:
         """
         Build Planar Results
         """
-        tree = STRtree(geoms)
-        points = [p.representative_point() for p in planarized]
-        intersects = tree.query(points, predicate='intersects')
-        grouper = defaultdict(list)
-        for plan_idx, orig_idx in intersects.T.tolist():
-            grouper[orig_idx].append(plan_idx)
+        grouper = self._index_overlay(geoms, planarized)
         results = []
         for orig_idx, indexes in grouper.items():
             attrs = attributes[orig_idx]
             results.extend([(planarized[idx], attrs) for idx in indexes])
         return results
     # End _build_planar_results method
+
+    def _index_overlay(self, geoms: 'ndarray', planarized: list) \
+            -> defaultdict[int, list[int]]:
+        """
+        Index Based Overlay returning dictionary of intersected features
+        grouped by index of original geometries.
+        """
+        tree = STRtree(geoms)
+        intersects = self._get_intersections(tree, planarized)
+        grouper = defaultdict(list)
+        for plan_idx, orig_idx in intersects.T.tolist():
+            grouper[orig_idx].append(plan_idx)
+        return grouper
+    # End _index_overlay method
+
+    @abstractmethod
+    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
+        """
+        Get Intersections
+        """
+        pass
+    # End _get_intersections method
 
     def _make_planar_feature_class(self, feature_class: 'FeatureClass',
                                    fields: FIELDS) -> 'FeatureClass':
