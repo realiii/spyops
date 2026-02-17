@@ -624,8 +624,8 @@ class TestIntersect:
         param(OutputMOption.DISABLED, marks=mark.large),
     ])
     def test_output_type_zm(self, inputs, world_features, mem_gpkg,
-                                      fc_name, algorithm_option, output_option,
-                                      output_z_option, output_m_option, feature_count):
+                            fc_name, algorithm_option, output_option,
+                            output_z_option, output_m_option, feature_count):
         """
         Test intersect varying output types for each algorithm option and zm
         """
@@ -1037,7 +1037,9 @@ class TestIntersect:
         (AlgorithmOption.CLASSIC, AttributeOption.SANS_FID, 128, 2),
         (AlgorithmOption.CLASSIC, AttributeOption.ONLY_FID, 128, 4),
     ])
-    def test_option_sans_attributes(self, inputs, world_features, mem_gpkg, algorithm_option, attribute_option, feature_count, field_count):
+    def test_option_sans_attributes(self, inputs, world_features, mem_gpkg,
+                                    algorithm_option, attribute_option,
+                                    feature_count, field_count):
         """
         Test Intersect with Options for Classic and Pairwise -- sans attributes
         """
