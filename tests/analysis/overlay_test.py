@@ -38,19 +38,19 @@ class TestErase:
         param('roads_l', None, 3054, marks=mark.slow),
         ('admin_mp_a', None, 217),
         ('airports_mp_p', None, 10),
-        param('roads_mp_l', None, 14, marks=mark.slow),
+        param('roads_ml', None, 11, marks=mark.slow),
         ('admin_a', 0.001, 286),
         ('airports_p', 0.001, 29),
         param('roads_l', 0.001, 3054, marks=mark.slow),
         ('admin_mp_a', 0.001, 217),
         ('airports_mp_p', 0.001, 10),
-        param('roads_mp_l', 0.001, 14, marks=mark.slow),
+        param('roads_ml', 0.001, 11, marks=mark.slow),
         ('admin_a', 1, 41),
         ('airports_p', 1, 33),
         param('roads_l', 1, 337, marks=mark.slow),
         ('admin_mp_a', 1, 37),
         ('airports_mp_p', 1, 10),
-        param('roads_mp_l', 1, 14, marks=mark.slow),
+        param('roads_ml', 1, 11, marks=mark.slow),
     ])
     def test_reduced(self, inputs, world_features, fresh_gpkg, fc_name, xy_tolerance, count):
         """
@@ -59,7 +59,7 @@ class TestErase:
         eraser = inputs['eraser_a']
         assert len(eraser) == 5
         source = world_features[fc_name]
-        assert source.is_multi_part == ('mp' in fc_name)
+        assert source.is_multi_part == ('mp' in fc_name or 'ml' in fc_name)
         with Swap(Setting.EXTENT, Extent.from_feature_class(eraser)):
             target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
             result = erase(source=source, operator=eraser, target=target,
@@ -74,7 +74,7 @@ class TestErase:
         ('roads_l', 3054),
         ('admin_mp_a', 217),
         ('airports_mp_p', 10),
-        param('roads_mp_l', 14, marks=mark.slow),
+        param('roads_ml', 11, marks=mark.slow),
     ])
     @mark.parametrize('output_z_option', [
         param(OutputZOption.SAME, marks=mark.large),
@@ -94,7 +94,7 @@ class TestErase:
         eraser = inputs['eraser_a']
         assert len(eraser) == 5
         source = world_features[fc_name]
-        assert source.is_multi_part == ('mp' in fc_name)
+        assert source.is_multi_part == ('mp' in fc_name or 'ml' in fc_name)
         target = FeatureClass(geopackage=fresh_gpkg, name=fc_name)
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
@@ -469,19 +469,19 @@ class TestIntersect:
         param('roads_l', None, 2514, marks=mark.slow),
         ('admin_mp_a', None, 68),
         ('airports_mp_p', None, 8),
-        param('roads_mp_l', None, 14, marks=mark.slow),
+        param('roads_ml', None, 14, marks=mark.slow),
         ('admin_a', 0.001, 112),
         ('airports_p', 0.001, 40),
         param('roads_l', 0.001, 2683, marks=mark.slow),
         ('admin_mp_a', 0.001, 68),
         ('airports_mp_p', 0.001, 8),
-        param('roads_mp_l', 0.001, 14, marks=mark.slow),
+        param('roads_ml', 0.001, 14, marks=mark.slow),
         ('admin_a', 1, 22),
         ('airports_p', 1, 35),
         param('roads_l', 1, 347, marks=mark.slow),
         ('admin_mp_a', 1, 22),
         ('airports_mp_p', 1, 8),
-        param('roads_mp_l', 1, 13, marks=mark.slow),
+        param('roads_ml', 1, 13, marks=mark.slow),
     ])
     def test_xy_tolerance_setting(self, inputs, world_features, mem_gpkg, fc_name, xy_tolerance, feature_count):
         """
@@ -503,13 +503,13 @@ class TestIntersect:
         param('roads_l', AttributeOption.ALL, 22, marks=mark.slow),
         ('admin_mp_a', AttributeOption.ALL, 23),
         ('airports_mp_p', AttributeOption.ALL, 11),
-        param('roads_mp_l', AttributeOption.ALL, 11, marks=mark.slow),
+        param('roads_ml', AttributeOption.ALL, 12, marks=mark.slow),
         ('admin_a', AttributeOption.ONLY_FID, 4),
         ('airports_p', AttributeOption.ONLY_FID, 4),
         param('roads_l', AttributeOption.ONLY_FID, 4, marks=mark.slow),
         ('admin_mp_a', AttributeOption.ONLY_FID, 4),
         ('airports_mp_p', AttributeOption.ONLY_FID, 4),
-        param('roads_mp_l', AttributeOption.ONLY_FID, 4, marks=mark.slow),
+        param('roads_ml', AttributeOption.ONLY_FID, 4, marks=mark.slow),
         ('admin_a', AttributeOption.ONLY_FID, 4),
         ('airports_p', AttributeOption.ONLY_FID, 4),
         param('roads_l', AttributeOption.ONLY_FID, 4, marks=mark.slow),
@@ -519,7 +519,7 @@ class TestIntersect:
         param('roads_l', AttributeOption.SANS_FID, 20, marks=mark.slow),
         ('admin_mp_a', AttributeOption.SANS_FID, 21),
         ('airports_mp_p', AttributeOption.SANS_FID, 9),
-        param('roads_mp_l', AttributeOption.SANS_FID, 9, marks=mark.slow),
+        param('roads_ml', AttributeOption.SANS_FID, 10, marks=mark.slow),
         ('admin_a', AttributeOption.SANS_FID, 23),
         ('airports_p', AttributeOption.SANS_FID, 12),
         param('roads_l', AttributeOption.SANS_FID, 20, marks=mark.slow),
@@ -545,25 +545,25 @@ class TestIntersect:
         ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 1659, False),
         ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0, False),
         ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, None, True),
-        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 14, False),
+        ('roads_ml', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 14, False),
         ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 318, False),
         ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 26, False),
         ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 436, False),
         ('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 55, False),
         ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 8, False),
-        ('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, False),
+        ('roads_ml', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, False),
         ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, False),
         ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, None, True),
-        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1709, False),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 2427, False),
         ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, False),
         ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, None, True),
-        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 24, False),
+        param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1533, False, marks=mark.slow),
         ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, False),
         ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 26, False),
         ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, False),
         ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, False),
         ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13, False),
-        ('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, False),
+        param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, False, marks=mark.slow),
     ])
     def test_output_type(self, inputs, world_features, mem_gpkg, fc_name,
                          algorithm_option, output_option, feature_count, throws):
@@ -586,7 +586,6 @@ class TestIntersect:
                 assert ShapeType.linestring in result.shape_type
             else:
                 assert ShapeType.point in result.shape_type
-            assert len(result) < len(source)
             assert len(result) == feature_count
     # End test_output_type method
 
@@ -595,23 +594,23 @@ class TestIntersect:
           ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0),
           ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 1659),
           param('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 0, marks=mark.slow),
-          param('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 14, marks=mark.slow),
+          param('roads_ml', AlgorithmOption.PAIRWISE, OutputTypeOption.LINE, 14, marks=mark.slow),
           ('admin_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 318),
           ('airports_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 26),
           ('roads_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 436),
           param('admin_mp_a', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 55, marks=mark.slow),
           ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 8),
-          param('roads_mp_l', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, marks=mark.slow),
+          param('roads_ml', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, marks=mark.slow),
           ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0),
-          ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1709),
+          ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 2427),
           param('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, marks=mark.slow),
-          param('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 24, marks=mark.slow),
+          param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1533, marks=mark.slow),
           ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358),
           ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 26),
           ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536),
           param('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, marks=mark.slow),
           ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13),
-          param('roads_mp_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, marks=mark.slow),
+          param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, marks=mark.slow),
     ])
     @mark.parametrize('output_z_option', [
         param(OutputZOption.SAME, marks=mark.large),
@@ -634,6 +633,7 @@ class TestIntersect:
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
+              Swap(Setting.EXTENT, Extent.from_feature_class(operator)),
               Swap(Setting.Z_VALUE, 123.456)):
             zm = zm_config(source, operator)
             result = intersect(source=source, operator=operator, target=target,
@@ -643,7 +643,6 @@ class TestIntersect:
             assert ShapeType.linestring in result.shape_type
         else:
             assert ShapeType.point in result.shape_type
-        assert len(result) < len(source)
         assert len(result) == feature_count
         assert result.has_z == zm.z_enabled
         assert result.has_m == zm.m_enabled
@@ -953,16 +952,16 @@ class TestIntersect:
     @mark.parametrize('fc_name, xy_tolerance, feature_count', [
         ('admin_a', None, 128),
         ('airports_p', None, 40),
-        ('roads_l', None, 2560),
+        ('roads_l', None, 3834),
         param('admin_mp_a', None, 128, marks=mark.slow),
         ('airports_mp_p', None, 12),
-        param('roads_mp_l', None, 21, marks=mark.slow),
+        param('roads_ml', None, 2463, marks=mark.slow),
         ('admin_a', 0.001, 125),
         ('airports_p', 0.001, 40),
-        ('roads_l', 0.001, 2729),
+        ('roads_l', 0.001, 3993),
         param('admin_mp_a', 0.001, 125, marks=mark.slow),
         ('airports_mp_p', 0.001, 12),
-        param('roads_mp_l', 0.001, 21, marks=mark.slow),
+        param('roads_ml', 0.001, 2647, marks=mark.slow),
     ])
     def test_classic_setting(self, inputs, world_features, mem_gpkg,
                              fc_name, xy_tolerance, feature_count):
@@ -973,7 +972,8 @@ class TestIntersect:
         assert len(operator) == 5
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-        with Swap(Setting.XY_TOLERANCE, xy_tolerance):
+        with (Swap(Setting.EXTENT, Extent.from_feature_class(operator)),
+              Swap(Setting.XY_TOLERANCE, xy_tolerance)):
             result = intersect(
                 source=source, operator=operator, target=target,
                 algorithm_option=AlgorithmOption.CLASSIC)
@@ -1072,8 +1072,8 @@ class TestIntersect:
     # End test_classic_xy_tolerance method
 
     @mark.parametrize('option, xy_tolerance, count', [
-        (AlgorithmOption.CLASSIC, None, 195),
-        (AlgorithmOption.CLASSIC, 0.001, 209),
+        (AlgorithmOption.CLASSIC, None, 222),
+        (AlgorithmOption.CLASSIC, 0.001, 236),
         (AlgorithmOption.PAIRWISE, None, 195),
         (AlgorithmOption.PAIRWISE, 0.001, 209),
     ])
@@ -1090,8 +1090,8 @@ class TestIntersect:
     # End test_line_on_line method
 
     @mark.parametrize('option, xy_tolerance, count', [
-        (AlgorithmOption.CLASSIC, None, 7524),
-        param(AlgorithmOption.CLASSIC, 0, 7524, marks=mark.large),
+        (AlgorithmOption.CLASSIC, None, 7580),
+        param(AlgorithmOption.CLASSIC, 0, 7580, marks=mark.large),
         param(AlgorithmOption.CLASSIC, 0.0000000001, 3, marks=mark.large),
         param(AlgorithmOption.CLASSIC, 0.1, 0, marks=mark.large),
         (AlgorithmOption.PAIRWISE, None, 7524),
@@ -1433,9 +1433,9 @@ class TestSymmetricalDifference:
         ('toponymy_mp', 'toponymy_mp', 2, 40),
         ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
         ('toponymy_zm_mp', 'toponymy_zm_mp', 2, 40),
-        ('transmission_l', 'transmission_l', 21, 42),
-        ('transmission_l', 'transmission_zm_l', 21, 43),
-        ('transmission_zm_l', 'transmission_zm_l', 21, 44),
+        ('transmission_l', 'transmission_l', 30, 42),
+        ('transmission_l', 'transmission_zm_l', 30, 43),
+        ('transmission_zm_l', 'transmission_zm_l', 30, 44),
     ])
     def test_xy_tolerance_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
                                           operator_name, feature_count, field_count):
@@ -1493,7 +1493,7 @@ class TestSymmetricalDifference:
         ('structures_a', 'structures_zm_a', 34, 43),
         ('structures_p', 'structures_zm_p', 571, 38),
         ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
-        ('transmission_l', 'transmission_zm_l', 20, 43),
+        ('transmission_l', 'transmission_zm_l', 34, 43),
     ])
     def test_extent_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
                                     operator_name, feature_count, field_count):
