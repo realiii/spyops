@@ -37,7 +37,7 @@ def as_title(setting: Setting | str | None) -> str:
 # End as_title function
 
 
-def _scale_factor(feature_class: 'FeatureClass') -> float:
+def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     """
     Scale Factor approximation for 1 metre of XY Tolerance in Decimal Degrees,
     if the CRS is geographic or the extent is invalid then return 1, that is,
@@ -56,7 +56,7 @@ def _scale_factor(feature_class: 'FeatureClass') -> float:
     center_x, center_y = pt.x, pt.y
     x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=0, dist=1)
     return hypot(center_x - x, center_y - y)
-# End _scale_factor function
+# End tolerance_scale_factor function
 
 
 def get_grid_size(source: 'FeatureClass', xy_tolerance: XY_TOL,
@@ -79,10 +79,10 @@ def get_grid_size(source: 'FeatureClass', xy_tolerance: XY_TOL,
         return xy_tolerance
     if crs_unit_name == DEGREE:
         crs_unit_name = METRE
-        xy_tolerance *= _scale_factor(source)
+        xy_tolerance *= tolerance_scale_factor(source)
     elif source_crs_unit_name == DEGREE:
         source_crs_unit_name = METRE
-        xy_tolerance /= _scale_factor(source)
+        xy_tolerance /= tolerance_scale_factor(source)
     return xy_tolerance * get_unit_conversion_factor(
         from_name=source_crs_unit_name, to_name=crs_unit_name)
 # End get_grid_size function
