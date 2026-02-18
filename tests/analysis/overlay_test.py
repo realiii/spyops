@@ -554,16 +554,16 @@ class TestIntersect:
         ('roads_ml', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, False),
         ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, False),
         ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, None, True),
-        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 2427, False),
+        ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1709, False),
         ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, False),
         ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, None, True),
-        param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1533, False, marks=mark.slow),
+        param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 24, False, marks=mark.slow),
         ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, False),
         ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 26, False),
         ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, False),
         ('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, False),
         ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13, False),
-        param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, False, marks=mark.slow),
+        param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, False, marks=mark.slow),
     ])
     def test_output_type(self, inputs, world_features, mem_gpkg, fc_name,
                          algorithm_option, output_option, feature_count, throws):
@@ -602,15 +602,15 @@ class TestIntersect:
           ('airports_mp_p', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 8),
           param('roads_ml', AlgorithmOption.PAIRWISE, OutputTypeOption.POINT, 12, marks=mark.slow),
           ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0),
-          ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 2427),
+          ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1709),
           param('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 0, marks=mark.slow),
-          param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 1533, marks=mark.slow),
+          param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.LINE, 24, marks=mark.slow),
           ('admin_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358),
           ('airports_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 26),
           ('roads_l', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536),
           param('admin_mp_a', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 358, marks=mark.slow),
           ('airports_mp_p', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 13),
-          param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 536, marks=mark.slow),
+          param('roads_ml', AlgorithmOption.CLASSIC, OutputTypeOption.POINT, 22, marks=mark.slow),
     ])
     @mark.parametrize('output_z_option', [
         param(OutputZOption.SAME, marks=mark.large),
@@ -952,16 +952,16 @@ class TestIntersect:
     @mark.parametrize('fc_name, xy_tolerance, feature_count', [
         ('admin_a', None, 128),
         ('airports_p', None, 40),
-        ('roads_l', None, 3834),
+        ('roads_l', None, 2560),
         param('admin_mp_a', None, 128, marks=mark.slow),
         ('airports_mp_p', None, 12),
-        param('roads_ml', None, 2463, marks=mark.slow),
+        param('roads_ml', None, 21, marks=mark.slow),
         ('admin_a', 0.001, 125),
         ('airports_p', 0.001, 40),
-        ('roads_l', 0.001, 3993),
+        ('roads_l', 0.001, 2729),
         param('admin_mp_a', 0.001, 125, marks=mark.slow),
         ('airports_mp_p', 0.001, 12),
-        param('roads_ml', 0.001, 2647, marks=mark.slow),
+        param('roads_ml', 0.001, 21, marks=mark.slow),
     ])
     def test_classic_setting(self, inputs, world_features, mem_gpkg,
                              fc_name, xy_tolerance, feature_count):
@@ -1072,8 +1072,8 @@ class TestIntersect:
     # End test_classic_xy_tolerance method
 
     @mark.parametrize('option, xy_tolerance, count', [
-        (AlgorithmOption.CLASSIC, None, 222),
-        (AlgorithmOption.CLASSIC, 0.001, 236),
+        (AlgorithmOption.CLASSIC, None, 195),
+        (AlgorithmOption.CLASSIC, 0.001, 209),
         (AlgorithmOption.PAIRWISE, None, 195),
         (AlgorithmOption.PAIRWISE, 0.001, 209),
     ])
@@ -1090,8 +1090,8 @@ class TestIntersect:
     # End test_line_on_line method
 
     @mark.parametrize('option, xy_tolerance, count', [
-        (AlgorithmOption.CLASSIC, None, 7580),
-        param(AlgorithmOption.CLASSIC, 0, 7580, marks=mark.large),
+        (AlgorithmOption.CLASSIC, None, 7524),
+        param(AlgorithmOption.CLASSIC, 0, 7524, marks=mark.large),
         param(AlgorithmOption.CLASSIC, 0.0000000001, 3, marks=mark.large),
         param(AlgorithmOption.CLASSIC, 0.1, 0, marks=mark.large),
         (AlgorithmOption.PAIRWISE, None, 7524),
@@ -1433,9 +1433,9 @@ class TestSymmetricalDifference:
         ('toponymy_mp', 'toponymy_mp', 2, 40),
         ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
         ('toponymy_zm_mp', 'toponymy_zm_mp', 2, 40),
-        ('transmission_l', 'transmission_l', 30, 42),
-        ('transmission_l', 'transmission_zm_l', 30, 43),
-        ('transmission_zm_l', 'transmission_zm_l', 30, 44),
+        ('transmission_l', 'transmission_l', 21, 42),
+        ('transmission_l', 'transmission_zm_l', 21, 43),
+        ('transmission_zm_l', 'transmission_zm_l', 21, 44),
     ])
     def test_xy_tolerance_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
                                           operator_name, feature_count, field_count):
@@ -1493,7 +1493,7 @@ class TestSymmetricalDifference:
         ('structures_a', 'structures_zm_a', 34, 43),
         ('structures_p', 'structures_zm_p', 571, 38),
         ('toponymy_mp', 'toponymy_zm_mp', 2, 40),
-        ('transmission_l', 'transmission_zm_l', 34, 43),
+        ('transmission_l', 'transmission_zm_l', 20, 43),
     ])
     def test_extent_setting_classic(self, ntdb_zm_tile, mem_gpkg, source_name,
                                     operator_name, feature_count, field_count):
