@@ -472,6 +472,21 @@ class AbstractPlanarizeGeneral(AbstractPlanarize, metaclass=ABCMeta):
         results = list(zip(geoms, attributes))
         return self._save_planarized(feature_class, results=results)
     # End _planarize method
+
+    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
+        """
+        Get Intersections
+        """
+        return array([], dtype=int)
+    # End _get_intersections method
+
+    @staticmethod
+    def _make_planarized_geometry(geoms: 'ndarray') -> list:
+        """
+        Make Planarized Geometry
+        """
+        return []
+    # End _make_planarized_geometry method
 # End AbstractPlanarizeGeneral class
 
 
@@ -486,13 +501,6 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
         fid = self.source.primary_key_field
         return self._planarize(self.source, sql=self.select), fid
     # End call built-in
-
-    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
-        """
-        Get Intersections
-        """
-        return array([], dtype=int)
-    # End _get_intersections method
 
     @property
     def _shape_type(self) -> str:
@@ -509,14 +517,6 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
         """
         return self.output_fid_source
     # End temporary_fid_field property
-
-    @staticmethod
-    def _make_planarized_geometry(geoms: 'ndarray') -> list:
-        """
-        Make Planarized Geometry
-        """
-        return []
-    # End _make_planarized_geometry method
 # End PlanarizeGeneralSource class
 
 
@@ -531,13 +531,6 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
         fid = self.operator.primary_key_field
         return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in
-
-    def _get_intersections(self, tree: STRtree, planarized: list) -> 'ndarray':
-        """
-        Get Intersections
-        """
-        return array([], dtype=int)
-    # End _get_intersections method
 
     @property
     def _shape_type(self) -> str:
@@ -554,14 +547,6 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
         """
         return self.output_fid_operator
     # End temporary_fid_field property
-
-    @staticmethod
-    def _make_planarized_geometry(geoms: 'ndarray') -> list:
-        """
-        Make Planarized Geometry
-        """
-        return []
-    # End _make_planarized_geometry method
 # End PlanarizeGeneralOperator class
 
 
