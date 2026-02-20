@@ -4,14 +4,18 @@ Test for Features Query classes
 """
 
 
+from sqlite3 import OperationalError
+
 from fudgeo import FeatureClass
 from pyproj import CRS
-from pytest import approx, mark
+from pytest import approx, mark, raises
 
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
-from spyops.query.management.features import QueryMultiPartToSinglePart
-
+from spyops.query.management.features import (
+    QueryAddXYCoordinates, QueryMultiPartToSinglePart)
+from spyops.shared.enumeration import WeightOption
+from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
 pytestmark = [mark.features, mark.query, mark.management]
 
@@ -79,6 +83,101 @@ class TestQueryMultiPartToSinglePart:
             assert '83.665' in query.select
     # End test_source_extent method
 # End TestQueryMultiPartToSinglePart class
+
+
+class TestQueryAddXYCoordinates:
+    """
+    Tests for QueryAddXYCoordinates
+    """
+    def test_delete_intermediate(self, grid_index):
+        """
+        Test delete intermediate
+        """
+        name = 'grid_a'
+        source = grid_index[name]
+        query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
+        sql = f"""SELECT * FROM temp.{name}"""
+        with query.source.geopackage.connection as cin:
+            with raises(OperationalError):
+                cin.execute(sql)
+            query._delete_intermediate()
+            assert query._intermediate_table == f'temp.{name}'
+            cin.execute(sql)
+            query._delete_intermediate()
+            with raises(OperationalError):
+                cin.execute(sql)
+    # End test_delete_intermediate method
+
+    @mark.parametrize('name, count', [
+        ('grid_a', 3),
+        ('grid_z_a', 4),
+        ('grid_m_a', 4),
+        ('grid_zm_a', 5),
+    ])
+    def test_intermediate_fields(self, grid_index, name, count):
+        """
+        Test intermediate fields
+        """
+        source = grid_index[name]
+        query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
+        assert len(query._intermediate_fields) == count
+    # End test_intermediate_fields method
+
+    def test_prepare_source(self, grid_index, mem_gpkg):
+        """
+        Test prepare source
+        """
+        name = 'grid_a'
+        source = grid_index[name].copy(name, geopackage=mem_gpkg)
+        assert len(source.fields) == 10
+        source.add_fields((POINT_X, POINT_Y, POINT_Z, POINT_M))
+        assert len(source.fields) == 14
+        query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
+        query._prepare_source()
+        assert len(source.fields) == 12
+        names = source.field_names
+        assert POINT_X.name in names
+        assert POINT_Y.name in names
+        assert POINT_Z.name not in names
+        assert POINT_M.name not in names
+    # End test_prepare_source method
+
+    def test_select(self, grid_index):
+        """
+        Test select statement
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
+        sql = query.select
+        assert 'SELECT geom "[PolygonZM]", fid' in sql
+        assert f'FROM {name}' in sql
+    # End test_select method
+
+    def test_insert(self, grid_index):
+        """
+        Test insert statement
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
+        sql = query.insert
+        assert 'INTO temp.grid_zm_a(ORIG_FID, POINT_X, POINT_Y, POINT_Z, POINT_M) ' in sql
+    # End test_insert method
+
+    def test_update(self, grid_index):
+        """
+        Test update statement
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
+        sql = query.update
+        assert 'UPDATE grid_zm_a ' in sql
+        assert 'SET POINT_X = temp.grid_zm_a.POINT_X, POINT_Y = temp.grid_zm_a.POINT_Y, POINT_Z = temp.grid_zm_a.POINT_Z, POINT_M = temp.grid_zm_a.POINT_M' in sql
+        assert 'WHERE grid_zm_a.fid = temp.grid_zm_a.ORIG_FID' in sql
+    # End test_update method
+# End TestQueryAddXYCoordinates class
 
 
 if __name__ == '__main__':  # pragma: no cover
