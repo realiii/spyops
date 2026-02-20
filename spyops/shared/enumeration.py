@@ -46,5 +46,14 @@ class FieldProperty(StrEnum):
 # End FieldProperty class
 
 
+class WeightOption(StrEnum):
+    """
+    Weight Option
+    """
+    TWO_D = auto()
+    THREE_D = auto()
+# End WeightOption class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
