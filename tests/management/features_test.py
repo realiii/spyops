@@ -2,6 +2,8 @@
 """
 Tests for Features
 """
+
+
 from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, GeoPackage
@@ -165,6 +167,7 @@ def test_delete_features(grid_index, fresh_gpkg):
     assert fc
     assert fc.is_empty
 # End test_delete_features function
+
 
 class TestCopyFeatures:
     """
@@ -370,6 +373,7 @@ class TestCopyFeatures:
             assert result.has_m == zm.m_enabled
     # End test_output_crs_include_vertical method
 # End TestCopyFeatures class
+
 
 if __name__ == '__main__':  # pragma: no cover
     pass
