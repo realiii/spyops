@@ -16,7 +16,6 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, nada
 from spyops.shared.enumeration import OutputTypeOption
-from spyops.shared.hint import POLYGONS
 
 
 if TYPE_CHECKING:  # pragma: no cover
