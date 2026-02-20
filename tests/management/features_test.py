@@ -16,10 +16,11 @@ from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
-    copy_features, delete_features,
+    add_xy_coordinates, copy_features, delete_features,
     multipart_to_singlepart)
 from spyops.shared.constant import EPSG, ESRI
-from spyops.shared.field import ORIG_FID
+from spyops.shared.enumeration import WeightOption
+from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
 
 from tests.util import UseGrids
 
@@ -209,7 +210,7 @@ class TestCopyFeatures:
     ])
     def test_extent(self, world_features, mem_gpkg, fc_name, where_clause, count):
         """
-        Test copy_features with Extent
+        Test with Extent
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -232,7 +233,7 @@ class TestCopyFeatures:
     ])
     def test_zm(self, world_features, mem_gpkg, fc_name, where_clause, output_z_option, output_m_option, count):
         """
-        Test copy_features with ZM settings
+        Test with ZM settings
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -248,7 +249,7 @@ class TestCopyFeatures:
 
     def test_sans_attrs(self, inputs, world_features, mem_gpkg):
         """
-        Test copy_features sans attributes
+        Test sans attributes
         """
         where_clause = 'fid <= 10'
         fc_name = 'intersect_sans_attr_a'
@@ -271,7 +272,7 @@ class TestCopyFeatures:
     ])
     def test_bad_sql(self, world_features, mem_gpkg, fc_name, where_clause):
         """
-        Test copy_features bad SQL
+        Test bad SQL
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -314,7 +315,7 @@ class TestCopyFeatures:
     def test_output_crs(self, ntdb_zm_small, mem_gpkg, fc_name, auth_name,
                         srs_id, flag, extent, output_z, output_m):
         """
-        Test copy_features with output CRS and different input spatial reference systems
+        Test with output CRS and different input spatial reference systems
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -353,7 +354,7 @@ class TestCopyFeatures:
     ])
     def test_output_crs_include_vertical(self, ntdb_zm_small, mem_gpkg, fc_name, output_z, output_m):
         """
-        Test copy_features with output compound CRS coming from a compound CRS
+        Test with output compound CRS coming from a compound CRS
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -373,6 +374,105 @@ class TestCopyFeatures:
             assert result.has_m == zm.m_enabled
     # End test_output_crs_include_vertical method
 # End TestCopyFeatures class
+
+
+class TestAddXYCoordinates:
+    """
+    Test Add XY Coordinates
+    """
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 349),
+        ('transmission_p', 11),
+        ('transmission_l', 60),
+        ('structures_ma', 10),
+        ('toponymy_mp', 0),
+        ('transmission_ml', 0),
+    ])
+    def test_reduced(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test extent -- reduced data for faster testing
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        sql = f"""SELECT COUNT(1) AS CNT FROM {source.escaped_name} WHERE POINT_X IS NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.15, -114.375, 51.25, crs=CRS(4326))):
+            add_xy_coordinates(source)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+    # End test_reduced method
+
+    @mark.transform
+    def test_geographic_input_projected_output(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test feature class with geographic input and projected output
+        """
+        name = 'hydro_4617_a'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        crs = CRS(6893)
+        assert crs.is_compound
+        add_xy_coordinates(source)
+        sql = f"""SELECT AVG(POINT_X) AS AVG_X, AVG(POINT_Y) AS AVG_Y FROM {source.escaped_name}"""
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert approx(cursor.fetchone(), abs=0.001) == (-114.2650, 51.1558)
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(True)):
+            add_xy_coordinates(source)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert approx(cursor.fetchone(), abs=0.1) == (-12719924.87, 6615617.49)
+    # End test_geographic_input_projected_output method
+
+    @mark.zm
+    def test_missing_zm_values(self, ntdb_zm_meh_small, mem_gpkg):
+        """
+        Test feature classes with enabled with Z or M and missing Z or M values
+        """
+        name = 'structures_vcs_zm_a'
+        source = ntdb_zm_meh_small[name].copy(name, geopackage=mem_gpkg)
+        add_xy_coordinates(source)
+        sql = f"""SELECT COUNT(1) AS CNT FROM {source.escaped_name} WHERE POINT_M = 0"""
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == len(source)
+    # End test_missing_zm_values method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, in_count, out_count', [
+        ('hydro_6654_a', 12, 14),
+        ('hydro_6654_z_a', 13, 16),
+        ('hydro_6654_m_a', 13, 16),
+        ('hydro_6654_zm_a', 13, 17),
+    ])
+    @mark.parametrize('weight_option', [
+        WeightOption.TWO_D,
+        WeightOption.THREE_D,
+    ])
+    def test_output_crs_include_vertical(self, ntdb_zm_small, mem_gpkg,
+                                         fc_name, in_count, out_count,
+                                         weight_option):
+        """
+        Test with output compound CRS coming from a compound CRS
+        """
+        crs = CRS(6893)
+        assert crs.is_compound
+        source = ntdb_zm_small[fc_name].copy(fc_name, geopackage=mem_gpkg)
+        assert len(source.fields) == in_count
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(True)):
+            result = add_xy_coordinates(source, weight_option=weight_option)
+        assert len(result) == len(source)
+        assert len(result.fields) == out_count
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(f"""SELECT COUNT(1) AS CNT FROM {result.escaped_name} WHERE POINT_X IS NULL OR POINT_Y IS NULL""")
+            assert cursor.fetchone()[0] == 0
+            if POINT_Z.name in result.field_names:
+                cursor = cin.execute(f"""SELECT  COUNT(1) AS CNT FROM {result.escaped_name} WHERE POINT_Z IS NULL""")
+                assert cursor.fetchone()[0] == 0
+            if POINT_M.name in result.field_names:
+                cursor = cin.execute(f"""SELECT  COUNT(1) AS CNT FROM {result.escaped_name} WHERE POINT_M IS NULL""")
+                assert cursor.fetchone()[0] == 0
+    # End test_output_crs_include_vertical method
+# End TestAddXYCoordinates class
 
 
 if __name__ == '__main__':  # pragma: no cover
