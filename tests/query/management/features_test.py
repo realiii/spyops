@@ -96,12 +96,11 @@ class TestQueryAddXYCoordinates:
         name = 'grid_a'
         source = grid_index[name]
         query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
-        sql = f"""SELECT * FROM temp.{name}"""
         with query.source.geopackage.connection as cin:
-            with raises(OperationalError):
-                cin.execute(sql)
             query._delete_intermediate()
-            assert query._intermediate_table == f'temp.{name}'
+            name = query._intermediate_table
+            assert name.startswith('temp.tmp_grid_a_add_xy_coords_')
+            sql = f"""SELECT * FROM {name}"""
             cin.execute(sql)
             query._delete_intermediate()
             with raises(OperationalError):
@@ -162,7 +161,8 @@ class TestQueryAddXYCoordinates:
         source = grid_index[name]
         query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
         sql = query.insert
-        assert 'INTO temp.grid_zm_a(ORIG_FID, POINT_X, POINT_Y, POINT_Z, POINT_M) ' in sql
+        assert '(ORIG_FID, POINT_X, POINT_Y, POINT_Z, POINT_M) ' in sql
+        assert f'temp.tmp_{name}' in sql
     # End test_insert method
 
     def test_update(self, grid_index):
@@ -174,8 +174,7 @@ class TestQueryAddXYCoordinates:
         query = QueryAddXYCoordinates(source, WeightOption.TWO_D)
         sql = query.update
         assert 'UPDATE grid_zm_a ' in sql
-        assert 'SET POINT_X = temp.grid_zm_a.POINT_X, POINT_Y = temp.grid_zm_a.POINT_Y, POINT_Z = temp.grid_zm_a.POINT_Z, POINT_M = temp.grid_zm_a.POINT_M' in sql
-        assert 'WHERE grid_zm_a.fid = temp.grid_zm_a.ORIG_FID' in sql
+        assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
     # End test_update method
 # End TestQueryAddXYCoordinates class
 

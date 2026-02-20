@@ -4,12 +4,14 @@ Query Classes for management.features module
 """
 
 
+from datetime import datetime
 from functools import cached_property, partial
 from operator import attrgetter
 from typing import Callable, Self, TYPE_CHECKING
 
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import ShapeType
+from fudgeo.util import escape_name
 
 from spyops.crs.transform import make_transformer_function
 from spyops.environment import ANALYSIS_SETTINGS
@@ -168,7 +170,7 @@ class QueryAddXYCoordinates(AbstractSourceQuery):
         """
         Delete Intermediate
         """
-        name = self.source.escaped_name
+        name = self._intermediate_name
         with self.source.geopackage.connection as cin:
             cin.execute(f"""DROP TABLE IF EXISTS {TEMP_SCHEMA}{DOT}{name}""")
     # End _delete_intermediate method
@@ -188,12 +190,21 @@ class QueryAddXYCoordinates(AbstractSourceQuery):
         """
         Intermediate Table
         """
-        name = self.source.escaped_name
+        name = self._intermediate_name
         defs = COMMA_SPACE.join(repr(f) for f in self._intermediate_fields)
         with self.source.geopackage.connection as cin:
             cin.execute(f"""CREATE TEMPORARY TABLE {name} ({defs})""")
         return f'{TEMP_SCHEMA}{DOT}{name}'
     # End _intermediate_table property
+
+    @cached_property
+    def _intermediate_name(self) -> str:
+        """
+        Intermediate Name
+        """
+        now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        return escape_name(f'tmp_{self.source.name}_add_xy_coords_{now}')
+    # End _intermediate_name property
 
     @property
     def _intermediate_fields(self) -> FIELDS:
