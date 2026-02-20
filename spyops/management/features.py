@@ -9,15 +9,16 @@ from typing import Callable, TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
-from spyops.geometry.util import filter_features
+from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.management.features import (
-    QueryCopyFeatures, QueryMultiPartToSinglePart)
-from spyops.shared.constant import SOURCE, TARGET
+    QueryAddXYCoordinates, QueryCopyFeatures, QueryMultiPartToSinglePart)
+from spyops.shared.constant import SOURCE, WEIGHT_OPTION
+from spyops.shared.enumeration import WeightOption
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import ELEMENT
 from spyops.shared.records import insert_many, select_and_transform_features
 from spyops.validation import (
-    validate_element, validate_feature_class, validate_overwrite_input,
+    validate_element, validate_enumeration, validate_feature_class,
     validate_overwrite_source, validate_result, validate_source_feature_class,
     validate_target_feature_class)
 
@@ -27,7 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 __all__ = ['multipart_to_singlepart', 'explode', 'delete_features',
-           'copy_features']
+           'copy_features', 'add_xy_coordinates']
 
 
 @validate_result()
@@ -94,6 +95,42 @@ def copy_features(source: 'FeatureClass', target: 'FeatureClass', *,
     query = QueryCopyFeatures(source, target=target, where_clause=where_clause)
     return select_and_transform_features(query)
 # End copy_features function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_enumeration(WEIGHT_OPTION, WeightOption)
+def add_xy_coordinates(source: 'FeatureClass', *,
+                       weight_option: WeightOption = WeightOption.TWO_D) \
+        -> 'FeatureClass':
+    """
+    Add XY Coordinates
+
+    Adds POINT_X and POINT_Y fields to a feature class.  Adds a POINT_Z field
+    when the feature class is Z enabled and POINT_M field when the feature
+    class is M enabled.  If the feature class already contains
+    these fields, then the values in these fields will be updated.
+
+    XY and Z values will be in the coordinate system of the feature class or
+    the output coordinate system when set.
+    """
+    with QueryAddXYCoordinates(source, weight_option) as query:
+        query_insert = query.insert
+        getter = query.centroid_getter
+        transformer = query.source_transformer
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=transformer)
+                records = [(i, *c) for (_, i), c in
+                           zip(features, getter(geometries))]
+                cin.executemany(query_insert, records)
+            cin.execute(query.update)
+    return query.target
+# End add_xy_coordinates function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

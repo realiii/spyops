@@ -52,7 +52,17 @@ TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
-ORIG_FID: Field = Field('ORIG_FID', data_type=FieldType.integer)
+ORIG_FID: Field = Field(
+    'ORIG_FID', data_type=FieldType.integer,
+    alias='Original Feature Identifier')
+POINT_X: Field = Field(
+    'POINT_X', data_type=FieldType.real, alias='X Coordinate')
+POINT_Y: Field = Field(
+    'POINT_Y', data_type=FieldType.real, alias='Y Coordinate')
+POINT_Z: Field = Field(
+    'POINT_Z', data_type=FieldType.real, alias='Z Coordinate')
+POINT_M: Field = Field(
+    'POINT_M', data_type=FieldType.real, alias='M Coordinate')
 
 
 def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,

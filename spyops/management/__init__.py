@@ -7,7 +7,8 @@ Package Initialization
 from spyops.management.feature_class import (
     create_feature_class, recalculate_feature_class_extent)
 from spyops.management.features import (
-    copy_features, delete_features, explode, multipart_to_singlepart)
+    add_xy_coordinates, copy_features, delete_features, explode,
+    multipart_to_singlepart)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete
@@ -39,6 +40,7 @@ __all__ = [
     'calculate_field',
     'create_feature_class',
     'alter_field',
+    'add_xy_coordinates',
 ]
 
 
