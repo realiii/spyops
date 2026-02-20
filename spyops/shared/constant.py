@@ -16,6 +16,7 @@ SPACE: str = ' '
 EMPTY: str = ''
 COLON: str = ':'
 PLUS: str = '+'
+DOT: str = '.'
 UNDERSCORE: str = '_'
 DOUBLE_UNDER: str = f'{UNDERSCORE}{UNDERSCORE}'
 PADDED_PIPE: str = f'{SPACE}{PIPE}{SPACE}'
@@ -72,8 +73,11 @@ GROUP_FIELDS: str = 'group_fields'
 INDEX_FIELDS: str = 'index_fields'
 ATTRIBUTE_OPTION: str = 'attribute_option'
 ALGORITHM_OPTION: str = 'algorithm_option'
+WEIGHT_OPTION: str = 'weight_option'
 OUTPUT_TYPE_OPTION: str = 'output_type_option'
 
+
+TEMP_SCHEMA: str = 'temp'
 ROWID: str = 'ROWID'
 SQL_EMPTY: str = f"""{ROWID} <= -1"""
 SQL_FULL: str = f"""{ROWID} > -1"""
