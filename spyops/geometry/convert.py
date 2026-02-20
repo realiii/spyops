@@ -88,7 +88,7 @@ def _update_z_values(coords: 'ndarray', has_z: bool) -> None:
 # End _update_z_values function
 
 
-def cast_points(geoms: 'ndarray', srs_id: int, has_z: bool,
+def cast_points(geoms: 'ndarray', *, srs_id: int, has_z: bool,
                 has_m: bool) -> list:
     """
     Cast shapely Points to fudgeo Points adjusting by including or dropping
@@ -101,7 +101,7 @@ def cast_points(geoms: 'ndarray', srs_id: int, has_z: bool,
 # End cast_points function
 
 
-def cast_multi_points(geoms: 'ndarray', srs_id: int, has_z: bool,
+def cast_multi_points(geoms: 'ndarray', *, srs_id: int, has_z: bool,
                       has_m: bool) -> list:
     """
     Cast shapely MultiPoints to fudgeo MultiPoints adjusting by including or
@@ -112,7 +112,7 @@ def cast_multi_points(geoms: 'ndarray', srs_id: int, has_z: bool,
 # End cast_multi_points function
 
 
-def cast_linestrings(geoms: 'ndarray', srs_id: int, has_z: bool,
+def cast_linestrings(geoms: 'ndarray', *, srs_id: int, has_z: bool,
                      has_m: bool) -> list:
     """
     Cast shapely LineStrings to fudgeo LineStrings adjusting by including or
@@ -123,7 +123,7 @@ def cast_linestrings(geoms: 'ndarray', srs_id: int, has_z: bool,
 # End cast_linestrings function
 
 
-def cast_multi_linestrings(geoms: 'ndarray', srs_id: int, has_z: bool,
+def cast_multi_linestrings(geoms: 'ndarray', *, srs_id: int, has_z: bool,
                            has_m: bool) -> list:
     """
     Cast shapely MultiLineStrings to fudgeo MultiLineStrings adjusting by
@@ -135,7 +135,7 @@ def cast_multi_linestrings(geoms: 'ndarray', srs_id: int, has_z: bool,
 # End cast_multi_linestrings function
 
 
-def cast_polygons(geoms: 'ndarray', srs_id: int, has_z: bool,
+def cast_polygons(geoms: 'ndarray', *, srs_id: int, has_z: bool,
                   has_m: bool) -> list:
     """
     Cast shapely Polygons to fudgeo Polygons adjusting by including or dropping
@@ -147,7 +147,7 @@ def cast_polygons(geoms: 'ndarray', srs_id: int, has_z: bool,
 # End cast_polygons function
 
 
-def cast_multi_polygons(geoms: 'ndarray', srs_id: int, has_z: bool,
+def cast_multi_polygons(geoms: 'ndarray', *, srs_id: int, has_z: bool,
                         has_m: bool) -> list:
     """
     Cast shapely MultiPolygons to fudgeo MultiPolygons adjusting by including or
@@ -169,7 +169,7 @@ def cast_multi_polygons(geoms: 'ndarray', srs_id: int, has_z: bool,
 # End cast_multi_polygons function
 
 
-def _cast_linear(geoms: 'ndarray', has_z: bool, has_m: bool, srs_id: int,
+def _cast_linear(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
                  geom_type: str) -> list:
     """
     Cast Linear Geometry
@@ -183,7 +183,7 @@ def _cast_linear(geoms: 'ndarray', has_z: bool, has_m: bool, srs_id: int,
 # End _cast_linear function
 
 
-def _cast_groups(geoms: 'ndarray', has_z: bool, has_m: bool, srs_id: int,
+def _cast_groups(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
                  geom_type: str, getter: Callable) -> list:
     """
     Cast Groups of Geometries
