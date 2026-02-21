@@ -5,9 +5,11 @@ Test for Units
 
 
 from pyproj import CRS
-from pytest import approx, mark
+from pytest import approx, mark, raises
 
-from spyops.crs.unit import get_unit_conversion_factor, get_unit_name
+from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.crs.unit import (
+    get_linear_unit_conversion_factor, get_unit_conversion, get_unit_name)
 
 
 pytestmark = [mark.crs]
@@ -24,12 +26,55 @@ pytestmark = [mark.crs]
     ('US survey foot', 'foot', 1.0000020000039993),
     ('US survey foot', 'metre', 0.304800609601219),
 ])
-def test_get_unit_conversion_factor(from_name, to_name, expected):
+def test_get_linear_unit_conversion_factor(from_name, to_name, expected):
     """
-    Test get unit conversion factor
+    Test get linear unit conversion factor
     """
-    assert approx(get_unit_conversion_factor(from_name, to_name), abs=10**-6) == expected
-# End test_get_unit_conversion_factor function
+    assert approx(get_linear_unit_conversion_factor(from_name, to_name), abs=10 ** -6) == expected
+# End test_get_linear_unit_conversion_factor function
+
+
+class TestGetUnitConversion:
+    """
+    Test get_unit_conversion
+    """
+    @mark.parametrize('from_unit, to_unit', [
+        (LengthUnit.FEET_US, AreaUnit.SQUARE_MILES_US),
+        (AreaUnit.HECTARES, LengthUnit.METERS),
+    ])
+    def test_bad_inputs(self, from_unit, to_unit):
+        """
+        Test bad inputs into get_unit_conversion
+        """
+        with raises(TypeError):
+            get_unit_conversion(from_unit, to_unit)
+    # End test_bad_inputs method
+
+    def test_length(self):
+        """
+        Test length conversions
+        """
+        values = [get_unit_conversion(item, LengthUnit.METERS)
+                  for item in LengthUnit]
+        assert approx(values, abs=0.000001) == [
+            1000., 1.,
+            1609.344, 1852., 0.9144, 0.3048,
+            1609.34721869444, 1853.248, 0.9144018288036576, 0.304800609601219]
+    # End test_length method
+
+    def test_area(self):
+        """
+        Test area conversions
+        """
+        values = [get_unit_conversion(item, AreaUnit.SQUARE_METERS)
+                  for item in AreaUnit]
+        assert approx(values, abs=0.000001) == [
+            1000000., 1.,
+            2589988.110336, 3429904., 0.83612736, 0.09290304,
+            2589998.4703195295, 3434528.1495040003, 0.8361307045194736, 0.09290341161327473,
+            100000000., 2.1327603305785125e-06, 2.1327688616454253e-06]
+    # End test_area method
+# End TestGetUnitConversion class
 
 
 @mark.parametrize('code, expected', [
