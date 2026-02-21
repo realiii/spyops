@@ -19,7 +19,7 @@ class AttributeOption(StrEnum):
 
 class AlgorithmOption(StrEnum):
     """
-    Algorithm Option
+    Algorithm Options
     """
     CLASSIC = auto()
     PAIRWISE = auto()
@@ -28,7 +28,7 @@ class AlgorithmOption(StrEnum):
 
 class OutputTypeOption(StrEnum):
     """
-    Output Type Option
+    Output Type Options
     """
     SAME = auto()
     LINE = auto()
@@ -38,7 +38,7 @@ class OutputTypeOption(StrEnum):
 
 class FieldProperty(StrEnum):
     """
-    Field Property
+    Field Properties
     """
     ALIAS = auto()
     COMMENT = auto()
@@ -48,7 +48,7 @@ class FieldProperty(StrEnum):
 
 class WeightOption(StrEnum):
     """
-    Weight Option
+    Weight Options
     """
     TWO_D = auto()
     THREE_D = auto()
