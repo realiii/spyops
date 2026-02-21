@@ -5,12 +5,14 @@ Abstract Classes in support of Query objects
 
 
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 from functools import cache, cached_property
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, Self, TYPE_CHECKING
 from warnings import warn
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
+from fudgeo.util import escape_name
 from numpy import isfinite
 from pyproj import CRS
 from shapely.creation import box
@@ -26,15 +28,15 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
-    EMPTY, IN, NOT_IN, QUESTION, SKIP_FILE_PREFIXES, SQL_EMPTY, SQL_FULL,
-    UNDERSCORE)
+    DOT, EMPTY, IN, NOT_IN, QUESTION, SKIP_FILE_PREFIXES, SQL_EMPTY, SQL_FULL,
+    TEMP_SCHEMA, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, XY_TOL
+from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
 from spyops.shared.util import make_unique_name
 
 
@@ -451,6 +453,169 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
             zm=self.zm_config)
     # End target_full property
 # End AbstractSourceQuery class
+
+
+class AbstractSourceUpdateQuery(AbstractSourceQuery):
+    """
+    Abstract Source Update Query
+    """
+    def __init__(self, source: FeatureClass) -> None:
+        """
+        Initialize the AbstractSourceQuery class
+        """
+        super().__init__(source, target=source, xy_tolerance=None)
+    # End init built-in
+
+    def __enter__(self) -> Self:
+        """
+        Context Manager Enter
+        """
+        self._prepare_source()
+        self._delete_intermediate()
+        _ = self._intermediate_table
+        return self
+    # End enter built-in
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        """
+        Context Manager Exit
+        """
+        self._delete_intermediate()
+        return False
+    # End exit built-in
+
+    @property
+    @abstractmethod
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        pass
+    # End _stub property
+
+    @abstractmethod
+    def _prepare_source(self) -> None:
+        """
+        Source Preparation Steps
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    @abstractmethod
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        pass
+    # End _intermediate_fields property
+
+    def _delete_intermediate(self) -> None:
+        """
+        Delete Intermediate
+        """
+        name = self._intermediate_name
+        with self.source.geopackage.connection as cin:
+            cin.execute(f"""DROP TABLE IF EXISTS {TEMP_SCHEMA}{DOT}{name}""")
+    # End _delete_intermediate method
+
+    @cached_property
+    def _intermediate_table(self) -> str:
+        """
+        Intermediate Table
+        """
+        name = self._intermediate_name
+        defs = COMMA_SPACE.join(repr(f) for f in self._intermediate_fields)
+        with self.source.geopackage.connection as cin:
+            cin.execute(f"""CREATE TEMPORARY TABLE {name} ({defs})""")
+        return f'{TEMP_SCHEMA}{DOT}{name}'
+    # End _intermediate_table property
+
+    @cached_property
+    def _intermediate_name(self) -> str:
+        """
+        Intermediate Name
+        """
+        now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        return escape_name(f'tmp_{self.source.name}_{self._short_name}_{now}')
+    # End _intermediate_name property
+
+    @staticmethod
+    def _make_update_from(element_name: str, key_name: str, field_names: NAMES,
+                          from_name: str, from_key_name: str,
+                          from_field_names: NAMES) -> str:
+        """
+        Make SQL statement for Update
+        """
+        sets = [f'{escape_name(fn)} = {from_name}{DOT}{escape_name(ffn)}'
+                for fn, ffn in zip(field_names, from_field_names)]
+        return f"""
+            UPDATE {element_name} 
+            SET {COMMA_SPACE.join(sets)} 
+            FROM {from_name}
+            WHERE {element_name}{DOT}{key_name} = {from_name}{DOT}{from_key_name}
+        """
+    # End _make_update_from method
+
+    @abstractmethod
+    def _get_field_names(self) -> NAMES:
+        """
+        Get Field Names
+        """
+        pass
+    # End _get_field_names method
+
+    @property
+    def target(self) -> 'FeatureClass':
+        """
+        Target
+        """
+        return self.source
+    # End target property
+
+    @property
+    def select(self) -> str:
+        """
+        Select Geometry and FID
+        """
+        geom_type = get_geometry_column_name(
+            self.source, include_geom_type=True)
+        select_names = self._concatenate(
+            geom_type, self.source.primary_key_field.escaped_name)
+        if ANALYSIS_SETTINGS.extent:
+            return self._make_intersection_query(
+                self.source, field_names=select_names)
+        return self._make_select(
+            self.source, field_names=select_names, where_clause=SQL_FULL)
+    # End select property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        return self._make_insert(
+            self._intermediate_table,
+            field_names=make_field_names(self._intermediate_fields),
+            field_count=len(self._intermediate_fields))
+    # End insert property
+
+    @property
+    def update(self) -> str:
+        """
+        Update Query
+        """
+        field_names = self._get_field_names()
+        key_name, *from_field_names = [
+            f.escaped_name for f in self._intermediate_fields]
+        return self._make_update_from(
+            element_name=self.target.escaped_name,
+            key_name=self.target.primary_key_field.escaped_name,
+            field_names=field_names,
+            from_name=self._intermediate_table, from_key_name=key_name,
+            from_field_names=from_field_names)
+    # End update property
+# End AbstractSourceUpdateQuery class
 
 
 class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
