@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Internal functions for analysis module
+Internal functions for analysis package
 """
 
 
