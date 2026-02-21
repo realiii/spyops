@@ -80,6 +80,9 @@ ATTRIBUTE_OPTION: str = 'attribute_option'
 ALGORITHM_OPTION: str = 'algorithm_option'
 WEIGHT_OPTION: str = 'weight_option'
 OUTPUT_TYPE_OPTION: str = 'output_type_option'
+GEOMETRY_ATTRIBUTE: str = 'geometry_attribute'
+LENGTH_UNIT: str = 'length_unit'
+AREA_UNIT: str = 'area_unit'
 
 
 TEMP_SCHEMA: str = 'temp'
