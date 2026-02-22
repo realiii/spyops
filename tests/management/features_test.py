@@ -6,8 +6,8 @@ Tests for Features
 
 from sqlite3 import OperationalError
 
-from fudgeo import FeatureClass, GeoPackage
-from fudgeo.enumeration import ShapeType
+from fudgeo import FeatureClass, Field, GeoPackage
+from fudgeo.enumeration import FieldType, ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx, raises
 
@@ -16,10 +16,10 @@ from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
-    add_xy_coordinates, copy_features, delete_features,
-    multipart_to_singlepart)
+    add_xy_coordinates, calculate_geometry_attributes, copy_features,
+    delete_features, multipart_to_singlepart)
 from spyops.shared.constant import EPSG, ESRI
-from spyops.shared.enumeration import WeightOption
+from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
 
 from tests.util import UseGrids
@@ -473,6 +473,99 @@ class TestAddXYCoordinates:
                 assert cursor.fetchone()[0] == 0
     # End test_output_crs_include_vertical method
 # End TestAddXYCoordinates class
+
+
+class TestCalculateGeometryAttributes:
+    """
+    Test calculate geometry attributes
+    """
+    @mark.parametrize('attribute, average_lcc, average_dd', [
+        (GeometryAttribute.POINT_X, -1257783.07, -114.26),
+        (GeometryAttribute.POINT_Y, 1436251.88, 51.15),
+        (GeometryAttribute.POINT_Z, 1244.70, 1244.70),
+        (GeometryAttribute.POINT_M, 210530.83, 210530.83),
+    ])
+    def test_point(self, ntdb_zm_small, mem_gpkg, attribute, average_lcc, average_dd):
+        """
+        Test point options on point feature class using extent and
+        output coordinate system
+        """
+        fc_name = 'structures_lcc_zm_p'
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS AVERAGE_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average_lcc
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.1) == average_dd
+    # End test_point method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_Z, None, None),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_M, None, None),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Z, 1270.76, 1270.76),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_M, 201075.39, 201075.39),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_X, -1258272.89, -114.27),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_Y, 1435163.99, 51.14),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_Z, None, None),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_M, None, None),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_X, -1258272.89, -114.27),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_Y, 1435163.99, 51.14),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_Z, 1212.30, 1212.63),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_M, 400006.96, 400006.96),
+    ])
+    def test_centroid(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test centroid options on non-point feature class using extent and
+        output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        is_extended = source.has_z or source.has_m
+        if not is_extended and attribute in (
+                GeometryAttribute.CENTROID_Z, GeometryAttribute.CENTROID_M):
+            with raises(ValueError):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+            return
+        sql = f"""SELECT AVG({name}) AS AVERAGE_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.1) == average_dd
+    # End test_centroid method
+
+# End TestCalculateGeometryAttributes class
 
 
 if __name__ == '__main__':  # pragma: no cover
