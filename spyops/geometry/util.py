@@ -7,9 +7,7 @@ Utility Functions
 from typing import Any, Callable, TYPE_CHECKING, Union
 
 from numpy import array, diff, ndarray, nonzero, ones
-from shapely import force_2d, force_3d, get_num_interior_rings, get_point
-from shapely.constructive import point_on_surface
-from shapely.coordinates import get_coordinates
+from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 
 from spyops.geometry.enumeration import DimensionOption
@@ -98,49 +96,6 @@ def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
     return array([not (g is None or g.is_empty or not g.is_valid)
                   for g in geoms], dtype=bool)
 # End get_validity function
-
-
-def get_hole_count(geoms: 'ndarray') -> list[int]:
-    """
-    Get Hole Count for Polygons or MultiPolygons
-    """
-    return [sum(get_num_interior_rings(get_geoms_iter(g))) for g in geoms]
-# End get_hole_count function
-
-
-def get_inside_xy(geoms: 'ndarray') -> list[tuple[float, float]]:
-    """
-    Get Inside XY
-    """
-    return [(pt.x, pt.y) for pt in point_on_surface(geoms)]
-# End get_inside_xy function
-
-
-def line_start(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> 'ndarray':
-    """
-    Line Starts
-    """
-    return _get_line_position(geoms, has_z=has_z, has_m=has_m, index=0)
-# End line_start function
-
-
-def line_end(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> 'ndarray':
-    """
-    Line Ends
-    """
-    return _get_line_position(geoms, has_z=has_z, has_m=has_m, index=-1)
-# End line_end function
-
-
-def _get_line_position(geoms: 'ndarray', *, has_z: bool, has_m: bool,
-                       index: int) -> 'ndarray':
-    """
-    Get Line Position
-    """
-    points = get_point(
-        [get_geoms_iter(geom)[index] for geom in geoms], index=index)
-    return get_coordinates(points, include_z=has_z, include_m=has_m)
-# End _get_line_position function
 
 
 if __name__ == '__main__':  # pragma: no cover
