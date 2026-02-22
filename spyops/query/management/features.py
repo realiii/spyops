@@ -244,6 +244,32 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     # End _centroid_attributes property
 
     @property
+    def _extent_minimum_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Extent Minimum Attributes
+        """
+        return (GeometryAttribute.EXTENT_MIN_X, GeometryAttribute.EXTENT_MIN_Y,
+                GeometryAttribute.EXTENT_MIN_Z, GeometryAttribute.EXTENT_MIN_M)
+    # End _extent_minimum_attributes property
+
+    @property
+    def _extent_maximum_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Extent Maximum Attributes
+        """
+        return (GeometryAttribute.EXTENT_MAX_X, GeometryAttribute.EXTENT_MAX_Y,
+                GeometryAttribute.EXTENT_MAX_Z, GeometryAttribute.EXTENT_MAX_M)
+    # End _extent_maximum_attributes property
+
+    @property
+    def _inside_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Inside Attributes
+        """
+        return GeometryAttribute.INSIDE_X, GeometryAttribute.INSIDE_Y
+    # End _inside_attributes property
+
+    @property
     def _short_name(self) -> str:
         """
         Short Name
