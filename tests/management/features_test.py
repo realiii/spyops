@@ -742,6 +742,39 @@ class TestCalculateGeometryAttributes:
                     cursor = cin.execute(sql)
                     assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
     # End test_extent method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('hydro_lcc_a', GeometryAttribute.INSIDE_X, -1256931.874, -114.2615),
+        ('hydro_lcc_a', GeometryAttribute.INSIDE_Y, 1437267.177, 51.1706),
+        ('transmission_lcc_l', GeometryAttribute.INSIDE_X, -1258118.115, -114.270),
+        ('transmission_lcc_l', GeometryAttribute.INSIDE_Y, 1435083.744, 51.1484),
+    ])
+    def test_inside(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test inside options on non-point feature class using extent and
+        output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS STAT_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
+    # End test_inside method
 # End TestCalculateGeometryAttributes class
 
 
