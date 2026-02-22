@@ -16,7 +16,8 @@ from spyops.crs.transform import make_transformer_function
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.geometry.extent import extent_maximum, extent_minimum
-from spyops.geometry.util import get_hole_count, get_inside_xy
+from spyops.geometry.util import (
+    get_hole_count, get_inside_xy, line_end, line_start)
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.constant import (
@@ -265,6 +266,24 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     # End _extent_maximum_attributes property
 
     @property
+    def _line_start_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Line Start Attributes
+        """
+        return (GeometryAttribute.LINE_START_X, GeometryAttribute.LINE_START_Y,
+                GeometryAttribute.LINE_START_Z, GeometryAttribute.LINE_START_M)
+    # End _line_start_attributes property
+
+    @property
+    def _line_end_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Line End Attributes
+        """
+        return (GeometryAttribute.LINE_END_X, GeometryAttribute.LINE_END_Y,
+                GeometryAttribute.LINE_END_Z, GeometryAttribute.LINE_END_M)
+    # End _line_end_attributes property
+
+    @property
     def _inside_attributes(self) -> tuple[GeometryAttribute, ...]:
         """
         Inside Attributes
@@ -307,6 +326,8 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
             self._extent_minimum_attributes,
             self._extent_maximum_attributes,
             self._inside_attributes,
+            self._line_start_attributes,
+            self._line_end_attributes,
         )
         for attrs in attributes:
             if attr not in attrs:
@@ -336,6 +357,10 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
             return partial(extent_maximum, has_z=has_z, has_m=has_m)
         elif attr in self._inside_attributes:
             return get_inside_xy
+        elif attr in self._line_start_attributes:
+            return partial(line_start, has_z=has_z, has_m=has_m)
+        elif attr in self._line_end_attributes:
+            return partial(line_end, has_z=has_z, has_m=has_m)
         elif attr == GeometryAttribute.POINT_COUNT:
             return get_num_coordinates
         elif attr == GeometryAttribute.PART_COUNT:

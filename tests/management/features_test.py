@@ -775,6 +775,47 @@ class TestCalculateGeometryAttributes:
                     cursor = cin.execute(sql)
                     assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
     # End test_inside method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('transmission_lcc_l', GeometryAttribute.LINE_START_X, -1263260.068, -114.3509),
+        ('transmission_lcc_l', GeometryAttribute.LINE_START_Y, 1437753.072, 51.1592),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_X, 675148.261, -114.5000),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_Y, 5660580.401, 51.0699),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_Z, 1250.77354, 1250.7735),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_M, 211004.0, 211004.0),
+        ('transmission_lcc_l', GeometryAttribute.LINE_END_X, -1253401.174, -114.1951),
+        ('transmission_lcc_l', GeometryAttribute.LINE_END_Y, 1432707.341, 51.1398),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_X, 707375.731, -114.03608),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_Y, 5668602.5022, 51.1312),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_Z, 1094.3065, 1094.3065),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_M, 228680.6666, 228680.6666),
+    ])
+    def test_line_start_end(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test line start and line end options on non-point feature class using
+        extent and output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS STAT_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
+    # End test_line_start_end method
 # End TestCalculateGeometryAttributes class
 
 
