@@ -202,8 +202,6 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     EXTENT_MAX_M -- maximum m-value
     INSIDE_X -- x-coordinate of a central point on the line
     INSIDE_Y -- y-coordinate of a central point on the line
-    INSIDE_Z -- z-coordinate of a central point on the line
-    INSIDE_M -- m-value of a central point on the line
     LENGTH -- length
     LENGTH_GEODESIC -- geodesic length
     LINE_BEARING -- line bearing
@@ -236,8 +234,6 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     EXTENT_MAX_M -- maximum m-value
     INSIDE_X -- x-coordinate of a central point inside the polygon
     INSIDE_Y -- y-coordinate of a central point inside the polygon
-    INSIDE_Z -- z-coordinate of a central point inside the polygon
-    INSIDE_M -- m-value of a central point inside the polygon
     PERIMETER -- length of the perimeter (border)
     PERIMETER_GEODESIC -- geodesic length of the perimeter (border)
     PART_COUNT -- number of parts
