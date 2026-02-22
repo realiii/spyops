@@ -79,7 +79,7 @@ class TestMultiPartToSinglePart:
         assert exploded.has_m == zm.m_enabled
         assert len(exploded) == count
         assert len(exploded.fields) == len(source.fields) + 1
-        geoms, ids = zip(*exploded.select(ORIG_FID).fetchall())
+        geoms, ids = zip(*exploded.select([ORIG_FID]).fetchall())
         assert len(set(ids)) == len(source)
         assert all(isinstance(g, cls) for g in geoms)
     # End test_output_zm method
