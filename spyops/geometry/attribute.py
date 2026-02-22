@@ -47,7 +47,6 @@ def line_end(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> 'ndarray':
     Line Ends
     """
     return _get_line_position(geoms, has_z=has_z, has_m=has_m, index=-1)
-
 # End line_end function
 
 
