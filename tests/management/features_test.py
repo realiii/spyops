@@ -565,6 +565,183 @@ class TestCalculateGeometryAttributes:
                     assert approx(cursor.fetchone()[0], abs=0.1) == average_dd
     # End test_centroid method
 
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 11_397),
+        ('hydro_zm_a', 11_397),
+        ('structures_6654_zm_a', 15_525),
+        ('structures_6654_zm_ma', 15_503),
+        ('transmission_mp', 11),
+        ('transmission_l', 451),
+        ('transmission_ml', 436),
+    ])
+    def test_point_count(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test point count
+        """
+        attribute = GeometryAttribute.POINT_COUNT
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.integer)
+        source.add_fields([field])
+        sql = f"""SELECT SUM({name}) AS TOTAL_VALUE 
+                  FROM {source.escaped_name}"""
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attribute)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert cursor.fetchone()[0] == count
+    # End test_point_count method
+
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 382),
+        ('hydro_zm_a', 382),
+        ('structures_6654_zm_a', 1453),
+        ('structures_6654_zm_ma', 1452),
+        ('transmission_mp', 11),
+        ('transmission_l', 66),
+        ('transmission_ml', 51),
+    ])
+    def test_part_count(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test part count
+        """
+        attribute = GeometryAttribute.PART_COUNT
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.integer)
+        source.add_fields([field])
+        sql = f"""SELECT SUM({name}) AS TOTAL_VALUE 
+                  FROM {source.escaped_name}"""
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attribute)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert cursor.fetchone()[0] == count
+    # End test_part_count method
+
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 47),
+        ('hydro_zm_a', 47),
+        ('structures_6654_zm_a', 134),
+        ('structures_6654_zm_ma', 133),
+    ])
+    def test_hole_count(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test hole count
+        """
+        attribute = GeometryAttribute.HOLE_COUNT
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.integer)
+        source.add_fields([field])
+        sql = f"""SELECT SUM({name}) AS TOTAL_VALUE 
+                  FROM {source.escaped_name}"""
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attribute)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert cursor.fetchone()[0] == count
+    # End test_hole_count method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_X, -1272319.31, -114.499),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_Y, 1430215.96, 51.1008),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_Z, None, None),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_M, None, None),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_X, -1272319.31, -114.499),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_Y, 1430215.96, 51.1008),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_Z, 1092.3451, 1092.34451),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_M, 201001.0, 201001.0),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_X, -1274015.73, -114.499),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_Y, 1420142.05, 51.016),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_Z, None, None),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_M, None, None),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_X, -1274015.73, -114.499),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_Y, 1420142.05, 51.016),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_Z, 1061.5443, 1061.5443),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_M, 400001.0, 400001.0),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_X, 35593.418, -114.4926),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_Y, 5647808.789, 51.0005),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_Z, None, None),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_M, None, None),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_X, -1254197.676, -114.2059),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_Y, 1443909.0185, 51.2073),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_Z, None, None),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_M, None, None),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_X, -1254197.676, -114.2059),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_Y, 1443909.0185, 51.2073),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_Z, 1316.938, 1316.938),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_M, 212029.0, 212029.0),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_X, -1239093.5373, -113.9999),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_Y, 1446983.133, 51.2215),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_Z, None, None),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_M, None, None),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_X, -1239093.5373, -113.9999),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_Y, 1446983.133, 51.2215),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_Z, 1297.9587, 1297.9587),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_M, 400028.0, 400028.0),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_X, 70109.637, -114.0000),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_Y, 5675312.072, 51.2499),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_Z, None, None),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_M, None, None),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test extent options on non-point feature class using extent and
+        output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        is_extended = source.has_z or source.has_m
+        if not is_extended and attribute in (
+                GeometryAttribute.EXTENT_MAX_Z, GeometryAttribute.EXTENT_MAX_M,
+                GeometryAttribute.EXTENT_MIN_Z, GeometryAttribute.EXTENT_MIN_M):
+            with raises(ValueError):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+            return
+        if attribute in (GeometryAttribute.EXTENT_MAX_X, GeometryAttribute.EXTENT_MAX_Y,
+                         GeometryAttribute.EXTENT_MAX_Z, GeometryAttribute.EXTENT_MAX_M):
+            stat = 'MAX'
+        else:
+            stat = 'MIN'
+        sql = f"""SELECT {stat}({name}) AS STAT_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
+    # End test_extent method
 # End TestCalculateGeometryAttributes class
 
 
