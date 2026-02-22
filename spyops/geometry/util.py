@@ -7,7 +7,8 @@ Utility Functions
 from typing import Any, Callable, TYPE_CHECKING, Union
 
 from numpy import array, diff, ndarray, nonzero, ones
-from shapely import force_2d, force_3d
+from shapely import force_2d, force_3d, get_num_interior_rings
+from shapely.constructive import point_on_surface
 from shapely.io import from_wkb
 
 from spyops.geometry.enumeration import DimensionOption
@@ -96,6 +97,22 @@ def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
     return array([not (g is None or g.is_empty or not g.is_valid)
                   for g in geoms], dtype=bool)
 # End get_validity function
+
+
+def get_hole_count(geoms: 'ndarray') -> list[int]:
+    """
+    Get Hole Count for Polygons or MultiPolygons
+    """
+    return [sum(get_num_interior_rings(get_geoms_iter(g))) for g in geoms]
+# End get_hole_count function
+
+
+def get_inside_xy(geoms: 'ndarray') -> list[tuple[float, float]]:
+    """
+    Get Inside XY
+    """
+    return [(pt.x, pt.y) for pt in point_on_surface(geoms)]
+# End get_inside_xy function
 
 
 if __name__ == '__main__':  # pragma: no cover
