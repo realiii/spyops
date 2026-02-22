@@ -92,6 +92,7 @@ class GeometryAttribute(StrEnum):
     LINE_START_Y = auto()
     LINE_START_Z = auto()
     LINE_START_M = auto()
+
     LINE_END_X = auto()
     LINE_END_Y = auto()
     LINE_END_Z = auto()
