@@ -547,7 +547,7 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         """
         Make SQL statement for Update
         """
-        sets = [f'{escape_name(fn)} = {from_name}{DOT}{escape_name(ffn)}'
+        sets = [f'{fn} = {from_name}{DOT}{ffn}'
                 for fn, ffn in zip(field_names, from_field_names)]
         return f"""
             UPDATE {element_name} 
