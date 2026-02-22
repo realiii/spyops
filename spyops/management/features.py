@@ -178,9 +178,11 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     EXTENT_MIN_X -- minimum x-coordinate
     EXTENT_MIN_Y -- minimum y-coordinate
     EXTENT_MIN_Z -- minimum z-coordinate
+    EXTENT_MIN_M -- minimum m-value
     EXTENT_MAX_X -- maximum x-coordinate
     EXTENT_MAX_Y -- maximum y-coordinate
     EXTENT_MAX_Z -- maximum z-coordinate
+    EXTENT_MAX_M -- maximum m-value
     PART_COUNT -- number of parts
     POINT_COUNT -- number of points
 
@@ -193,9 +195,11 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     EXTENT_MIN_X -- minimum x-coordinate
     EXTENT_MIN_Y -- minimum y-coordinate
     EXTENT_MIN_Z -- minimum z-coordinate
+    EXTENT_MIN_M -- minimum m-value
     EXTENT_MAX_X -- maximum x-coordinate
     EXTENT_MAX_Y -- maximum y-coordinate
     EXTENT_MAX_Z -- maximum z-coordinate
+    EXTENT_MAX_M -- maximum m-value
     INSIDE_X -- x-coordinate of a central point on the line
     INSIDE_Y -- y-coordinate of a central point on the line
     INSIDE_Z -- z-coordinate of a central point on the line
@@ -225,9 +229,11 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     EXTENT_MIN_X -- minimum x-coordinate
     EXTENT_MIN_Y -- minimum y-coordinate
     EXTENT_MIN_Z -- minimum z-coordinate
+    EXTENT_MIN_M -- minimum m-value
     EXTENT_MAX_X -- maximum x-coordinate
     EXTENT_MAX_Y -- maximum y-coordinate
     EXTENT_MAX_Z -- maximum z-coordinate
+    EXTENT_MAX_M -- maximum m-value
     INSIDE_X -- x-coordinate of a central point inside the polygon
     INSIDE_Y -- y-coordinate of a central point inside the polygon
     INSIDE_Z -- z-coordinate of a central point inside the polygon
