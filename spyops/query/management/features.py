@@ -9,11 +9,14 @@ from operator import attrgetter, itemgetter
 from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import ShapeType
+from shapely import get_num_coordinates, get_num_geometries
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.centroid import GEOMETRY_CENTROID
+from spyops.geometry.extent import extent_maximum, extent_minimum
+from spyops.geometry.util import get_hole_count, get_inside_xy
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.constant import (
@@ -298,15 +301,21 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         Item Getter
         """
         attr = self._attribute
-        if attr in (*self._point_attributes, *self._centroid_attributes):
-            if attr in (GeometryAttribute.POINT_M,
-                        GeometryAttribute.CENTROID_M):
+        attributes = (
+            self._point_attributes,
+            self._centroid_attributes,
+            self._extent_minimum_attributes,
+            self._extent_maximum_attributes,
+            self._inside_attributes,
+        )
+        for attrs in attributes:
+            if attr not in attrs:
+                continue
+            index = attrs.index(attr)
+            if index == 3:
                 index = -1
-            elif attr in self._point_attributes:
-                index = self._point_attributes.index(attr)
-            else:
-                index = self._centroid_attributes.index(attr)
             return itemgetter(index)
+        return lambda x: x
     # End item_getter property
 
     @property
@@ -315,18 +324,27 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         Attribute Getter
         """
         attr = self._attribute
+        has_z = self.source.has_z
+        has_m = self.source.has_m
         if attr in (*self._point_attributes, *self._centroid_attributes):
-            return self._centroid_getter()
+            return partial(
+                GEOMETRY_CENTROID[self.source.shape_type], has_z=has_z,
+                has_m=has_m, use_xy_length=self._option == WeightOption.TWO_D)
+        elif attr in self._extent_minimum_attributes:
+            return partial(extent_minimum, has_z=has_z, has_m=has_m)
+        elif attr in self._extent_maximum_attributes:
+            return partial(extent_maximum, has_z=has_z, has_m=has_m)
+        elif attr in self._inside_attributes:
+            return get_inside_xy
+        elif attr == GeometryAttribute.POINT_COUNT:
+            return get_num_coordinates
+        elif attr == GeometryAttribute.PART_COUNT:
+            return get_num_geometries
+        elif attr == GeometryAttribute.HOLE_COUNT:
+            return get_hole_count
+        else:
+            return lambda _: None
     # End attribute_getter property
-
-    def _centroid_getter(self) -> Callable:
-        """
-        Centroid Getter
-        """
-        getter = GEOMETRY_CENTROID[self.source.shape_type]
-        return partial(getter, has_z=self.source.has_z, has_m=self.source.has_m,
-                       use_xy_length=self._option == WeightOption.TWO_D)
-    # End _centroid_getter method
 # End QueryCalculateGeometryAttributes class
 
 
