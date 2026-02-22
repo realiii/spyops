@@ -197,7 +197,7 @@ class ValidateGeometryAttribute(AbstractValidateType):
     def _non_point_valid(*, has_z: bool, has_m: bool) \
             -> tuple[GeometryAttribute, ...]:
         """
-        Non Point Valid Geometry Attributes
+        Non-Point Valid Geometry Attributes
         """
         valid = (
             GeometryAttribute.CENTROID_X,
