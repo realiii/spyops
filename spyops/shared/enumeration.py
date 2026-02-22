@@ -99,8 +99,6 @@ class GeometryAttribute(StrEnum):
 
     INSIDE_X = auto()
     INSIDE_Y = auto()
-    INSIDE_Z = auto()
-    INSIDE_M = auto()
 
     AREA = auto()
     AREA_GEODESIC = auto()
