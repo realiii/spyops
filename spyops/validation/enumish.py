@@ -214,23 +214,11 @@ class ValidateGeometryAttribute(AbstractValidateType):
                 GeometryAttribute.CENTROID_Z, GeometryAttribute.EXTENT_MAX_Z,
                 GeometryAttribute.EXTENT_MIN_Z)
         if has_m:
-            valid = *valid, GeometryAttribute.CENTROID_M
+            valid = *valid, *(
+                GeometryAttribute.CENTROID_M, GeometryAttribute.EXTENT_MAX_M,
+                GeometryAttribute.EXTENT_MIN_M)
         return valid
     # End _validate_multi_points method
-
-    @staticmethod
-    def _inside_valid(*, has_z: bool, has_m: bool) \
-            -> tuple[GeometryAttribute, ...]:
-        """
-        Inside Attributes for Lines and Polygons
-        """
-        valid = (GeometryAttribute.INSIDE_X, GeometryAttribute.INSIDE_Y)
-        if has_z:
-            valid = *valid, GeometryAttribute.INSIDE_Z
-        if has_m:
-            valid = *valid, GeometryAttribute.INSIDE_M
-        return valid
-    # End _inside_valid method
 
     def _validate_lines(self, attribute: GeometryAttribute, *,
                         has_z: bool, has_m: bool) -> bool:
@@ -245,9 +233,10 @@ class ValidateGeometryAttribute(AbstractValidateType):
             GeometryAttribute.LINE_END_Y,
             GeometryAttribute.LINE_START_X,
             GeometryAttribute.LINE_START_Y,
+            GeometryAttribute.INSIDE_X,
+            GeometryAttribute.INSIDE_Y,
         )
-        valid = (*valid, *self._non_point_valid(has_z=has_z, has_m=has_m),
-                 *self._inside_valid(has_z=has_z, has_m=has_m))
+        valid = *valid, *self._non_point_valid(has_z=has_z, has_m=has_m)
         if has_z:
             valid = *valid, *(
                 GeometryAttribute.LINE_END_Z, GeometryAttribute.LINE_START_Z)
@@ -268,9 +257,10 @@ class ValidateGeometryAttribute(AbstractValidateType):
             GeometryAttribute.PERIMETER,
             GeometryAttribute.PERIMETER_GEODESIC,
             GeometryAttribute.HOLE_COUNT,
+            GeometryAttribute.INSIDE_X,
+            GeometryAttribute.INSIDE_Y,
         )
-        valid = (*valid, *self._non_point_valid(has_z=has_z, has_m=has_m),
-                 *self._inside_valid(has_z=has_z, has_m=has_m))
+        valid = *valid, *self._non_point_valid(has_z=has_z, has_m=has_m)
         return attribute in valid
     # End _validate_polygons method
 # End ValidateGeometryAttribute class
