@@ -6,15 +6,18 @@ Test for Features Query classes
 
 from sqlite3 import OperationalError
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Field
+from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import approx, mark, raises
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryMultiPartToSinglePart)
-from spyops.shared.enumeration import WeightOption
+    QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
+    QueryMultiPartToSinglePart)
+from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
 pytestmark = [mark.features, mark.query, mark.management]
@@ -177,6 +180,118 @@ class TestQueryAddXYCoordinates:
         assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
     # End test_update method
 # End TestQueryAddXYCoordinates class
+
+
+class TestQueryCalculateGeometryAttributes:
+    """
+    Tests for QueryCalculateGeometryAttributes
+    """
+    def test_delete_intermediate(self, grid_index):
+        """
+        Test delete intermediate
+        """
+        name = 'grid_a'
+        source = grid_index[name]
+        query = QueryCalculateGeometryAttributes(
+            source, field=Field('left', data_type=FieldType.real),
+            geometry_attribute=GeometryAttribute.POINT_M,
+            weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        with query.source.geopackage.connection as cin:
+            query._delete_intermediate()
+            name = query._intermediate_table
+            assert name.startswith('temp.tmp_grid_a_calc_geom_attrs_')
+            sql = f"""SELECT * FROM {name}"""
+            cin.execute(sql)
+            query._delete_intermediate()
+            with raises(OperationalError):
+                cin.execute(sql)
+    # End test_delete_intermediate method
+
+    @mark.parametrize('name, count', [
+        ('grid_a', 2),
+        ('grid_z_a', 2),
+        ('grid_m_a', 2),
+        ('grid_zm_a', 2),
+    ])
+    def test_intermediate_fields(self, grid_index, name, count):
+        """
+        Test intermediate fields
+        """
+        source = grid_index[name]
+        query = QueryCalculateGeometryAttributes(
+            source, field=Field('left', data_type=FieldType.real),
+            geometry_attribute=GeometryAttribute.POINT_M,
+            weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        assert len(query._intermediate_fields) == count
+    # End test_intermediate_fields method
+
+    def test_prepare_source(self, grid_index, mem_gpkg):
+        """
+        Test prepare source
+        """
+        name = 'grid_a'
+        source = grid_index[name].copy(name, geopackage=mem_gpkg)
+        assert len(source.fields) == 10
+        query = QueryCalculateGeometryAttributes(
+            source, field=Field('left', data_type=FieldType.real),
+            geometry_attribute=GeometryAttribute.POINT_M,
+            weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        query._prepare_source()
+        assert len(source.fields) == 10
+    # End test_prepare_source method
+
+    def test_select(self, grid_index):
+        """
+        Test select statement
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryCalculateGeometryAttributes(
+            source, field=Field('left', data_type=FieldType.real),
+            geometry_attribute=GeometryAttribute.POINT_M,
+            weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        sql = query.select
+        assert 'SELECT geom "[PolygonZM]", fid' in sql
+        assert f'FROM {name}' in sql
+    # End test_select method
+
+    def test_insert(self, grid_index):
+        """
+        Test insert statement
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryCalculateGeometryAttributes(
+            source, field=Field('left', data_type=FieldType.real),
+            geometry_attribute=GeometryAttribute.POINT_M,
+            weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        sql = query.insert
+        assert '(ORIG_FID, VALUE) ' in sql
+        assert f'temp.tmp_{name}' in sql
+    # End test_insert method
+
+    def test_update(self, grid_index):
+        """
+        Test update statement
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryCalculateGeometryAttributes(
+            source, field=Field('left', data_type=FieldType.real),
+            geometry_attribute=GeometryAttribute.POINT_M,
+            weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        sql = query.update
+        assert 'UPDATE grid_zm_a ' in sql
+        assert 'SET "left" = temp.tmp_grid_zm_a_' in sql
+        assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
+    # End test_update method
+# End TestQueryCalculateGeometryAttributes class
 
 
 if __name__ == '__main__':  # pragma: no cover

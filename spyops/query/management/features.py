@@ -5,7 +5,7 @@ Query Classes for management.features module
 
 
 from functools import cached_property, partial
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import ShapeType
@@ -205,6 +205,7 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     """
     def __init__(self, source: 'FeatureClass', field: Field,
                  geometry_attribute: GeometryAttribute, *,
+                 weight_option: WeightOption,
                  length_unit: LengthUnit, area_unit: AreaUnit) -> None:
         """
         Initialize the QueryCalculateGeometryAttributes class
@@ -212,6 +213,7 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         super().__init__(source)
         self._field: Field = field
         self._attribute: GeometryAttribute = geometry_attribute
+        self._option: WeightOption = weight_option
         self._length_unit: LengthUnit = length_unit
         self._area_unit: AreaUnit = area_unit
     # End init built-in
@@ -222,6 +224,24 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         """
         return self._field.escaped_name,
     # End _get_field_names method
+
+    @property
+    def _point_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Point Attributes
+        """
+        return (GeometryAttribute.POINT_X, GeometryAttribute.POINT_Y,
+                GeometryAttribute.POINT_Z, GeometryAttribute.POINT_M)
+    # End _point_attributes property
+
+    @property
+    def _centroid_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Centroid Attributes
+        """
+        return (GeometryAttribute.CENTROID_X, GeometryAttribute.CENTROID_Y,
+                GeometryAttribute.CENTROID_Z, GeometryAttribute.CENTROID_M)
+    # End _centroid_attributes property
 
     @property
     def _short_name(self) -> str:
@@ -247,12 +267,40 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     # End _intermediate_fields property
 
     @property
+    def item_getter(self) -> Callable:
+        """
+        Item Getter
+        """
+        attr = self._attribute
+        if attr in (*self._point_attributes, *self._centroid_attributes):
+            if attr in (GeometryAttribute.POINT_M,
+                        GeometryAttribute.CENTROID_M):
+                index = -1
+            elif attr in self._point_attributes:
+                index = self._point_attributes.index(attr)
+            else:
+                index = self._centroid_attributes.index(attr)
+            return itemgetter(index)
+    # End item_getter property
+
+    @property
     def attribute_getter(self) -> Callable:
         """
         Attribute Getter
         """
-        pass
+        attr = self._attribute
+        if attr in (*self._point_attributes, *self._centroid_attributes):
+            return self._centroid_getter()
     # End attribute_getter property
+
+    def _centroid_getter(self) -> Callable:
+        """
+        Centroid Getter
+        """
+        getter = GEOMETRY_CENTROID[self.source.shape_type]
+        return partial(getter, has_z=self.source.has_z, has_m=self.source.has_m,
+                       use_xy_length=self._option == WeightOption.TWO_D)
+    # End _centroid_getter method
 # End QueryCalculateGeometryAttributes class
 
 
