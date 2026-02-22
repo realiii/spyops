@@ -76,9 +76,12 @@ class GeometryAttribute(StrEnum):
     EXTENT_MIN_X = auto()
     EXTENT_MIN_Y = auto()
     EXTENT_MIN_Z = auto()
+    EXTENT_MIN_M = auto()
+
     EXTENT_MAX_X = auto()
     EXTENT_MAX_Y = auto()
     EXTENT_MAX_Z = auto()
+    EXTENT_MAX_M = auto()
 
     LENGTH = auto()
     LENGTH_GEODESIC = auto()
