@@ -15,9 +15,9 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.attribute import (
-    get_hole_count, get_inside_xy, line_end, line_start)
+    extent_maximum, extent_minimum, get_hole_count, get_inside_xy,
+    line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
-from spyops.geometry.extent import extent_maximum, extent_minimum
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.constant import (

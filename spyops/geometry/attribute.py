@@ -4,13 +4,14 @@ Attribute Functions
 """
 
 
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
+from bottleneck import nanmax, nanmin
 from shapely import (
     get_coordinates, get_num_interior_rings, get_point,
     point_on_surface)
 
-from spyops.geometry.util import get_geoms_iter
+from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -59,6 +60,34 @@ def _get_line_position(geoms: 'ndarray', *, has_z: bool, has_m: bool,
         [get_geoms_iter(geom)[index] for geom in geoms], index=index)
     return get_coordinates(points, include_z=has_z, include_m=has_m)
 # End _get_line_position function
+
+
+def extent_minimum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
+    """
+    Extent Minimums for Non-Point Geometries
+    """
+    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmin)
+# End extent_minimum function
+
+
+def extent_maximum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
+    """
+    Extent Maximums for Non-Point Geometries
+    """
+    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmax)
+# End extent_maximum function
+
+
+def _get_partial_extent(geoms: 'ndarray', *, has_z: bool, has_m: bool,
+                        func: Callable) -> list:
+    """
+    Get Partial Extent
+    """
+    coords, indexes = get_coordinates(
+        geoms, include_z=has_z, include_m=has_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    return [func(coords[b:e], axis=0) for b, e in zip(ids[:-1], ids[1:])]
+# End _get_partial_extent function
 
 
 if __name__ == '__main__':  # pragma: no cover
