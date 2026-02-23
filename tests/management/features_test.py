@@ -11,6 +11,7 @@ from fudgeo.enumeration import FieldType, ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx, raises
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
@@ -818,27 +819,33 @@ class TestCalculateGeometryAttributes:
                     assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
     # End test_line_start_end method
 
-    @mark.parametrize('fc_name, code, attribute, min_value, max_value', [
-        ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 187.4, 23_156.6),
-        ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0),
-        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH, 187.9, 23_224.0),
-        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0),
-        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH, 188.0, 23_224.4),
-        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0),
-        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3),
-        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9),
-        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 76_605.9),
-        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9),
-        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER, 97.8, 94_353.1),
-        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9),
-        ('hydro_lcc_a', None, GeometryAttribute.AREA, 503.8, 3_209_260.2),
-        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7),
-        ('hydro_lcc_a', 4326, GeometryAttribute.AREA, 507.1, 3_229_035.7),
-        ('hydro_lcc_a', 4326, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7),
-        ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.4),
-        ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7),
+    @mark.parametrize('fc_name, code, attribute, min_value, max_value, unit', [
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 615.0, 75_973.1, LengthUnit.FEET_US),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 616.7, 76_194.0, LengthUnit.FEET_US),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 187.4, 23_156.6, LengthUnit.METERS),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH, 187.9, 23_224.0, LengthUnit.METERS),
+        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH, 188.0, 23_224.4, LengthUnit.METERS),
+        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9, LengthUnit.METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 76_605.9, LengthUnit.METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9, LengthUnit.METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER, 97.8, 94_353.1, LengthUnit.METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 0.12, 793.0, AreaUnit.ACRES_INTERNATIONAL),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 0.12, 797.9, AreaUnit.ACRES_INTERNATIONAL),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 5423.4, 34_544_051.9, AreaUnit.SQUARE_FEET_US),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 5459.0, 34_756_912.3, AreaUnit.SQUARE_FEET_US),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 503.8, 3_209_260.2, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.AREA, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.4, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
     ])
-    def test_area(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value):
+    def test_area(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value, unit):
         """
         Test area and area geodesic
         """
@@ -853,9 +860,13 @@ class TestCalculateGeometryAttributes:
             crs = get_crs_from_source(source)
         else:
             crs = CRS(code)
+        if unit in AreaUnit:
+            kwargs = {'area_unit': unit}
+        else:
+            kwargs = {'length_unit': unit}
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
             calculate_geometry_attributes(
-                source, field=field, geometry_attribute=attribute)
+                source, field=field, geometry_attribute=attribute, **kwargs)
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone(), abs=0.1) == (min_value, max_value)

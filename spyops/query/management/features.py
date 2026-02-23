@@ -10,15 +10,14 @@ from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import ShapeType
 from shapely import get_num_coordinates, get_num_geometries
-from shapely.measurement import area, length
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.util import get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.attribute import (
-    area_geodesic, extent_maximum, extent_minimum, get_hole_count,
-    get_inside_xy, length_geodesic, line_end, line_start)
+    area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
+    get_inside_xy, length_geodesic, length_planar, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
@@ -311,8 +310,10 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         crs = self._output_crs
         attrs = GeometryAttribute.LENGTH, GeometryAttribute.PERIMETER
         if self._attribute in attrs and crs.is_projected:
-            return length
-        return partial(length_geodesic, crs=crs, unit=self._length_unit)
+            func = length_planar
+        else:
+            func = length_geodesic
+        return partial(func, crs=crs, unit=self._length_unit)
     # End _length_getter method
 
     def _area_getter(self) -> Callable:
@@ -321,8 +322,10 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         """
         crs = self._output_crs
         if self._attribute == GeometryAttribute.AREA and crs.is_projected:
-            return area
-        return partial(area_geodesic, crs=crs, unit=self._area_unit)
+            func = area_planar
+        else:
+            func = area_geodesic
+        return partial(func, crs=crs, unit=self._area_unit)
     # End _area_getter method
 
     @property
