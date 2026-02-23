@@ -17,7 +17,8 @@ from spyops.crs.util import get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
-    get_inside_xy, length_geodesic, length_planar, line_end, line_start)
+    get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
+    line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
@@ -412,6 +413,8 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         elif attr in (GeometryAttribute.AREA_GEODESIC,
                       GeometryAttribute.AREA):
             return self._area_getter()
+        elif attr == GeometryAttribute.LINE_AZIMUTH:
+            return partial(line_azimuth, crs=self._output_crs)
         else:
             return lambda _: None
     # End attribute_getter property

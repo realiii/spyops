@@ -871,6 +871,35 @@ class TestCalculateGeometryAttributes:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone(), abs=0.1) == (min_value, max_value)
     # End test_area_and_length method
+
+    @mark.parametrize('fc_name, code, average', [
+        ('transmission_lcc_l', None, 98.4079),
+        ('transmission_lcc_l', 4326, 98.4079),
+        ('transmission_lcc_l', 2955, 98.4079),
+    ])
+    def test_line_azimuth(self, ntdb_zm_small, mem_gpkg, fc_name, code, average):
+        """
+        Test line azimuth
+        """
+        attribute = GeometryAttribute.LINE_AZIMUTH
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS AVG_VALUE
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        if code is None:
+            crs = get_crs_from_source(source)
+        else:
+            crs = CRS(code)
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.001) == average
+    # End test_line_azimuth method
 # End TestCalculateGeometryAttributes class
 
 
