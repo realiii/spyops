@@ -234,11 +234,11 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     EXTENT_MAX_M -- maximum m-value
     INSIDE_X -- x-coordinate of a central point inside the polygon
     INSIDE_Y -- y-coordinate of a central point inside the polygon
-    PERIMETER -- length of the perimeter (border)
-    PERIMETER_GEODESIC -- geodesic length of the perimeter (border)
+    PERIMETER -- perimeter (exterior and interior)
+    PERIMETER_GEODESIC -- geodesic perimeter (exterior and interior)
     PART_COUNT -- number of parts
     POINT_COUNT -- number of points
-    HOLE_COUNT -- number of interior holes
+    HOLE_COUNT -- number of holes
     """
     with QueryCalculateGeometryAttributes(
             source, field=field, geometry_attribute=geometry_attribute,
