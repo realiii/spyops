@@ -4,6 +4,9 @@ Attribute Functions Tests
 """
 
 
+from math import nan
+
+from numpy import isnan
 from pyproj import CRS
 from pytest import approx, mark
 from shapely import Polygon, MultiPolygon, LineString, MultiLineString
@@ -166,6 +169,15 @@ def test_line_azimuth():
     lines = LineString([(0, 0, 0), (0, 10, 2)]), LineString([(10, 10, 5), (10, 0, 6)])
     assert approx(line_azimuth(lines, crs=CRS(4326)), abs=0.001) == (0, 180)
 # End test_line_azimuth function
+
+
+def test_line_azimuth_bad_values():
+    """
+    Test line azimuth
+    """
+    lines = LineString([(0, nan, 0), (0, 10, 2)]), LineString([(nan, 10, 5), (10, 0, 6)])
+    assert isnan(line_azimuth(lines, crs=CRS(4326))).all()
+# End test_line_azimuth_bad_values function
 
 
 if __name__ == '__main__':  # pragma: no cover
