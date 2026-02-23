@@ -9,8 +9,8 @@ from typing import Callable, Optional, TYPE_CHECKING, Union
 from warnings import warn
 
 from numpy import array, isfinite
-from pyproj import CRS, Transformer
-from pyproj.transformer import TransformerGroup
+from pyproj import CRS
+from pyproj.transformer import Transformer, TransformerGroup
 from shapely.creation import box
 
 from spyops.crs.base import TransformOptions, TransformOption

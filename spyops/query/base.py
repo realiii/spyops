@@ -42,7 +42,7 @@ from spyops.shared.util import make_unique_name
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Field, SpatialReferenceSystem
-    from pyproj import Transformer
+    from pyproj.transformer import Transformer
     from shapely import Polygon
     from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig

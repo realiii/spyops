@@ -8,7 +8,7 @@ from math import hypot
 from typing import Optional, TYPE_CHECKING
 
 from numpy import isfinite
-from pyproj import Transformer
+from pyproj.transformer import Transformer
 from shapely.creation import box
 from shapely.ops import transform
 
