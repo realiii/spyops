@@ -10,13 +10,15 @@ from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import ShapeType
 from shapely import get_num_coordinates, get_num_geometries
+from shapely.measurement import area, length
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.attribute import (
-    extent_maximum, extent_minimum, get_hole_count, get_inside_xy,
-    line_end, line_start)
+    area_geodesic, extent_maximum, extent_minimum, get_hole_count,
+    get_inside_xy, length_geodesic, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
@@ -32,6 +34,7 @@ from spyops.shared.hint import FIELDS, NAMES
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field
+    from pyproj import CRS
 
 
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
@@ -292,6 +295,37 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     # End _inside_attributes property
 
     @property
+    def _output_crs(self) -> 'CRS':
+        """
+        Output CRS, if not set use the source CRS
+        """
+        if not (crs := ANALYSIS_SETTINGS.output_coordinate_system):
+            crs = get_crs_from_source(self.source)
+        return crs
+    # End _output_crs property
+
+    def _length_getter(self) -> Callable:
+        """
+        Length Getter
+        """
+        crs = self._output_crs
+        attrs = GeometryAttribute.LENGTH, GeometryAttribute.PERIMETER
+        if self._attribute in attrs and crs.is_projected:
+            return length
+        return partial(length_geodesic, crs=crs, unit=self._length_unit)
+    # End _length_getter method
+
+    def _area_getter(self) -> Callable:
+        """
+        Area Getter
+        """
+        crs = self._output_crs
+        if self._attribute == GeometryAttribute.AREA and crs.is_projected:
+            return area
+        return partial(area_geodesic, crs=crs, unit=self._area_unit)
+    # End _area_getter method
+
+    @property
     def _short_name(self) -> str:
         """
         Short Name
@@ -367,6 +401,14 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
             return get_num_geometries
         elif attr == GeometryAttribute.HOLE_COUNT:
             return get_hole_count
+        elif attr in (GeometryAttribute.LENGTH_GEODESIC,
+                      GeometryAttribute.LENGTH,
+                      GeometryAttribute.PERIMETER_GEODESIC,
+                      GeometryAttribute.PERIMETER):
+            return self._length_getter()
+        elif attr in (GeometryAttribute.AREA_GEODESIC,
+                      GeometryAttribute.AREA):
+            return self._area_getter()
         else:
             return lambda _: None
     # End attribute_getter property

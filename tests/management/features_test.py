@@ -11,6 +11,7 @@ from fudgeo.enumeration import FieldType, ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx, raises
 
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
@@ -816,6 +817,49 @@ class TestCalculateGeometryAttributes:
                     cursor = cin.execute(sql)
                     assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
     # End test_line_start_end method
+
+    @mark.parametrize('fc_name, code, attribute, min_value, max_value', [
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 187.4, 23_156.6),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0),
+        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH, 187.9, 23_224.0),
+        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0),
+        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH, 188.0, 23_224.4),
+        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 76_605.9),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER, 97.8, 94_353.1),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 503.8, 3_209_260.2),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7),
+        ('hydro_lcc_a', 4326, GeometryAttribute.AREA, 507.1, 3_229_035.7),
+        ('hydro_lcc_a', 4326, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.4),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7),
+    ])
+    def test_area(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value):
+        """
+        Test area and area geodesic
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT MIN({name}) AS MIN_VALUE, MAX({name}) AS MAX_VALUE
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        if code is None:
+            crs = get_crs_from_source(source)
+        else:
+            crs = CRS(code)
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone(), abs=0.1) == (min_value, max_value)
+    # End test_area method
 # End TestCalculateGeometryAttributes class
 
 
