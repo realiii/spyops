@@ -68,26 +68,26 @@ def get_unit_conversion(from_unit: LengthUnit | AreaUnit,
     if from_unit == to_unit:
         return 1.
     if is_length:
-        from_factor = _get_conv_factor(LENGTH_UNIT_LUT[from_unit])
-        to_factor = _get_conv_factor(LENGTH_UNIT_LUT[to_unit])
+        from_factor = get_conv_factor(LENGTH_UNIT_LUT[from_unit])
+        to_factor = get_conv_factor(LENGTH_UNIT_LUT[to_unit])
         return from_factor / to_factor
     else:
         from_value, from_factor = AREA_UNIT_LUT[from_unit]
-        from_factor *= _get_conv_factor(from_value) ** 2
+        from_factor *= get_conv_factor(from_value) ** 2
         to_value, to_factor = AREA_UNIT_LUT[to_unit]
-        to_factor *= _get_conv_factor(to_value) ** 2
+        to_factor *= get_conv_factor(to_value) ** 2
         return from_factor / to_factor
 # End get_unit_conversion function
 
 
-def _get_conv_factor(value: str | float):
+def get_conv_factor(value: str | float):
     """
     Get Conversion Factor
     """
     if isinstance(value, str):
         return _get_unit_by_name(value).conv_factor
     return value
-# End get_unit_conversion function
+# End get_conv_factor function
 
 
 LENGTH_UNIT_LUT: dict[LengthUnit, str | float] = {
