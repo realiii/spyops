@@ -7,15 +7,66 @@ Attribute Functions
 from typing import Callable, TYPE_CHECKING
 
 from bottleneck import nanmax, nanmin
+from numpy import array
+from pyproj.transformer import Transformer
 from shapely import (
-    get_coordinates, get_num_interior_rings, get_point,
-    point_on_surface)
+    get_coordinates, get_num_interior_rings, get_point, point_on_surface)
+from shapely.constructive import orient_polygons
+from shapely.coordinates import transform
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.crs.unit import get_unit_conversion
+from spyops.crs.util import equals
 from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
+    from pyproj import CRS
+
+
+def length_geodesic(geoms: 'ndarray', *, crs: 'CRS',
+                    unit: LengthUnit) -> 'ndarray':
+    """
+    Length Geodesic
+    """
+    if not len(geoms):
+        return array([], dtype=float)
+    geoms = _transform_geometries(geoms, crs)
+    geod = crs.get_geod()
+    factor = get_unit_conversion(from_unit=LengthUnit.METERS, to_unit=unit)
+    return array([geod.geometry_length(geom)
+                  for geom in geoms], dtype=float) * factor
+# End length_geodesic function
+
+
+def area_geodesic(geoms: 'ndarray', *, crs: 'CRS', unit: AreaUnit) -> 'ndarray':
+    """
+    Area Geodesic
+    """
+    if not len(geoms):
+        return array([], dtype=float)
+    geoms = orient_polygons(geoms)
+    geoms = _transform_geometries(geoms, crs)
+    geod = crs.get_geod()
+    factor = get_unit_conversion(from_unit=AreaUnit.SQUARE_METERS, to_unit=unit)
+    return array([geod.geometry_area_perimeter(geom)[0]
+                  for geom in geoms], dtype=float) * factor
+# End area_geodesic function
+
+
+def _transform_geometries(geoms: 'ndarray', crs: 'CRS') -> 'ndarray':
+    """
+    Transform Geometries into Geographic Coordinates if necessary
+    """
+    if equals(crs, crs.geodetic_crs):
+        return geoms
+    transformer = Transformer.from_crs(
+        crs, crs.geodetic_crs, always_xy=True)
+    # noinspection PyTypeChecker
+    return transform(
+        geoms, transformation=transformer.transform, interleaved=False)
+# End _transform_geometries function
 
 
 def get_hole_count(geoms: 'ndarray') -> list[int]:

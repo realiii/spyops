@@ -4,11 +4,14 @@ Attribute Functions Tests
 """
 
 
+from pyproj import CRS
 from pytest import approx, mark
 from shapely import Polygon, MultiPolygon, LineString, MultiLineString
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.attribute import (
-    extent_maximum, extent_minimum, get_hole_count, get_inside_xy, line_end,
+    area_geodesic, extent_maximum, extent_minimum, get_hole_count,
+    get_inside_xy, length_geodesic, line_end,
     line_start)
 
 pytestmark = [mark.geometry]
@@ -94,6 +97,35 @@ def test_extent_maximum(geom, expected):
     """
     assert approx(extent_maximum([geom], has_z=True, has_m=False)[0], abs=0.001) == expected
 # End test_extent_maximum function
+
+
+@mark.parametrize('geom, expected', [
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 1_227_877),
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), 1_178_704),
+    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), 1_178_704),
+])
+def test_area_geodesic(geom, expected):
+    """
+    Test area geodesic
+    """
+    result = area_geodesic(
+        [geom], crs=CRS(4326), unit=AreaUnit.SQUARE_KILOMETERS)[0]
+    assert approx(result, abs=1) == expected
+# End test_area_geodesic function
+
+
+@mark.parametrize('geom, expected', [
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 4421),
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), 4421),
+    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), 4421),
+])
+def test_length_geodesic(geom, expected):
+    """
+    Test length geodesic
+    """
+    result = length_geodesic([geom], crs=CRS(4326), unit=LengthUnit.KILOMETERS)[0]
+    assert approx(result, abs=1) == expected
+# End test_length_geodesic function
 
 
 if __name__ == '__main__':  # pragma: no cover
