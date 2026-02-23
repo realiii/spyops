@@ -24,7 +24,7 @@ from spyops.shared.constant import SRS_ID_WKB
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
-    from pyproj import Transformer
+    from pyproj.transformer import Transformer
 
 
 def transform_points(geoms: 'ndarray', transformer: 'Transformer',

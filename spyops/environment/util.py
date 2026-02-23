@@ -8,11 +8,11 @@ from math import hypot
 from typing import Optional, TYPE_CHECKING
 
 from numpy import isfinite
-from pyproj import Transformer
+from pyproj.transformer import Transformer
 from shapely.creation import box
 from shapely.ops import transform
 
-from spyops.crs.unit import get_unit_conversion_factor, get_unit_name
+from spyops.crs.unit import get_linear_unit_conversion_factor, get_unit_name
 from spyops.crs.util import crs_from_srs, equals, get_crs_from_source
 from spyops.environment.enumeration import Setting
 from spyops.geometry.extent import extent_from_feature_class
@@ -52,7 +52,7 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
         transformer = Transformer.from_crs(
             crs, crs.geodetic_crs, always_xy=True)
         pt = transform(transformer.transform, pt)
-    geod = crs.geodetic_crs.get_geod()
+    geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
     x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=0, dist=1)
     return hypot(center_x - x, center_y - y)
@@ -83,7 +83,7 @@ def get_grid_size(source: 'FeatureClass', xy_tolerance: XY_TOL,
     elif source_crs_unit_name == DEGREE:
         source_crs_unit_name = METRE
         xy_tolerance /= tolerance_scale_factor(source)
-    return xy_tolerance * get_unit_conversion_factor(
+    return xy_tolerance * get_linear_unit_conversion_factor(
         from_name=source_crs_unit_name, to_name=crs_unit_name)
 # End get_grid_size function
 

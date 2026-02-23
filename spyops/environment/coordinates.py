@@ -7,7 +7,8 @@ Coordinate Reference System and Geographic Transformation Settings
 from typing import Any
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
-from pyproj import CRS, Transformer
+from pyproj import CRS
+from pyproj.transformer import Transformer
 
 from spyops.crs.util import get_crs_from_source
 from spyops.environment.base import Extent

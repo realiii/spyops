@@ -4,30 +4,37 @@ Query Classes for management.features module
 """
 
 
-from datetime import datetime
 from functools import cached_property, partial
-from operator import attrgetter
-from typing import Callable, Self, TYPE_CHECKING
+from operator import attrgetter, itemgetter
+from typing import Callable, TYPE_CHECKING
 
-from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import ShapeType
-from fudgeo.util import escape_name
+from shapely import get_num_coordinates, get_num_geometries
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
+from spyops.geometry.attribute import (
+    area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
+    get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
+    line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
-from spyops.query.base import AbstractSourceQuery, BaseQuerySelect
+from spyops.query.base import (
+    AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.constant import (
-    DOT, LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL, TEMP_SCHEMA)
-from spyops.shared.enumeration import WeightOption
+    LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
+from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
-    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, get_geometry_column_name,
-    make_field_names, make_unique_fields, validate_fields)
+    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, VALUE,
+    get_geometry_column_name, make_field_names, make_unique_fields,
+    validate_fields)
 from spyops.shared.hint import FIELDS, NAMES
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, Field
+    from pyproj import CRS
 
 
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
@@ -136,7 +143,7 @@ class QueryCopyFeatures(BaseQuerySelect):
 # End QueryCopyFeatures class
 
 
-class QueryAddXYCoordinates(AbstractSourceQuery):
+class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
     """
@@ -144,36 +151,25 @@ class QueryAddXYCoordinates(AbstractSourceQuery):
         """
         Initialize the QueryAddXYCoordinates class
         """
-        super().__init__(source, target=source, xy_tolerance=None)
+        super().__init__(source)
         self._option: WeightOption = weight_option
     # End init built-in
 
-    def __enter__(self) -> Self:
+    def _get_field_names(self) -> NAMES:
         """
-        Context Manager Enter
+        Get Field Names
         """
-        self._prepare_source()
-        self._delete_intermediate()
-        _ = self._intermediate_table
-        return self
-    # End enter built-in
+        _, *field_names = [f.escaped_name for f in self._intermediate_fields]
+        return field_names
+    # End _get_field_names method
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    @property
+    def _short_name(self) -> str:
         """
-        Context Manager Exit
+        Short Name
         """
-        self._delete_intermediate()
-        return False
-    # End exit built-in
-
-    def _delete_intermediate(self) -> None:
-        """
-        Delete Intermediate
-        """
-        name = self._intermediate_name
-        with self.source.geopackage.connection as cin:
-            cin.execute(f"""DROP TABLE IF EXISTS {TEMP_SCHEMA}{DOT}{name}""")
-    # End _delete_intermediate method
+        return 'add_xy_coords'
+    # End _stub property
 
     def _prepare_source(self) -> None:
         """
@@ -184,27 +180,6 @@ class QueryAddXYCoordinates(AbstractSourceQuery):
         _, *fields = self._intermediate_fields
         self.source.add_fields(fields)
     # End _prepare_source method
-
-    @cached_property
-    def _intermediate_table(self) -> str:
-        """
-        Intermediate Table
-        """
-        name = self._intermediate_name
-        defs = COMMA_SPACE.join(repr(f) for f in self._intermediate_fields)
-        with self.source.geopackage.connection as cin:
-            cin.execute(f"""CREATE TEMPORARY TABLE {name} ({defs})""")
-        return f'{TEMP_SCHEMA}{DOT}{name}'
-    # End _intermediate_table property
-
-    @cached_property
-    def _intermediate_name(self) -> str:
-        """
-        Intermediate Name
-        """
-        now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        return escape_name(f'tmp_{self.source.name}_add_xy_coords_{now}')
-    # End _intermediate_name property
 
     @property
     def _intermediate_fields(self) -> FIELDS:
@@ -219,22 +194,6 @@ class QueryAddXYCoordinates(AbstractSourceQuery):
         return fields
     # End _intermediate_fields property
 
-    @staticmethod
-    def _make_update_from(element_name: str, key_name: str,
-                          from_name: str, from_key_name: str,
-                          field_names: NAMES) -> str:
-        """
-        Make SQL statement for Update
-        """
-        sets = [f'{name} = {from_name}{DOT}{name}' for name in field_names]
-        return f"""
-            UPDATE {element_name} 
-            SET {COMMA_SPACE.join(sets)} 
-            FROM {from_name}
-            WHERE {element_name}{DOT}{key_name} = {from_name}{DOT}{from_key_name}
-        """
-    # End _make_update_from method
-
     @property
     def centroid_getter(self) -> Callable:
         """
@@ -244,56 +203,222 @@ class QueryAddXYCoordinates(AbstractSourceQuery):
         return partial(getter, has_z=self.source.has_z, has_m=self.source.has_m,
                        use_xy_length=self._option == WeightOption.TWO_D)
     # End centroid_getter property
-
-    @property
-    def target(self) -> 'FeatureClass':
-        """
-        Target
-        """
-        return self.source
-    # End target property
-
-    @property
-    def select(self) -> str:
-        """
-        Select Geometry and FID
-        """
-        geom_type = get_geometry_column_name(
-            self.source, include_geom_type=True)
-        select_names = self._concatenate(
-            geom_type, self.source.primary_key_field.escaped_name)
-        if ANALYSIS_SETTINGS.extent:
-            return self._make_intersection_query(
-                self.source, field_names=select_names)
-        return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_FULL)
-    # End select property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        return self._make_insert(
-            self._intermediate_table,
-            field_names=make_field_names(self._intermediate_fields),
-            field_count=len(self._intermediate_fields))
-    # End insert property
-
-    @property
-    def update(self) -> str:
-        """
-        Update Query
-        """
-        key_name, *field_names = [
-            f.escaped_name for f in self._intermediate_fields]
-        return self._make_update_from(
-            element_name=self.target.escaped_name,
-            key_name=self.target.primary_key_field.escaped_name,
-            from_name=self._intermediate_table, from_key_name=key_name,
-            field_names=field_names)
-    # End update property
 # End QueryAddXYCoordinates class
+
+
+class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
+    """
+    Queries for Calculate Geometry Attributes
+    """
+    def __init__(self, source: 'FeatureClass', field: Field,
+                 geometry_attribute: GeometryAttribute, *,
+                 weight_option: WeightOption,
+                 length_unit: LengthUnit, area_unit: AreaUnit) -> None:
+        """
+        Initialize the QueryCalculateGeometryAttributes class
+        """
+        super().__init__(source)
+        self._field: Field = field
+        self._attribute: GeometryAttribute = geometry_attribute
+        self._option: WeightOption = weight_option
+        self._length_unit: LengthUnit = length_unit
+        self._area_unit: AreaUnit = area_unit
+    # End init built-in
+
+    def _get_field_names(self) -> NAMES:
+        """
+        Get Field Names
+        """
+        return self._field.escaped_name,
+    # End _get_field_names method
+
+    @property
+    def _point_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Point Attributes
+        """
+        return (GeometryAttribute.POINT_X, GeometryAttribute.POINT_Y,
+                GeometryAttribute.POINT_Z, GeometryAttribute.POINT_M)
+    # End _point_attributes property
+
+    @property
+    def _centroid_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Centroid Attributes
+        """
+        return (GeometryAttribute.CENTROID_X, GeometryAttribute.CENTROID_Y,
+                GeometryAttribute.CENTROID_Z, GeometryAttribute.CENTROID_M)
+    # End _centroid_attributes property
+
+    @property
+    def _extent_minimum_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Extent Minimum Attributes
+        """
+        return (GeometryAttribute.EXTENT_MIN_X, GeometryAttribute.EXTENT_MIN_Y,
+                GeometryAttribute.EXTENT_MIN_Z, GeometryAttribute.EXTENT_MIN_M)
+    # End _extent_minimum_attributes property
+
+    @property
+    def _extent_maximum_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Extent Maximum Attributes
+        """
+        return (GeometryAttribute.EXTENT_MAX_X, GeometryAttribute.EXTENT_MAX_Y,
+                GeometryAttribute.EXTENT_MAX_Z, GeometryAttribute.EXTENT_MAX_M)
+    # End _extent_maximum_attributes property
+
+    @property
+    def _line_start_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Line Start Attributes
+        """
+        return (GeometryAttribute.LINE_START_X, GeometryAttribute.LINE_START_Y,
+                GeometryAttribute.LINE_START_Z, GeometryAttribute.LINE_START_M)
+    # End _line_start_attributes property
+
+    @property
+    def _line_end_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Line End Attributes
+        """
+        return (GeometryAttribute.LINE_END_X, GeometryAttribute.LINE_END_Y,
+                GeometryAttribute.LINE_END_Z, GeometryAttribute.LINE_END_M)
+    # End _line_end_attributes property
+
+    @property
+    def _inside_attributes(self) -> tuple[GeometryAttribute, ...]:
+        """
+        Inside Attributes
+        """
+        return GeometryAttribute.INSIDE_X, GeometryAttribute.INSIDE_Y
+    # End _inside_attributes property
+
+    @property
+    def _output_crs(self) -> 'CRS':
+        """
+        Output CRS, if not set use the source CRS
+        """
+        if not (crs := ANALYSIS_SETTINGS.output_coordinate_system):
+            crs = get_crs_from_source(self.source)
+        return crs
+    # End _output_crs property
+
+    def _length_getter(self) -> Callable:
+        """
+        Length Getter
+        """
+        crs = self._output_crs
+        attrs = GeometryAttribute.LENGTH, GeometryAttribute.PERIMETER
+        if self._attribute in attrs and crs.is_projected:
+            func = length_planar
+        else:
+            func = length_geodesic
+        return partial(func, crs=crs, unit=self._length_unit)
+    # End _length_getter method
+
+    def _area_getter(self) -> Callable:
+        """
+        Area Getter
+        """
+        crs = self._output_crs
+        if self._attribute == GeometryAttribute.AREA and crs.is_projected:
+            func = area_planar
+        else:
+            func = area_geodesic
+        return partial(func, crs=crs, unit=self._area_unit)
+    # End _area_getter method
+
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'calc_geom_attrs'
+    # End _stub property
+
+    def _prepare_source(self) -> None:
+        """
+        Prepare Source, do nothing implementation
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        return ORIG_FID, VALUE
+    # End _intermediate_fields property
+
+    @property
+    def item_getter(self) -> Callable:
+        """
+        Item Getter
+        """
+        attr = self._attribute
+        attributes = (
+            self._point_attributes,
+            self._centroid_attributes,
+            self._extent_minimum_attributes,
+            self._extent_maximum_attributes,
+            self._inside_attributes,
+            self._line_start_attributes,
+            self._line_end_attributes,
+        )
+        for attrs in attributes:
+            if attr not in attrs:
+                continue
+            index = attrs.index(attr)
+            if index == 3:
+                index = -1
+            return itemgetter(index)
+        return lambda x: x
+    # End item_getter property
+
+    @property
+    def attribute_getter(self) -> Callable:
+        """
+        Attribute Getter
+        """
+        attr = self._attribute
+        has_z = self.source.has_z
+        has_m = self.source.has_m
+        if attr in (*self._point_attributes, *self._centroid_attributes):
+            return partial(
+                GEOMETRY_CENTROID[self.source.shape_type], has_z=has_z,
+                has_m=has_m, use_xy_length=self._option == WeightOption.TWO_D)
+        elif attr in self._extent_minimum_attributes:
+            return partial(extent_minimum, has_z=has_z, has_m=has_m)
+        elif attr in self._extent_maximum_attributes:
+            return partial(extent_maximum, has_z=has_z, has_m=has_m)
+        elif attr in self._inside_attributes:
+            return get_inside_xy
+        elif attr in self._line_start_attributes:
+            return partial(line_start, has_z=has_z, has_m=has_m)
+        elif attr in self._line_end_attributes:
+            return partial(line_end, has_z=has_z, has_m=has_m)
+        elif attr == GeometryAttribute.POINT_COUNT:
+            return get_num_coordinates
+        elif attr == GeometryAttribute.PART_COUNT:
+            return get_num_geometries
+        elif attr == GeometryAttribute.HOLE_COUNT:
+            return get_hole_count
+        elif attr in (GeometryAttribute.LENGTH_GEODESIC,
+                      GeometryAttribute.LENGTH,
+                      GeometryAttribute.PERIMETER_GEODESIC,
+                      GeometryAttribute.PERIMETER):
+            return self._length_getter()
+        elif attr in (GeometryAttribute.AREA_GEODESIC,
+                      GeometryAttribute.AREA):
+            return self._area_getter()
+        elif attr == GeometryAttribute.LINE_AZIMUTH:
+            return partial(line_azimuth, crs=self._output_crs)
+        else:
+            return lambda _: None
+    # End attribute_getter property
+# End QueryCalculateGeometryAttributes class
 
 
 if __name__ == '__main__':  # pragma: no cover

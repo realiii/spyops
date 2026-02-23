@@ -6,20 +6,25 @@ Data Management for Features
 
 from typing import Callable, TYPE_CHECKING
 
+from fudgeo import Field
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCopyFeatures, QueryMultiPartToSinglePart)
-from spyops.shared.constant import SOURCE, WEIGHT_OPTION
-from spyops.shared.enumeration import WeightOption
-from spyops.shared.field import GEOM_TYPE_MULTI
+    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCopyFeatures,
+    QueryMultiPartToSinglePart)
+from spyops.shared.constant import (
+    AREA_UNIT, FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, SOURCE, WEIGHT_OPTION)
+from spyops.shared.enumeration import GeometryAttribute, WeightOption
+from spyops.shared.field import GEOM_TYPE_MULTI, NUMBERS
 from spyops.shared.hint import ELEMENT
 from spyops.shared.records import insert_many, select_and_transform_features
 from spyops.validation import (
     validate_element, validate_enumeration, validate_feature_class,
-    validate_overwrite_source, validate_result, validate_source_feature_class,
+    validate_field, validate_geometry_attribute, validate_overwrite_source,
+    validate_result, validate_source_feature_class,
     validate_target_feature_class)
 
 
@@ -28,7 +33,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 __all__ = ['multipart_to_singlepart', 'explode', 'delete_features',
-           'copy_features', 'add_xy_coordinates']
+           'copy_features', 'add_xy_coordinates',
+           'calculate_geometry_attributes']
 
 
 @validate_result()
@@ -131,6 +137,130 @@ def add_xy_coordinates(source: 'FeatureClass', *,
             cin.execute(query.update)
     return query.target
 # End add_xy_coordinates function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_field(FIELD, single=True, element_name=SOURCE, data_types=NUMBERS)
+@validate_enumeration(GEOMETRY_ATTRIBUTE, GeometryAttribute)
+@validate_enumeration(WEIGHT_OPTION, WeightOption)
+@validate_enumeration(LENGTH_UNIT, LengthUnit)
+@validate_enumeration(AREA_UNIT, AreaUnit)
+@validate_geometry_attribute()
+def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
+                                  geometry_attribute: GeometryAttribute, *,
+                                  weight_option: WeightOption = WeightOption.TWO_D,
+                                  length_unit: LengthUnit = LengthUnit.METERS,
+                                  area_unit: AreaUnit = AreaUnit.SQUARE_METERS) \
+        -> 'FeatureClass':
+    """
+    Calculate Geometry Attributes
+
+    Calculates geometry attributes for a feature class.  Options vary based on
+    the geometry type and dimensionality of the geometry, that is, does the
+    geometry have Z and / or M values.  Geometry attributes will be
+    calculated using the feature class's coordinate reference system
+    or the the output coordinate system when set.
+
+    Point
+    -----
+    POINT_X -- x-coordinate
+    POINT_Y -- y-coordinate
+    POINT_Z -- z-coordinate
+    POINT_M -- m-value
+
+    MultiPoint
+    ----------
+    CENTROID_X -- centroid x-coordinate
+    CENTROID_Y -- centroid y-coordinate
+    CENTROID_Z -- centroid z-coordinate
+    CENTROID_M -- centroid m-value
+    EXTENT_MIN_X -- minimum x-coordinate
+    EXTENT_MIN_Y -- minimum y-coordinate
+    EXTENT_MIN_Z -- minimum z-coordinate
+    EXTENT_MIN_M -- minimum m-value
+    EXTENT_MAX_X -- maximum x-coordinate
+    EXTENT_MAX_Y -- maximum y-coordinate
+    EXTENT_MAX_Z -- maximum z-coordinate
+    EXTENT_MAX_M -- maximum m-value
+    PART_COUNT -- number of parts
+    POINT_COUNT -- number of points
+
+    LineString and MultiLineString
+    ------------------------------
+    CENTROID_X -- centroid x-coordinate
+    CENTROID_Y -- centroid y-coordinate
+    CENTROID_Z -- centroid z-coordinate
+    CENTROID_M -- centroid m-value
+    EXTENT_MIN_X -- minimum x-coordinate
+    EXTENT_MIN_Y -- minimum y-coordinate
+    EXTENT_MIN_Z -- minimum z-coordinate
+    EXTENT_MIN_M -- minimum m-value
+    EXTENT_MAX_X -- maximum x-coordinate
+    EXTENT_MAX_Y -- maximum y-coordinate
+    EXTENT_MAX_Z -- maximum z-coordinate
+    EXTENT_MAX_M -- maximum m-value
+    INSIDE_X -- x-coordinate of a central point on the line
+    INSIDE_Y -- y-coordinate of a central point on the line
+    LENGTH -- length
+    LENGTH_GEODESIC -- geodesic length
+    LINE_AZIMUTH -- line azimuth
+    LINE_START_X -- start point x-coordinate
+    LINE_START_Y -- start point y-coordinate
+    LINE_START_Z -- start point z-coordinate
+    LINE_START_M -- start point m-value
+    LINE_END_X -- end point x-coordinate
+    LINE_END_Y -- end point y-coordinate
+    LINE_END_Z -- end point z-coordinate
+    LINE_END_M -- end point m-value
+    PART_COUNT -- number of parts
+    POINT_COUNT -- number of points
+
+    Polygon and MultiPolygon
+    ------------------------
+    AREA -- area
+    AREA_GEODESIC -- geodesic area
+    CENTROID_X -- centroid x-coordinate
+    CENTROID_Y -- centroid y-coordinate
+    CENTROID_Z -- centroid z-coordinate
+    CENTROID_M -- centroid m-value
+    EXTENT_MIN_X -- minimum x-coordinate
+    EXTENT_MIN_Y -- minimum y-coordinate
+    EXTENT_MIN_Z -- minimum z-coordinate
+    EXTENT_MIN_M -- minimum m-value
+    EXTENT_MAX_X -- maximum x-coordinate
+    EXTENT_MAX_Y -- maximum y-coordinate
+    EXTENT_MAX_Z -- maximum z-coordinate
+    EXTENT_MAX_M -- maximum m-value
+    INSIDE_X -- x-coordinate of a central point inside the polygon
+    INSIDE_Y -- y-coordinate of a central point inside the polygon
+    PERIMETER -- perimeter (exterior and interior)
+    PERIMETER_GEODESIC -- geodesic perimeter (exterior and interior)
+    PART_COUNT -- number of parts
+    POINT_COUNT -- number of points
+    HOLE_COUNT -- number of holes
+    """
+    with QueryCalculateGeometryAttributes(
+            source, field=field, geometry_attribute=geometry_attribute,
+            weight_option=weight_option, length_unit=length_unit,
+            area_unit=area_unit) as query:
+        query_insert = query.insert
+        item_getter = query.item_getter
+        attr_getter = query.attribute_getter
+        transformer = query.source_transformer
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=transformer)
+                records = [(i, item_getter(values)) for (_, i), values in
+                           zip(features, attr_getter(geometries))]
+                cin.executemany(query_insert, records)
+            cin.execute(query.update)
+    return query.target
+# End calculate_geometry_attributes function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

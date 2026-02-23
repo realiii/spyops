@@ -19,7 +19,7 @@ class AttributeOption(StrEnum):
 
 class AlgorithmOption(StrEnum):
     """
-    Algorithm Option
+    Algorithm Options
     """
     CLASSIC = auto()
     PAIRWISE = auto()
@@ -28,7 +28,7 @@ class AlgorithmOption(StrEnum):
 
 class OutputTypeOption(StrEnum):
     """
-    Output Type Option
+    Output Type Options
     """
     SAME = auto()
     LINE = auto()
@@ -38,7 +38,7 @@ class OutputTypeOption(StrEnum):
 
 class FieldProperty(StrEnum):
     """
-    Field Property
+    Field Properties
     """
     ALIAS = auto()
     COMMENT = auto()
@@ -48,11 +48,65 @@ class FieldProperty(StrEnum):
 
 class WeightOption(StrEnum):
     """
-    Weight Option
+    Weight Options
     """
     TWO_D = auto()
     THREE_D = auto()
 # End WeightOption class
+
+
+class GeometryAttribute(StrEnum):
+    """
+    GeometryAttributes
+    """
+    POINT_X = auto()
+    POINT_Y = auto()
+    POINT_Z = auto()
+    POINT_M = auto()
+
+    CENTROID_X = auto()
+    CENTROID_Y = auto()
+    CENTROID_Z = auto()
+    CENTROID_M = auto()
+
+    PART_COUNT = auto()
+    POINT_COUNT = auto()
+    HOLE_COUNT = auto()
+
+    EXTENT_MIN_X = auto()
+    EXTENT_MIN_Y = auto()
+    EXTENT_MIN_Z = auto()
+    EXTENT_MIN_M = auto()
+
+    EXTENT_MAX_X = auto()
+    EXTENT_MAX_Y = auto()
+    EXTENT_MAX_Z = auto()
+    EXTENT_MAX_M = auto()
+
+    LENGTH = auto()
+    LENGTH_GEODESIC = auto()
+
+    LINE_AZIMUTH = auto()
+
+    LINE_START_X = auto()
+    LINE_START_Y = auto()
+    LINE_START_Z = auto()
+    LINE_START_M = auto()
+
+    LINE_END_X = auto()
+    LINE_END_Y = auto()
+    LINE_END_Z = auto()
+    LINE_END_M = auto()
+
+    INSIDE_X = auto()
+    INSIDE_Y = auto()
+
+    AREA = auto()
+    AREA_GEODESIC = auto()
+
+    PERIMETER = auto()
+    PERIMETER_GEODESIC = auto()
+# End GeometryAttribute class
 
 
 if __name__ == '__main__':  # pragma: no cover

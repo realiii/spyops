@@ -52,6 +52,7 @@ TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
+VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')

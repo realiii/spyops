@@ -49,7 +49,9 @@ MIT
 * added `symmetrical_difference` (Analysis - Overlay)
 * added `union` (Analysis - Overlay)
 * added `copy_features` (Management - Features)
+* added `add_xy_coordinates` (Management - Features)
 * added `delete_features` (Management - Features)
+* added `calculate_geometry_attributes` (Management - Features)
 * added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
 * added `create_feature_class` (Management - Feature Class)
 * added `recalculate_feature_class_extent` (Management - Feature Class)

@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
-from pyproj import CRS, Transformer
+from pyproj import CRS
+from pyproj.transformer import Transformer
 
 from spyops.environment.base import Extent
 from spyops.environment.coordinates import _Coordinates

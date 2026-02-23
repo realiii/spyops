@@ -6,20 +6,22 @@ Tests for Features
 
 from sqlite3 import OperationalError
 
-from fudgeo import FeatureClass, GeoPackage
-from fudgeo.enumeration import ShapeType
+from fudgeo import FeatureClass, Field, GeoPackage
+from fudgeo.enumeration import FieldType, ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx, raises
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
-    add_xy_coordinates, copy_features, delete_features,
-    multipart_to_singlepart)
+    add_xy_coordinates, calculate_geometry_attributes, copy_features,
+    delete_features, multipart_to_singlepart)
 from spyops.shared.constant import EPSG, ESRI
-from spyops.shared.enumeration import WeightOption
+from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
 
 from tests.util import UseGrids
@@ -79,7 +81,7 @@ class TestMultiPartToSinglePart:
         assert exploded.has_m == zm.m_enabled
         assert len(exploded) == count
         assert len(exploded.fields) == len(source.fields) + 1
-        geoms, ids = zip(*exploded.select(ORIG_FID).fetchall())
+        geoms, ids = zip(*exploded.select([ORIG_FID]).fetchall())
         assert len(set(ids)) == len(source)
         assert all(isinstance(g, cls) for g in geoms)
     # End test_output_zm method
@@ -473,6 +475,432 @@ class TestAddXYCoordinates:
                 assert cursor.fetchone()[0] == 0
     # End test_output_crs_include_vertical method
 # End TestAddXYCoordinates class
+
+
+class TestCalculateGeometryAttributes:
+    """
+    Test calculate geometry attributes
+    """
+    @mark.parametrize('attribute, average_lcc, average_dd', [
+        (GeometryAttribute.POINT_X, -1257783.07, -114.26),
+        (GeometryAttribute.POINT_Y, 1436251.88, 51.15),
+        (GeometryAttribute.POINT_Z, 1244.70, 1244.70),
+        (GeometryAttribute.POINT_M, 210530.83, 210530.83),
+    ])
+    def test_point(self, ntdb_zm_small, mem_gpkg, attribute, average_lcc, average_dd):
+        """
+        Test point options on point feature class using extent and
+        output coordinate system
+        """
+        fc_name = 'structures_lcc_zm_p'
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS AVERAGE_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average_lcc
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.1) == average_dd
+    # End test_point method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_Z, None, None),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_M, None, None),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Z, 1270.76, 1270.76),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_M, 201075.39, 201075.39),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_X, -1258272.89, -114.27),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_Y, 1435163.99, 51.14),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_Z, None, None),
+        ('transmission_lcc_l', GeometryAttribute.CENTROID_M, None, None),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_X, -1258272.89, -114.27),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_Y, 1435163.99, 51.14),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_Z, 1212.30, 1212.63),
+        ('transmission_lcc_zm_l', GeometryAttribute.CENTROID_M, 400006.96, 400006.96),
+    ])
+    def test_centroid(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test centroid options on non-point feature class using extent and
+        output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        is_extended = source.has_z or source.has_m
+        if not is_extended and attribute in (
+                GeometryAttribute.CENTROID_Z, GeometryAttribute.CENTROID_M):
+            with raises(ValueError):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+            return
+        sql = f"""SELECT AVG({name}) AS AVERAGE_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.1) == average_dd
+    # End test_centroid method
+
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 11_397),
+        ('hydro_zm_a', 11_397),
+        ('structures_6654_zm_a', 15_525),
+        ('structures_6654_zm_ma', 15_503),
+        ('transmission_mp', 11),
+        ('transmission_l', 451),
+        ('transmission_ml', 436),
+    ])
+    def test_point_count(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test point count
+        """
+        attribute = GeometryAttribute.POINT_COUNT
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.integer)
+        source.add_fields([field])
+        sql = f"""SELECT SUM({name}) AS TOTAL_VALUE 
+                  FROM {source.escaped_name}"""
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attribute)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert cursor.fetchone()[0] == count
+    # End test_point_count method
+
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 382),
+        ('hydro_zm_a', 382),
+        ('structures_6654_zm_a', 1453),
+        ('structures_6654_zm_ma', 1452),
+        ('transmission_mp', 11),
+        ('transmission_l', 66),
+        ('transmission_ml', 51),
+    ])
+    def test_part_count(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test part count
+        """
+        attribute = GeometryAttribute.PART_COUNT
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.integer)
+        source.add_fields([field])
+        sql = f"""SELECT SUM({name}) AS TOTAL_VALUE 
+                  FROM {source.escaped_name}"""
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attribute)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert cursor.fetchone()[0] == count
+    # End test_part_count method
+
+    @mark.parametrize('fc_name, count', [
+        ('hydro_a', 47),
+        ('hydro_zm_a', 47),
+        ('structures_6654_zm_a', 134),
+        ('structures_6654_zm_ma', 133),
+    ])
+    def test_hole_count(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test hole count
+        """
+        attribute = GeometryAttribute.HOLE_COUNT
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.integer)
+        source.add_fields([field])
+        sql = f"""SELECT SUM({name}) AS TOTAL_VALUE 
+                  FROM {source.escaped_name}"""
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attribute)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert cursor.fetchone()[0] == count
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert cursor.fetchone()[0] == count
+    # End test_hole_count method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_X, -1272319.31, -114.499),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_Y, 1430215.96, 51.1008),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_Z, None, None),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MIN_M, None, None),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_X, -1272319.31, -114.499),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_Y, 1430215.96, 51.1008),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_Z, 1092.3451, 1092.34451),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MIN_M, 201001.0, 201001.0),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_X, -1274015.73, -114.499),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_Y, 1420142.05, 51.016),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_Z, None, None),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MIN_M, None, None),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_X, -1274015.73, -114.499),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_Y, 1420142.05, 51.016),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_Z, 1061.5443, 1061.5443),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MIN_M, 400001.0, 400001.0),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_X, 35593.418, -114.4926),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_Y, 5647808.789, 51.0005),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_Z, None, None),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MIN_M, None, None),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_X, -1254197.676, -114.2059),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_Y, 1443909.0185, 51.2073),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_Z, None, None),
+        ('hydro_lcc_a', GeometryAttribute.EXTENT_MAX_M, None, None),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_X, -1254197.676, -114.2059),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_Y, 1443909.0185, 51.2073),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_Z, 1316.938, 1316.938),
+        ('hydro_lcc_zm_a', GeometryAttribute.EXTENT_MAX_M, 212029.0, 212029.0),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_X, -1239093.5373, -113.9999),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_Y, 1446983.133, 51.2215),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_Z, None, None),
+        ('transmission_lcc_l', GeometryAttribute.EXTENT_MAX_M, None, None),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_X, -1239093.5373, -113.9999),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_Y, 1446983.133, 51.2215),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_Z, 1297.9587, 1297.9587),
+        ('transmission_lcc_zm_l', GeometryAttribute.EXTENT_MAX_M, 400028.0, 400028.0),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_X, 70109.637, -114.0000),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_Y, 5675312.072, 51.2499),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_Z, None, None),
+        ('toponymy_10tm_mp', GeometryAttribute.EXTENT_MAX_M, None, None),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test extent options on non-point feature class using extent and
+        output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        is_extended = source.has_z or source.has_m
+        if not is_extended and attribute in (
+                GeometryAttribute.EXTENT_MAX_Z, GeometryAttribute.EXTENT_MAX_M,
+                GeometryAttribute.EXTENT_MIN_Z, GeometryAttribute.EXTENT_MIN_M):
+            with raises(ValueError):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+            return
+        if attribute in (GeometryAttribute.EXTENT_MAX_X, GeometryAttribute.EXTENT_MAX_Y,
+                         GeometryAttribute.EXTENT_MAX_Z, GeometryAttribute.EXTENT_MAX_M):
+            stat = 'MAX'
+        else:
+            stat = 'MIN'
+        sql = f"""SELECT {stat}({name}) AS STAT_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
+    # End test_extent method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('hydro_lcc_a', GeometryAttribute.INSIDE_X, -1256931.874, -114.2615),
+        ('hydro_lcc_a', GeometryAttribute.INSIDE_Y, 1437267.177, 51.1706),
+        ('transmission_lcc_l', GeometryAttribute.INSIDE_X, -1258118.115, -114.270),
+        ('transmission_lcc_l', GeometryAttribute.INSIDE_Y, 1435083.744, 51.1484),
+    ])
+    def test_inside(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test inside options on non-point feature class using extent and
+        output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS STAT_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
+    # End test_inside method
+
+    @mark.parametrize('fc_name, attribute, average, average_dd', [
+        ('transmission_lcc_l', GeometryAttribute.LINE_START_X, -1263260.068, -114.3509),
+        ('transmission_lcc_l', GeometryAttribute.LINE_START_Y, 1437753.072, 51.1592),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_X, 675148.261, -114.5000),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_Y, 5660580.401, 51.0699),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_Z, 1250.77354, 1250.7735),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_START_M, 211004.0, 211004.0),
+        ('transmission_lcc_l', GeometryAttribute.LINE_END_X, -1253401.174, -114.1951),
+        ('transmission_lcc_l', GeometryAttribute.LINE_END_Y, 1432707.341, 51.1398),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_X, 707375.731, -114.03608),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_Y, 5668602.5022, 51.1312),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_Z, 1094.3065, 1094.3065),
+        ('transmission_6654_zm_ml', GeometryAttribute.LINE_END_M, 228680.6666, 228680.6666),
+    ])
+    def test_line_start_end(self, ntdb_zm_small, mem_gpkg, fc_name, attribute, average, average_dd):
+        """
+        Test line start and line end options on non-point feature class using
+        extent and output coordinate system
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS STAT_VALUE 
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.1) == average
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+                calculate_geometry_attributes(
+                    source, field=field, geometry_attribute=attribute)
+                with source.geopackage.connection as cin:
+                    cursor = cin.execute(sql)
+                    assert approx(cursor.fetchone()[0], abs=0.001) == average_dd
+    # End test_line_start_end method
+
+    @mark.parametrize('fc_name, code, attribute, min_value, max_value, unit', [
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 615.0, 75_973.1, LengthUnit.FEET_US),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 616.7, 76_194.0, LengthUnit.FEET_US),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 187.4, 23_156.6, LengthUnit.METERS),
+        ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH, 187.9, 23_224.0, LengthUnit.METERS),
+        ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH, 188.0, 23_224.4, LengthUnit.METERS),
+        ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER, 97.8, 94_353.1, LengthUnit.METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 0.12, 793.0, AreaUnit.ACRES_INTERNATIONAL),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 0.12, 797.9, AreaUnit.ACRES_INTERNATIONAL),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 5423.4, 34_544_051.9, AreaUnit.SQUARE_FEET_US),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 5459.0, 34_756_912.3, AreaUnit.SQUARE_FEET_US),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA, 503.8, 3_209_260.2, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.AREA, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.4, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+    ])
+    def test_area_and_length(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value, unit):
+        """
+        Test area and area geodesic + length and length geodesic (aka perimeter)
+        """
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT MIN({name}) AS MIN_VALUE, MAX({name}) AS MAX_VALUE
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        if code is None:
+            crs = get_crs_from_source(source)
+        else:
+            crs = CRS(code)
+        if unit in AreaUnit:
+            kwargs = {'area_unit': unit}
+        else:
+            kwargs = {'length_unit': unit}
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute, **kwargs)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone(), abs=0.1) == (min_value, max_value)
+    # End test_area_and_length method
+
+    @mark.parametrize('fc_name, code, average', [
+        ('transmission_lcc_l', None, 98.4079),
+        ('transmission_lcc_l', 4326, 98.4079),
+        ('transmission_lcc_l', 2955, 98.4079),
+    ])
+    def test_line_azimuth(self, ntdb_zm_small, mem_gpkg, fc_name, code, average):
+        """
+        Test line azimuth
+        """
+        attribute = GeometryAttribute.LINE_AZIMUTH
+        source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        name = str(attribute)
+        field = Field(name, data_type=FieldType.real)
+        source.add_fields([field])
+        sql = f"""SELECT AVG({name}) AS AVG_VALUE
+                  FROM {source.escaped_name} 
+                  WHERE {name} IS NOT NULL"""
+        if code is None:
+            crs = get_crs_from_source(source)
+        else:
+            crs = CRS(code)
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
+            calculate_geometry_attributes(
+                source, field=field, geometry_attribute=attribute)
+            with source.geopackage.connection as cin:
+                cursor = cin.execute(sql)
+                assert approx(cursor.fetchone()[0], abs=0.001) == average
+    # End test_line_azimuth method
+# End TestCalculateGeometryAttributes class
 
 
 if __name__ == '__main__':  # pragma: no cover
