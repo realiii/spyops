@@ -91,7 +91,7 @@ def test_validate_output_type(inputs, world_features, source_name, operator_name
     ('transmission_l', GeometryAttribute.POINT_X, True),
     ('transmission_l', GeometryAttribute.CENTROID_X, False),
     ('transmission_l', GeometryAttribute.LENGTH, False),
-    ('transmission_l', GeometryAttribute.LINE_BEARING, False),
+    ('transmission_l', GeometryAttribute.LINE_AZIMUTH, False),
     ('transmission_l', GeometryAttribute.PERIMETER, True),
     ('transmission_l', GeometryAttribute.EXTENT_MAX_X, False),
     ('transmission_l', GeometryAttribute.EXTENT_MIN_Y, False),

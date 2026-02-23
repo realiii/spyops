@@ -204,7 +204,7 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     INSIDE_Y -- y-coordinate of a central point on the line
     LENGTH -- length
     LENGTH_GEODESIC -- geodesic length
-    LINE_BEARING -- line bearing
+    LINE_AZIMUTH -- line azimuth
     LINE_START_X -- start point x-coordinate
     LINE_START_Y -- start point y-coordinate
     LINE_START_Z -- start point z-coordinate

@@ -228,7 +228,7 @@ class ValidateGeometryAttribute(AbstractValidateType):
         valid = (
             GeometryAttribute.LENGTH,
             GeometryAttribute.LENGTH_GEODESIC,
-            GeometryAttribute.LINE_BEARING,
+            GeometryAttribute.LINE_AZIMUTH,
             GeometryAttribute.LINE_END_X,
             GeometryAttribute.LINE_END_Y,
             GeometryAttribute.LINE_START_X,

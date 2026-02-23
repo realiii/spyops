@@ -86,7 +86,7 @@ class GeometryAttribute(StrEnum):
     LENGTH = auto()
     LENGTH_GEODESIC = auto()
 
-    LINE_BEARING = auto()
+    LINE_AZIMUTH = auto()
 
     LINE_START_X = auto()
     LINE_START_Y = auto()
