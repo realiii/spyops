@@ -10,8 +10,9 @@ from bottleneck import nanmax, nanmin
 from numpy import array
 from pyproj.transformer import Transformer
 from shapely import (
-    get_coordinates, get_num_interior_rings, get_point, point_on_surface)
-from shapely.constructive import orient_polygons
+    MultiPolygon, Polygon, get_coordinates, get_num_interior_rings, get_point,
+    point_on_surface)
+from shapely.constructive import boundary, orient_polygons
 from shapely.coordinates import transform
 from shapely.measurement import area, length
 
@@ -56,6 +57,8 @@ def length_geodesic(geoms: 'ndarray', *, crs: 'CRS',
     """
     if not len(geoms):
         return array([], dtype=float)
+    if any(isinstance(geom, (Polygon, MultiPolygon)) for geom in geoms):
+        geoms = boundary(geoms)
     geoms = _transform_geometries(geoms, crs)
     geod = crs.get_geod()
     factor = get_unit_conversion(from_unit=LengthUnit.METERS, to_unit=unit)
