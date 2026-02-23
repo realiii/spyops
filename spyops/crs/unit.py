@@ -119,8 +119,8 @@ AREA_UNIT_LUT: dict[AreaUnit, tuple[str | float, float]] = {
     AreaUnit.SQUARE_FEET_US: ('US survey foot', 1.),
 
     AreaUnit.HECTARES: ('kilometre', 100.),
-    AreaUnit.ACRES_INTERNATIONAL: ('foot', 1 / 43560.),
-    AreaUnit.ACRES_US: ('US survey foot', 1 / 43560.),
+    AreaUnit.ACRES_INTERNATIONAL: ('foot', 43560.),
+    AreaUnit.ACRES_US: ('US survey foot', 43560.),
 }
 
 
