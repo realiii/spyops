@@ -133,10 +133,18 @@ def _get_line_position(geoms: 'ndarray', *, has_z: bool, has_m: bool,
     """
     Get Line Position
     """
-    points = get_point(
-        [get_geoms_iter(geom)[index] for geom in geoms], index=index)
+    points = _get_points(geoms, index)
     return get_coordinates(points, include_z=has_z, include_m=has_m)
 # End _get_line_position function
+
+
+def _get_points(geoms: 'ndarray', index: int) -> 'ndarray':
+    """
+    Get Points at Index
+    """
+    return get_point(
+        [get_geoms_iter(geom)[index] for geom in geoms], index=index)
+# End _get_points function
 
 
 def extent_minimum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
