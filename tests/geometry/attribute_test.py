@@ -10,8 +10,8 @@ from shapely import Polygon, MultiPolygon, LineString, MultiLineString
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.attribute import (
-    area_geodesic, extent_maximum, extent_minimum, get_hole_count,
-    get_inside_xy, length_geodesic, line_end,
+    area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
+    get_inside_xy, length_geodesic, length_planar, line_end,
     line_start)
 
 pytestmark = [mark.geometry]
@@ -115,9 +115,10 @@ def test_area_geodesic(geom, expected):
 
 
 @mark.parametrize('geom, expected', [
+    (LineString([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 3308),
     (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 4421),
-    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), 4421),
-    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), 4421),
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), 5308),
+    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), 5308),
 ])
 def test_length_geodesic(geom, expected):
     """
@@ -126,6 +127,36 @@ def test_length_geodesic(geom, expected):
     result = length_geodesic([geom], crs=CRS(4326), unit=LengthUnit.KILOMETERS)[0]
     assert approx(result, abs=1) == expected
 # End test_length_geodesic function
+
+
+@mark.parametrize('geom, expected', [
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 100.),
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), 96.),
+    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), 96.),
+])
+def test_area_planar(geom, expected):
+    """
+    Test area planar
+    """
+    result = area_planar(
+        [geom], crs=CRS(2295), unit=AreaUnit.SQUARE_METERS)[0]
+    assert approx(result, abs=0.001) == expected
+# End test_area_planar function
+
+
+@mark.parametrize('geom, expected', [
+    (LineString([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 30.),
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), 40.),
+    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), 48.),
+    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), 48.),
+])
+def test_length_planar(geom, expected):
+    """
+    Test length planar
+    """
+    result = length_planar([geom], crs=CRS(2295), unit=LengthUnit.METERS)[0]
+    assert approx(result, abs=1) == expected
+# End test_length_planar function
 
 
 if __name__ == '__main__':  # pragma: no cover
