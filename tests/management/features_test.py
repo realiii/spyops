@@ -829,11 +829,11 @@ class TestCalculateGeometryAttributes:
         ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH, 188.0, 23_224.4, LengthUnit.METERS),
         ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
         ('hydro_lcc_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3, LengthUnit.METERS),
-        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9, LengthUnit.METERS),
-        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 76_605.9, LengthUnit.METERS),
-        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9, LengthUnit.METERS),
+        ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
         ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER, 97.8, 94_353.1, LengthUnit.METERS),
-        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 76_605.9, LengthUnit.METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
         ('hydro_lcc_a', None, GeometryAttribute.AREA, 0.12, 793.0, AreaUnit.ACRES_INTERNATIONAL),
         ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 0.12, 797.9, AreaUnit.ACRES_INTERNATIONAL),
         ('hydro_lcc_a', None, GeometryAttribute.AREA, 5423.4, 34_544_051.9, AreaUnit.SQUARE_FEET_US),
@@ -845,9 +845,9 @@ class TestCalculateGeometryAttributes:
         ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.4, AreaUnit.SQUARE_METERS),
         ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
     ])
-    def test_area(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value, unit):
+    def test_area_and_length(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value, unit):
         """
-        Test area and area geodesic
+        Test area and area geodesic + length and length geodesic (aka perimeter)
         """
         source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
         name = str(attribute)
@@ -870,7 +870,7 @@ class TestCalculateGeometryAttributes:
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone(), abs=0.1) == (min_value, max_value)
-    # End test_area method
+    # End test_area_and_length method
 # End TestCalculateGeometryAttributes class
 
 
