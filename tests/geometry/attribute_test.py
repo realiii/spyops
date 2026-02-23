@@ -11,7 +11,7 @@ from shapely import Polygon, MultiPolygon, LineString, MultiLineString
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
-    get_inside_xy, length_geodesic, length_planar, line_end,
+    get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
     line_start)
 
 pytestmark = [mark.geometry]
@@ -157,6 +157,15 @@ def test_length_planar(geom, expected):
     result = length_planar([geom], crs=CRS(2295), unit=LengthUnit.METERS)[0]
     assert approx(result, abs=1) == expected
 # End test_length_planar function
+
+
+def test_line_azimuth():
+    """
+    Test line azimuth
+    """
+    lines = LineString([(0, 0, 0), (0, 10, 2)]), LineString([(10, 10, 5), (10, 0, 6)])
+    assert approx(line_azimuth(lines, crs=CRS(4326)), abs=0.001) == (0, 180)
+# End test_line_azimuth function
 
 
 if __name__ == '__main__':  # pragma: no cover

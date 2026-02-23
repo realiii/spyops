@@ -11,7 +11,7 @@ from numpy import array
 from pyproj.transformer import Transformer
 from shapely import (
     MultiPolygon, Polygon, get_coordinates, get_num_interior_rings, get_point,
-    point_on_surface)
+    point_on_surface, get_x, get_y)
 from shapely.constructive import boundary, orient_polygons
 from shapely.coordinates import transform
 from shapely.measurement import area, length
@@ -27,6 +27,21 @@ from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from pyproj import CRS
+
+
+def line_azimuth(geoms: 'ndarray', *, crs: 'CRS') -> 'ndarray':
+    """
+    Line Azimuth
+    """
+    starts = _transform_geometries(_get_points(geoms, index=0), crs)
+    start_x, start_y = get_x(starts), get_y(starts)
+    ends = _transform_geometries(_get_points(geoms, index=-1), crs)
+    end_x, end_y = get_x(ends), get_y(ends)
+    geod = crs.get_geod()
+    forward, _, _ = geod.inv(
+        lons1=start_x, lats1=start_y, lons2=end_x, lats2=end_y)
+    return forward
+# End line_azimuth function
 
 
 def length_planar(geoms: 'ndarray', *, crs: 'CRS', unit: LengthUnit) -> 'ndarray':
