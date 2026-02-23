@@ -52,7 +52,7 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
         transformer = Transformer.from_crs(
             crs, crs.geodetic_crs, always_xy=True)
         pt = transform(transformer.transform, pt)
-    geod = crs.geodetic_crs.get_geod()
+    geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
     x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=0, dist=1)
     return hypot(center_x - x, center_y - y)
