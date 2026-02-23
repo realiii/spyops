@@ -13,9 +13,12 @@ from shapely import (
     get_coordinates, get_num_interior_rings, get_point, point_on_surface)
 from shapely.constructive import orient_polygons
 from shapely.coordinates import transform
+from shapely.measurement import area, length
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
-from spyops.crs.unit import get_unit_conversion
+from spyops.crs.unit import (
+    AREA_UNIT_LUT, LENGTH_UNIT_LUT, get_conv_factor, get_unit_conversion,
+    get_unit_name)
 from spyops.crs.util import equals
 from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 
@@ -23,6 +26,27 @@ from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from pyproj import CRS
+
+
+def length_planar(geoms: 'ndarray', *, crs: 'CRS', unit: LengthUnit) -> 'ndarray':
+    """
+    Length Planar
+    """
+    from_factor = get_conv_factor(get_unit_name(crs))
+    to_factor = get_conv_factor(LENGTH_UNIT_LUT[unit])
+    return length(geoms) * (from_factor / to_factor)
+# End length_planar function
+
+
+def area_planar(geoms: 'ndarray', *, crs: 'CRS', unit: AreaUnit) -> 'ndarray':
+    """
+    Area Planar
+    """
+    from_factor = get_conv_factor(get_unit_name(crs)) ** 2
+    to_value, to_factor = AREA_UNIT_LUT[unit]
+    to_factor *= get_conv_factor(to_value) ** 2
+    return area(geoms) * (from_factor / to_factor)
+# End area_planar function
 
 
 def length_geodesic(geoms: 'ndarray', *, crs: 'CRS',
