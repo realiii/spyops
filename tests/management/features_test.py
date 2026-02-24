@@ -820,6 +820,8 @@ class TestCalculateGeometryAttributes:
     # End test_line_start_end method
 
     @mark.parametrize('fc_name, code, attribute, min_value, max_value, unit', [
+        ('transmission_lcc_zm_l', None, GeometryAttribute.LENGTH, 615.0, 75_973.1, LengthUnit.FEET_US),
+        ('transmission_lcc_zm_l', None, GeometryAttribute.LENGTH_GEODESIC, 616.7, 76_194.0, LengthUnit.FEET_US),
         ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 615.0, 75_973.1, LengthUnit.FEET_US),
         ('transmission_lcc_l', None, GeometryAttribute.LENGTH_GEODESIC, 616.7, 76_194.0, LengthUnit.FEET_US),
         ('transmission_lcc_l', None, GeometryAttribute.LENGTH, 187.4, 23_156.6, LengthUnit.METERS),
@@ -828,12 +830,16 @@ class TestCalculateGeometryAttributes:
         ('transmission_lcc_l', 4326, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
         ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH, 188.0, 23_224.4, LengthUnit.METERS),
         ('transmission_lcc_l', 2955, GeometryAttribute.LENGTH_GEODESIC, 187.9, 23_224.0, LengthUnit.METERS),
+        ('hydro_lcc_zm_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3, LengthUnit.METERS),
+        ('hydro_lcc_zm_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
         ('hydro_lcc_a', None, GeometryAttribute.PERIMETER, 97.5, 94_073.3, LengthUnit.METERS),
         ('hydro_lcc_a', None, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
         ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER, 97.8, 94_343.6, LengthUnit.METERS),
         ('hydro_lcc_a', 4326, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
         ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER, 97.8, 94_353.1, LengthUnit.METERS),
         ('hydro_lcc_a', 2955, GeometryAttribute.PERIMETER_GEODESIC, 97.8, 94_343.6, LengthUnit.METERS),
+        ('hydro_lcc_zm_a', None, GeometryAttribute.AREA, 0.12, 793.0, AreaUnit.ACRES_INTERNATIONAL),
+        ('hydro_lcc_zm_a', None, GeometryAttribute.AREA_GEODESIC, 0.12, 797.9, AreaUnit.ACRES_INTERNATIONAL),
         ('hydro_lcc_a', None, GeometryAttribute.AREA, 0.12, 793.0, AreaUnit.ACRES_INTERNATIONAL),
         ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 0.12, 797.9, AreaUnit.ACRES_INTERNATIONAL),
         ('hydro_lcc_a', None, GeometryAttribute.AREA, 5423.4, 34_544_051.9, AreaUnit.SQUARE_FEET_US),
