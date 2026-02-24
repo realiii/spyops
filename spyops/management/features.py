@@ -160,7 +160,7 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     the geometry type and dimensionality of the geometry, that is, does the
     geometry have Z and / or M values.  Geometry attributes will be
     calculated using the feature class's coordinate reference system
-    or the the output coordinate system when set.
+    or the output coordinate system when set.
 
     Point
     -----
