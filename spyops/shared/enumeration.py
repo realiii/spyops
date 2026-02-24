@@ -4,7 +4,7 @@ Enumerations
 """
 
 
-from enum import StrEnum, auto
+from enum import IntFlag, STRICT, StrEnum, auto
 
 
 class AttributeOption(StrEnum):
@@ -107,6 +107,30 @@ class GeometryAttribute(StrEnum):
     PERIMETER = auto()
     PERIMETER_GEODESIC = auto()
 # End GeometryAttribute class
+
+
+class GeometryInvalidReason(IntFlag, boundary=STRICT):
+    """
+    Geometry Invalid Reason
+    """
+    BAD_EXTENT = auto()
+
+    EMPTY = auto()
+    EMPTY_PART = auto()
+    EMPTY_POINT = auto()
+
+    EMPTY_RING = auto()
+    ORIENTATION = auto()
+    UNCLOSED = auto()
+    SELF_INTERSECTION = auto()
+
+    NAN_Z = auto()
+    NAN_M = auto()
+    REPEATED_XY = auto()
+    REPEATED_M = auto()
+    MISMATCH_Z = auto()
+    MISMATCH_M = auto()
+# End GeometryInvalidReason class
 
 
 if __name__ == '__main__':  # pragma: no cover
