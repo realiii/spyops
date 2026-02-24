@@ -9,6 +9,8 @@ from spyops.analysis.extract import (
     select, split, split_by_attributes, table_select)
 from spyops.analysis.overlay import (
     erase, intersect, symmetrical_difference, union)
+from spyops.shared.enumeration import (
+    AlgorithmOption, AttributeOption, OutputTypeOption)
 
 
 __all__ = [
@@ -23,6 +25,10 @@ __all__ = [
     'intersect',
     'symmetrical_difference',
     'union',
+
+    'AlgorithmOption',
+    'AttributeOption',
+    'OutputTypeOption',
 ]
 
 
