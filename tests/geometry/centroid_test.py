@@ -130,7 +130,7 @@ def test_centroid_multi_polygons(use_xy_length, expected_a, expected_b):
     """
     Test centroid multi polygons
     """
-    # NOTE these are butterfly shaped polygons, need to make them valid,
+    # NOTE these are bowtie shaped polygons, need to make them valid,
     #  which results in a multi-polygon, perfect for testing
     poly_a = make_valid(from_wkt('Polygon ((50 50 0 0, 51 51 1 1, 50 51 2 3, 51 50 4 5, 50 50 0 0))'))
     poly_b = make_valid(from_wkt('Polygon ((100 100 100 100, 101 101 101 101, 100 101 102 103, 101 100 104 105, 100 100 100 100))'))
