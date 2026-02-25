@@ -109,20 +109,23 @@ class GeometryAttribute(StrEnum):
 # End GeometryAttribute class
 
 
-class GeometryInvalidReason(IntFlag, boundary=STRICT):
+class GeometryCheck(IntFlag, boundary=STRICT):
     """
-    Geometry Invalid Reason
+    Geometry Check Options
     """
     BAD_EXTENT = auto()
 
     EMPTY = auto()
     EMPTY_PART = auto()
     EMPTY_POINT = auto()
+    POINT_COUNT = auto()
 
     EMPTY_RING = auto()
     ORIENTATION = auto()
     UNCLOSED = auto()
     SELF_INTERSECTION = auto()
+    OUTSIDE_RING = auto()
+    OVERLAP_RING = auto()
 
     NAN_Z = auto()
     NAN_M = auto()
@@ -130,7 +133,7 @@ class GeometryInvalidReason(IntFlag, boundary=STRICT):
     REPEATED_M = auto()
     MISMATCH_Z = auto()
     MISMATCH_M = auto()
-# End GeometryInvalidReason class
+# End GeometryCheck class
 
 
 if __name__ == '__main__':  # pragma: no cover

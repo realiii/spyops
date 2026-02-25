@@ -18,7 +18,7 @@ from spyops.management.indexes import (
 from spyops.management.table import (
     create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
-    GeometryAttribute, WeightOption, FieldProperty)
+    GeometryAttribute, GeometryCheck, WeightOption, FieldProperty)
 
 
 __all__ = [
@@ -49,7 +49,8 @@ __all__ = [
     'LengthUnit',
     'GeometryAttribute',
     'WeightOption',
-    'FieldProperty'
+    'FieldProperty',
+    'GeometryCheck',
 ]
 
 
