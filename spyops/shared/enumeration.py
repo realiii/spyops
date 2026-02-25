@@ -113,7 +113,7 @@ class GeometryCheck(IntFlag, boundary=STRICT):
     """
     Geometry Check Options
     """
-    BAD_EXTENT = auto()
+    EXTENT = auto()
 
     EMPTY = auto()
     EMPTY_PART = auto()
