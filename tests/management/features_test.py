@@ -4,9 +4,10 @@ Tests for Features
 """
 
 
+from collections import defaultdict
 from sqlite3 import OperationalError
 
-from fudgeo import FeatureClass, Field, GeoPackage
+from fudgeo import FeatureClass, Field, GeoPackage, Table
 from fudgeo.enumeration import FieldType, ShapeType
 from pyproj import CRS
 from pytest import mark, param, approx, raises
@@ -20,8 +21,10 @@ from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, multipart_to_singlepart)
+from spyops.management.features import check_geometry
 from spyops.shared.constant import EPSG, ESRI
-from spyops.shared.enumeration import GeometryAttribute, WeightOption
+from spyops.shared.enumeration import (
+    GeometryAttribute, GeometryCheck, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
 
 from tests.util import UseGrids
@@ -907,6 +910,195 @@ class TestCalculateGeometryAttributes:
                 assert approx(cursor.fetchone()[0], abs=0.001) == average
     # End test_line_azimuth method
 # End TestCalculateGeometryAttributes class
+
+
+class TestCheckGeometry:
+    """
+    Test Check Geometry
+    """
+    @mark.parametrize('fc_name, count', [
+        param('admin_a', 211_853, marks=mark.slow),
+        ('continent_a', 1958),
+        param('country_a', 208_318, marks=mark.slow),
+        ('disputed_boundaries_l', 3),
+        ('drainage_l', 0),
+        ('geogrid_l', 1),
+        ('lakes_a', 40),
+        param('latlong_l', 1, marks=mark.slow),
+        ('railroads_l', 15),
+        ('region_a', 1979),
+        ('rivers_l', 1),
+        param('roads_l', 239, marks=mark.slow),
+        ('utmzone_a', 1202),
+        ('airports_p', 0),
+        ('cities_p', 0),
+        param('admin_mp_a', 5824, marks=mark.slow),
+        ('airports_mp_p', 0),
+        param('roads_mp_l', 191, marks=mark.slow),
+        ('roads_ml', 20),
+    ])
+    def test_defaults(self, world_features, mem_gpkg, fc_name, count):
+        """
+        Test Check Geometry with Default options
+        """
+        fc = world_features[fc_name]
+        target = Table(name='cg_results', geopackage=mem_gpkg)
+        result = check_geometry(fc, target)
+        assert len(result) == count
+    # End test_defaults function
+
+    @mark.parametrize('fc_name, count', [
+        param('admin_a', 0, marks=mark.slow),
+        ('continent_a', 1),
+        param('country_a', 1, marks=mark.slow),
+        ('disputed_boundaries_l', 1),
+        ('drainage_l', 0),
+        ('geogrid_l', 1),
+        ('lakes_a', 1),
+        param('latlong_l', 1, marks=mark.slow),
+        ('railroads_l', 0),
+        ('region_a', 1),
+        ('rivers_l', 1),
+        param('roads_l', 1, marks=mark.slow),
+        ('utmzone_a', 1),
+        ('airports_p', 0),
+        ('cities_p', 0),
+        ('admin_mp_a', 0),
+        ('airports_mp_p', 0),
+        ('roads_mp_l', 0),
+        ('roads_ml', 0),
+    ])
+    def test_check_extent(self, world_features, mem_gpkg, fc_name, count):
+        """
+        Test Check Extent
+        """
+        fc = world_features[fc_name]
+        target = Table(name='cg_results', geopackage=mem_gpkg)
+        result = check_geometry(fc, target, check_options=GeometryCheck.EXTENT)
+        assert len(result) == count
+    # End test_check_extent function
+
+    @mark.parametrize('fc_name, counts', [
+        ('hydro_m_a', (382, 1, 0, 0)),
+        ('hydro_zm_a', (382, 1, 0, 0)),
+        ('structures_m_a', (1453, 4, 0, 0)),
+        ('structures_m_ma', (18, 16, 0, 0)),
+        ('structures_m_p', (0, 0, 0, 0)),
+        ('structures_ma', (18, 0, 0, 0)),
+        ('structures_p', (0, 0, 0, 0)),
+        ('structures_z_ma', (18, 0, 18, 0)),
+        ('structures_z_p', (0, 0, 0, 0)),
+        ('structures_zm_a', (1453, 4, 4, 0)),
+        ('structures_zm_ma', (18, 16, 1, 0)),
+        ('structures_zm_p', (0, 0, 0, 0)),
+        ('topography_m_l', (485, 235, 0, 0)),
+        ('topography_zm_l', (485, 235, 235, 0)),
+        ('toponymy_m_mp', (0, 0, 0, 0)),
+        ('toponymy_m_p', (0, 0, 0, 0)),
+        ('toponymy_mp', (0, 0, 0, 0)),
+        ('toponymy_p', (0, 0, 0, 0)),
+        ('toponymy_z_mp', (0, 0, 0, 0)),
+        ('toponymy_z_p', (0, 0, 0, 0)),
+        ('toponymy_zm_mp', (0, 0, 0, 0)),
+        ('toponymy_zm_p', (0, 0, 0, 0)),
+        ('transmission_m_l', (0, 0, 0, 0)),
+        ('transmission_m_ml', (1, 1, 0, 0)),
+        ('transmission_m_mp', (0, 0, 0, 0)),
+        ('transmission_m_p', (0, 0, 0, 0)),
+        ('transmission_ml', (1, 0, 0, 0)),
+        ('transmission_mp', (0, 0, 0, 0)),
+        ('transmission_p', (0, 0, 0, 0)),
+        ('transmission_z_ml', (1, 0, 1, 0)),
+        ('transmission_z_mp', (0, 0, 0, 0)),
+        ('transmission_z_p', (0, 0, 0, 0)),
+        ('transmission_zm_l', (0, 0, 0, 0)),
+        ('transmission_zm_ml', (1, 1, 1, 0)),
+        ('transmission_zm_mp', (0, 0, 0, 0)),
+        ('transmission_zm_p', (0, 0, 0, 0)),
+    ])
+    def test_check_coordinates(self, ntdb_zm_small, mem_gpkg, fc_name, counts):
+        """
+        Test Check Coordinates
+        """
+        fc = ntdb_zm_small[fc_name]
+        options = (
+            GeometryCheck.REPEATED_XY | GeometryCheck.REPEATED_M |
+            GeometryCheck.MISMATCH_Z | GeometryCheck.MISMATCH_M
+        )
+        target = Table(name='cg_results', geopackage=mem_gpkg)
+        result = check_geometry(fc, target, check_options=options)
+        assert len(result) == sum(counts)
+        checks = (GeometryCheck.REPEATED_XY, GeometryCheck.REPEATED_M,
+                  GeometryCheck.MISMATCH_Z, GeometryCheck.MISMATCH_M)
+        names = [check.name for check in checks]
+        counter = defaultdict(int)
+        cursor = result.select(('ORIG_FID', 'REASON'))
+        for _, name in cursor.fetchall():
+            counter[name] += 1
+        assert tuple(counter[n] for n in names) == counts
+    # End test_check_coordinates method
+
+    @mark.parametrize('fc_name, counts', [
+        ('hydro_m_a', (382, 1, 0, 0)),
+        ('hydro_zm_a', (382, 1, 0, 0)),
+        ('structures_m_a', (1453, 4, 0, 0)),
+        ('structures_m_ma', (18, 16, 0, 0)),
+        ('structures_m_p', (0, 0, 0, 0)),
+        ('structures_ma', (18, 0, 0, 0)),
+        ('structures_p', (0, 0, 0, 0)),
+        ('structures_z_ma', (18, 0, 18, 0)),
+        ('structures_z_p', (0, 0, 0, 0)),
+        ('structures_zm_a', (1453, 4, 4, 0)),
+        ('structures_zm_ma', (18, 16, 4, 0)),
+        ('structures_zm_p', (0, 0, 0, 0)),
+        ('topography_m_l', (627, 235, 0, 0)),
+        ('topography_zm_l', (627, 235, 235, 0)),
+        ('toponymy_m_mp', (1, 0, 0, 0)),
+        ('toponymy_m_p', (0, 0, 0, 0)),
+        ('toponymy_mp', (1, 0, 0, 0)),
+        ('toponymy_p', (0, 0, 0, 0)),
+        ('toponymy_z_mp', (1, 0, 0, 0)),
+        ('toponymy_z_p', (0, 0, 0, 0)),
+        ('toponymy_zm_mp', (1, 0, 0, 0)),
+        ('toponymy_zm_p', (0, 0, 0, 0)),
+        ('transmission_m_l', (4, 0, 0, 0)),
+        ('transmission_m_ml', (3, 1, 0, 0)),
+        ('transmission_m_mp', (0, 0, 0, 0)),
+        ('transmission_m_p', (0, 0, 0, 0)),
+        ('transmission_ml', (3, 0, 0, 0)),
+        ('transmission_mp', (0, 0, 0, 0)),
+        ('transmission_p', (0, 0, 0, 0)),
+        ('transmission_z_ml', (3, 0, 1, 0)),
+        ('transmission_z_mp', (0, 0, 0, 0)),
+        ('transmission_z_p', (0, 0, 0, 0)),
+        ('transmission_zm_l', (4, 0, 0, 0)),
+        ('transmission_zm_ml', (3, 1, 1, 0)),
+        ('transmission_zm_mp', (0, 0, 0, 0)),
+        ('transmission_zm_p', (0, 0, 0, 0)),
+    ])
+    def test_check_coordinates_with_tolerance(self, ntdb_zm_small, mem_gpkg, fc_name, counts):
+        """
+        Test Check Coordinates with tolerance set high
+        """
+        fc = ntdb_zm_small[fc_name]
+        options = (
+            GeometryCheck.REPEATED_XY | GeometryCheck.REPEATED_M |
+            GeometryCheck.MISMATCH_Z | GeometryCheck.MISMATCH_M
+        )
+        target = Table(name='cg_results', geopackage=mem_gpkg)
+        result = check_geometry(fc, target, check_options=options,
+                                xy_tolerance=0.001)
+        assert len(result) == sum(counts)
+        checks = (GeometryCheck.REPEATED_XY, GeometryCheck.REPEATED_M,
+                  GeometryCheck.MISMATCH_Z, GeometryCheck.MISMATCH_M)
+        names = [check.name for check in checks]
+        counter = defaultdict(int)
+        cursor = result.select(('ORIG_FID', 'REASON'))
+        for _, name in cursor.fetchall():
+            counter[name] += 1
+        assert tuple(counter[n] for n in names) == counts
+    # End test_check_coordinates_with_tolerance method
+# End TestCheckGeometry class
 
 
 if __name__ == '__main__':  # pragma: no cover
