@@ -56,6 +56,8 @@ VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+REASON: Field = Field(
+    'REASON', data_type=FieldType.text, alias='Geometry Check Reason')
 POINT_X: Field = Field(
     'POINT_X', data_type=FieldType.real, alias='X Coordinate')
 POINT_Y: Field = Field(

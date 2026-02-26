@@ -26,14 +26,14 @@ from spyops.shared.constant import (
     LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
-    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, VALUE,
+    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import FIELDS, NAMES
+from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass, Field
+    from fudgeo import FeatureClass, Field, Table
     from pyproj import CRS
 
 
@@ -141,6 +141,55 @@ class QueryCopyFeatures(BaseQuerySelect):
     Query for Copy Features
     """
 # End QueryCopyFeatures class
+
+
+class QueryCheckGeometry(BaseQuerySelect):
+    """
+    Query for Check Geometry
+    """
+    def __init__(self, source: 'FeatureClass', target: 'Table',
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryCheckGeometry class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+    # End init built-in
+
+    @property
+    def _fields(self) -> FIELDS:
+        """
+        Fields
+        """
+        return ORIG_FID, REASON
+    # End _fields property
+
+    @cached_property
+    def grid_size(self) -> GRID_SIZE:
+        """
+        Grid Size Overload, use xy tolerance as-is
+        """
+        return self._xy_tolerance
+    # End grid_size property
+
+    @property
+    def target(self) -> 'Table':
+        """
+        Target
+        """
+        return self.target_empty
+    # End target property
+
+    @cached_property
+    def target_empty(self) -> 'Table':
+        """
+        Target Empty
+        """
+        return self._target.geopackage.create_table(
+            self._target.name, fields=self._fields,
+            description='Results from Check Geometry',
+            overwrite=ANALYSIS_SETTINGS.overwrite)
+    # End target_empty property
+# End QueryCheckGeometry class
 
 
 class QueryAddXYCoordinates(AbstractSourceUpdateQuery):

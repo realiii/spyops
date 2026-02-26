@@ -10,7 +10,7 @@ from spyops.shared.enumeration import (
     AttributeOption, GeometryAttribute, OutputTypeOption)
 from spyops.shared.exception import OperationsError
 from spyops.validation import (
-    validate_enumeration, validate_geometry_attribute, validate_output_type)
+    validate_str_enumeration, validate_geometry_attribute, validate_output_type)
 
 
 pytestmark = [mark.validation]
@@ -26,7 +26,7 @@ def test_validate_enumeration(value, expected, throws):
     """
     Test validate enumeration
     """
-    @validate_enumeration('option', AttributeOption)
+    @validate_str_enumeration('option', AttributeOption)
     def enum_function(option):
         return option
     if throws:

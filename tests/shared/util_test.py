@@ -7,9 +7,11 @@ Test Utilities
 from pytest import approx, mark, raises
 
 from spyops.environment.enumeration import OutputMOption
+from spyops.shared.enumeration import DEFAULT_GEOM_CHECKS, GeometryCheck
 from spyops.shared.util import (
-    check_enumeration, element_names, expand_extent, make_unique_name,
-    make_valid_name, _replace_double_under, safe_float, safe_int)
+    check_int_flag_enum, check_str_enum, element_names, expand_extent,
+    make_unique_name, make_valid_name, _replace_double_under, safe_float,
+    safe_int)
 
 
 pytestmark = [mark.utility]
@@ -111,16 +113,37 @@ def test_safe_float(value, expected):
     ('same', OutputMOption, OutputMOption.SAME, False),
     (OutputMOption.SAME, OutputMOption, OutputMOption.SAME, False),
 ])
-def test_check_enumeration(value, enum, expected, throws):
+def test_check_str_enum(value, enum, expected, throws):
     """
-    Test check_enumeration
+    Test check_str_enum
     """
     if throws:
         with raises(ValueError):
-            check_enumeration(value, enum)
+            check_str_enum(value, enum)
     else:
-        assert check_enumeration(value, enum) == expected
-# End test_check_enumeration function
+        assert check_str_enum(value, enum) == expected
+# End test_check_str_enum function
+
+
+@mark.parametrize('value, enum, expected, throws', [
+    (None, GeometryCheck, None, True),
+    (1, GeometryCheck, GeometryCheck.EXTENT, False),
+    ('extent', GeometryCheck, GeometryCheck.EXTENT, True),
+    (GeometryCheck.EXTENT, GeometryCheck, GeometryCheck.EXTENT, False),
+    (GeometryCheck.EXTENT | GeometryCheck.EMPTY, GeometryCheck, 3, False),
+    (GeometryCheck.EXTENT | GeometryCheck.EMPTY, GeometryCheck, GeometryCheck.EXTENT | GeometryCheck.EMPTY, False),
+    (DEFAULT_GEOM_CHECKS, GeometryCheck, DEFAULT_GEOM_CHECKS, False),
+])
+def test_check_int_flag_enum(value, enum, expected, throws):
+    """
+    Test check_int_flag_enum
+    """
+    if throws:
+        with raises(ValueError):
+            check_int_flag_enum(value, enum)
+    else:
+        assert check_int_flag_enum(value, enum) == expected
+# End test_check_int_flag_enum function
 
 
 if __name__ == '__main__':  # pragma: no cover

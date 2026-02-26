@@ -10,7 +10,7 @@ from functools import cache, cached_property
 from typing import Callable, Optional, Self, TYPE_CHECKING
 from warnings import warn
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Table
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.util import escape_name
 from numpy import isfinite
@@ -897,12 +897,13 @@ class BaseQuerySelect(AbstractSourceQuery):
     """
     Base Query for Simple Selection that honors Analysis Extent
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
-                 where_clause: str = EMPTY) -> None:
+    def __init__(self, source: FeatureClass, target: FeatureClass | Table,
+                 where_clause: str = EMPTY,
+                 xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the BaseQuerySelect class
         """
-        super().__init__(source, target=target, xy_tolerance=None)
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._where_clause: str = where_clause
     # End init built-in
 
