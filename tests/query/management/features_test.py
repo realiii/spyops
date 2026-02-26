@@ -6,7 +6,7 @@ Test for Features Query classes
 
 from sqlite3 import OperationalError
 
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import approx, mark, raises
@@ -16,7 +16,7 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
-    QueryMultiPartToSinglePart)
+    QueryCheckGeometry, QueryMultiPartToSinglePart)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
@@ -292,6 +292,53 @@ class TestQueryCalculateGeometryAttributes:
         assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
     # End test_update method
 # End TestQueryCalculateGeometryAttributes class
+
+
+class TestQueryCheckGeometry:
+    """
+    Test QueryCheckGeometry
+    """
+    def test_target(self, world_features, mem_gpkg):
+        """
+        Test target
+        """
+        source = world_features['admin_a']
+        name = 'geom_check'
+        target = Table(geopackage=mem_gpkg, name=name)
+        query = QueryCheckGeometry(source, target, xy_tolerance=None)
+        assert query.target.name == name
+        assert len(query.target.fields) == 3
+        assert query.target.field_names == ['fid', 'ORIG_FID', 'REASON']
+    # End test_target method
+
+    @mark.parametrize('xy_tolerance', [
+        None,
+        0.001
+    ])
+    def test_grid_size(self, world_features, mem_gpkg, xy_tolerance):
+        """
+        Test grid size
+        """
+        source = world_features['admin_a']
+        name = 'geom_check'
+        target = Table(geopackage=mem_gpkg, name=name)
+        query = QueryCheckGeometry(source, target, xy_tolerance=xy_tolerance)
+        assert query.grid_size == xy_tolerance
+    # End test_grid_size method
+
+    def test_insert(self, world_features, mem_gpkg):
+        """
+        Test insert
+        """
+        source = world_features['admin_a']
+        name = 'geom_check'
+        target = Table(geopackage=mem_gpkg, name=name)
+        query = QueryCheckGeometry(source, target, xy_tolerance=None)
+        sql = query.insert
+        assert name in sql
+        assert '(ORIG_FID, REASON)' in sql
+    # End test_insert method
+# End TestQueryCheckGeometry class
 
 
 if __name__ == '__main__':  # pragma: no cover
