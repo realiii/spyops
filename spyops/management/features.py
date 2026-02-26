@@ -284,6 +284,16 @@ def check_geometry(source: 'FeatureClass', target: 'Table',
     whether the geometry is a point, line, or polygon, and whether it has Z
     values and M values.  The results are written to a table.
 
+    Multiple checks are specified an OR operation, for example, to check
+    for empty geometries, empty points, and nan Z values use:
+
+    >>> check_geometry(source, target, check_options=(
+    ...     GeometryCheck.EMPTY | GeometryCheck.EMPTY_POINT |
+    ...     GeometryCheck.NAN_Z))
+
+    It is ok to specify a check option that does not apply to the geometry,
+    it will be ignored.  The following checks are available:
+
     * EXTENT: checks if the feature class extent is set and if it is, then this
       is compared to the geometry extent
 
@@ -310,6 +320,9 @@ def check_geometry(source: 'FeatureClass', target: 'Table',
     * REPEATED_M: checks if the geometry has any repeated M values
     * MISMATCH_Z: checks if the geometry has different Z values for the same XY
     * MISMATCH_M: checks if the geometry has different M values for the same XY
+
+    The default checks are: EXTENT, EMPTY, EMPTY_PART, EMPTY_RING, EMPTY_POINT,
+    NAN_Z, NAN_M, REPEATED_XY, REPEATED_M, MISMATCH_Z, and MISMATCH_M.
     """
     query = QueryCheckGeometry(source, target=target, xy_tolerance=xy_tolerance)
     records = check_feature_class_geometry(
