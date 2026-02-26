@@ -4,7 +4,7 @@ Utilities
 """
 
 
-from enum import StrEnum
+from enum import IntFlag, StrEnum
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
