@@ -14,7 +14,7 @@ from spyops.shared.constant import (
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
-    validate_element, validate_elements, validate_enumeration, validate_field)
+    validate_element, validate_elements, validate_str_enumeration, validate_field)
 
 
 __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field']
@@ -88,7 +88,7 @@ def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
 
 @validate_element(SOURCE, has_content=False)
 @validate_field(FIELD, single=True, element_name=SOURCE)
-@validate_enumeration(FIELD_PROPERTY, FieldProperty)
+@validate_str_enumeration(FIELD_PROPERTY, FieldProperty)
 def alter_field(source: ELEMENT, field: Field | str, *,
                 field_property: FieldProperty = FieldProperty.NAME,
                 value: str | None) -> ELEMENT:

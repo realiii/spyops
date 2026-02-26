@@ -13,7 +13,8 @@ from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateOverwriteInput, ValidateTable)
 from spyops.validation.enumish import (
-    ValidateEnumeration, ValidateGeometryAttribute, ValidateOutputType)
+    ValidateIntFlagEnumeration, ValidateStrEnumeration,
+    ValidateGeometryAttribute, ValidateOutputType)
 from spyops.validation.field import ValidateField, ValidateGeometryDimension
 from spyops.validation.result import ValidateResult
 from spyops.validation.setting import ValidateXYTolerance
@@ -23,7 +24,8 @@ from spyops.validation.setting import ValidateXYTolerance
 validate_crs = ValidateCRS
 validate_element = ValidateElement
 validate_elements = ValidateElements
-validate_enumeration = ValidateEnumeration
+validate_str_enumeration = ValidateStrEnumeration
+validate_int_flag_enumeration = ValidateIntFlagEnumeration
 validate_feature_class = ValidateFeatureClass
 validate_field = ValidateField
 validate_geometry_attribute = ValidateGeometryAttribute

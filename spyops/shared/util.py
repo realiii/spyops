@@ -108,16 +108,26 @@ def safe_float(value: Any) -> float | None:
 # End safe_float function
 
 
-def check_enumeration(value: Any, enum: type[StrEnum]) -> Any:
+def check_str_enum(value: Any, enum: type[StrEnum]) -> Any:
     """
-    Check Enumeration
+    Check Str Enumeration
     """
     if isinstance(value, enum):
         return value
     if isinstance(value, str):
         return enum(value.casefold())
     return enum(value)
-# End check_enumeration function
+# End check_str_enum function
+
+
+def check_int_flag_enum(value: Any, enum: type[IntFlag]) -> Any:
+    """
+    Check IntFlag Enumeration
+    """
+    if isinstance(value, enum):
+        return value
+    return enum(value)
+# End check_int_flag_enum function
 
 
 if __name__ == '__main__':  # pragma: no cover

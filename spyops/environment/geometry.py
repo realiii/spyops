@@ -8,7 +8,7 @@ from math import isnan, nan
 
 from spyops.environment.enumeration import OutputMOption, OutputZOption
 from spyops.shared.hint import XY_TOL
-from spyops.shared.util import check_enumeration, safe_float
+from spyops.shared.util import check_str_enum, safe_float
 
 
 class _GeometryDimensions:
@@ -50,7 +50,7 @@ class _GeometryDimensions:
 
     @output_z_option.setter
     def output_z_option(self, value: OutputZOption) -> None:
-        self._z_option = check_enumeration(value, enum=OutputZOption)
+        self._z_option = check_str_enum(value, enum=OutputZOption)
     # End output_z_option property
 
     @property
@@ -62,7 +62,7 @@ class _GeometryDimensions:
 
     @output_m_option.setter
     def output_m_option(self, value: OutputMOption) -> None:
-        self._m_option = check_enumeration(value, enum=OutputMOption)
+        self._m_option = check_str_enum(value, enum=OutputMOption)
     # End output_m_option property
 
     @property

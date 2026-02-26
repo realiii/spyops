@@ -4,7 +4,7 @@ Validation Enumeration-esque Values
 """
 
 
-from enum import StrEnum
+from enum import IntFlag, StrEnum
 from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING, Type
 
@@ -14,7 +14,7 @@ from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.constant import GEOMETRY_ATTRIBUTE, SOURCE
 from spyops.shared.enumeration import GeometryAttribute, OutputTypeOption
 from spyops.shared.exception import GeometryDimensionError
-from spyops.shared.util import check_enumeration
+from spyops.shared.util import check_int_flag_enum, check_str_enum
 from spyops.validation.base import (
     AbstractValidate, AbstractValidateArgument, AbstractValidateType)
 
@@ -23,13 +23,13 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-class ValidateEnumeration(AbstractValidateArgument):
+class ValidateStrEnumeration(AbstractValidateArgument):
     """
     Validate Item is of the expected Enumeration
     """
     def __init__(self, name: str, enum: Type[StrEnum]) -> None:
         """
-        Initialize the ValidateEnumeration class
+        Initialize the ValidateStrEnumeration class
 
         :param name: Name of the argument to validate
         :param enum: Enumeration to validate against
@@ -61,9 +61,52 @@ class ValidateEnumeration(AbstractValidateArgument):
         """
         Validate Value
         """
-        return check_enumeration(obj, enum=self._enum)
+        return check_str_enum(obj, enum=self._enum)
     # End _validate_value method
-# End ValidateEnumeration class
+# End ValidateStrEnumeration class
+
+
+class ValidateIntFlagEnumeration(AbstractValidateArgument):
+    """
+    Validate Item is of the expected Enumeration
+    """
+    def __init__(self, name: str, enum: Type[IntFlag]) -> None:
+        """
+        Initialize the ValidateIntFlagEnumeration class
+
+        :param name: Name of the argument to validate
+        :param enum: Enumeration to validate against
+        """
+        super().__init__(name)
+        self._enum: Type[IntFlag] = enum
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            obj = self._validate_value(obj)
+            self._set_object(obj, kwargs=kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _validate_value(self, obj: Any) -> Any:
+        """
+        Validate Value
+        """
+        return check_int_flag_enum(obj, enum=self._enum)
+    # End _validate_value method
+# End ValidateIntFlagEnumeration class
 
 
 class ValidateOutputType(AbstractValidate):
@@ -128,7 +171,7 @@ class ValidateGeometryAttribute(AbstractValidateType):
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
             source = self._get_object(kwargs)
-            attribute = check_enumeration(
+            attribute = check_str_enum(
                 kwargs[self._enum_name], enum=GeometryAttribute)
             self._validate_value(source, attribute)
             return func(**kwargs)

@@ -23,10 +23,10 @@ from spyops.shared.enumeration import (
 from spyops.shared.field import GEOM_TYPE_POLYGONS
 from spyops.shared.hint import XY_TOL
 from spyops.validation import (
-    validate_enumeration, validate_feature_class, validate_geometry_dimension,
-    validate_operator_feature_class, validate_output_type,
-    validate_overwrite_input, validate_result, validate_crs,
-    validate_source_feature_class, validate_target_feature_class,
+    validate_str_enumeration, validate_feature_class,
+    validate_geometry_dimension, validate_operator_feature_class,
+    validate_output_type, validate_overwrite_input, validate_result,
+    validate_crs, validate_source_feature_class, validate_target_feature_class,
     validate_xy_tolerance)
 
 
@@ -76,9 +76,9 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_source_feature_class()
 @validate_operator_feature_class()
 @validate_target_feature_class()
-@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
-@validate_enumeration(OUTPUT_TYPE_OPTION, OutputTypeOption)
-@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
+@validate_str_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_str_enumeration(OUTPUT_TYPE_OPTION, OutputTypeOption)
+@validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
 @validate_crs(SOURCE, OPERATOR)
@@ -121,8 +121,8 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_source_feature_class()
 @validate_operator_feature_class()
 @validate_target_feature_class()
-@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
-@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
+@validate_str_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
 @validate_crs(SOURCE, OPERATOR)
@@ -154,8 +154,8 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_feature_class(SOURCE, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
 @validate_target_feature_class()
-@validate_enumeration(ATTRIBUTE_OPTION, AttributeOption)
-@validate_enumeration(ALGORITHM_OPTION, AlgorithmOption)
+@validate_str_enumeration(ATTRIBUTE_OPTION, AttributeOption)
+@validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
