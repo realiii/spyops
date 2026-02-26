@@ -88,8 +88,8 @@ AREA_UNIT: str = 'area_unit'
 
 TEMP_SCHEMA: str = 'temp'
 ROWID: str = 'ROWID'
-SQL_EMPTY: str = f"""{ROWID} <= -1"""
-SQL_FULL: str = f"""{ROWID} > -1"""
+SQL_NO_ID: str = f"""{ROWID} <= -1"""
+SQL_ALL_ID: str = f"""{ROWID} > -1"""
 
 IN: str = 'IN'
 NOT_IN: str = 'NOT IN'

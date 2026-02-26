@@ -23,7 +23,7 @@ from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.constant import (
-    LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
+    LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_ALL_ID)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
@@ -90,7 +90,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             return self._make_intersection_query(
                 self.source, field_names=select_names)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_FULL)
+            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
     # End select property
 
     @property
