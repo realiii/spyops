@@ -7,9 +7,11 @@ Test Utilities
 from pytest import approx, mark, raises
 
 from spyops.environment.enumeration import OutputMOption
+from spyops.shared.enumeration import DEFAULT_GEOM_CHECKS, GeometryCheck
 from spyops.shared.util import (
-    check_enumeration, element_names, expand_extent, make_unique_name,
-    make_valid_name, _replace_double_under, safe_float, safe_int)
+    check_int_flag_enum, check_str_enum, element_names, expand_extent,
+    make_unique_name, make_valid_name, _replace_double_under, safe_float,
+    safe_int)
 
 
 pytestmark = [mark.utility]
