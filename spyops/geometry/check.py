@@ -382,8 +382,7 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     check_mismatch_m = GeometryCheck.MISMATCH_M in options and has_m
     wkb, fids = zip(*[(geom.wkb, fid) for geom, fid in features])
     geoms = from_wkb(wkb, on_invalid='ignore')
-    fids = [fid for fid, geom in zip(fids, geoms) if geom is not None]
-    if not fids:
+    if not (fids := [i for i, geom in zip(fids, geoms) if geom is not None]):
         return
     coords, indexes = get_coordinates(
         geoms, include_z=has_z, include_m=has_m, return_index=True)
