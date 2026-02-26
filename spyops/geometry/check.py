@@ -19,6 +19,7 @@ from shapely.predicates import is_ccw, is_closed, is_valid
 
 from spyops.geometry.util import find_slice_indexes
 from spyops.shared.enumeration import GeometryCheck
+from spyops.shared.hint import GRID_SIZE
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -36,8 +37,8 @@ RECORDS: TypeAlias = list[tuple[int, str]]
 FEATURES: TypeAlias = list[tuple['AbstractGeometry', int]]
 
 
-def check_feature_class_geometry(source: 'FeatureClass',
-                                 options: GeometryCheck) -> RECORDS:
+def check_feature_class_geometry(source: 'FeatureClass', options: GeometryCheck,
+                                 *, grid_size: GRID_SIZE = None) -> RECORDS:
     """
     Check Feature Class Geometry
     """
@@ -46,8 +47,8 @@ def check_feature_class_geometry(source: 'FeatureClass',
     has_m = source.has_m
     shape_type = source.shape_type
     cursor = source.select(include_primary=True)
-    kwargs = dict(options=options, shape_type=shape_type,
-                  records=records, has_z=has_z, has_m=has_m)
+    kwargs = dict(options=options, shape_type=shape_type, records=records,
+                  has_z=has_z, has_m=has_m, grid_size=grid_size)
     _check_extent(source, **kwargs)
     while features := cursor.fetchmany(FETCH_SIZE):
         if not (features := _check_empty_feature(features, **kwargs)):
@@ -367,7 +368,8 @@ def _check_nan_m(features: FEATURES, *, options: GeometryCheck, shape_type: str,
 
 def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
                        shape_type: str, has_z: bool, has_m: bool,
-                       records: RECORDS, **kwargs) -> None:
+                       grid_size: GRID_SIZE, records: RECORDS,
+                       **kwargs) -> None:
     """
     Check Coordinates
     """
@@ -386,7 +388,9 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
         return
     coords, indexes = get_coordinates(
         geoms, include_z=has_z, include_m=has_m, return_index=True)
-    # NOTE round coordinates to 8 decimal places for grouping and comparison
+    if not grid_size:
+        grid_size = 1e-8
+    coords = (coords / grid_size).round() * grid_size
     coords = coords.round(8)
     validations = {}
     index = 1 + has_z + has_m
