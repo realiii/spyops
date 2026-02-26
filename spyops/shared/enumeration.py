@@ -136,5 +136,14 @@ class GeometryCheck(IntFlag, boundary=STRICT):
 # End GeometryCheck class
 
 
+DEFAULT_GEOM_CHECKS: GeometryCheck = (
+    GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
+    GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |
+    GeometryCheck.NAN_Z | GeometryCheck.NAN_M |
+    GeometryCheck.REPEATED_XY | GeometryCheck.REPEATED_M |
+    GeometryCheck.MISMATCH_Z | GeometryCheck.MISMATCH_M
+)
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

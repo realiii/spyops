@@ -7,19 +7,23 @@ Data Management for Features
 from typing import Callable, TYPE_CHECKING
 
 from fudgeo import Field
+from fudgeo import Table
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.geometry.check import check_feature_class_geometry
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCopyFeatures,
-    QueryMultiPartToSinglePart)
+    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
+    QueryCopyFeatures, QueryMultiPartToSinglePart)
 from spyops.shared.constant import (
-    AREA_UNIT, FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, SOURCE, WEIGHT_OPTION)
-from spyops.shared.enumeration import GeometryAttribute, WeightOption
+    AREA_UNIT, CHECK_OPTIONS, FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, SOURCE,
+    WEIGHT_OPTION)
+from spyops.shared.enumeration import (
+    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI, NUMBERS
-from spyops.shared.hint import ELEMENT
+from spyops.shared.hint import ELEMENT, XY_TOL
 from spyops.shared.records import insert_many, select_and_transform_features
 from spyops.validation import (
     validate_element, validate_int_flag_enumeration, validate_str_enumeration,
@@ -34,7 +38,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = ['multipart_to_singlepart', 'explode', 'delete_features',
            'copy_features', 'add_xy_coordinates',
-           'calculate_geometry_attributes']
+           'calculate_geometry_attributes', 'check_geometry']
 
 
 @validate_result()
@@ -261,6 +265,59 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
             cin.execute(query.update)
     return query.target
 # End calculate_geometry_attributes function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_target_table()
+@validate_int_flag_enumeration(CHECK_OPTIONS, GeometryCheck)
+@validate_xy_tolerance()
+@validate_overwrite_source()
+def check_geometry(source: 'FeatureClass', target: 'Table',
+                   check_options: GeometryCheck = DEFAULT_GEOM_CHECKS, *,
+                   xy_tolerance: XY_TOL = None) -> 'Table':
+    """
+    Check Geometry
+
+    Check geometries in a feature class for errors.  The checks performed vary
+    based on the geometry type and dimensionality of the geometry, that is,
+    whether the geometry is a point, line, or polygon, and whether it has Z
+    values and M values.  The results are written to a table.
+
+    * EXTENT: checks if the feature class extent is set and if it is, then this
+      is compared to the geometry extent
+
+    * EMPTY: checks if the geometry is empty
+    * EMPTY_PART: checks if any part of the geometry is empty, this is applied
+      to multipart geometries only
+    * EMPTY_POINT: checks if any point in the geometry is empty
+    * POINT_COUNT: checks if the number of points in the geometry is valid,
+      for line strings this is 2 and for polygons this is 3
+
+    * EMPTY_RING: checks if any ring in a polygon geometry is empty
+    * ORIENTATION: checks if the polygon geometry has a valid orientation
+    * UNCLOSED: checks if the polygon geometry is closed
+    * SELF_INTERSECTION: checks if the polygon geometry has self-intersections
+    * OUTSIDE_RING: checks if the polygon geometry has rings that are
+      outside the exterior ring
+    * OVERLAP_RING: checks if the polygon geometry has rings that overlap
+
+    * NAN_Z: checks if the geometry has any Z values that are NaN
+    * NAN_M: checks if the geometry has any M values that are NaN
+    * REPEATED_XY: checks if the geometry has any repeated XY coordinates, the
+      xy tolerance is used to determine if two points are considered the same,
+      if not set, then the xy tolerance is set 1e-8
+    * REPEATED_M: checks if the geometry has any repeated M values
+    * MISMATCH_Z: checks if the geometry has different Z values for the same XY
+    * MISMATCH_M: checks if the geometry has different M values for the same XY
+    """
+    query = QueryCheckGeometry(source, target=target, xy_tolerance=xy_tolerance)
+    records = check_feature_class_geometry(
+        query.source, options=check_options, grid_size=query.grid_size)
+    with query.target.geopackage.connection as cout:
+        cout.executemany(query.insert, records)
+    return query.target
+# End check_geometry function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
