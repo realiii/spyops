@@ -703,8 +703,7 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         elm = self.operator
         *_, field_names = self._field_names_and_count(elm)
-        return self._make_intersection_query(
-            elm, field_names=field_names)
+        return self._make_intersection_query(elm, field_names=field_names)
     # End select_operator property
 
     @property
