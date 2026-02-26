@@ -302,7 +302,7 @@ def check_geometry(source: 'FeatureClass', target: 'Table',
       to multipart geometries only
     * EMPTY_POINT: checks if any point in the geometry is empty
     * POINT_COUNT: checks if the number of points in the geometry is valid,
-      for line strings this is 2 and for polygons this is 3
+      for lines this is 2 and for polygons this is 3
 
     * EMPTY_RING: checks if any ring in a polygon geometry is empty
     * ORIENTATION: checks if the polygon geometry has a valid orientation
