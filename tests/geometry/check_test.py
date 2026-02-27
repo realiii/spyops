@@ -9,7 +9,7 @@ from collections import defaultdict
 from pytest import mark, param
 
 from spyops.geometry.check import check_feature_class_geometry
-from spyops.shared.enumeration import GeometryCheck
+from spyops.shared.enumeration import ALL_GEOM_CHECKS, GeometryCheck
 
 pytestmark = [mark.geometry]
 
@@ -18,6 +18,38 @@ class TestCheckFeatureClassGeometry:
     """
     Test Check Feature Class Geometry
     """
+    @mark.parametrize('fc_name, counts', [
+        ('point_p', {'EMPTY': 4, 'EXTENT': 1}),
+        ('linestring_l',
+         {'EMPTY': 1, 'EMPTY_POINT': 5, 'EXTENT': 1,
+          'POINT_COUNT': 2, 'REPEATED_XY': 1}),
+        ('polygon_a',
+         {'EMPTY': 1, 'EMPTY_POINT': 4, 'EMPTY_RING': 3, 'EXTENT': 1,
+          'ORIENTATION': 15, 'OUTSIDE_RING': 2, 'OVERLAP_RING': 1,
+          'POINT_COUNT': 7, 'REPEATED_XY': 7, 'SELF_INTERSECTION': 4,
+          'UNCLOSED': 6}),
+        ('multipoint_mp', {'EXTENT': 1, 'EMPTY': 1, 'EMPTY_POINT': 3}),
+        ('multilinestring_ml',
+         {'EMPTY': 1, 'EMPTY_PART': 2, 'EMPTY_POINT': 5, 'EXTENT': 1,
+          'POINT_COUNT': 4}),
+        ('multipolygon_ma',
+         {'EMPTY': 1, 'EMPTY_PART': 3, 'EMPTY_POINT': 5, 'EMPTY_RING': 3,
+          'EXTENT': 1, 'ORIENTATION': 17, 'OUTSIDE_RING': 2, 'OVERLAP_RING': 1,
+          'POINT_COUNT': 7, 'REPEATED_XY': 8, 'SELF_INTERSECTION': 4,
+          'UNCLOSED': 6}),
+    ])
+    def test_check_repair(self, check_repair, mem_gpkg, fc_name, counts):
+        """
+        Test check repair
+        """
+        source = check_repair[fc_name]
+        records = check_feature_class_geometry(source, options=ALL_GEOM_CHECKS)
+        grouper = defaultdict(int)
+        for _, name in records:
+            grouper[name] += 1
+        assert grouper == counts
+    # End test_check_repair method
+
     @mark.parametrize('fc_name, count', [
         param('admin_a', 0, marks=mark.slow),
         ('continent_a', 1),
