@@ -16,13 +16,13 @@ pytestmark = [mark.geometry]
 
 @mark.parametrize('polygon, type_', [
     (Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]), Polygon),
-    (Polygon([(0, 0), (1, 1), (1, 2), (1, 1), (0, 0)]), type(None)),
+    (Polygon([(0, 0), (1, 1), (1, 2), (1, 1), (0, 0)]), Polygon),
     (Polygon([(0, 0), (1, 1), (1, 0), (0, 1), (0, 0)]), MultiPolygon),
     (MultiPolygon([Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
                    Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])]), Polygon),
     (MultiPolygon([Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
                    Polygon([(10, 10), (10, 11), (11, 11), (11, 10)])]), MultiPolygon),
-    (Polygon([(0, 0), (0, 0), (0, 0), (0, 0)]), type(None)),
+    (Polygon([(0, 0), (0, 0), (0, 0), (0, 0)]), Polygon),
 ])
 def test_check_polygon(polygon, type_):
     """
