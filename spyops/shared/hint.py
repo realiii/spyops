@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, TypeAlias, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
+    from fudgeo.geometry.base import AbstractGeometry
     from shapely.geometry import (
         LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
 
@@ -28,6 +29,9 @@ GPKG: TypeAlias = Union['GeoPackage', 'MemoryGeoPackage']
 POLYGONS: TypeAlias = list['Polygon'] | list['MultiPolygon']
 LINES: TypeAlias = list['LineString'] | list['MultiLineString']
 POINTS: TypeAlias = list['Point'] | list['MultiPoint']
+
+
+FEATURES: TypeAlias = list[tuple['AbstractGeometry', int]]
 
 
 if __name__ == '__main__':  # pragma: no cover

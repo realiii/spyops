@@ -19,7 +19,7 @@ from shapely.predicates import is_ccw, is_closed, is_valid
 
 from spyops.geometry.util import find_slice_indexes
 from spyops.shared.enumeration import GeometryCheck
-from spyops.shared.hint import GRID_SIZE
+from spyops.shared.hint import FEATURES, GRID_SIZE
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,11 +30,9 @@ if TYPE_CHECKING:  # pragma: no cover
         MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon, MultiPolygonM,
         MultiPolygonZ, MultiPolygonZM, PointM, PointZ, PointZM, Polygon,
         PolygonM, PolygonZ, PolygonZM)
-    from fudgeo.geometry.base import AbstractGeometry
 
 
 RECORDS: TypeAlias = list[tuple[int, str]]
-FEATURES: TypeAlias = list[tuple['AbstractGeometry', int]]
 
 
 def check_feature_class_geometry(source: 'FeatureClass', options: GeometryCheck,
