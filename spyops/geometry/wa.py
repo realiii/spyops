@@ -16,8 +16,9 @@ from fudgeo.enumeration import ShapeType
 from numpy import isnan, ndarray
 from pyproj import CRS
 from shapely import (
-    GeometryCollection, LineString, LinearRing, MultiLineString, MultiPolygon,
-    Polygon, coverage_simplify, get_rings, set_precision as _set_precision)
+    GeometryCollection, LineString, LinearRing, MultiLineString, MultiPoint,
+    MultiPolygon, Polygon, coverage_simplify, get_rings,
+    set_precision as _set_precision)
 from shapely.constructive import (
     make_valid as _make_valid, polygonize as _polygonize)
 from shapely.coordinates import get_coordinates
@@ -30,6 +31,7 @@ from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
 from spyops.shared.constant import SKIP_FILE_PREFIXES, SRS_ID_WKB
 from spyops.shared.exception import ShapelyWarning
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -147,7 +149,7 @@ def _build_coordinates(result: Union['BaseGeometry', 'BaseMultipartGeometry'],
     """
     Build Coordinates
     """
-    if isinstance(result, LineString):
+    if isinstance(result, (LineString, MultiPoint)):
         coordinates = get_coordinates(result, include_z=has_z)
         return [slicer((*key, nanmean(lookup.get(tuple(key), [nan]))))
                 for key in coordinates]
