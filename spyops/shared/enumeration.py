@@ -143,6 +143,10 @@ DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.REPEATED_XY | GeometryCheck.REPEATED_M |
     GeometryCheck.MISMATCH_Z | GeometryCheck.MISMATCH_M
 )
+ALL_GEOM_CHECKS: GeometryCheck = (
+    DEFAULT_GEOM_CHECKS | GeometryCheck.ORIENTATION | GeometryCheck.UNCLOSED |
+    GeometryCheck.SELF_INTERSECTION | GeometryCheck.OUTSIDE_RING |
+    GeometryCheck.OVERLAP_RING | GeometryCheck.POINT_COUNT)
 
 
 if __name__ == '__main__':  # pragma: no cover
