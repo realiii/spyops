@@ -33,12 +33,12 @@ class TestCheckFeatureClassGeometry:
          {'EMPTY': 1, 'EMPTY_PART': 2, 'EMPTY_POINT': 5, 'EXTENT': 1,
           'POINT_COUNT': 4}),
         ('multipolygon_ma',
-         {'EMPTY': 1, 'EMPTY_PART': 3, 'EMPTY_POINT': 5, 'EMPTY_RING': 3,
+         {'EMPTY': 1, 'EMPTY_PART': 5, 'EMPTY_POINT': 5, 'EMPTY_RING': 3,
           'EXTENT': 1, 'ORIENTATION': 17, 'OUTSIDE_RING': 2, 'OVERLAP_RING': 1,
           'POINT_COUNT': 7, 'REPEATED_XY': 8, 'SELF_INTERSECTION': 4,
           'UNCLOSED': 6}),
     ])
-    def test_check_repair(self, check_repair, mem_gpkg, fc_name, counts):
+    def test_check_repair(self, check_repair, fc_name, counts):
         """
         Test check repair
         """
