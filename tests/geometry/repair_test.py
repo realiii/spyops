@@ -269,5 +269,24 @@ class TestRings:
 # End TestRings class
 
 
+@mark.parametrize('fc_name, expected', [
+    ('point_p', 4),
+    ('linestring_l', 1),
+    ('polygon_a', 1),
+    ('multipoint_mp', 1),
+    ('multilinestring_ml', 1),
+    ('multipolygon_ma', 1),
+])
+def test_empty_query(check_repair, fc_name, expected):
+    """
+    Test empty query
+    """
+    source = check_repair[fc_name]
+    cursor = source.select()
+    count = sum([g.is_empty for g, in cursor.fetchall()])
+    assert count == expected
+# End test_empty_query method
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
