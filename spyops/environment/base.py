@@ -13,8 +13,7 @@ from shapely.lib import force_2d
 
 from spyops.crs.util import get_crs_from_source
 from spyops.geometry.extent import extent_from_feature_class
-from spyops.geometry.wa import make_valid
-
+from spyops.geometry.wa import make_valid_structure
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
@@ -59,9 +58,7 @@ class Extent:
             return Polygon()
         if not isinstance(polygon, Polygon):
             raise TypeError(f'Expected Polygon, got {type(polygon).__name__}')
-        if not polygon.is_valid:
-            polygon = make_valid(polygon)
-        return force_2d(polygon)
+        return make_valid_structure(force_2d(polygon))
     # End _check_polygon method
 
     @property

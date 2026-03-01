@@ -114,6 +114,14 @@ def make_valid(geometry, *, method='linework', keep_collapsed=True, **kwargs):
 # End make_valid function
 
 
+def make_valid_structure(geometry):
+    """
+    Make Valid Structure
+    """
+    return make_valid(geometry, method='structure', keep_collapsed=False)
+# End make_valid_structure function
+
+
 @cache
 def _get_slicer(*, has_z: bool, has_m: bool) -> itemgetter:
     """

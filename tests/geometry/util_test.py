@@ -18,7 +18,8 @@ from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
     find_slice_indexes, get_geoms, get_geoms_iter,
     nada, to_shapely)
-from spyops.geometry.wa import USE_WORKAROUNDS, make_valid, set_precision
+from spyops.geometry.wa import (
+    USE_WORKAROUNDS, make_valid_structure, set_precision)
 from spyops.shared.exception import OperationsWarning
 
 
@@ -44,7 +45,7 @@ def test_make_valid():
     Test Make Valid
     """
     a = from_wkt('Polygon ((0 0 0 0, 1 1 1 1, 0 1 2 3, 1 0 4 5, 0 0 0 0))')
-    result = make_valid(a)
+    result = make_valid_structure(a)
     assert result.has_m
 # End test_make_valid function
 

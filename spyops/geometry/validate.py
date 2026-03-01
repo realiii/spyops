@@ -16,7 +16,7 @@ from shapely import (
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import get_geoms_iter, nada, to_shapely
-from spyops.geometry.wa import make_valid
+from spyops.geometry.wa import make_valid_structure
 from spyops.shared.exception import GeometryDimensionError
 
 
@@ -62,7 +62,7 @@ def _check_geometry(geom: 'BaseGeometry', cls: Type['BaseGeometry'],
     """
     if geom.is_valid:
         return geom
-    geom = make_valid(geom, method='structure', keep_collapsed=False)
+    geom = make_valid_structure(geom)
     if not geom.is_valid:
         return None
     geoms = [p for p in get_geoms_iter(geom)

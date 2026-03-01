@@ -14,8 +14,7 @@ from shapely import Polygon as ShapelyPolygon
 from shapely.io import from_wkb
 from shapely.predicates import is_valid_reason
 
-from spyops.geometry.wa import make_valid
-
+from spyops.geometry.wa import make_valid_structure
 
 pytestmark = [mark.geometry]
 
@@ -31,7 +30,7 @@ class TestEmptyPoint:
         mpt = MultiPointZM([(0, 1, 2, 3), (nan, nan, 1, 2)], srs_id=4326)
         geom = from_wkb(mpt.wkb)
         assert len(geom.geoms) == 2
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
         assert hasattr(geom, 'geoms')
     # End test_multipoint method
@@ -43,7 +42,7 @@ class TestEmptyPoint:
         mpt = LineStringZM([(0, 1, 2, 3), (nan, nan, 1, 2), (1, 2, 3, 4)], srs_id=4326)
         geom = from_wkb(mpt.wkb)
         assert not geom.is_valid
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
     # End test_linestring method
 
@@ -54,14 +53,14 @@ class TestEmptyPoint:
         poly = MultiPolygon([], srs_id=4326)
         geom = from_wkb(poly.wkb)
         assert geom.is_empty
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert hasattr(geom, 'geoms')
         assert geom.is_empty
 
         poly = MultiPolygon([[], [], [], []], srs_id=4326)
         geom = from_wkb(poly.wkb)
         assert geom.is_empty
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert hasattr(geom, 'geoms')
         assert geom.is_empty
 
@@ -73,10 +72,9 @@ class TestEmptyPoint:
             srs_id=4326)
         geom = from_wkb(poly.wkb, on_invalid='fix')
         assert not geom.is_valid
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
         assert not hasattr(geom, 'geoms')
-
     # End test_polygon_exterior method
 # End TestEmptyPoint class
 
@@ -118,7 +116,7 @@ class TestEmptyPart:
         geom = from_wkb(multi.wkb)
         assert geom.is_valid
         assert len(geom.geoms) == 3
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
         assert len(geom.geoms) == 2
     # End test_line_make_valid method
@@ -134,7 +132,7 @@ class TestEmptyPart:
         geom = from_wkb(multi.wkb)
         assert geom.is_valid
         assert len(geom.geoms) == 2
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
         assert not hasattr(geom, 'geoms')
     # End test_line_make_valid_two method
@@ -151,7 +149,7 @@ class TestEmptyPart:
         geom = from_wkb(multi.wkb)
         assert geom.is_valid
         assert len(geom.geoms) == 3
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
         assert len(geom.geoms) == 2
     # End test_poly_make_valid method
@@ -167,7 +165,7 @@ class TestEmptyPart:
         geom = from_wkb(multi.wkb)
         assert geom.is_valid
         assert len(geom.geoms) == 2
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
         assert not hasattr(geom, 'geoms')
     # End test_poly_make_valid_two method
@@ -219,7 +217,7 @@ class TestRings:
         Test empty ring
         """
         geom = from_wkb(poly.wkb, on_invalid='fix')
-        geom = make_valid(geom, method='structure', keep_collapsed=False)
+        geom = make_valid_structure(geom)
         assert len(geom.interiors) == count
         assert isinstance(geom, ShapelyPolygon)
     # End test_empty_ring method
@@ -263,7 +261,7 @@ class TestRings:
         assert isinstance(geom, ShapelyPolygon)
         assert not geom.is_valid
         assert is_valid_reason(geom).startswith('Self-intersection')
-        geom = make_valid(geom)
+        geom = make_valid_structure(geom)
         assert geom.is_valid
     # End test_inside_ring method
 # End TestRings class
