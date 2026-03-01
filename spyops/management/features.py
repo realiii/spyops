@@ -58,7 +58,6 @@ def multipart_to_singlepart(source: 'FeatureClass',
     records = []
     query = QueryMultiPartToSinglePart(source, target=target)
     insert_sql = query.insert
-    getter = query.part_getter
     config = query.geometry_config
     transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
@@ -69,7 +68,7 @@ def multipart_to_singlepart(source: 'FeatureClass',
             if not (features := filter_features(features)):
                 continue
             for geom, *attrs in features:
-                parts.extend([(g, *attrs) for g in getter(geom)])
+                parts.extend([(part, *attrs) for part in geom])
             insert_many(config, executor=executor, transformer=transformer,
                         insert_sql=insert_sql, features=parts, records=records)
             parts.clear()

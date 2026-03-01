@@ -27,13 +27,6 @@ SRS_ID_WKB: int = -1  # used where only need WKB
 
 GEOMS_ATTR: str = 'geoms'
 NAME_ATTR: str = 'name'
-POLYGONS_ATTR: str = 'polygons'
-LINES_ATTR: str = 'lines'
-POINTS_ATTR: str = 'points'
-X_ATTR: str = 'x'
-Y_ATTR: str = 'y'
-Z_ATTR: str = 'z'
-M_ATTR: str = 'm'
 
 
 INCLUDE_Z: str = 'include_z'

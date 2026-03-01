@@ -5,7 +5,7 @@ Query Classes for management.features module
 
 
 from functools import cached_property, partial
-from operator import attrgetter, itemgetter
+from operator import itemgetter
 from typing import Callable, TYPE_CHECKING
 
 from fudgeo.enumeration import ShapeType
@@ -22,8 +22,7 @@ from spyops.geometry.attribute import (
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
-from spyops.shared.constant import (
-    LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_ALL_ID)
+from spyops.shared.constant import SQL_ALL_ID
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
@@ -118,21 +117,6 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
     # End source_transformer property
-
-    @property
-    def part_getter(self) -> attrgetter:
-        """
-        Part Getter
-        """
-        shape_type = self.source.shape_type
-        if shape_type == ShapeType.multi_point:
-            name = POINTS_ATTR
-        elif shape_type == ShapeType.multi_linestring:
-            name = LINES_ATTR
-        else:
-            name = POLYGONS_ATTR
-        return attrgetter(name)
-    # End part_getter property
 # End QueryMultiPartToSinglePart class
 
 
