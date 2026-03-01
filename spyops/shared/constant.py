@@ -22,22 +22,7 @@ DOUBLE_UNDER: str = f'{UNDERSCORE}{UNDERSCORE}'
 PADDED_PIPE: str = f'{SPACE}{PIPE}{SPACE}'
 
 
-UNKNOWN: str = 'Unknown'
-UNDEFINED: str = 'Undefined'
-BAD_SRS_DEFINITIONS: tuple[str, str] = UNDEFINED.casefold(), UNKNOWN.casefold()
-ZERO_STR: str = '0'
-CUSTOM_RANGE_START: int = 300_000
-CUSTOM: str = 'Custom'
-CUSTOM_UPPER: str = CUSTOM.upper()
-NONE: str = 'NONE'
-EPSG: str = 'EPSG'
-ESRI: str = 'ESRI'
 SRS_ID_WKB: int = -1  # used where only need WKB
-
-
-ID_KEY: str = 'id'
-AUTHORITY_KEY: str = 'authority'
-CODE_KEY: str = 'code'
 
 
 GEOMS_ATTR: str = 'geoms'
@@ -93,23 +78,6 @@ SQL_ALL_ID: str = f"""{ROWID} > -1"""
 
 IN: str = 'IN'
 NOT_IN: str = 'NOT IN'
-
-
-UNSUPPORTED_WKT: str = 'Unsupported WKT: {}'
-EMPTY_INPUT: str = '{}: {} is empty'
-UNABLE_TO_USE_CRS: str = 'Unable to use authority and code from {}'
-UNSUPPORTED_CRS: str = 'Unsupported CRS authority ({}) or code ({})'
-CRS_REQUIRED: str = 'A coordinate reference system is required'
-NO_TRANSFORMER: str = (
-    'No valid transformation exists for CRS {} ({}) and CRS {} ({})')
-INVALID_AOI: str = (
-    'The area of use "{}" does not intersect with the area of interest')
-
-
-BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',
-                         'gpkg_geometry_columns', 'gpkg_tile_matrix_set',
-                         'gpkg_tile_matrix', 'gpkg_extensions'}
-
 
 if __name__ == '__main__':  # pragma: no cover
     pass

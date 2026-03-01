@@ -15,12 +15,13 @@ from shapely.creation import box
 
 from spyops.crs.base import TransformOptions, TransformOption
 from spyops.crs.enumeration import InfoOption
+from spyops.crs.message import (
+    CRS_REQUIRED, INVALID_AOI, NO_TRANSFORMER, UNSUPPORTED_CRS)
 from spyops.crs.util import (
     change_crs_dimension, equals, get_crs_authority, get_crs_from_source)
 from spyops.geometry.transform import GEOMETRY_TRANSFORM
 from spyops.shared.constant import (
-    CRS_REQUIRED, HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, INVALID_AOI,
-    NO_TRANSFORMER, SKIP_FILE_PREFIXES, TRANSFORMER_KEY, UNSUPPORTED_CRS)
+    HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, SKIP_FILE_PREFIXES, TRANSFORMER_KEY)
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError, InvalidAreaOfInterestError,
     NoValidTransformerError, TransformationGuessWarning)

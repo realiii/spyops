@@ -16,10 +16,12 @@ from pyproj.network import set_network_enabled
 
 
 from spyops.crs.authority import Authority, authorities, to_authority
+from spyops.crs.constant import (
+    BAD_SRS_DEFINITIONS, CUSTOM, CUSTOM_RANGE_START, CUSTOM_UPPER, NONE,
+    UNDEFINED)
 from spyops.crs.enumeration import InfoOption
-from spyops.shared.constant import (
-    BAD_SRS_DEFINITIONS, CUSTOM, CUSTOM_RANGE_START, CUSTOM_UPPER, EMPTY, NONE,
-    UNABLE_TO_USE_CRS, UNDEFINED, UNSUPPORTED_WKT)
+from spyops.crs.message import UNABLE_TO_USE_CRS, UNSUPPORTED_WKT
+from spyops.shared.constant import EMPTY
 from spyops.shared.exception import (
     CoordinateSystemDifferentError, CoordinateSystemNotSupportedError)
 from spyops.shared.hint import GPKG
