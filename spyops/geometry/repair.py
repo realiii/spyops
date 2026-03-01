@@ -11,6 +11,7 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from numpy import array
 from shapely import get_num_points
+from shapely.constructive import make_valid
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.util import to_shapely
@@ -48,11 +49,11 @@ def repair_feature_class_geometry(source: 'FeatureClass') \
     updates = []
     deletes = []
     empties = []
-    has_z = source.has_z
     has_m = source.has_m
     shape_type = source.shape_type
 
-    kwargs = dict(deletes=deletes, updates=updates, empties=empties)
+    kwargs = dict(deletes=deletes, updates=updates,
+                  empties=empties, has_m=has_m)
     repairer = GEOMETRY_REPAIRER[shape_type]
     cursor = source.select(include_primary=True)
     while features := cursor.fetchmany(FETCH_SIZE):
@@ -62,6 +63,37 @@ def repair_feature_class_geometry(source: 'FeatureClass') \
         repairer(geometries, ids=ids, **kwargs)
     return deletes, updates, empties
 # End repair_feature_class_geometry function
+
+
+def _make_valid(geoms: 'ndarray') -> 'ndarray':
+    """
+    Small wrapper around make_valid to support arrays -- for use when there
+    are no measure values on the geometries.
+    """
+    return make_valid(geoms, method='structure', keep_collapsed=False)
+# End _make_valid function
+
+
+def _make_none_mask(values: 'ndarray') -> 'ndarray':
+    """
+    Create a mask of None values for the given array.
+    """
+    # NOTE this is the way
+    return values == None
+# End _make_none_mask function
+
+
+def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray',
+                       deletes: DELETES, empties: EMPTIES) -> 'ndarray':
+    """
+    Filter Empty and None, tracking in the relevant lists.
+    """
+    mask_none = _make_none_mask(geoms)
+    empties.extend(ids[mask_none])
+    mask_empty = is_empty(geoms)
+    deletes.extend(ids[mask_empty])
+    return mask_none | mask_empty
+# End _filter_empty_none function
 
 
 def _repair_points(geoms: 'ndarray', ids: 'ndarray', *,
@@ -74,32 +106,26 @@ def _repair_points(geoms: 'ndarray', ids: 'ndarray', *,
 
 
 def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                         updates: UPDATES, empties: EMPTIES, **kwargs) -> None:
+                         updates: UPDATES, empties: EMPTIES, has_m: bool,
+                         **kwargs) -> None:
     """
     Repair Multi Points, removes empty points
     """
     mask = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
-    for fid, geom in zip(ids[~mask], geoms[~mask]):
-        geom = make_valid_structure(geom)
-        if geom is None or geom.is_empty:
-            empties.append(fid)
-        else:
-            updates.append((geom, fid))
+    if not has_m:
+        ids = ids[~mask]
+        valid = _make_valid(geoms[~mask])
+        mask = is_empty(valid) | _make_none_mask(valid)
+        empties.extend(ids[mask])
+        updates.extend(list(zip(valid[~mask], ids[~mask])))
+    else:
+        for fid, geom in zip(ids[~mask], geoms[~mask]):
+            geom = make_valid_structure(geom)
+            if geom is None or geom.is_empty:
+                empties.append(fid)
+            else:
+                updates.append((geom, fid))
 # End _repair_multi_points function
-
-
-def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray',
-                       deletes: DELETES, empties: EMPTIES) -> 'ndarray':
-    """
-    Filter Empty and None, tracking in the relevant lists.
-    """
-    # NOTE this is the way
-    mask_none = geoms == None
-    empties.extend(ids[mask_none])
-    mask_empty = is_empty(geoms)
-    deletes.extend(ids[mask_empty])
-    return mask_none | mask_empty
-# End _filter_empty_none function
 
 
 def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,

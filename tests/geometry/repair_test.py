@@ -7,13 +7,19 @@ Repair Geometry
 from math import nan
 
 from fudgeo.geometry import (
-    LineString, MultiLineString, Polygon, MultiPolygon,
-    LineStringZM, MultiPointZM)
+    LineString, LineStringZM, MultiLineString, MultiPointZM, MultiPolygon,
+    Point, Polygon, MultiPointZ)
+from numpy import array
 from pytest import mark
-from shapely import Polygon as ShapelyPolygon
+from shapely import (
+    LineString as ShapelyLineString, MultiPoint as ShapelyMultiPoint,
+    Polygon as ShapelyPolygon)
 from shapely.io import from_wkb
-from shapely.predicates import is_valid_reason
+from shapely.predicates import is_empty, is_valid, is_valid_reason
 
+from spyops.geometry.repair import (
+    _repair_linestrings, _repair_multi_points, _repair_points)
+from spyops.geometry.util import to_shapely
 from spyops.geometry.wa import make_valid_structure
 
 pytestmark = [mark.geometry]
@@ -305,16 +311,29 @@ def test_repair_points():
 # End test_repair_point function
 
 
-def test_repair_multipoints():
+@mark.parametrize('has_m', [
+    True,
+    False,
+])
+def test_repair_multipoints(has_m):
     """
     Test repair multipoints
     """
-    multi1 = MultiPointZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
-    multi2 = MultiPointZM([], srs_id=4326)
-    multi3 = MultiPointZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
-    multi4 = MultiPointZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
-    multi5 = MultiPointZM([(nan, nan, nan, nan)], srs_id=4326)
-    multi6 = MultiPointZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
+    if has_m:
+        multi1 = MultiPointZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
+        multi2 = MultiPointZM([], srs_id=4326)
+        multi3 = MultiPointZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
+        multi4 = MultiPointZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
+        multi5 = MultiPointZM([(nan, nan, nan, nan)], srs_id=4326)
+        multi6 = MultiPointZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
+    else:
+        multi1 = MultiPointZ([(nan, nan, 1), (1, 2, 3), (nan, nan, nan)], srs_id=4326)
+        multi2 = MultiPointZ([], srs_id=4326)
+        multi3 = MultiPointZ([(7, 8, 9), (7, 8, 9)], srs_id=4326)
+        multi4 = MultiPointZ([(7, 8, 9), (7, 8, 90)], srs_id=4326)
+        multi5 = MultiPointZ([(nan, nan, nan)], srs_id=4326)
+        multi6 = MultiPointZ([(nan, nan, nan), (5, 6, 7)], srs_id=4326)
+
     multi = multi1, multi2, multi3, multi4, multi5, multi6
     features = [(mpt, i) for i, mpt in enumerate(multi, 1)]
     features, geometries = to_shapely(
@@ -327,13 +346,15 @@ def test_repair_multipoints():
     empties = []
     updates = []
     _repair_multi_points(
-        geometries, ids=ids, updates=updates, deletes=deletes, empties=empties)
+        geometries, ids=ids, updates=updates, deletes=deletes,
+        empties=empties, has_m=has_m)
     assert deletes == [2, 5]
     assert empties == []
     multi, ids = zip(*updates)
     assert all(isinstance(mpt, ShapelyMultiPoint) for mpt in multi)
     assert all(mpt.has_z for mpt in multi)
-    assert all(mpt.has_m for mpt in multi)
+    if has_m:
+        assert all(mpt.has_m for mpt in multi)
     assert ids == (1, 3, 4, 6)
 # End test_repair_multipoints function
 
