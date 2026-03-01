@@ -27,7 +27,7 @@ from shapely.linear import line_merge
 from shapely.ops import transform
 
 from spyops.crs.transform import get_transforms
-from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
 from spyops.shared.constant import SKIP_FILE_PREFIXES, SRS_ID_WKB
 from spyops.shared.exception import ShapelyWarning

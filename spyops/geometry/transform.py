@@ -17,7 +17,7 @@ from shapely import get_rings
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 
-from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms
 from spyops.shared.constant import SRS_ID_WKB
 

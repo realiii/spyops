@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Constants in support of Geometry
+Lookups in support of Geometry
 """
 
 
