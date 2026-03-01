@@ -39,6 +39,7 @@ SRS_ID_KEY: str = 'srs_id'
 INCLUDE_VERTICAL_KEY: str = 'include_vertical'
 TRANSFORMER_KEY: str = 'transformer'
 
+
 FIELD: str = 'field'
 FIELD_PROPERTY: str = 'field_property'
 FIELDS_ARG: str = 'fields'
@@ -58,14 +59,6 @@ GEOMETRY_ATTRIBUTE: str = 'geometry_attribute'
 LENGTH_UNIT: str = 'length_unit'
 AREA_UNIT: str = 'area_unit'
 
-
-TEMP_SCHEMA: str = 'temp'
-ROWID: str = 'ROWID'
-SQL_NO_ID: str = f"""{ROWID} <= -1"""
-SQL_ALL_ID: str = f"""{ROWID} > -1"""
-
-IN: str = 'IN'
-NOT_IN: str = 'NOT IN'
 
 if __name__ == '__main__':  # pragma: no cover
     pass

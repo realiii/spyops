@@ -24,11 +24,12 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
-from spyops.shared.constant import SQL_NO_ID, UNDERSCORE
+from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import (
     ELEMENT, FIELDS, FIELD_NAMES, GPKG, GRID_SIZE, XY_TOL)
 from spyops.shared.records import bulk_insert, extend_records
+from spyops.shared.sql import SQL_NO_ID
 from spyops.shared.util import (
     element_names, make_unique_name, make_valid_name)
 

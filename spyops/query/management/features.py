@@ -22,13 +22,13 @@ from spyops.geometry.attribute import (
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
-from spyops.shared.constant import SQL_ALL_ID
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
 from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.sql import SQL_ALL_ID
 
 
 if TYPE_CHECKING:  # pragma: no cover
