@@ -157,12 +157,14 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
         indexes = [i for i, reason in enumerate(reasons)
                    if reason and reason.startswith(REASON_INVALID_COORDINATE)]
         valid = _make_valid(geoms[indexes])
-        _track_updates_empties(valid, ids=ids[indexes], updates=updates, empties=empties)
+        _track_updates_empties(
+            valid, ids=ids[indexes], updates=updates, empties=empties)
         indexes = [i for i, reason in enumerate(reasons)
                    if reason and reason.startswith(REASON_TOO_FEW_POINTS)]
         geoms = geoms[indexes]
         geoms[get_num_points(geoms) < 2] = None
-        _track_updates_empties(geoms, ids=ids[indexes], updates=updates, empties=empties)
+        _track_updates_empties(
+            geoms, ids=ids[indexes], updates=updates, empties=empties)
     else:
         for fid, geom, reason in zip(ids, geoms, reasons):
             if reason.startswith(REASON_INVALID_COORDINATE):
