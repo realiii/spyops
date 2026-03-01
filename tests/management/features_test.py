@@ -22,7 +22,7 @@ from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, multipart_to_singlepart)
 from spyops.management.features import check_geometry
-from spyops.shared.constant import EPSG, ESRI
+from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
     GeometryAttribute, GeometryCheck, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
