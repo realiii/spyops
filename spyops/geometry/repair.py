@@ -14,6 +14,8 @@ from shapely import get_num_points
 from shapely.constructive import make_valid
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
+from spyops.geometry.constant import (
+    REASON_INVALID_COORDINATE, REASON_TOO_FEW_POINTS)
 from spyops.geometry.util import to_shapely
 from spyops.geometry.wa import make_valid_structure
 
@@ -96,6 +98,17 @@ def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray',
 # End _filter_empty_none function
 
 
+def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
+                           updates: UPDATES, empties: DELETES) -> None:
+    """
+    Track Updates and Empties
+    """
+    mask = is_empty(geoms) | _make_none_mask(geoms)
+    empties.extend(ids[mask])
+    updates.extend(list(zip(geoms[~mask], ids[~mask])))
+# End _track_updates_empties function
+
+
 def _repair_points(geoms: 'ndarray', ids: 'ndarray', *,
                    deletes: DELETES, **kwargs) -> None:
     """
@@ -112,14 +125,13 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     Repair Multi Points, removes empty points
     """
     mask = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
+    ids = ids[~mask]
+    geoms = geoms[~mask]
     if not has_m:
-        ids = ids[~mask]
-        valid = _make_valid(geoms[~mask])
-        mask = is_empty(valid) | _make_none_mask(valid)
-        empties.extend(ids[mask])
-        updates.extend(list(zip(valid[~mask], ids[~mask])))
+        valid = _make_valid(geoms)
+        _track_updates_empties(valid, ids=ids, updates=updates, empties=empties)
     else:
-        for fid, geom in zip(ids[~mask], geoms[~mask]):
+        for fid, geom in zip(ids, geoms):
             geom = make_valid_structure(geom)
             if geom is None or geom.is_empty:
                 empties.append(fid)
@@ -129,7 +141,8 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                        updates: UPDATES, empties: EMPTIES, **kwargs) -> None:
+                        updates: UPDATES, empties: EMPTIES, has_m: bool,
+                        **kwargs) -> None:
     """
     Repair LineStrings, removes empty points and changes lines with incorrect
     line count to empty lines.  Coincident points are left as is, this is
@@ -137,17 +150,30 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     kept untouched.
     """
     mask = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
-    reasons = is_valid_reason(geoms[~mask])
-    for fid, geom, reason in zip(ids[~mask], geoms[~mask], reasons):
-        if reason.startswith('Invalid Coordinate'):
-            geom = make_valid_structure(geom)
-        elif reason.startswith('Too few points'):
-            if get_num_points(geom) < 2:
-                geom = None
-        if geom is None or geom.is_empty:
-            empties.append(fid)
-        else:
-            updates.append((geom, fid))
+    ids = ids[~mask]
+    geoms = geoms[~mask]
+    reasons = is_valid_reason(geoms)
+    if not has_m:
+        indexes = [i for i, reason in enumerate(reasons)
+                   if reason and reason.startswith(REASON_INVALID_COORDINATE)]
+        valid = _make_valid(geoms[indexes])
+        _track_updates_empties(valid, ids=ids[indexes], updates=updates, empties=empties)
+        indexes = [i for i, reason in enumerate(reasons)
+                   if reason and reason.startswith(REASON_TOO_FEW_POINTS)]
+        geoms = geoms[indexes]
+        geoms[get_num_points(geoms) < 2] = None
+        _track_updates_empties(geoms, ids=ids[indexes], updates=updates, empties=empties)
+    else:
+        for fid, geom, reason in zip(ids, geoms, reasons):
+            if reason.startswith(REASON_INVALID_COORDINATE):
+                geom = make_valid_structure(geom)
+            elif reason.startswith(REASON_TOO_FEW_POINTS):
+                if get_num_points(geom) < 2:
+                    geom = None
+            if geom is None or geom.is_empty:
+                empties.append(fid)
+            else:
+                updates.append((geom, fid))
 # End _repair_linestrings function
 
 

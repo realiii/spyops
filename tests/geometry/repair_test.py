@@ -8,7 +8,7 @@ from math import nan
 
 from fudgeo.geometry import (
     LineString, LineStringZM, MultiLineString, MultiPointZM, MultiPolygon,
-    Point, Polygon, MultiPointZ)
+    Point, Polygon, MultiPointZ, LineStringZ)
 from numpy import array
 from pytest import mark
 from shapely import (
@@ -359,18 +359,32 @@ def test_repair_multipoints(has_m):
 # End test_repair_multipoints function
 
 
-def test_repair_linestrings():
+@mark.parametrize('has_m', [
+    True,
+    False,
+])
+def test_repair_linestrings(has_m):
     """
     Test repair linestrings
     """
-    multi1 = LineStringZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
-    multi2 = LineStringZM([], srs_id=4326)
-    multi3 = LineStringZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
-    multi4 = LineStringZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
-    multi5 = LineStringZM([(nan, nan, nan, nan)], srs_id=4326)
-    multi6 = LineStringZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
-    multi7 = LineStringZM([(0, 1, 2, 3)], srs_id=4326)
-    multi8 = LineStringZM([(1, 2, 3, 4), (nan, nan, nan, nan), (10, 20, 30, 40)], srs_id=4326)
+    if has_m:
+        multi1 = LineStringZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
+        multi2 = LineStringZM([], srs_id=4326)
+        multi3 = LineStringZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
+        multi4 = LineStringZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
+        multi5 = LineStringZM([(nan, nan, nan, nan)], srs_id=4326)
+        multi6 = LineStringZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
+        multi7 = LineStringZM([(0, 1, 2, 3)], srs_id=4326)
+        multi8 = LineStringZM([(1, 2, 3, 4), (nan, nan, nan, nan), (10, 20, 30, 40)], srs_id=4326)
+    else:
+        multi1 = LineStringZ([(nan, nan, 1), (1, 2, 3), (nan, nan, nan)], srs_id=4326)
+        multi2 = LineStringZ([], srs_id=4326)
+        multi3 = LineStringZ([(7, 8, 9), (7, 8, 9)], srs_id=4326)
+        multi4 = LineStringZ([(7, 8, 9), (7, 8, 90)], srs_id=4326)
+        multi5 = LineStringZ([(nan, nan, nan)], srs_id=4326)
+        multi6 = LineStringZ([(nan, nan, nan), (5, 6, 7)], srs_id=4326)
+        multi7 = LineStringZ([(0, 1, 2)], srs_id=4326)
+        multi8 = LineStringZ([(1, 2, 3), (nan, nan, nan), (10, 20, 30)], srs_id=4326)
     multi = multi1, multi2, multi3, multi4, multi5, multi6, multi7, multi8
     features = [(mpt, i) for i, mpt in enumerate(multi, 1)]
     features, geometries = to_shapely(
@@ -394,14 +408,16 @@ def test_repair_linestrings():
     empties = []
     updates = []
     _repair_linestrings(
-        geometries, ids=ids, updates=updates, deletes=deletes, empties=empties)
+        geometries, ids=ids, updates=updates, deletes=deletes,
+        empties=empties, has_m=has_m)
     assert deletes == [2]
     assert set(empties) == {5, 7, 1, 6}
     multi, ids = zip(*updates)
     assert all(isinstance(mpt, ShapelyLineString) for mpt in multi)
     assert all(mpt.has_z for mpt in multi)
-    assert all(mpt.has_m for mpt in multi)
-    assert ids == (3, 4, 8)
+    if has_m:
+        assert all(mpt.has_m for mpt in multi)
+    assert set(ids) == {3, 4, 8}
 # End test_repair_linestrings function
 
 
