@@ -7,7 +7,10 @@ Database Functionality
 from pathlib import Path
 from sqlite3 import Connection, DatabaseError, OperationalError, connect
 
-from spyops.shared.constant import BASE_TABLES
+
+BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',
+                         'gpkg_geometry_columns', 'gpkg_tile_matrix_set',
+                         'gpkg_tile_matrix', 'gpkg_extensions'}
 
 
 def is_geopackage(path: Path | str) -> bool:
