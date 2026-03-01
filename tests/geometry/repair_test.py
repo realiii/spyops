@@ -286,5 +286,103 @@ def test_empty_query(check_repair, fc_name, expected):
 # End test_empty_query method
 
 
+def test_repair_points():
+    """
+    Test repair points
+    """
+    points = [Point(x=nan, y=nan, srs_id=4326),
+              Point(x=1, y=2, srs_id=4326),
+              Point.empty(srs_id=4326)]
+    features = [(pt, i) for i, pt in enumerate(points, 1)]
+    features, geometries = to_shapely(
+        features=features, transformer=None, on_invalid='fix')
+    assert is_valid(geometries).tolist() == [True, True, True]
+    assert is_empty(geometries).tolist() == [True, False, True]
+    ids = array([fid for _, fid in features], dtype=int)
+    deletes = []
+    _repair_points(geometries, ids=ids, deletes=deletes)
+    assert deletes == [1, 3]
+# End test_repair_point function
+
+
+def test_repair_multipoints():
+    """
+    Test repair multipoints
+    """
+    multi1 = MultiPointZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
+    multi2 = MultiPointZM([], srs_id=4326)
+    multi3 = MultiPointZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
+    multi4 = MultiPointZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
+    multi5 = MultiPointZM([(nan, nan, nan, nan)], srs_id=4326)
+    multi6 = MultiPointZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
+    multi = multi1, multi2, multi3, multi4, multi5, multi6
+    features = [(mpt, i) for i, mpt in enumerate(multi, 1)]
+    features, geometries = to_shapely(
+        features=features, transformer=None, on_invalid='fix')
+    assert is_valid(geometries).tolist() == [True, True, True, True, True, True]
+    assert is_empty(geometries).tolist() == [False, True, False, False, True, False]
+
+    ids = array([fid for _, fid in features], dtype=int)
+    deletes = []
+    empties = []
+    updates = []
+    _repair_multi_points(
+        geometries, ids=ids, updates=updates, deletes=deletes, empties=empties)
+    assert deletes == [2, 5]
+    assert empties == []
+    multi, ids = zip(*updates)
+    assert all(isinstance(mpt, ShapelyMultiPoint) for mpt in multi)
+    assert all(mpt.has_z for mpt in multi)
+    assert all(mpt.has_m for mpt in multi)
+    assert ids == (1, 3, 4, 6)
+# End test_repair_multipoints function
+
+
+def test_repair_linestrings():
+    """
+    Test repair linestrings
+    """
+    multi1 = LineStringZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
+    multi2 = LineStringZM([], srs_id=4326)
+    multi3 = LineStringZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
+    multi4 = LineStringZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
+    multi5 = LineStringZM([(nan, nan, nan, nan)], srs_id=4326)
+    multi6 = LineStringZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
+    multi7 = LineStringZM([(0, 1, 2, 3)], srs_id=4326)
+    multi8 = LineStringZM([(1, 2, 3, 4), (nan, nan, nan, nan), (10, 20, 30, 40)], srs_id=4326)
+    multi = multi1, multi2, multi3, multi4, multi5, multi6, multi7, multi8
+    features = [(mpt, i) for i, mpt in enumerate(multi, 1)]
+    features, geometries = to_shapely(
+        features=features, transformer=None, on_invalid='fix')
+    assert is_valid(geometries).tolist() == [
+        False, True, False, False, False, False, False, False]
+    assert is_valid_reason(geometries).tolist() == [
+        'Invalid Coordinate[nan nan]',
+        'Valid Geometry',
+        'Too few points in geometry component[7 8]',
+        'Too few points in geometry component[7 8]',
+        None,
+        'Invalid Coordinate[nan nan]',
+        None,
+        'Invalid Coordinate[nan nan]']
+    assert is_empty(geometries).tolist() == [
+        False, True, False, False, False, False, False, False]
+
+    ids = array([fid for _, fid in features], dtype=int)
+    deletes = []
+    empties = []
+    updates = []
+    _repair_linestrings(
+        geometries, ids=ids, updates=updates, deletes=deletes, empties=empties)
+    assert deletes == [2]
+    assert set(empties) == {5, 7, 1, 6}
+    multi, ids = zip(*updates)
+    assert all(isinstance(mpt, ShapelyLineString) for mpt in multi)
+    assert all(mpt.has_z for mpt in multi)
+    assert all(mpt.has_m for mpt in multi)
+    assert ids == (3, 4, 8)
+# End test_repair_linestrings function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
