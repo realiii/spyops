@@ -4,8 +4,10 @@ Tests for Geometry Util Module
 """
 
 
+from math import nan
+
 from fudgeo.constant import WGS84
-from fudgeo.geometry.point import Point
+from fudgeo.geometry.point import Point, PointZ, PointZM
 from numpy import array, isnan, ndarray
 from warnings import simplefilter, catch_warnings
 from pytest import mark
@@ -112,6 +114,27 @@ def test_to_shapely(features, expected_count, expected_type, option):
     assert len(geometries) == expected_count
     assert all(isinstance(geom, expected_type) for geom in geometries)
 # End test_to_shapely function
+
+
+@mark.parametrize('features, expected_count, expected_type', [
+    ([(Point(x=1, y=2, srs_id=WGS84),), (Point(x=nan, y=nan, srs_id=WGS84),)], 2, ShapelyPoint),
+    ([(Point(x=1, y=2, srs_id=WGS84),), (Point.empty(WGS84),)], 2, ShapelyPoint),
+    ([(PointZ(x=1, y=2, z=3, srs_id=WGS84),), (PointZ.empty(WGS84),)], 2, ShapelyPoint),
+    ([(PointZ(x=1, y=2, z=nan, srs_id=WGS84),), (PointZ.empty(WGS84),)], 2, ShapelyPoint),
+    ([(PointZ(x=nan, y=nan, z=3, srs_id=WGS84),), (PointZ.empty(WGS84),)], 2, ShapelyPoint),
+    ([(PointZM(x=1, y=2, z=3, m=4, srs_id=WGS84),), (PointZM.empty(WGS84),)], 2, ShapelyPoint),
+    ([(PointZM(x=1, y=2, z=nan, m=nan, srs_id=WGS84),), (PointZM.empty(WGS84),)], 2, ShapelyPoint),
+    ([(PointZM(x=nan, y=nan, z=3, m=4, srs_id=WGS84),), (PointZM.empty(WGS84),)], 2, ShapelyPoint),
+])
+def test_to_shapely_fix(features, expected_count, expected_type):
+    """
+    Test to_shapely conversion from Fudgeo to Shapely geometries
+    """
+    _, geometries = to_shapely(features, transformer=None, on_invalid='fix')
+    assert isinstance(geometries, ndarray)
+    assert len(geometries) == expected_count
+    assert all(isinstance(geom, expected_type) for geom in geometries)
+# End test_to_shapely_fix function
 
 
 def test_use_workarounds():
