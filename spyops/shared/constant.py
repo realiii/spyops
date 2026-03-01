@@ -46,11 +46,6 @@ SRS_ID_KEY: str = 'srs_id'
 INCLUDE_VERTICAL_KEY: str = 'include_vertical'
 TRANSFORMER_KEY: str = 'transformer'
 
-
-DEGREE: str = 'degree'
-METRE: str = 'metre'
-
-
 FIELD: str = 'field'
 FIELD_PROPERTY: str = 'field_property'
 FIELDS_ARG: str = 'fields'
