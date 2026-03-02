@@ -15,8 +15,9 @@ from shapely.constructive import make_valid
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.constant import (
-    REASON_INVALID_COORDINATE, REASON_TOO_FEW_POINTS)
-from spyops.geometry.util import to_shapely
+    REASON_HOLE_OUTSIDE_SHELL, REASON_INVALID_COORDINATE,
+    REASON_SELF_INTERSECTION, REASON_TOO_FEW_POINTS, REASON_VALID_GEOMETRY)
+from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import make_valid_structure
 
 
@@ -152,6 +153,11 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     reasons = is_valid_reason(geoms)
     required = 2
     if not has_m:
+        # NOTE captures any fixes that were made during wkb conversion
+        indexes = [i for i, reason in enumerate(reasons)
+                   if reason and reason.startswith(REASON_VALID_GEOMETRY)]
+        _track_updates_empties(
+            geoms[indexes], ids=ids[indexes], updates=updates, empties=empties)
         indexes = [i for i, reason in enumerate(reasons)
                    if reason and reason.startswith(REASON_INVALID_COORDINATE)]
         valid = _make_valid(geoms[indexes])
