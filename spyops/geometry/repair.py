@@ -53,7 +53,6 @@ def repair_feature_class_geometry(source: 'FeatureClass') \
     empties = []
     has_m = source.has_m
     shape_type = source.shape_type
-
     kwargs = dict(deletes=deletes, updates=updates,
                   empties=empties, has_m=has_m)
     repairer = GEOMETRY_REPAIRER[shape_type]
