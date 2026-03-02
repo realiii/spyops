@@ -12,6 +12,7 @@ from fudgeo.enumeration import ShapeType
 from numpy import array
 from shapely import get_num_points
 from shapely.constructive import make_valid
+from shapely.geometry.polygon import Polygon
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.constant import (
@@ -183,21 +184,73 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 # End _repair_linestrings function
 
 
-def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
-                              deletes: DELETES, updates: UPDATES,
-                              empties: EMPTIES, **kwargs) -> None:
+def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
+                     updates: UPDATES, empties: EMPTIES, has_m: bool,
+                     **kwargs) -> None:
     """
-    Repair Multi LineStrings,
+    Repair Polygons, removes empty points, removes empty rings, closes rings,
+    resolves overlapping interior rings, resolves interior rings outside of
+    the exterior ring, and fixes self-intersections.
     """
-    pass
-# End _repair_multi_linestrings function
+    geoms, ids = _filter_empty_none(
+        geoms, ids=ids, deletes=deletes, empties=empties)
+    reasons = is_valid_reason(geoms)
+    reason_strings = (REASON_INVALID_COORDINATE, REASON_SELF_INTERSECTION,
+                      REASON_HOLE_OUTSIDE_SHELL)
+    if not has_m:
+        # NOTE captures any fixes that were made during wkb conversion
+        indexes = [i for i, reason in enumerate(reasons)
+                   if reason and reason.startswith(REASON_VALID_GEOMETRY)]
+        _track_updates_empties(
+            geoms[indexes], ids=ids[indexes], updates=updates, empties=empties)
+        indexes = [i for i, reason in enumerate(reasons)
+                   if reason and reason.startswith(reason_strings)]
+        valid = _make_valid(geoms[indexes])
+        valid[:] = [get_geoms_iter(geom)[0] for geom in valid]
+        _track_updates_empties(
+            valid, ids=ids[indexes], updates=updates, empties=empties)
+        indexes = [i for i, reason in enumerate(reasons)
+                   if reason and reason.startswith(REASON_TOO_FEW_POINTS)]
+        polys = array([_correct_polygon(geom) for geom in geoms[indexes]],
+                      dtype=object)
+        _track_updates_empties(
+            polys, ids=ids[indexes], updates=updates, empties=empties)
+    else:
+        for fid, geom, reason in zip(ids, geoms, reasons):
+            if reason.startswith(reason_strings):
+                geom = make_valid_structure(geom)
+                geom = get_geoms_iter(geom)[0]
+            elif reason.startswith(REASON_TOO_FEW_POINTS):
+                geom = _correct_polygon(geom)
+            if geom is None or geom.is_empty:
+                empties.append(fid)
+            else:
+                updates.append((geom, fid))
+# End _repair_polygons function
+
+
+def _correct_polygon(geom: Polygon) -> Polygon | None:
+    """
+    Correct Polygon
+    """
+    required = 4
+    exterior = geom.exterior
+    if get_num_points(exterior) < required:
+        return None
+    holes = geom.interiors
+    holes = [hole for hole, count in zip(holes, get_num_points(holes))
+             if count >= required]
+    return Polygon(exterior, holes=holes)
+# End _correct_polygon function
 
 
 GEOMETRY_REPAIRER: dict[str, Callable] = {
     ShapeType.point: _repair_points,
     ShapeType.multi_point: _repair_multi_points,
     ShapeType.linestring: _repair_linestrings,
-    ShapeType.multi_linestring: _repair_multi_linestrings,
+    # ShapeType.multi_linestring: _repair_multi_linestrings,
+    ShapeType.polygon: _repair_polygons,
+    # ShapeType.multi_polygon: centroid_multi_polygons,
 }
 
 if __name__ == '__main__':  # pragma: no cover
