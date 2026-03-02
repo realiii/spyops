@@ -10,7 +10,8 @@ from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from numpy import array
-from shapely import LineString, MultiLineString, Polygon, get_num_points
+from shapely import (
+    LineString, MultiLineString, MultiPolygon, Polygon, get_num_points)
 from shapely.constructive import make_valid
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
@@ -180,6 +181,46 @@ def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
 # End _repair_multi_linestrings function
 
 
+def _repair_multi_polygons(geoms: 'ndarray', ids: 'ndarray', *,
+                           deletes: DELETES, updates: UPDATES,
+                           empties: EMPTIES, **kwargs) -> None:
+    """
+    Repair MultiLineStrings
+    """
+    geoms, ids, _ = _capture_valid_and_empty(
+        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
+    for fid, geom in zip(ids, geoms):
+        # noinspection PyTypeChecker
+        if not (parts := _fix_polygon_parts(get_geoms_iter(geom))):
+            empties.append(fid)
+        else:
+            geom = MultiPolygon(parts)
+            updates.append((geom, fid))
+# End _repair_multi_polygons function
+
+
+def _fix_polygon_parts(geoms: list[Polygon]) -> list[Polygon]:
+    """
+    Fix Polygon Parts
+    """
+    keepers = []
+    reason_strings = (REASON_INVALID_COORDINATE,
+                      REASON_SELF_INTERSECTION,
+                      REASON_HOLE_OUTSIDE_SHELL)
+    reasons = is_valid_reason(geoms)
+    for geom, reason in zip(geoms, reasons):
+        if reason.startswith(reason_strings):
+            geom = get_geoms_iter(make_valid_structure(geom))[0]
+        elif reason.startswith(REASON_TOO_FEW_POINTS):
+            if not (geom := _correct_polygon(geom)):
+                continue
+        if geom.is_empty:
+            continue
+        keepers.append(geom)
+    return keepers
+# End _fix_polygon_parts function
+
+
 def _fix_linestring_parts(geoms: list[LineString]) -> list[LineString]:
     """
     Fix LineString Parts
@@ -299,7 +340,7 @@ GEOMETRY_REPAIRER: dict[str, Callable] = {
     ShapeType.linestring: _repair_linestrings,
     ShapeType.multi_linestring: _repair_multi_linestrings,
     ShapeType.polygon: _repair_polygons,
-    # ShapeType.multi_polygon: centroid_multi_polygons,
+    ShapeType.multi_polygon: _repair_multi_polygons,
 }
 
 if __name__ == '__main__':  # pragma: no cover
