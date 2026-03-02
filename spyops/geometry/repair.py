@@ -150,6 +150,7 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     geoms, ids = _filter_empty_none(
         geoms, ids=ids, deletes=deletes, empties=empties)
     reasons = is_valid_reason(geoms)
+    required = 2
     if not has_m:
         indexes = [i for i, reason in enumerate(reasons)
                    if reason and reason.startswith(REASON_INVALID_COORDINATE)]
@@ -159,7 +160,7 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
         indexes = [i for i, reason in enumerate(reasons)
                    if reason and reason.startswith(REASON_TOO_FEW_POINTS)]
         geoms = geoms[indexes]
-        geoms[get_num_points(geoms) < 2] = None
+        geoms[get_num_points(geoms) < required] = None
         _track_updates_empties(
             geoms, ids=ids[indexes], updates=updates, empties=empties)
     else:
@@ -167,7 +168,7 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
             if reason.startswith(REASON_INVALID_COORDINATE):
                 geom = make_valid_structure(geom)
             elif reason.startswith(REASON_TOO_FEW_POINTS):
-                if get_num_points(geom) < 2:
+                if get_num_points(geom) < required:
                     geom = None
             if geom is None or geom.is_empty:
                 empties.append(fid)
