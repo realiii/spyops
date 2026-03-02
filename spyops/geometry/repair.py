@@ -82,7 +82,8 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     """
     Repair Multi Points, removes empty points
     """
-    geoms, ids = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
+    geoms, ids = _filter_empty_none(
+        geoms, ids=ids, deletes=deletes, empties=empties)
     if not has_m:
         valid = _make_valid(geoms)
         _track_updates_empties(valid, ids=ids, updates=updates, empties=empties)
