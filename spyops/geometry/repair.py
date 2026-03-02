@@ -232,6 +232,27 @@ def _make_none_mask(values: 'ndarray') -> 'ndarray':
 # End _make_none_mask function
 
 
+def _capture_valid_and_empty(geoms: 'ndarray', ids: 'ndarray', deletes: DELETES,
+                             updates: UPDATES, empties: EMPTIES) \
+        -> tuple['ndarray', 'ndarray', 'ndarray']:
+    """
+    Capture Valid and Empty Geometries
+    """
+    geoms, ids = _filter_empty_none(
+        geoms, ids=ids, deletes=deletes, empties=empties)
+    reasons = is_valid_reason(geoms)
+    # NOTE captures any fixes that were made during wkb conversion
+    mask = array([reason.startswith(REASON_VALID_GEOMETRY)
+                  for reason in reasons], dtype=bool)
+    _track_updates_empties(
+        geoms[mask], ids=ids[mask], updates=updates, empties=empties)
+    geoms = geoms[~mask]
+    ids = ids[~mask]
+    reasons = reasons[~mask]
+    return geoms, ids, reasons
+# End _capture_valid_and_empty function
+
+
 def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
                        empties: EMPTIES) -> tuple['ndarray', 'ndarray']:
     """
