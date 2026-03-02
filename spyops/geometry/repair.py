@@ -175,8 +175,7 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     else:
         for fid, geom, reason in zip(ids, geoms, reasons):
             if reason.startswith(reason_strings):
-                geom = make_valid_structure(geom)
-                geom = get_geoms_iter(geom)[0]
+                geom = get_geoms_iter(make_valid_structure(geom))[0]
             elif reason.startswith(REASON_TOO_FEW_POINTS):
                 geom = _correct_polygon(geom)
             if geom is None or geom.is_empty:
