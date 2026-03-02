@@ -10,9 +10,8 @@ from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from numpy import array
-from shapely import get_num_points
+from shapely import LineString, MultiLineString, Polygon, get_num_points
 from shapely.constructive import make_valid
-from shapely.geometry.polygon import Polygon
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.constant import (
