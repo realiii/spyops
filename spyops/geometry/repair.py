@@ -85,8 +85,8 @@ def _make_none_mask(values: 'ndarray') -> 'ndarray':
 # End _make_none_mask function
 
 
-def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray',
-                       deletes: DELETES, empties: EMPTIES) -> 'ndarray':
+def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
+                       empties: EMPTIES) -> tuple['ndarray', 'ndarray']:
     """
     Filter Empty and None, tracking in the relevant lists.
     """
@@ -94,7 +94,8 @@ def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray',
     empties.extend(ids[mask_none])
     mask_empty = is_empty(geoms)
     deletes.extend(ids[mask_empty])
-    return mask_none | mask_empty
+    mask = mask_none | mask_empty
+    return geoms[~mask], ids[~mask]
 # End _filter_empty_none function
 
 
@@ -124,9 +125,7 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     """
     Repair Multi Points, removes empty points
     """
-    mask = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
-    ids = ids[~mask]
-    geoms = geoms[~mask]
+    geoms, ids = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
     if not has_m:
         valid = _make_valid(geoms)
         _track_updates_empties(valid, ids=ids, updates=updates, empties=empties)
@@ -149,9 +148,8 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     mostly to ensure that vertical lines (or portions of vertical lines) are
     kept untouched.
     """
-    mask = _filter_empty_none(geoms, ids=ids, deletes=deletes, empties=empties)
-    ids = ids[~mask]
-    geoms = geoms[~mask]
+    geoms, ids = _filter_empty_none(
+        geoms, ids=ids, deletes=deletes, empties=empties)
     reasons = is_valid_reason(geoms)
     if not has_m:
         indexes = [i for i, reason in enumerate(reasons)
