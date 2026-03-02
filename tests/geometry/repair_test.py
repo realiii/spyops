@@ -8,7 +8,8 @@ from math import nan
 
 from fudgeo.geometry import (
     LineString, LineStringZM, MultiLineString, MultiPointZM, MultiPolygon,
-    Point, Polygon, MultiPointZ, LineStringZ, PolygonZ, PolygonZM)
+    Point, Polygon, MultiPointZ, LineStringZ, PolygonZ, PolygonZM,
+    MultiLineStringZ, MultiLineStringZM)
 from numpy import array
 from pytest import mark
 from shapely import (
@@ -18,7 +19,8 @@ from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.repair import (
-    _repair_linestrings, _repair_multi_points, _repair_points, _repair_polygons)
+    _repair_linestrings, _repair_multi_points, _repair_points, _repair_polygons,
+    _repair_multi_linestrings)
 from spyops.geometry.util import to_shapely
 from spyops.geometry.wa import make_valid_structure
 
@@ -542,6 +544,65 @@ def test_repair_polygons(has_m):
     assert all(isinstance(poly, ShapelyPolygon) for poly in polys)
     assert all(poly.has_z for poly in polys)
 # End test_repair_polygons function
+
+
+@mark.parametrize('has_m', [
+    True,
+    False,
+])
+def test_repair_multi_linestrings(has_m):
+    """
+    Test repair multi linestrings
+    """
+    if has_m:
+        line1 = LineStringZM([(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)], srs_id=4326)
+        line2 = LineStringZM([], srs_id=4326)
+        line3 = LineStringZM([(7, 8, 9, 10), (7, 8, 9, 10)], srs_id=4326)
+        line4 = LineStringZM([(7, 8, 9, 10), (7, 8, 90, 100)], srs_id=4326)
+        line5 = LineStringZM([(nan, nan, nan, nan), (nan, nan, nan, nan)], srs_id=4326)
+        line6 = LineStringZM([(nan, nan, nan, nan), (5, 6, 7, 8)], srs_id=4326)
+        line7 = LineStringZM([(0, 1, 2, 3), (2, 3, 4, 5)], srs_id=4326)
+        line8 = LineStringZM([(1, 2, 3, 4), (nan, nan, nan, nan), (10, 20, 30, 40)], srs_id=4326)
+        line9 = LineStringZM([(7, 8, 9, 10), (70, 80, 90, 100)], srs_id=4326)
+        cls = MultiLineStringZM
+    else:
+        line1 = LineStringZ([(nan, nan, 1), (1, 2, 3), (nan, nan, nan)], srs_id=4326)
+        line2 = LineStringZ([], srs_id=4326)
+        line3 = LineStringZ([(7, 8, 9), (7, 8, 9)], srs_id=4326)
+        line4 = LineStringZ([(7, 8, 9), (7, 8, 90)], srs_id=4326)
+        line5 = LineStringZ([(nan, nan, nan), (nan, nan, nan)], srs_id=4326)
+        line6 = LineStringZ([(nan, nan, nan), (5, 6, 7)], srs_id=4326)
+        line7 = LineStringZ([(0, 1, 2), (2, 3, 4)], srs_id=4326)
+        line8 = LineStringZ([(1, 2, 3), (nan, nan, nan), (10, 20, 30)], srs_id=4326)
+        line9 = LineStringZ([(7, 8, 9), (70, 80, 90)], srs_id=4326)
+        cls = MultiLineStringZ
+    lines = line1, line2, line3, line4, line5, line6, line7, line8, line9
+    multi = cls([line.coordinates for line in lines], srs_id=4326)
+    features = [(multi, 0)]
+    features, geometries = to_shapely(
+        features=features, transformer=None, on_invalid='fix')
+    assert is_valid(geometries).tolist() == [False]
+    assert is_valid_reason(geometries).tolist() == [
+        'Invalid Coordinate[nan nan]']
+    assert is_empty(geometries).tolist() == [False]
+
+    ids = array([fid for _, fid in features], dtype=int)
+    deletes = []
+    empties = []
+    updates = []
+    _repair_multi_linestrings(
+        geometries, ids=ids, updates=updates, deletes=deletes,
+        empties=empties, has_m=has_m)
+    assert not deletes
+    assert not empties
+    multi, ids = updates[0]
+    geoms = multi.geoms
+    assert len(geoms) == 5
+    assert all(line.has_m is has_m for line in geoms)
+    assert all(line.has_z for line in geoms)
+    assert all(isinstance(line, ShapelyLineString) for line in geoms)
+    assert ids == 0
+# End test_repair_multi_linestrings function
 
 
 if __name__ == '__main__':  # pragma: no cover
