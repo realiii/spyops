@@ -106,38 +106,23 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     mostly to ensure that vertical lines (or portions of vertical lines) are
     kept untouched.
     """
-    geoms, ids = _filter_empty_none(
-        geoms, ids=ids, deletes=deletes, empties=empties)
-    reasons = is_valid_reason(geoms)
-    required = 2
+    reason_strings = REASON_INVALID_COORDINATE,
+    geoms, ids, reasons = _capture_valid_and_empty(
+        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
     if not has_m:
-        # NOTE captures any fixes that were made during wkb conversion
-        indexes = [i for i, reason in enumerate(reasons)
-                   if reason and reason.startswith(REASON_VALID_GEOMETRY)]
+        mask = [reason.startswith(reason_strings) for reason in reasons]
         _track_updates_empties(
-            geoms[indexes], ids=ids[indexes], updates=updates, empties=empties)
-        indexes = [i for i, reason in enumerate(reasons)
-                   if reason and reason.startswith(REASON_INVALID_COORDINATE)]
-        valid = _make_valid(geoms[indexes])
-        _track_updates_empties(
-            valid, ids=ids[indexes], updates=updates, empties=empties)
-        indexes = [i for i, reason in enumerate(reasons)
-                   if reason and reason.startswith(REASON_TOO_FEW_POINTS)]
-        geoms = geoms[indexes]
-        geoms[get_num_points(geoms) < required] = None
-        _track_updates_empties(
-            geoms, ids=ids[indexes], updates=updates, empties=empties)
+            _make_valid(geoms[mask]), ids=ids[mask],
+            updates=updates, empties=empties)
+        _linestring_point_count(
+            geoms, ids=ids, updates=updates, empties=empties, reasons=reasons)
     else:
-        for fid, geom, reason in zip(ids, geoms, reasons):
-            if reason.startswith(REASON_INVALID_COORDINATE):
-                geom = make_valid_structure(geom)
-            elif reason.startswith(REASON_TOO_FEW_POINTS):
-                if get_num_points(geom) < required:
-                    geom = None
-            if geom is None or geom.is_empty:
-                empties.append(fid)
-            else:
-                updates.append((geom, fid))
+        mask = [reason.startswith(reason_strings) for reason in reasons]
+        geoms[mask] = [make_valid_structure(geom) for geom in geoms[mask]]
+        _track_updates_empties(
+            geoms[mask], ids=ids[mask], updates=updates, empties=empties)
+        _linestring_point_count(
+            geoms, ids=ids, updates=updates, empties=empties, reasons=reasons)
 # End _repair_linestrings function
 
 
@@ -183,6 +168,42 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
             else:
                 updates.append((geom, fid))
 # End _repair_polygons function
+
+
+
+
+def _fix_linestring_parts(geoms: list[LineString]) -> list[LineString]:
+    """
+    Fix LineString Parts
+    """
+    keepers = []
+    reason_strings = REASON_INVALID_COORDINATE,
+    reasons = is_valid_reason(geoms)
+    for geom, reason in zip(geoms, reasons):
+        if reason.startswith(reason_strings):
+            geom = make_valid_structure(geom)
+        elif reason.startswith(REASON_TOO_FEW_POINTS):
+            if get_num_points(geom) < 2:
+                continue
+        if geom.is_empty:
+            continue
+        keepers.append(geom)
+    return keepers
+# End _fix_linestring_parts function
+
+
+def _linestring_point_count(geoms: 'ndarray', *, ids: 'ndarray',
+                            updates: UPDATES, empties: EMPTIES,
+                            reasons: 'ndarray') -> None:
+    """
+    Handle LineString Point Count
+    """
+    mask = [reason.startswith(REASON_TOO_FEW_POINTS) for reason in reasons]
+    geoms = geoms[mask]
+    geoms[get_num_points(geoms) < 2] = None
+    _track_updates_empties(
+        geoms, ids=ids[mask], updates=updates, empties=empties)
+# End _linestring_point_count function
 
 
 def _make_valid(geoms: 'ndarray') -> 'ndarray':
