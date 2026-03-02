@@ -68,49 +68,6 @@ def repair_feature_class_geometry(source: 'FeatureClass') \
 # End repair_feature_class_geometry function
 
 
-def _make_valid(geoms: 'ndarray') -> 'ndarray':
-    """
-    Small wrapper around make_valid to support arrays -- for use when there
-    are no measure values on the geometries.
-    """
-    return make_valid(geoms, method='structure', keep_collapsed=False)
-# End _make_valid function
-
-
-def _make_none_mask(values: 'ndarray') -> 'ndarray':
-    """
-    Create a mask of None values for the given array.
-    """
-    # NOTE this is the way
-    return values == None
-# End _make_none_mask function
-
-
-def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
-                       empties: EMPTIES) -> tuple['ndarray', 'ndarray']:
-    """
-    Filter Empty and None, tracking in the relevant lists.
-    """
-    mask_none = _make_none_mask(geoms)
-    empties.extend(ids[mask_none])
-    mask_empty = is_empty(geoms)
-    deletes.extend(ids[mask_empty])
-    mask = mask_none | mask_empty
-    return geoms[~mask], ids[~mask]
-# End _filter_empty_none function
-
-
-def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
-                           updates: UPDATES, empties: DELETES) -> None:
-    """
-    Track Updates and Empties
-    """
-    mask = is_empty(geoms) | _make_none_mask(geoms)
-    empties.extend(ids[mask])
-    updates.extend(list(zip(geoms[~mask], ids[~mask])))
-# End _track_updates_empties function
-
-
 def _repair_points(geoms: 'ndarray', ids: 'ndarray', *,
                    deletes: DELETES, **kwargs) -> None:
     """
@@ -227,6 +184,49 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
             else:
                 updates.append((geom, fid))
 # End _repair_polygons function
+
+
+def _make_valid(geoms: 'ndarray') -> 'ndarray':
+    """
+    Small wrapper around make_valid to support arrays -- for use when there
+    are no measure values on the geometries.
+    """
+    return make_valid(geoms, method='structure', keep_collapsed=False)
+# End _make_valid function
+
+
+def _make_none_mask(values: 'ndarray') -> 'ndarray':
+    """
+    Create a mask of None values for the given array.
+    """
+    # NOTE this is the way
+    return values == None
+# End _make_none_mask function
+
+
+def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
+                       empties: EMPTIES) -> tuple['ndarray', 'ndarray']:
+    """
+    Filter Empty and None, tracking in the relevant lists.
+    """
+    mask_none = _make_none_mask(geoms)
+    empties.extend(ids[mask_none])
+    mask_empty = is_empty(geoms)
+    deletes.extend(ids[mask_empty])
+    mask = mask_none | mask_empty
+    return geoms[~mask], ids[~mask]
+# End _filter_empty_none function
+
+
+def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
+                           updates: UPDATES, empties: DELETES) -> None:
+    """
+    Track Updates and Empties
+    """
+    mask = is_empty(geoms) | _make_none_mask(geoms)
+    empties.extend(ids[mask])
+    updates.extend(list(zip(geoms[~mask], ids[~mask])))
+# End _track_updates_empties function
 
 
 def _correct_polygon(geom: Polygon) -> Polygon | None:
