@@ -14,13 +14,13 @@ from numpy import array
 from pytest import mark
 from shapely import (
     LineString as ShapelyLineString, MultiPoint as ShapelyMultiPoint,
-    Polygon as ShapelyPolygon)
+    Polygon as ShapelyPolygon, MultiPolygon as ShapelyMultiPolygon)
 from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.repair import (
     _repair_linestrings, _repair_multi_points, _repair_points, _repair_polygons,
-    _repair_multi_linestrings)
+    _repair_multi_linestrings, _repair_multi_polygons)
 from spyops.geometry.util import to_shapely
 from spyops.geometry.wa import make_valid_structure
 
@@ -603,6 +603,105 @@ def test_repair_multi_linestrings(has_m):
     assert all(isinstance(line, ShapelyLineString) for line in geoms)
     assert ids == 0
 # End test_repair_multi_linestrings function
+
+
+@mark.parametrize('has_m', [
+    True,
+    False
+])
+def test_repair_multi_polygons(has_m):
+    """
+    Test repair polygons
+    """
+    if has_m:
+        poly1 = PolygonZM([[(nan, nan, 1, 2), (1, 2, 3, 4), (nan, nan, nan, nan)]], srs_id=4326)
+        poly2 = PolygonZM([], srs_id=4326)
+        poly3 = PolygonZM([[(7, 8, 9, 10), (7, 8, 9, 10), (7, 8, 9, 10), (7, 8, 9, 10), (7, 8, 9, 10)]], srs_id=4326)
+        poly4 = PolygonZM([[(7, 8, 0, 100), (7, 8, 10, 200), (7, 18, 10, 300), (7, 18, 0, 400)]], srs_id=4326)
+        poly5 = PolygonZM([[(nan, nan, nan, nan), (nan, nan, nan, nan), (nan, nan, nan, nan)]], srs_id=4326)
+        poly6 = PolygonZM([[(nan, nan, nan, nan), (5, 6, 7, 8), (nan, nan, nan, nan)]], srs_id=4326)
+        poly7 = PolygonZM([[(0, 1, 2, 3)]], srs_id=4326)
+        poly8 = PolygonZM([[(0, 0, 3, 4), (nan, nan, nan, nan), (0, 1, 30, 40), (1, 1, 300, 400), (1, 0, 3000, 4000), (0, 0, 3, 4)]], srs_id=4326)
+        poly9 = PolygonZM([[(0, 0, 3, 4), (0, 1, 30, 40), (1, 1, 300, 400), (1, 0, 3000, 4000), (0, 0, 3, 4)]], srs_id=4326)
+        poly10 = PolygonZM([[(0, 0, 3, 4), (0, 1, 30, 40), (1, 1, 300, 400), (1, 0, 3000, 4000)]], srs_id=4326)
+        poly11 = PolygonZM([[], []], srs_id=4326)
+        poly12 = PolygonZM([[], [(0, 0, 3, 4), (1, 0, 5, 6), (1, 1, 7, 8), (0, 1, 9, 10), (0, 0, 3, 4)],
+                            [(50, 50, 60, 70), (51, 50, 80, 90), (51, 51, 100, 110), (50, 51, 120, 130), (50, 50, 140, 150)]], srs_id=4326)
+        poly13 = PolygonZM([[(0, 0, 3, 4), (0, 1, 30, 40), (1, 1, 300, 400), (1, 0, 3000, 4000)], [], []], srs_id=4326)
+        poly14 = PolygonZM([[(0, 0, 3, 4), (10, 0, 5, 6), (10, 10, 7, 8), (0, 10, 9, 10), (0, 0, 3, 4)],
+                            [(2, 2, 10, 11), (2, 5, 12, 13), (5, 5, 14, 15), (5, 2, 16, 17), (2, 2, 18, 19)],
+                            [(3, 3, 20, 21), (3, 6, 22, 23), (6, 6, 24, 25), (6, 3, 26, 27), (3, 3, 28, 29)]], srs_id=4326)
+        poly15 = PolygonZM([[(10, 20, 0, 1), (10, 30, 2, 3), (30, 30, 4, 5), (30, 20, 6, 7), (10, 20, 8, 9)],
+                            [(12, 15, 50, 60), (12, 18, 70, 80)]], srs_id=4326)
+        poly16 = PolygonZM([[(0, 0, 3, 4), (1, 0, 5, 6), (1, 1, 7, 8), (0, 1, 9, 10), (0, 0, 3, 4)],
+                            [(50, 50, 60, 70), (51, 50, 80, 90), (51, 51, 100, 110), (50, 51, 120, 130), (50, 50, 140, 150)]], srs_id=4326)
+        poly17 = PolygonZM([[(0, 0, 3, 4), (1, 1, 5, 6), (1, 0, 7, 8), (0, 1, 9, 10), (0, 0, 3, 4)]], srs_id=4326)
+        poly18 = PolygonZM([[(0, 0, 3, 4), (1, 0, 5, 6), (nan, nan, nan, nan), (1, 1, 7, 8), (0, 1, 9, 10), (0, 0, 3, 4)],
+                            [(50, 50, 60, 70), (51, 50, 80, 90), (51, 51, 100, 110), (50, 51, 120, 130), (50, 50, 140, 150)]], srs_id=4326)
+        poly19 = PolygonZM([[(0, 0, 3, 4), (10, 0, 5, 6), (10, 10, 7, 8), (0, 10, 9, 10), (0, 0, 3, 4)],
+                            [(2, 2, 10, 11), (2, 5, 12, 13), (5, 5, 14, 15)]], srs_id=4326)
+        poly20 = PolygonZM([[(0, 0, 3, 4), (10, 0, 5, 6), (10, 10, 7, 8), (0, 10, 9, 10), (0, 0, 3, 4)],
+                            [(2, 2, 10, 11), (2, 2.5, 12, 13)],
+                            [(3, 3, 20, 21), (3, 6, 22, 23), (6, 6, 24, 25), (6, 3, 26, 27), (3, 3, 28, 29)]], srs_id=4326)
+    else:
+        poly1 = PolygonZ([[(nan, nan, 1), (1, 2, 3), (nan, nan, nan)]], srs_id=4326)
+        poly2 = PolygonZ([], srs_id=4326)
+        poly3 = PolygonZ([[(7, 8, 9), (7, 8, 9), (7, 8, 9), (7, 8, 9), (7, 8, 9)]], srs_id=4326)
+        poly4 = PolygonZ([[(7, 8, 0), (7, 8, 10), (7, 18, 10), (7, 18, 0)]], srs_id=4326)
+        poly5 = PolygonZ([[(nan, nan, nan), (nan, nan, nan), (nan, nan, nan)]], srs_id=4326)
+        poly6 = PolygonZ([[(nan, nan, nan), (5, 6, 7), (nan, nan, nan)]], srs_id=4326)
+        poly7 = PolygonZ([[(0, 1, 2)]], srs_id=4326)
+        poly8 = PolygonZ([[(0, 0, 3), (nan, nan, nan), (0, 1, 30), (1, 1, 300), (1, 0, 3000), (0, 0, 3)]], srs_id=4326)
+        poly9 = PolygonZ([[(0, 0, 3), (0, 1, 30), (1, 1, 300), (1, 0, 3000), (0, 0, 3)]], srs_id=4326)
+        poly10 = PolygonZ([[(0, 0, 3), (0, 1, 30), (1, 1, 300), (1, 0, 3000)]], srs_id=4326)
+        poly11 = PolygonZ([[], []], srs_id=4326)
+        poly12 = PolygonZ([[], [(0, 0, 3), (1, 0, 5), (1, 1, 7), (0, 1, 9), (0, 0, 3)],
+                            [(50, 50, 60), (51, 50, 80), (51, 51, 100), (50, 51, 120), (50, 50, 140)]], srs_id=4326)
+        poly13 = PolygonZ([[(0, 0, 3), (0, 1, 30), (1, 1, 300), (1, 0, 3000)], [], []], srs_id=4326)
+        poly14 = PolygonZ([[(0, 0, 3), (10, 0, 5), (10, 10, 7), (0, 10, 9), (0, 0, 3)],
+                           [(2, 2, 10), (2, 5, 12), (5, 5, 14), (5, 2, 16), (2, 2, 18)],
+                           [(3, 3, 20), (3, 6, 22), (6, 6, 24), (6, 3, 26), (3, 3, 28)]], srs_id=4326)
+        poly15 = PolygonZ([[(10, 20, 0), (10, 30, 2), (30, 30, 4), (30, 20, 6), (10, 20, 8)],
+                           [(12, 15, 50), (12, 18, 70)]], srs_id=4326)
+        poly16 = PolygonZ([[(0, 0, 3), (1, 0, 5), (1, 1, 7), (0, 1, 9), (0, 0, 3)],
+                           [(50, 50, 60), (51, 50, 80), (51, 51, 100), (50, 51, 120), (50, 50, 140)]], srs_id=4326)
+        poly17 = PolygonZ([[(0, 0, 3), (1, 1, 5), (1, 0, 7), (0, 1, 9), (0, 0, 3)]], srs_id=4326)
+        poly18 = PolygonZ([[(0, 0, 3), (1, 0, 5), (nan, nan, nan), (1, 1, 7), (0, 1, 9), (0, 0, 3)],
+                           [(50, 50, 60), (51, 50, 80), (51, 51, 100), (50, 51, 120), (50, 50, 140)]], srs_id=4326)
+        poly19 = PolygonZ([[(0, 0, 3), (10, 0, 5), (10, 10, 7), (0, 10, 9), (0, 0, 3)],
+                           [(2, 2, 10), (2, 5, 12), (5, 5, 14)]], srs_id=4326)
+        poly20 = PolygonZ([[(0, 0, 3), (10, 0, 5), (10, 10, 7), (0, 10, 9), (0, 0, 3)],
+                           [(2, 2, 10), (2, 2.5, 12)],
+                           [(3, 3, 20), (3, 6, 22), (6, 6, 24), (6, 3, 26), (3, 3, 28)]], srs_id=4326)
+    polys = (poly1, poly2, poly3, poly4, poly5, poly6, poly7, poly8, poly9,
+             poly10, poly11, poly12, poly13, poly14, poly15, poly16, poly17,
+             poly18, poly19, poly20)
+    features = [(poly, i) for i, poly in enumerate(polys, 1)]
+    _, geometries = to_shapely(
+        features=features, transformer=None, on_invalid='fix')
+    geometries = [geom for geom in geometries if geom is not None]
+    geometries = array([ShapelyMultiPolygon(geometries)], dtype=object)
+
+    assert is_valid(geometries).tolist() == [False]
+    assert is_valid_reason(geometries).tolist() == ['Too few points in geometry component[7 8]']
+    assert is_empty(geometries).tolist() == [False]
+
+    ids = array([0], dtype=int)
+    deletes = []
+    empties = []
+    updates = []
+    _repair_multi_polygons(geometries, ids, deletes=deletes, empties=empties,
+                           updates=updates, has_m=has_m)
+    assert not deletes
+    assert not empties
+    multi, ids = updates[0]
+    geoms = multi.geoms
+    assert len(geoms) == 13
+    assert all(poly.has_m is has_m for poly in geoms)
+    assert all(poly.has_z for poly in geoms)
+    assert all(isinstance(poly, ShapelyPolygon) for poly in geoms)
+    assert ids == 0
+# End test_repair_multi_polygons function
 
 
 if __name__ == '__main__':  # pragma: no cover
