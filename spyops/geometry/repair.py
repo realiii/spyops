@@ -297,7 +297,7 @@ GEOMETRY_REPAIRER: dict[str, Callable] = {
     ShapeType.point: _repair_points,
     ShapeType.multi_point: _repair_multi_points,
     ShapeType.linestring: _repair_linestrings,
-    # ShapeType.multi_linestring: _repair_multi_linestrings,
+    ShapeType.multi_linestring: _repair_multi_linestrings,
     ShapeType.polygon: _repair_polygons,
     # ShapeType.multi_polygon: centroid_multi_polygons,
 }
