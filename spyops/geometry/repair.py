@@ -134,29 +134,21 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     resolves overlapping interior rings, resolves interior rings outside of
     the exterior ring, and fixes self-intersections.
     """
-    geoms, ids = _filter_empty_none(
-        geoms, ids=ids, deletes=deletes, empties=empties)
-    reasons = is_valid_reason(geoms)
-    reason_strings = (REASON_INVALID_COORDINATE, REASON_SELF_INTERSECTION,
+    reason_strings = (REASON_INVALID_COORDINATE,
+                      REASON_SELF_INTERSECTION,
                       REASON_HOLE_OUTSIDE_SHELL)
+    geoms, ids, reasons = _capture_valid_and_empty(
+        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
     if not has_m:
-        # NOTE captures any fixes that were made during wkb conversion
-        indexes = [i for i, reason in enumerate(reasons)
-                   if reason and reason.startswith(REASON_VALID_GEOMETRY)]
-        _track_updates_empties(
-            geoms[indexes], ids=ids[indexes], updates=updates, empties=empties)
-        indexes = [i for i, reason in enumerate(reasons)
-                   if reason and reason.startswith(reason_strings)]
-        valid = _make_valid(geoms[indexes])
+        mask = [reason.startswith(reason_strings) for reason in reasons]
+        valid = _make_valid(geoms[mask])
         valid[:] = [get_geoms_iter(geom)[0] for geom in valid]
         _track_updates_empties(
-            valid, ids=ids[indexes], updates=updates, empties=empties)
-        indexes = [i for i, reason in enumerate(reasons)
-                   if reason and reason.startswith(REASON_TOO_FEW_POINTS)]
-        polys = array([_correct_polygon(geom) for geom in geoms[indexes]],
-                      dtype=object)
+            valid, ids=ids[mask], updates=updates, empties=empties)
+        mask = [reason.startswith(REASON_TOO_FEW_POINTS) for reason in reasons]
+        geoms[mask] = [_correct_polygon(geom) for geom in geoms[mask]]
         _track_updates_empties(
-            polys, ids=ids[indexes], updates=updates, empties=empties)
+            geoms[mask], ids=ids[mask], updates=updates, empties=empties)
     else:
         for fid, geom, reason in zip(ids, geoms, reasons):
             if reason.startswith(reason_strings):
@@ -170,6 +162,22 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 # End _repair_polygons function
 
 
+def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
+                              deletes: DELETES, updates: UPDATES,
+                              empties: EMPTIES, **kwargs) -> None:
+    """
+    Repair MultiLineStrings
+    """
+    geoms, ids, _ = _capture_valid_and_empty(
+        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
+    for fid, geom in zip(ids, geoms):
+        # noinspection PyTypeChecker
+        if not (parts := _fix_linestring_parts(get_geoms_iter(geom))):
+            empties.append(fid)
+        else:
+            geom = MultiLineString(parts)
+            updates.append((geom, fid))
+# End _repair_multi_linestrings function
 
 
 def _fix_linestring_parts(geoms: list[LineString]) -> list[LineString]:
