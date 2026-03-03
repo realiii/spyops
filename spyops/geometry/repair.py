@@ -28,7 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
-IDENTIFIERS: TypeAlias = list[int]
+IDENTIFIERS: TypeAlias = list[tuple[int]]
 DELETES: TypeAlias = list[int]
 EMPTIES: TypeAlias = list[int]
 UPDATES: TypeAlias = list[tuple[
