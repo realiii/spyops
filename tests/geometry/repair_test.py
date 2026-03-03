@@ -20,7 +20,8 @@ from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.repair import (
     _repair_linestrings, _repair_multi_points, _repair_points, _repair_polygons,
-    _repair_multi_linestrings, _repair_multi_polygons)
+    _repair_multi_linestrings, _repair_multi_polygons,
+    repair_feature_class_geometry)
 from spyops.geometry.util import to_shapely
 from spyops.geometry.wa import make_valid_structure
 
@@ -292,6 +293,34 @@ def test_empty_query(check_repair, fc_name, expected):
     count = sum([g.is_empty for g, in cursor.fetchall()])
     assert count == expected
 # End test_empty_query method
+
+
+@mark.parametrize('fc_name, drop_empty, update_count, identifier_count', [
+    ('point_p', False, 0, 0),
+    ('linestring_l', False, 17, 0),
+    ('polygon_a', False, 18, 0),
+    ('multipoint_mp', False, 11, 0),
+    ('multilinestring_ml', False, 18, 0),
+    ('multipolygon_ma', False, 20, 0),
+    ('point_p', True, 0, 4),
+    ('linestring_l', True, 13, 5),
+    ('polygon_a', True, 11, 10),
+    ('multipoint_mp', True, 11, 3),
+    ('multilinestring_ml', True, 14, 6),
+    ('multipolygon_ma', True, 13, 12),
+])
+def test_repair_feature_class_geometry(check_repair, fc_name, drop_empty,
+                                       update_count, identifier_count):
+    """
+    Test repair feature class geometry
+    """
+    source = check_repair[fc_name]
+    updates, identifiers = repair_feature_class_geometry(
+        source, drop_empty=drop_empty)
+    assert len(updates) == update_count
+    assert len(identifiers) == identifier_count
+    assert not set([i for i, _ in updates]).intersection(identifiers)
+# End test_repair_feature_class_geometry method
 
 
 def test_repair_points():
