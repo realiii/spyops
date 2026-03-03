@@ -10,13 +10,15 @@ from fudgeo import Field
 from fudgeo import Table
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from fudgeo.util import get_extent
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.check import check_feature_class_geometry
+from spyops.geometry.repair import repair_feature_class_geometry
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
-    QueryCopyFeatures, QueryMultiPartToSinglePart)
+    QueryCopyFeatures, QueryMultiPartToSinglePart, QueryRepairGeometry)
 from spyops.shared.constant import (
     AREA_UNIT, CHECK_OPTIONS, FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, SOURCE,
     WEIGHT_OPTION)
@@ -330,6 +332,49 @@ def check_geometry(source: 'FeatureClass', target: 'Table',
         cout.executemany(query.insert, records)
     return query.target
 # End check_geometry function
+
+
+@validate_result()
+@validate_source_feature_class()
+def repair_geometry(source: 'FeatureClass', drop_empty: bool = False) \
+        -> 'FeatureClass':
+    """
+    Repair Geometry
+
+    Repairs geometries in a feature class.  The repairs perform very based
+    on the geometry type.  The full list of repairs performed is as follows
+    and in approximatedly the order in which they are performed:
+
+    * EMPTY: drops empty features (if drop_empty=True)
+    * EMPTY_POINT: removes empty points (i.e., XY values are NaN), removing
+      points may cause emptiness in rings, parts, and / or geometries
+    * EMPTY_PART: removes empty parts from multipart geometries
+    * EMPTY_RING: checks if any ring in a polygon geometry is empty
+    * POINT_COUNT: applies to lines and polygons, lines must have at least 2
+      points and polygons 3 points, fixes are attempted but bad point count will
+      likely result in an empty geometry.
+    * UNCLOSED: ensures polygon rings are closed
+    * ORIENTATION: corrects the orientation for rings in a polygon
+    * SELF_INTERSECTION: fixes self-intersections as best as possible
+    * OUTSIDE_RING: retain only the rings that are within the exterior ring
+    * OVERLAP_RING:
+    * EMPTY: drops empty features (if drop_empty=True)
+    * EXTENT: updates the feature class extent to match the geometry extent
+    """
+    query = QueryRepairGeometry(source)
+    with (query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cin, table=query.target) as executor):
+        updates, identifiers = repair_feature_class_geometry(
+            query.source, drop_empty=drop_empty)
+        if drop_empty:
+            executor(sql=query.insert_identifiers, data=identifiers)
+            cin.execute(query.drop_empty)
+            cin.execute(query.truncate)
+        executor(sql=query.insert, data=updates)
+        cin.execute(query.update)
+        query.source.extent = get_extent(query.source)
+    return query.source
+# End repair_geometry function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
