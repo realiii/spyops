@@ -74,6 +74,7 @@ def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
     if drop_empty:
         identifiers.extend(deletes)
         identifiers.extend(empties)
+        identifiers = [(i,) for i in identifiers]
     else:
         if shape_type == ShapeType.point:
             empty = cls.empty(srs_id=srs_id)

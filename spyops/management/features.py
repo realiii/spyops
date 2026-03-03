@@ -367,7 +367,7 @@ def repair_geometry(source: 'FeatureClass', drop_empty: bool = False) \
         updates, identifiers = repair_feature_class_geometry(
             query.source, drop_empty=drop_empty)
         if drop_empty:
-            executor(sql=query.insert_identifiers, data=identifiers)
+            cin.executemany(query.insert_identifiers, identifiers)
             cin.execute(query.drop_empty)
             cin.execute(query.truncate)
         executor(sql=query.insert, data=updates)
