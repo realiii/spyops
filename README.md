@@ -54,6 +54,7 @@ MIT
 * added `check_geometry` (Management - Features)
 * added `delete_features` (Management - Features)
 * added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
+* added `repair_geometry` (Management - Features)
 * added `create_feature_class` (Management - Feature Class)
 * added `recalculate_feature_class_extent` (Management - Feature Class)
 * added `add_field` (Management - Fields) with support for multiple
