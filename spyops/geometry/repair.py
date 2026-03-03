@@ -27,28 +27,28 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
+IDENTIFIERS: TypeAlias = list[int]
 DELETES: TypeAlias = list[int]
 EMPTIES: TypeAlias = list[int]
 UPDATES: TypeAlias = list[tuple[
     int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
 
 
-def repair_feature_class_geometry(source: 'FeatureClass') \
-        -> tuple[DELETES, UPDATES, EMPTIES]:
+def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
+        -> tuple[UPDATES, IDENTIFIERS]:
     """
     Repair Feature Class Geometry, addresses geometry issues but not the
     feature class extent.
 
-    The deletes list is for the identifiers of features that are initially
-    empty and should be dropped, the empties list is for identifiers of
+    The `deletes` list is for the identifiers of features that are initially
+    empty and should be dropped, the `empties` list is for identifiers of
     features that have become empty during the process of making valid, and
-    the updates list is for features that have been made valid and must be
+    the `updates` list is for features that have been made valid and must be
     updated in the feature class.
 
-    When the option to drop empty features is True the empties and deletes
+    When the option to drop empty features is True the `empties` and `deletes`
     lists are combined, when False fudgeo empty geometries are generated for
-    each identifier in the empties list and combined used in conjunction with
-    the updates list.
+    each identifier in the `empties` list and included into the `updates` list.
     """
     updates = []
     deletes = []
