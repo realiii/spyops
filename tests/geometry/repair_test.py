@@ -352,7 +352,7 @@ def test_repair_multipoints(has_m):
         empties=empties, has_m=has_m)
     assert deletes == [2, 5]
     assert empties == []
-    multi, ids = zip(*updates)
+    ids, multi  = zip(*updates)
     assert ids == (1, 3, 4, 6)
     assert all(isinstance(mpt, ShapelyMultiPoint) for mpt in multi)
     assert all(mpt.has_z for mpt in multi)
@@ -416,7 +416,7 @@ def test_repair_linestrings(has_m):
         empties=empties, has_m=has_m)
     assert deletes == [2]
     assert set(empties) == {5, 7, 1, 6}
-    lines, ids = zip(*updates)
+    ids, lines = zip(*updates)
     assert all(line.has_m is has_m for line in lines)
     assert all(isinstance(line, ShapelyLineString) for line in lines)
     assert all(line.has_z for line in lines)
@@ -538,7 +538,7 @@ def test_repair_polygons(has_m):
     _repair_polygons(geometries, ids, deletes=deletes, empties=empties, updates=updates, has_m=has_m)
     assert deletes == [2, 11]
     assert set(empties) == {1, 5, 6, 7, 12}
-    polys, ids = zip(*updates)
+    ids, polys = zip(*updates)
     assert all(poly.has_m is has_m for poly in polys)
     assert set(ids) == {3, 4, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20}
     assert all(isinstance(poly, ShapelyPolygon) for poly in polys)
@@ -595,7 +595,7 @@ def test_repair_multi_linestrings(has_m):
         empties=empties, has_m=has_m)
     assert not deletes
     assert not empties
-    multi, ids = updates[0]
+    ids, multi = updates[0]
     geoms = multi.geoms
     assert len(geoms) == 5
     assert all(line.has_m is has_m for line in geoms)
@@ -694,7 +694,7 @@ def test_repair_multi_polygons(has_m):
                            updates=updates, has_m=has_m)
     assert not deletes
     assert not empties
-    multi, ids = updates[0]
+    ids, multi = updates[0]
     geoms = multi.geoms
     assert len(geoms) == 13
     assert all(poly.has_m is has_m for poly in geoms)
