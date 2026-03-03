@@ -491,7 +491,7 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         Short Name
         """
         pass
-    # End _stub property
+    # End _short_name property
 
     @abstractmethod
     def _prepare_source(self) -> None:

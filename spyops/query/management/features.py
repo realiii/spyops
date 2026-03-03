@@ -293,7 +293,7 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
         Short Name
         """
         return 'add_xy_coords'
-    # End _stub property
+    # End _short_name property
 
     def _prepare_source(self) -> None:
         """
@@ -459,7 +459,7 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         Short Name
         """
         return 'calc_geom_attrs'
-    # End _stub property
+    # End _short_name property
 
     def _prepare_source(self) -> None:
         """
