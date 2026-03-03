@@ -16,7 +16,7 @@ from shapely import (
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import get_geoms_iter, nada, to_shapely
-from spyops.geometry.wa import make_valid
+from spyops.geometry.wa import make_valid_structure
 from spyops.shared.exception import GeometryDimensionError
 
 
@@ -31,9 +31,7 @@ def check_polygon(polygon: Polygon | MultiPolygon) \
     """
     Check Polygon
     """
-    return _check_geometry(
-        polygon, method_name='structure', cls=Polygon,
-        multi_cls=MultiPolygon)
+    return _check_geometry(polygon, cls=Polygon, multi_cls=MultiPolygon)
 # End check_polygon function
 
 
@@ -42,9 +40,7 @@ def check_linestring(geom: LineString | MultiLineString) \
     """
     Check LineString
     """
-    return _check_geometry(
-        geom, method_name='linework', cls=LineString,
-        multi_cls=MultiLineString)
+    return _check_geometry(geom, cls=LineString, multi_cls=MultiLineString)
 # End check_linestring function
 
 
@@ -58,8 +54,7 @@ def check_point(geom: Point | MultiPoint) -> Point | MultiPoint | None:
 # End check_point function
 
 
-def _check_geometry(geom: 'BaseGeometry', method_name: str,
-                    cls: Type['BaseGeometry'],
+def _check_geometry(geom: 'BaseGeometry', cls: Type['BaseGeometry'],
                     multi_cls: Type['BaseMultipartGeometry']) \
         -> Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]:
     """
@@ -67,8 +62,7 @@ def _check_geometry(geom: 'BaseGeometry', method_name: str,
     """
     if geom.is_valid:
         return geom
-    # noinspection PyTypeChecker
-    geom = make_valid(geom, method=method_name)
+    geom = make_valid_structure(geom)
     if not geom.is_valid:
         return None
     geoms = [p for p in get_geoms_iter(geom)

@@ -25,7 +25,6 @@ from spyops.geometry.convert import (
     cast_linestrings, cast_multi_linestrings, cast_multi_points,
     cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
 from spyops.geometry.util import nada
-from spyops.shared.constant import M_ATTR, Z_ATTR
 from spyops.shared.enumeration import OutputTypeOption
 from spyops.environment.enumeration import Setting
 from spyops.environment.context import Swap
@@ -148,9 +147,9 @@ def test_cast_points(pt, has_z, has_m, values):
     assert len(results) == 1
     cpt, = results
     if has_m:
-        assert M_ATTR in cpt.__slots__
+        assert 'm' in cpt.__slots__
     if has_z:
-        assert Z_ATTR in cpt.__slots__
+        assert 'z' in cpt.__slots__
     coords = cpt.as_tuple()
     assert len(coords) == len(values)
     assert approx(coords, nan_ok=True) == values

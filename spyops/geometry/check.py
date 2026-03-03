@@ -13,13 +13,14 @@ from fudgeo.enumeration import ShapeType
 from fudgeo.util import get_extent
 from numpy import array, isclose, isfinite, isnan
 from shapely import LineString as ShapelyLineString, Polygon as ShapelyPolygon
+from shapely.constructive import make_valid
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_ccw, is_closed, is_valid
 
 from spyops.geometry.util import find_slice_indexes
 from spyops.shared.enumeration import GeometryCheck
-from spyops.shared.hint import GRID_SIZE
+from spyops.shared.hint import FEATURES, GRID_SIZE
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,11 +31,9 @@ if TYPE_CHECKING:  # pragma: no cover
         MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon, MultiPolygonM,
         MultiPolygonZ, MultiPolygonZM, PointM, PointZ, PointZM, Polygon,
         PolygonM, PolygonZ, PolygonZM)
-    from fudgeo.geometry.base import AbstractGeometry
 
 
 RECORDS: TypeAlias = list[tuple[int, str]]
-FEATURES: TypeAlias = list[tuple['AbstractGeometry', int]]
 
 
 def check_feature_class_geometry(source: 'FeatureClass', options: GeometryCheck,
@@ -238,12 +237,20 @@ def _get_polygon_state(polygon: 'Polygon') \
     has_bad_point_count = any(len(coord) < count for coord in coords)
     if not (coords := [coord for coord in coords if len(coord) >= count]):
         return False, False, False, False, False, has_bad_point_count
-    lines = [ShapelyLineString(coord) for coord in coords]
+    # NOTE use built-in make valid since we only care about XY,
+    #  not concerned about retaining measures
+    lines = make_valid([ShapelyLineString(coord) for coord in coords],
+                       method='structure', keep_collapsed=False)
     # NOTE purposely perform is_closed on lines
     has_unclosed = not is_closed(lines).all()
+    polys = []
+    for line in lines:
+        try:
+            polys.append(ShapelyPolygon(line))
+        except ValueError:
+            continue
     # NOTE shapely documentation says is_simple will be True for Polygons and
     #  suggests using is_valid instead, hopefully this finds self intersections
-    polys = [ShapelyPolygon(line) for line in lines]
     has_self_intersection = not is_valid(polys).all()
     ccw = is_ccw(lines)
     if len(polys) <= 1:

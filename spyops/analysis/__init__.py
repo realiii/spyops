@@ -15,15 +15,15 @@ from spyops.shared.enumeration import (
 
 __all__ = [
     'clip',
+    'erase',
+    'extract_features',
+    'extract_rows',
+    'intersect',
     'select',
     'split',
     'split_by_attributes',
-    'table_select',
-    'extract_rows',
-    'extract_features',
-    'erase',
-    'intersect',
     'symmetrical_difference',
+    'table_select',
     'union',
 
     'AlgorithmOption',

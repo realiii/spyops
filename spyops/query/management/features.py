@@ -5,9 +5,10 @@ Query Classes for management.features module
 
 
 from functools import cached_property, partial
-from operator import attrgetter, itemgetter
+from operator import itemgetter
 from typing import Callable, TYPE_CHECKING
 
+from fudgeo import Field
 from fudgeo.enumeration import ShapeType
 from shapely import get_num_coordinates, get_num_geometries
 
@@ -22,18 +23,17 @@ from spyops.geometry.attribute import (
 from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
-from spyops.shared.constant import (
-    LINES_ATTR, POINTS_ATTR, POLYGONS_ATTR, SQL_FULL)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
 from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.sql import SQL_ALL_ID
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass, Field, Table
+    from fudgeo import FeatureClass, Table
     from pyproj import CRS
 
 
@@ -90,7 +90,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             return self._make_intersection_query(
                 self.source, field_names=select_names)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_FULL)
+            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
     # End select property
 
     @property
@@ -118,21 +118,6 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
             self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
             transformer=transformer)
     # End source_transformer property
-
-    @property
-    def part_getter(self) -> attrgetter:
-        """
-        Part Getter
-        """
-        shape_type = self.source.shape_type
-        if shape_type == ShapeType.multi_point:
-            name = POINTS_ATTR
-        elif shape_type == ShapeType.multi_linestring:
-            name = LINES_ATTR
-        else:
-            name = POLYGONS_ATTR
-        return attrgetter(name)
-    # End part_getter property
 # End QueryMultiPartToSinglePart class
 
 
@@ -192,6 +177,96 @@ class QueryCheckGeometry(BaseQuerySelect):
 # End QueryCheckGeometry class
 
 
+class QueryRepairGeometry(AbstractSourceUpdateQuery):
+    """
+    Query for Repair Geometry
+    """
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'repair_geom'
+    # End _short_name property
+
+    def _prepare_source(self) -> None:
+        """
+        Source Preparation Steps
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        geom = Field(self.source.geometry_column_name,
+                     data_type=self.source.shape_type)
+        return ORIG_FID, geom
+    # End _intermediate_fields property
+
+    def _get_field_names(self) -> NAMES:
+        """
+        Get Field Names
+        """
+        orig_id, geom = self._intermediate_fields
+        return [geom.escaped_name]
+    # End _get_field_names method
+
+    @property
+    def drop_empty(self) -> str:
+        """
+        Drop Empty Features from Source Feature Class
+        """
+        name = self._intermediate_table
+        orig_id, _ = self._intermediate_fields
+        key_name = self.source.primary_key_field.escaped_name
+        return f"""
+            DELETE FROM {self.source.escaped_name} 
+            WHERE {key_name} IN (SELECT {orig_id.name} FROM {name})
+        """
+    # End drop_empty property
+
+    @property
+    def truncate(self) -> str:
+        """
+        Truncate Query for Intermediate Table
+        """
+        name = self._intermediate_table
+        return f"""DELETE FROM {name}"""
+    # End truncate method
+
+    @property
+    def insert_identifiers(self) -> str:
+        """
+        Insert Query for Identifiers
+        """
+        orig_id, _ = self._intermediate_fields
+        fields = [orig_id]
+        return self._make_insert(
+            self._intermediate_table,
+            field_names=make_field_names(fields), field_count=len(fields))
+    # End insert_identifiers property
+
+    @property
+    def update(self) -> str:
+        """
+        Update Query
+        """
+        field_names = self._get_field_names()
+        key_name, *from_field_names = [
+            f.escaped_name for f in self._intermediate_fields]
+        return self._make_update_from(
+            element_name=self.target.escaped_name,
+            key_name=self.target.primary_key_field.escaped_name,
+            field_names=field_names,
+            from_name=self._intermediate_table, from_key_name=key_name,
+            from_field_names=from_field_names)
+    # End update property
+# End QueryRepairGeometry class
+
+
 class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
@@ -218,7 +293,7 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
         Short Name
         """
         return 'add_xy_coords'
-    # End _stub property
+    # End _short_name property
 
     def _prepare_source(self) -> None:
         """
@@ -384,7 +459,7 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
         Short Name
         """
         return 'calc_geom_attrs'
-    # End _stub property
+    # End _short_name property
 
     def _prepare_source(self) -> None:
         """

@@ -65,8 +65,8 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 
 
 def to_shapely(features: list[tuple], transformer: Callable | None,
-               option: DimensionOption = DimensionOption.SAME) \
-        -> tuple[list[tuple], 'ndarray']:
+               *, option: DimensionOption = DimensionOption.SAME,
+               on_invalid: str = 'raise') -> tuple[list[tuple], 'ndarray']:
     """
     Convert to Shapely Geometry from Fudgeo Geometry, optionally changing
     geometry dimension by forcing to 2D or 3D and/or transforming.
@@ -74,7 +74,7 @@ def to_shapely(features: list[tuple], transformer: Callable | None,
     When a transformer is provided the geometries are transformed, validity
     checked, and valid geometries (and corresponding features) are returned.
     """
-    geometries = from_wkb([g.wkb for g, *_ in features])
+    geometries = from_wkb([g.wkb for g, *_ in features], on_invalid=on_invalid)
     if transformer:
         geometries = transformer(geometries)
         validity = get_validity(geometries, transformer)

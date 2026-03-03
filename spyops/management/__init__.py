@@ -8,7 +8,8 @@ from spyops.management.feature_class import (
     create_feature_class, recalculate_feature_class_extent)
 from spyops.management.features import (
     add_xy_coordinates, calculate_geometry_attributes, check_geometry,
-    copy_features, delete_features, explode, multipart_to_singlepart)
+    copy_features, delete_features, explode, multipart_to_singlepart,
+    repair_geometry)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete
@@ -22,36 +23,37 @@ from spyops.shared.enumeration import (
 
 
 __all__ = [
-    'multipart_to_singlepart',
-    'explode',
-    'add_spatial_index',
-    'remove_spatial_index',
-    'get_count',
-    'create_table',
-    'copy',
-    'recalculate_feature_class_extent',
-    'delete',
-    'delete_rows',
-    'delete_features',
-    'copy_features',
-    'truncate_table',
     'add_attribute_index',
-    'remove_attribute_index',
-    'delete_field',
     'add_field',
-    'calculate_field',
-    'create_feature_class',
-    'alter_field',
+    'add_spatial_index',
     'add_xy_coordinates',
+    'alter_field',
+    'calculate_field',
     'calculate_geometry_attributes',
     'check_geometry',
+    'copy',
+    'copy_features',
+    'create_feature_class',
+    'create_table',
+    'delete',
+    'delete_features',
+    'delete_field',
+    'delete_rows',
+    'explode',
+    'get_count',
+    'multipart_to_singlepart',
+    'recalculate_feature_class_extent',
+    'remove_attribute_index',
+    'remove_spatial_index',
+    'repair_geometry',
+    'truncate_table',
 
     'AreaUnit',
-    'LengthUnit',
-    'GeometryAttribute',
-    'WeightOption',
     'FieldProperty',
+    'GeometryAttribute',
     'GeometryCheck',
+    'LengthUnit',
+    'WeightOption',
 ]
 
 

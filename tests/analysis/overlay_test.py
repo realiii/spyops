@@ -13,7 +13,7 @@ from spyops.analysis.overlay import (
     erase, intersect, symmetrical_difference, union)
 from spyops.environment import Extent
 from spyops.environment.core import zm_config
-from spyops.shared.constant import EPSG
+from spyops.crs.constant import EPSG
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)

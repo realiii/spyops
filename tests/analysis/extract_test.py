@@ -19,7 +19,7 @@ from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from spyops.shared.constant import EPSG, ESRI
+from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
 from tests.util import UseGrids

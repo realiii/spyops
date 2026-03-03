@@ -28,8 +28,7 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
-    DOT, EMPTY, IN, NOT_IN, QUESTION, SKIP_FILE_PREFIXES, SQL_EMPTY, SQL_FULL,
-    TEMP_SCHEMA, UNDERSCORE)
+    DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -37,6 +36,7 @@ from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID, TEMP_SCHEMA
 from spyops.shared.util import make_unique_name
 
 
@@ -298,7 +298,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         """
         Make Full Query, return all features
         """
-        where = self._get_extent_where(element) or SQL_FULL
+        where = self._get_extent_where(element) or SQL_ALL_ID
         *_, field_names = self._field_names_and_count(element)
         return self._make_select(
             element, field_names=field_names, where_clause=where)
@@ -324,10 +324,10 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         if not self.has_intersection:
             return self._make_select(
                 element, field_names=field_names,
-                where_clause=extent_where or SQL_FULL)
+                where_clause=extent_where or SQL_ALL_ID)
         if not (where := self._spatial_index_where(
                 element, extent=self._shared_extent(element))):  # pragma: no cover
-            return extent_where or SQL_FULL
+            return extent_where or SQL_ALL_ID
         where = where.format(NOT_IN)
         if extent_where:
             where = f'({where}) AND ({extent_where})'
@@ -353,12 +353,12 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         extent_where = self._get_extent_where(element)
         if not self.has_intersection:
             return self._make_select(
-                element, field_names=field_names, where_clause=SQL_EMPTY)
+                element, field_names=field_names, where_clause=SQL_NO_ID)
         if where := self._spatial_index_where(
                 element, extent=self._shared_extent(element)):
             clauses = extent_where, where.format(IN), where_clause
         else:  # pragma: no cover
-            clauses = extent_where, where_clause or SQL_FULL
+            clauses = extent_where, where_clause or SQL_ALL_ID
         where = ' AND '.join(f'({w})' for w in clauses if w)
         return self._make_select(
             element, field_names=field_names, where_clause=where)
@@ -449,7 +449,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         Full Copy of the Source Feature Class
         """
         return copy_feature_class(
-            self.source, target=self._target, where_clause=SQL_FULL,
+            self.source, target=self._target, where_clause=SQL_ALL_ID,
             zm=self.zm_config)
     # End target_full property
 # End AbstractSourceQuery class
@@ -491,7 +491,7 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         Short Name
         """
         pass
-    # End _stub property
+    # End _short_name property
 
     @abstractmethod
     def _prepare_source(self) -> None:
@@ -586,7 +586,7 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
             return self._make_intersection_query(
                 self.source, field_names=select_names)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_FULL)
+            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
     # End select property
 
     @property
@@ -703,8 +703,7 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         elm = self.operator
         *_, field_names = self._field_names_and_count(elm)
-        return self._make_intersection_query(
-            elm, field_names=field_names)
+        return self._make_intersection_query(elm, field_names=field_names)
     # End select_operator property
 
     @property
@@ -914,7 +913,7 @@ class BaseQuerySelect(AbstractSourceQuery):
         """
         elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_FULL
+        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 elm, field_names=select_field_names, where_clause=where_clause)

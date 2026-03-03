@@ -13,7 +13,7 @@ from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
 
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, nada
 from spyops.shared.enumeration import OutputTypeOption
 

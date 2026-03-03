@@ -16,8 +16,8 @@ from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption,
     Setting)
-from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
-from spyops.shared.constant import CUSTOM_UPPER
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
+from spyops.crs.constant import CUSTOM_UPPER
 from spyops.shared.element import (
     copy_element, copy_feature_class,
     create_feature_class)

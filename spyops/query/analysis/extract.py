@@ -14,9 +14,10 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
     AbstractQuery, AbstractSpatialQuery, BaseQuerySelect)
-from spyops.shared.constant import EMPTY, IN
+from spyops.shared.constant import EMPTY
 from spyops.shared.field import make_field_names
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS
+from spyops.shared.sql import IN
 
 
 if TYPE_CHECKING:  # pragma: no cover

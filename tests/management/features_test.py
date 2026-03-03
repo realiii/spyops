@@ -17,12 +17,12 @@ from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
-from spyops.geometry.constant import FUDGEO_GEOMETRY_LOOKUP
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, multipart_to_singlepart)
-from spyops.management.features import check_geometry
-from spyops.shared.constant import EPSG, ESRI
+from spyops.management.features import check_geometry, repair_geometry
+from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
     GeometryAttribute, GeometryCheck, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
@@ -1099,6 +1099,80 @@ class TestCheckGeometry:
         assert tuple(counter[n] for n in names) == counts
     # End test_check_coordinates_with_tolerance method
 # End TestCheckGeometry class
+
+
+class TestRepairGeometry:
+    """
+    Test Repair Geometry
+    """
+    @mark.parametrize('fc_name, pre_count, post_count, expected_reasons', [
+        ('point_p', 4, 4, ['Empty Point'] * 4),
+        ('linestring_l', 1, 5, [
+            'Empty LineString', 'Single Point LineString',
+            'Mixed Points LineString', 'Single Empty Point LineString',
+            'Multiple Empty Points LineString']),
+        ('polygon_a', 3, 10, [
+            'Empty Polygon', 'Multiple Empty Rings Polygon',
+            'Empty Exterior Regular Rings Polygon',
+            'Single Point Polygon', 'Two Point Polygon',
+            'Three Point Polygon Collinear', 'Four Point Polygon Collinear',
+            'Single Point Interior Ring Polygon',
+            'Empty Points Exterior Becomes Invalid Polygon',
+            'Empty Points Interior and Exterior Become Invalid Polygon']),
+        ('multipoint_mp', 1, 1, ['Empty MultiPoint']),
+        ('multilinestring_ml', 2, 6, [
+            'Empty MultiLineString', 'Single Point MultiLineString',
+            'Mixed Points MultiLineString',
+            'Single Empty Point MultiLineString',
+            'Multiple Empty Points MultiLineString',
+            'Multiple Empty MultiLineString']),
+        ('multipolygon_ma', 5, 12, [
+            'Empty MultiPolygon', 'Multiple Empty Rings MultiPolygon',
+            'Empty Exterior Regular Rings MultiPolygon',
+            'Single Point MultiPolygon', 'Two Point MultiPolygon',
+            'Three Point MultiPolygon Collinear',
+            'Four Point MultiPolygon Collinear',
+            'Single Point Interior Ring MultiPolygon',
+            'Empty Points Exterior Becomes Invalid MultiPolygon',
+            'Empty Points Interior and Exterior Become Invalid MultiPolygon',
+            'Empty MultiPolygon', 'Multiple Empty Part MultiPolygon']
+         ),
+    ])
+    def test_repair_geometry_no_drop(self, check_repair, mem_gpkg, fc_name,
+                                     pre_count, post_count, expected_reasons):
+        """
+        Test Repair Geometry No Drop
+        """
+        source = check_repair[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        geoms = [g for g, in source.select().fetchall()]
+        assert sum([g.is_empty for g in geoms]) == pre_count
+        repair_geometry(source, drop_empty=False)
+        records = source.select(fields=['REASON']).fetchall()
+        assert sum([g.is_empty for g, _ in records]) == post_count
+        reasons = [reason for g, reason in records if g.is_empty]
+        assert reasons == expected_reasons
+    # End test_repair_geometry_no_drop method
+
+    @mark.parametrize('fc_name, pre_count, post_count', [
+        ('point_p', 14, 10),
+        ('linestring_l', 18, 13),
+        ('polygon_a', 21, 11),
+        ('multipoint_mp', 14, 11),
+        ('multilinestring_ml', 20, 14),
+        ('multipolygon_ma', 25, 13),
+    ])
+    def test_repair_geometry_drop_empty(self, check_repair, mem_gpkg, fc_name,
+                                        pre_count, post_count):
+        """
+        Test Repair Geometry Drop Empty
+        """
+        source = check_repair[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
+        assert len(source) == pre_count
+        repair_geometry(source, drop_empty=True)
+        assert sum([g.is_empty for g, in source.select().fetchall()]) == 0
+        assert len(source) == post_count
+    # End test_repair_geometry_drop_empty method
+# End TestRepairGeometry class
 
 
 if __name__ == '__main__':  # pragma: no cover

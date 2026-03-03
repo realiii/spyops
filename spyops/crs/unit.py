@@ -9,9 +9,9 @@ from typing import Optional, TYPE_CHECKING
 
 from pyproj.database import get_units_map
 
+from spyops.crs.constant import EPSG
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.util import get_crs_horizontal_component
-from spyops.shared.constant import EPSG
 
 
 if TYPE_CHECKING:  # pragma: no cover

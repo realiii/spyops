@@ -8,9 +8,10 @@ from typing import Self
 
 from pyproj import CRS
 
-from spyops.shared.constant import (
-    AUTHORITY_KEY, CODE_KEY, COLON, CUSTOM_UPPER, EMPTY, EPSG, ESRI, ID_KEY,
-    NONE, PLUS, UNKNOWN, ZERO_STR)
+from spyops.crs.constant import (
+    AUTHORITY_KEY, CODE_KEY, CUSTOM_UPPER, EPSG, ESRI, ID_KEY, NONE, UNKNOWN,
+    ZERO_STR)
+from spyops.shared.constant import COLON, EMPTY, PLUS
 
 
 def authorities() -> set[str]:

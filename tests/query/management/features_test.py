@@ -16,7 +16,7 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry, QueryMultiPartToSinglePart)
+    QueryCheckGeometry, QueryMultiPartToSinglePart, QueryRepairGeometry)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
@@ -339,6 +339,65 @@ class TestQueryCheckGeometry:
         assert '(ORIG_FID, REASON)' in sql
     # End test_insert method
 # End TestQueryCheckGeometry class
+
+
+class TestQueryRepairGeometry:
+    """
+    Test QueryRepairGeometry
+    """
+    def test_insert(self, world_features):
+        """
+        Test insert
+        """
+        source = world_features['admin_a']
+        query = QueryRepairGeometry(source)
+        sql = query.insert
+        assert '(ORIG_FID, SHAPE)' in sql
+    # End test_insert method
+
+    def test_insert_identifiers(self, world_features):
+        """
+        Test insert identifiers
+        """
+        source = world_features['admin_a']
+        query = QueryRepairGeometry(source)
+        sql = query.insert_identifiers
+        assert '(ORIG_FID)' in sql
+    # End test_insert_identifiers method
+
+    def test_update(self, world_features):
+        """
+        Test update query
+        """
+        source = world_features['admin_a']
+        query = QueryRepairGeometry(source)
+        sql = query.update
+        assert 'SET SHAPE = ' in sql
+        assert '.SHAPE' in sql
+        assert 'FROM temp.tmp_admin_a_repair_geom_20' in sql
+    # End test_update method
+
+    def test_drop_empty(self, world_features):
+        """
+        Test drop_empty
+        """
+        source = world_features['admin_a']
+        query = QueryRepairGeometry(source)
+        sql = query.drop_empty
+        assert 'WHERE fid IN (' in sql
+        assert 'SELECT ORIG_FID FROM temp.tmp_admin_a_repair_geom_20' in sql
+    # End test_drop_empty method
+
+    def test_truncate(self, world_features):
+        """
+        Test truncate
+        """
+        source = world_features['admin_a']
+        query = QueryRepairGeometry(source)
+        sql = query.truncate
+        assert 'DELETE FROM temp.tmp_admin_a_repair_geom_20' in sql
+    # End test_truncate method
+# End TestQueryRepairGeometry class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -24,11 +24,12 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
-from spyops.shared.constant import SQL_EMPTY, UNDERSCORE
+from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import (
     ELEMENT, FIELDS, FIELD_NAMES, GPKG, GRID_SIZE, XY_TOL)
 from spyops.shared.records import bulk_insert, extend_records
+from spyops.shared.sql import SQL_NO_ID
 from spyops.shared.util import (
     element_names, make_unique_name, make_valid_name)
 
@@ -120,7 +121,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             name = make_valid_name(name, prefix=source_name)
             name = make_unique_name(name, names=target_names)
             element = copy_element(
-                source=source, where_clause=SQL_EMPTY,
+                source=source, where_clause=SQL_NO_ID,
                 target=cls(geopackage=geopackage, name=name))
             elements[tuple(group)] = element
             cursor = cin.execute(query_select, (i,))

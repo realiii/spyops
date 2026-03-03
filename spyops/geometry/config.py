@@ -17,9 +17,9 @@ from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.linear import line_merge
 
-from spyops.geometry.constant import (
-    FUDGEO_GEOMETRY_LOOKUP, SHAPELY_GEOMETRY_LOOKUP)
 from spyops.geometry.convert import GEOMETRY_CAST
+from spyops.geometry.lookup import (
+    FUDGEO_GEOMETRY_LOOKUP, SHAPELY_GEOMETRY_LOOKUP)
 from spyops.geometry.util import get_geoms, nada
 from spyops.geometry.wa import USE_WORKAROUNDS
 from spyops.shared.constant import (

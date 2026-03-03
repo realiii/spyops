@@ -161,14 +161,14 @@ wheels = [
 
 [[package]]
 name = "fudgeo"
-version = "1.5.5"
+version = "1.5.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bottleneck" },
     { name = "numpy" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/e8/9fefbe52810fd6d42bb06f3d0c8768b22d9c96e6e5e2cb565fb15bbbd7c0/fudgeo-1.5.5-py3-none-any.whl", hash = "sha256:e0e32d8bcf58d161f0ed530823e083baca1e1d25b062bb79bb0f83d35fb64bee", size = 59931, upload-time = "2026-02-23T19:54:33.231Z" },
+    { url = "https://files.pythonhosted.org/packages/55/c0/7930b34d21fd4f3956cfb0b766f54bf39680d523d3d6c73842b00bd3a394/fudgeo-1.5.7-py3-none-any.whl", hash = "sha256:60b8f363f75500f58565ca11e4c009e4f43152403990d98347e01fd7ec81ed91", size = 60106, upload-time = "2026-03-03T14:36:04.872Z" },
 ]
 
 [[package]]
@@ -424,7 +424,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fudgeo", specifier = ">=1.5.5" },
+    { name = "fudgeo", specifier = ">=1.5.7" },
     { name = "numpy", specifier = ">=2.4.2" },
     { name = "pyproj", specifier = ">=3.7.2" },
     { name = "shapely", specifier = ">=2.1.2" },
