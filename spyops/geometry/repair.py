@@ -30,7 +30,7 @@ if TYPE_CHECKING:  # pragma: no cover
 DELETES: TypeAlias = list[int]
 EMPTIES: TypeAlias = list[int]
 UPDATES: TypeAlias = list[tuple[
-    Optional[Union['BaseGeometry', 'BaseMultipartGeometry']], int]]
+    int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
 
 
 def repair_feature_class_geometry(source: 'FeatureClass') \
@@ -94,7 +94,7 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
             if geom is None or geom.is_empty:
                 empties.append(fid)
             else:
-                updates.append((geom, fid))
+                updates.append((fid, geom))
 # End _repair_multi_points function
 
 
@@ -159,7 +159,7 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
             if geom is None or geom.is_empty:
                 empties.append(fid)
             else:
-                updates.append((geom, fid))
+                updates.append((fid, geom))
 # End _repair_polygons function
 
 
@@ -177,7 +177,7 @@ def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
             empties.append(fid)
         else:
             geom = MultiLineString(parts)
-            updates.append((geom, fid))
+            updates.append((fid, geom))
 # End _repair_multi_linestrings function
 
 
@@ -195,7 +195,7 @@ def _repair_multi_polygons(geoms: 'ndarray', ids: 'ndarray', *,
             empties.append(fid)
         else:
             geom = MultiPolygon(parts)
-            updates.append((geom, fid))
+            updates.append((fid, geom))
 # End _repair_multi_polygons function
 
 
@@ -315,7 +315,7 @@ def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
     """
     mask = is_empty(geoms) | _make_none_mask(geoms)
     empties.extend(ids[mask])
-    updates.extend(list(zip(geoms[~mask], ids[~mask])))
+    updates.extend(list(zip(ids[~mask], geoms[~mask])))
 # End _track_updates_empties function
 
 
@@ -342,6 +342,7 @@ GEOMETRY_REPAIRER: dict[str, Callable] = {
     ShapeType.polygon: _repair_polygons,
     ShapeType.multi_polygon: _repair_multi_polygons,
 }
+
 
 if __name__ == '__main__':  # pragma: no cover
     pass
