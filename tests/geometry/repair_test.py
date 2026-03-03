@@ -278,10 +278,10 @@ class TestRings:
 @mark.parametrize('fc_name, expected', [
     ('point_p', 4),
     ('linestring_l', 1),
-    ('polygon_a', 1),
+    ('polygon_a', 3),
     ('multipoint_mp', 1),
-    ('multilinestring_ml', 1),
-    ('multipolygon_ma', 1),
+    ('multilinestring_ml', 2),
+    ('multipolygon_ma', 5),
 ])
 def test_empty_query(check_repair, fc_name, expected):
     """
