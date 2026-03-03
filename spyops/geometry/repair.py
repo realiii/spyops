@@ -18,7 +18,7 @@ from shapely.predicates import is_empty, is_valid, is_valid_reason
 from spyops.geometry.constant import (
     REASON_HOLE_OUTSIDE_SHELL, REASON_INVALID_COORDINATE,
     REASON_SELF_INTERSECTION, REASON_TOO_FEW_POINTS, REASON_VALID_GEOMETRY)
-from spyops.geometry.lookup import SHAPELY_GEOMETRY_LOOKUP
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import make_valid_structure
 
@@ -54,23 +54,31 @@ def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
     updates = []
     deletes = []
     empties = []
+    has_z = source.has_z
     has_m = source.has_m
     shape_type = source.shape_type
     repairer = GEOMETRY_REPAIRER[shape_type]
-    kwargs = dict(deletes=deletes, updates=updates,
-                  empties=empties, has_m=has_m)
+    srs_id = source.spatial_reference_system.srs_id
+    cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
+    kwargs = dict(deletes=deletes, updates=updates, empties=empties,
+                  has_m=has_m)
     cursor = source.select(include_primary=True)
     while features := cursor.fetchmany(FETCH_SIZE):
         features, geometries = to_shapely(
             features, transformer=None, on_invalid='fix')
         ids = array([fid for _, fid in features], dtype=int)
         repairer(geometries, ids=ids, **kwargs)
+    updates = [(fid, cls.from_wkb(geom.wkb, srs_id=srs_id))
+               for fid, geom in updates]
     identifiers = []
     if drop_empty:
         identifiers.extend(deletes)
         identifiers.extend(empties)
     else:
-        empty = SHAPELY_GEOMETRY_LOOKUP[shape_type][int(source.is_multi_part)]()
+        if shape_type == ShapeType.point:
+            empty = cls.empty(srs_id=srs_id)
+        else:
+            empty = cls([], srs_id=srs_id)
         updates.extend([(fid, empty) for fid in empties])
     return updates, identifiers
 # End repair_feature_class_geometry function
