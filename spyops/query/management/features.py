@@ -177,6 +177,96 @@ class QueryCheckGeometry(BaseQuerySelect):
 # End QueryCheckGeometry class
 
 
+class QueryRepairGeometry(AbstractSourceUpdateQuery):
+    """
+    Query for Repair Geometry
+    """
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'repair_geom'
+    # End _short_name property
+
+    def _prepare_source(self) -> None:
+        """
+        Source Preparation Steps
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        geom = Field(self.source.geometry_column_name,
+                     data_type=self.source.shape_type)
+        return ORIG_FID, geom
+    # End _intermediate_fields property
+
+    def _get_field_names(self) -> NAMES:
+        """
+        Get Field Names
+        """
+        orig_id, geom = self._intermediate_fields
+        return [geom.escaped_name]
+    # End _get_field_names method
+
+    @property
+    def drop_empty(self) -> str:
+        """
+        Drop Empty Features from Source Feature Class
+        """
+        name = self._intermediate_table
+        orig_id, _ = self._intermediate_fields
+        key_name = self.source.primary_key_field.escaped_name
+        return f"""
+            DELETE FROM {self.source.escaped_name} 
+            WHERE {key_name} IN (SELECT {orig_id.name} FROM {name})
+        """
+    # End drop_empty property
+
+    @property
+    def truncate(self) -> str:
+        """
+        Truncate Query for Intermediate Table
+        """
+        name = self._intermediate_table
+        return f"""DELETE FROM {name}"""
+    # End truncate method
+
+    @property
+    def insert_identifiers(self) -> str:
+        """
+        Insert Query for Identifiers
+        """
+        orig_id, _ = self._intermediate_fields
+        fields = [orig_id]
+        return self._make_insert(
+            self._intermediate_table,
+            field_names=make_field_names(fields), field_count=len(fields))
+    # End insert_identifiers property
+
+    @property
+    def update(self) -> str:
+        """
+        Update Query
+        """
+        field_names = self._get_field_names()
+        key_name, *from_field_names = [
+            f.escaped_name for f in self._intermediate_fields]
+        return self._make_update_from(
+            element_name=self.target.escaped_name,
+            key_name=self.target.primary_key_field.escaped_name,
+            field_names=field_names,
+            from_name=self._intermediate_table, from_key_name=key_name,
+            from_field_names=from_field_names)
+    # End update property
+# End QueryRepairGeometry class
+
+
 class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
