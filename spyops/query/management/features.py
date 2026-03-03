@@ -8,6 +8,7 @@ from functools import cached_property, partial
 from operator import itemgetter
 from typing import Callable, TYPE_CHECKING
 
+from fudgeo import Field
 from fudgeo.enumeration import ShapeType
 from shapely import get_num_coordinates, get_num_geometries
 
@@ -32,7 +33,7 @@ from spyops.shared.sql import SQL_ALL_ID
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass, Field, Table
+    from fudgeo import FeatureClass, Table
     from pyproj import CRS
 
 
