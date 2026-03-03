@@ -25,18 +25,18 @@ class TestCheckFeatureClassGeometry:
           'POINT_COUNT': 2, 'REPEATED_XY': 1}),
         ('polygon_a',
          {'EMPTY': 3, 'EMPTY_POINT': 4, 'EMPTY_RING': 1, 'EXTENT': 1,
-          'ORIENTATION': 14, 'OUTSIDE_RING': 1, 'OVERLAP_RING': 1,
+          'ORIENTATION': 15, 'OUTSIDE_RING': 1, 'OVERLAP_RING': 1,
           'POINT_COUNT': 5, 'REPEATED_XY': 7, 'SELF_INTERSECTION': 4,
-          'UNCLOSED': 6}),
+          'UNCLOSED': 7}),
         ('multipoint_mp', {'EXTENT': 1, 'EMPTY': 1, 'EMPTY_POINT': 3}),
         ('multilinestring_ml',
          {'EMPTY': 2, 'EMPTY_PART': 1, 'EMPTY_POINT': 5, 'EXTENT': 1,
           'POINT_COUNT': 3}),
         ('multipolygon_ma',
          {'EMPTY': 5, 'EMPTY_PART': 1, 'EMPTY_POINT': 5, 'EMPTY_RING': 1,
-          'EXTENT': 1, 'ORIENTATION': 16, 'OUTSIDE_RING': 1, 'OVERLAP_RING': 1,
+          'EXTENT': 1, 'ORIENTATION': 17, 'OUTSIDE_RING': 1, 'OVERLAP_RING': 1,
           'POINT_COUNT': 5, 'REPEATED_XY': 8, 'SELF_INTERSECTION': 4,
-          'UNCLOSED': 6}),
+          'UNCLOSED': 7}),
     ])
     def test_check_repair(self, check_repair, fc_name, counts):
         """
