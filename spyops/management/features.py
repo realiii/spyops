@@ -39,7 +39,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 __all__ = ['multipart_to_singlepart', 'explode', 'delete_features',
-           'copy_features', 'add_xy_coordinates',
+           'copy_features', 'add_xy_coordinates', 'repair_geometry',
            'calculate_geometry_attributes', 'check_geometry']
 
 
