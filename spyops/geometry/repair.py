@@ -18,6 +18,7 @@ from shapely.predicates import is_empty, is_valid, is_valid_reason
 from spyops.geometry.constant import (
     REASON_HOLE_OUTSIDE_SHELL, REASON_INVALID_COORDINATE,
     REASON_SELF_INTERSECTION, REASON_TOO_FEW_POINTS, REASON_VALID_GEOMETRY)
+from spyops.geometry.lookup import SHAPELY_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa import make_valid_structure
 
@@ -64,7 +65,14 @@ def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
             features, transformer=None, on_invalid='fix')
         ids = array([fid for _, fid in features], dtype=int)
         repairer(geometries, ids=ids, **kwargs)
-    return deletes, updates, empties
+    identifiers = []
+    if drop_empty:
+        identifiers.extend(deletes)
+        identifiers.extend(empties)
+    else:
+        empty = SHAPELY_GEOMETRY_LOOKUP[shape_type][int(source.is_multi_part)]()
+        updates.extend([(fid, empty) for fid in empties])
+    return updates, identifiers
 # End repair_feature_class_geometry function
 
 
