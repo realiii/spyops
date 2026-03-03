@@ -12,7 +12,7 @@ from fudgeo.enumeration import ShapeType
 from numpy import array
 from shapely import (
     LineString, MultiLineString, MultiPolygon, Polygon, get_num_points)
-from shapely.constructive import make_valid
+from shapely.constructive import make_valid, orient_polygons
 from shapely.predicates import is_empty, is_valid, is_valid_reason
 
 from spyops.geometry.constant import (
@@ -126,7 +126,8 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     """
     reason_strings = REASON_INVALID_COORDINATE,
     geoms, ids, reasons = _capture_valid_and_empty(
-        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
+        geoms, ids=ids, deletes=deletes, updates=updates,
+        empties=empties, fixer=None)
     if not has_m:
         mask = [reason.startswith(reason_strings) for reason in reasons]
         _track_updates_empties(
@@ -150,23 +151,25 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     """
     Repair Polygons, removes empty points, removes empty rings, closes rings,
     resolves overlapping interior rings, resolves interior rings outside of
-    the exterior ring, and fixes self-intersections.
+    the exterior ring, fixes self-intersections, and uses OGC orientation rules.
     """
     reason_strings = (REASON_INVALID_COORDINATE,
                       REASON_SELF_INTERSECTION,
                       REASON_HOLE_OUTSIDE_SHELL)
+    fixer = orient_polygons
     geoms, ids, reasons = _capture_valid_and_empty(
-        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
+        geoms, ids=ids, deletes=deletes, updates=updates,
+        empties=empties, fixer=fixer)
     if not has_m:
         mask = [reason.startswith(reason_strings) for reason in reasons]
         valid = _make_valid(geoms[mask])
         valid[:] = [get_geoms_iter(geom)[0] for geom in valid]
         _track_updates_empties(
-            valid, ids=ids[mask], updates=updates, empties=empties)
+            fixer(valid), ids=ids[mask], updates=updates, empties=empties)
         mask = [reason.startswith(REASON_TOO_FEW_POINTS) for reason in reasons]
         geoms[mask] = [_correct_polygon(geom) for geom in geoms[mask]]
         _track_updates_empties(
-            geoms[mask], ids=ids[mask], updates=updates, empties=empties)
+            fixer(geoms[mask]), ids=ids[mask], updates=updates, empties=empties)
     else:
         for fid, geom, reason in zip(ids, geoms, reasons):
             if reason.startswith(reason_strings):
@@ -176,7 +179,7 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
             if geom is None or geom.is_empty:
                 empties.append(fid)
             else:
-                updates.append((fid, geom))
+                updates.append((fid, fixer(geom)))
 # End _repair_polygons function
 
 
@@ -187,14 +190,14 @@ def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
     Repair MultiLineStrings
     """
     geoms, ids, _ = _capture_valid_and_empty(
-        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
+        geoms, ids=ids, deletes=deletes, updates=updates,
+        empties=empties, fixer=None)
     for fid, geom in zip(ids, geoms):
         # noinspection PyTypeChecker
         if not (parts := _fix_linestring_parts(get_geoms_iter(geom))):
             empties.append(fid)
         else:
-            geom = MultiLineString(parts)
-            updates.append((fid, geom))
+            updates.append((fid, MultiLineString(parts)))
 # End _repair_multi_linestrings function
 
 
@@ -202,17 +205,18 @@ def _repair_multi_polygons(geoms: 'ndarray', ids: 'ndarray', *,
                            deletes: DELETES, updates: UPDATES,
                            empties: EMPTIES, **kwargs) -> None:
     """
-    Repair MultiLineStrings
+    Repair MultiPolygons
     """
+    fixer = orient_polygons
     geoms, ids, _ = _capture_valid_and_empty(
-        geoms, ids=ids, deletes=deletes, updates=updates, empties=empties)
+        geoms, ids=ids, deletes=deletes, updates=updates,
+        empties=empties, fixer=fixer)
     for fid, geom in zip(ids, geoms):
         # noinspection PyTypeChecker
         if not (parts := _fix_polygon_parts(get_geoms_iter(geom))):
             empties.append(fid)
         else:
-            geom = MultiPolygon(parts)
-            updates.append((fid, geom))
+            updates.append((fid, fixer(MultiPolygon(parts))))
 # End _repair_multi_polygons function
 
 
@@ -290,8 +294,9 @@ def _make_none_mask(values: 'ndarray') -> 'ndarray':
 # End _make_none_mask function
 
 
-def _capture_valid_and_empty(geoms: 'ndarray', ids: 'ndarray', deletes: DELETES,
-                             updates: UPDATES, empties: EMPTIES) \
+def _capture_valid_and_empty(geoms: 'ndarray', *, ids: 'ndarray',
+                             deletes: DELETES, updates: UPDATES,
+                             empties: EMPTIES,  fixer: Optional[Callable]) \
         -> tuple['ndarray', 'ndarray', 'ndarray']:
     """
     Capture Valid and Empty Geometries
@@ -302,6 +307,8 @@ def _capture_valid_and_empty(geoms: 'ndarray', ids: 'ndarray', deletes: DELETES,
     # NOTE captures any fixes that were made during wkb conversion
     mask = array([reason.startswith(REASON_VALID_GEOMETRY)
                   for reason in reasons], dtype=bool)
+    if fixer:
+        geoms[mask] = fixer(geoms[mask])
     _track_updates_empties(
         geoms[mask], ids=ids[mask], updates=updates, empties=empties)
     geoms = geoms[~mask]
