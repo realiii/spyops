@@ -174,6 +174,7 @@ class ValidateGeometryAttribute(AbstractValidateType):
             attribute = check_str_enum(
                 kwargs[self._enum_name], enum=GeometryAttribute)
             self._validate_value(source, attribute)
+            kwargs[self._enum_name] = attribute
             return func(**kwargs)
         # End wrapper function
         return wrapper
