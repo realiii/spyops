@@ -8,7 +8,7 @@ from functools import partial
 
 from spyops.shared.constant import OPERATOR, SOURCE, TARGET
 from spyops.validation.container import ValidateGeopackage
-from spyops.validation.crs import ValidateCRS
+from spyops.validation.crs import ValidateCRS, ValidateCoordinateSystem
 from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateOverwriteInput, ValidateTable)
@@ -21,6 +21,7 @@ from spyops.validation.setting import ValidateXYTolerance
 
 
 # NOTE aliases, decorators look better as snake case
+validate_coordinate_system = ValidateCoordinateSystem
 validate_crs = ValidateCRS
 validate_element = ValidateElement
 validate_elements = ValidateElements
