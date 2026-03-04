@@ -24,14 +24,16 @@ from spyops.shared.constant import (
     WEIGHT_OPTION)
 from spyops.shared.enumeration import (
     DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, WeightOption)
-from spyops.shared.field import GEOM_TYPE_MULTI, NUMBERS
+from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import ELEMENT, XY_TOL
 from spyops.shared.records import insert_many, select_and_transform_features
 from spyops.validation import (
-    validate_element, validate_int_flag_enumeration, validate_str_enumeration,
-    validate_feature_class, validate_field, validate_geometry_attribute,
-    validate_overwrite_source, validate_result, validate_source_feature_class,
-    validate_target_feature_class, validate_target_table, validate_xy_tolerance)
+    validate_coordinate_system, validate_element, validate_int_flag_enumeration,
+    validate_source_element, validate_source_numeric_field,
+    validate_str_enumeration, validate_feature_class,
+    validate_geometry_attribute, validate_overwrite_source, validate_result,
+    validate_source_feature_class, validate_target_feature_class,
+    validate_target_table, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -146,7 +148,7 @@ def add_xy_coordinates(source: 'FeatureClass', *,
 
 @validate_result()
 @validate_source_feature_class()
-@validate_field(FIELD, single=True, element_name=SOURCE, data_types=NUMBERS)
+@validate_source_numeric_field(FIELD)
 @validate_str_enumeration(GEOMETRY_ATTRIBUTE, GeometryAttribute)
 @validate_str_enumeration(WEIGHT_OPTION, WeightOption)
 @validate_str_enumeration(LENGTH_UNIT, LengthUnit)
