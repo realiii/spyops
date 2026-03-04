@@ -112,6 +112,10 @@ class ValidateCoordinateSystem(AbstractValidateType):
             if not isinstance(crs, self._types):
                 raise TypeError(
                     f'{self._name} must be a CRS or SpatialReferenceSystem')
+            if _check_supported_crs(crs, name=self._name) is None:
+                raise CoordinateSystemNotSupportedError(
+                    'Specified coordinate system is an unsupported, '
+                    'check warnings for details')
             return func(**kwargs)
         # End wrapper function
         return wrapper
