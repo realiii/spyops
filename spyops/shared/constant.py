@@ -58,6 +58,11 @@ OUTPUT_TYPE_OPTION: str = 'output_type_option'
 GEOMETRY_ATTRIBUTE: str = 'geometry_attribute'
 LENGTH_UNIT: str = 'length_unit'
 AREA_UNIT: str = 'area_unit'
+X_FIELD: str = 'x_field'
+Y_FIELD: str = 'y_field'
+Z_FIELD: str = 'z_field'
+M_FIELD: str = 'm_field'
+COORDINATE_SYSTEM: str = 'coordinate_system'
 
 
 if __name__ == '__main__':  # pragma: no cover
