@@ -48,8 +48,7 @@ validate_target_feature_class = partial(
     validate_feature_class, name=TARGET, exists=False, is_output=True)
 validate_target_table = partial(
     validate_table, name=TARGET, exists=False, is_output=True)
-validate_overwrite_source = partial(
-    validate_overwrite_input, TARGET, SOURCE)
+validate_overwrite_source = partial(validate_overwrite_input, TARGET, SOURCE)
 
 if __name__ == '__main__':  # pragma: no cover
     pass
