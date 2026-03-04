@@ -5,9 +5,10 @@ Validation for Coordinate Reference Systems
 
 
 from functools import wraps
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 from warnings import warn
 
+from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 
 from spyops.crs.util import check_same_crs, get_crs_from_source
@@ -15,7 +16,7 @@ from spyops.shared.constant import SKIP_FILE_PREFIXES
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError, CoordinateSystemNotSupportedWarning)
 from spyops.shared.hint import NAMES
-from spyops.validation.base import AbstractValidate
+from spyops.validation.base import AbstractValidate, AbstractValidateType
 
 
 class ValidateCRS(AbstractValidate):
@@ -87,6 +88,34 @@ class ValidateCRS(AbstractValidate):
         return crs
     # End _check_spatial_reference method
 # End ValidateCRS class
+
+
+class ValidateCoordinateSystem(AbstractValidateType):
+    """
+    Validate the value for a Coordinate System is the correct object type.
+    """
+    _types: ClassVar[tuple[type, ...]] = CRS, SpatialReferenceSystem
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            crs = self._get_object(kwargs)
+            if not isinstance(crs, self._types):
+                raise TypeError(
+                    f'{self._name} must be a CRS or SpatialReferenceSystem')
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+# End ValidateCoordinateSystem class
 
 
 if __name__ == '__main__':  # pragma: no cover
