@@ -26,8 +26,8 @@ from spyops.validation import (
     validate_str_enumeration, validate_feature_class,
     validate_geometry_dimension, validate_operator_feature_class,
     validate_output_type, validate_overwrite_input, validate_result,
-    validate_crs, validate_source_feature_class, validate_target_feature_class,
-    validate_xy_tolerance)
+    validate_supported_crs, validate_source_feature_class,
+    validate_target_feature_class, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -43,7 +43,7 @@ __all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
 @validate_target_feature_class()
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_crs(SOURCE, OPERATOR)
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def erase(source: 'FeatureClass', operator: 'FeatureClass',
           target: 'FeatureClass', *,
@@ -81,7 +81,7 @@ def erase(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR)
-@validate_crs(SOURCE, OPERATOR)
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_output_type(OUTPUT_TYPE_OPTION, SOURCE)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def intersect(source: 'FeatureClass', operator: 'FeatureClass',
@@ -125,7 +125,7 @@ def intersect(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
 @validate_geometry_dimension(SOURCE, OPERATOR, same=True)
-@validate_crs(SOURCE, OPERATOR)
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
                            target: 'FeatureClass', *,
@@ -157,7 +157,7 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_str_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)
 @validate_xy_tolerance()
-@validate_crs(SOURCE, OPERATOR)
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def union(source: 'FeatureClass', operator: 'FeatureClass',
           target: 'FeatureClass', *,

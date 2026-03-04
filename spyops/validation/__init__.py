@@ -9,7 +9,7 @@ from functools import partial
 from spyops.shared.constant import OPERATOR, SOURCE, TARGET
 from spyops.shared.field import NUMBERS
 from spyops.validation.container import ValidateGeopackage
-from spyops.validation.crs import ValidateCRS, ValidateCoordinateSystem
+from spyops.validation.crs import ValidateSupportedCRS, ValidateCoordinateSystem
 from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateOverwriteInput, ValidateTable)
@@ -23,7 +23,7 @@ from spyops.validation.setting import ValidateXYTolerance
 
 # NOTE aliases, decorators look better as snake case
 validate_coordinate_system = ValidateCoordinateSystem
-validate_crs = ValidateCRS
+validate_supported_crs = ValidateSupportedCRS
 validate_element = ValidateElement
 validate_elements = ValidateElements
 validate_str_enumeration = ValidateStrEnumeration

@@ -5,7 +5,7 @@ Validation for Coordinate Reference Systems
 
 
 from functools import wraps
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, TYPE_CHECKING, Union
 from warnings import warn
 
 from fudgeo import SpatialReferenceSystem
@@ -19,7 +19,11 @@ from spyops.shared.hint import NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
 
-class ValidateCRS(AbstractValidate):
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
+class ValidateSupportedCRS(AbstractValidate):
     """
     Validate that feature classes have a Spatial Reference System that can
     be understood as a Coordinate Reference System.  Optionally, check that
@@ -27,7 +31,7 @@ class ValidateCRS(AbstractValidate):
     """
     def __init__(self, *names: str, same: bool = False) -> None:
         """
-        Initialize the ValidateCRS class
+        Initialize the ValidateSupportedCRS class
 
         :param names: Names of the argument to validate
         :param same: Coordinate Reference Systems must be the same
@@ -70,24 +74,21 @@ class ValidateCRS(AbstractValidate):
         Check Spatial Reference System for each feature class ensuring that
         it can be understood as a Coordinate Reference System.
         """
-        crs = []
+        crses = []
         valid = True
         for name in self._names:
             feature_class = kwargs[name]
-            try:
-                crs.append(get_crs_from_source(feature_class))
-            except CoordinateSystemNotSupportedError as err:
+            if crs := _check_supported_crs(feature_class, name=name):
+                crses.append(crs)
+            else:
                 valid = False
-                warn(f'{feature_class.name} has an unsupported CRS: {err}',
-                     category=CoordinateSystemNotSupportedWarning,
-                     skip_file_prefixes=SKIP_FILE_PREFIXES)
         if not valid:
             raise CoordinateSystemNotSupportedError(
                 'One or more feature classes have an unsupported '
                 'Spatial Reference System, check warnings for details')
-        return crs
+        return crses
     # End _check_spatial_reference method
-# End ValidateCRS class
+# End ValidateSupportedCRS class
 
 
 class ValidateCoordinateSystem(AbstractValidateType):
@@ -116,6 +117,21 @@ class ValidateCoordinateSystem(AbstractValidateType):
         return wrapper
     # End call built-in
 # End ValidateCoordinateSystem class
+
+
+def _check_supported_crs(source: Union[CRS, 'FeatureClass', SpatialReferenceSystem],
+                         name: str) -> CRS | None:
+    """
+    Check Supported CRS
+    """
+    try:
+        return get_crs_from_source(source)
+    except CoordinateSystemNotSupportedError as err:
+        warn(f'{name} has an unsupported CRS: {err}',
+             category=CoordinateSystemNotSupportedWarning,
+             skip_file_prefixes=SKIP_FILE_PREFIXES)
+        return None
+# End _check_supported_crs function
 
 
 if __name__ == '__main__':  # pragma: no cover
