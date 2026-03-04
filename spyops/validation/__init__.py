@@ -39,6 +39,7 @@ validate_xy_tolerance = ValidateXYTolerance
 
 # NOTE commonly used configurations
 validate_source_feature_class = partial(validate_feature_class, name=SOURCE)
+validate_source_element = partial(validate_element, name=SOURCE)
 validate_operator_feature_class = partial(validate_feature_class, name=OPERATOR)
 validate_target_element = partial(
     validate_element, name=TARGET, exists=False, is_output=True)
