@@ -9,7 +9,7 @@ from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 
 from spyops.shared.exception import OperationsError
-from spyops.validation import validate_crs
+from spyops.validation import validate_supported_crs
 
 
 pytestmark = [mark.validation]
@@ -19,7 +19,7 @@ def test_validate_crs_same(mem_gpkg):
     """
     Test validate crs -- same
     """
-    @validate_crs('a', 'b', same=True)
+    @validate_supported_crs('a', 'b', same=True)
     def crs_function(a, b):
         pass
     srs_a = mem_gpkg.spatial_references[4326]
@@ -35,7 +35,7 @@ def test_validate_crs_invalid(mem_gpkg):
     """
     Test validate crs -- invalid Spatial Reference System
     """
-    @validate_crs('a', 'b')
+    @validate_supported_crs('a', 'b')
     def crs_function(a, b):
         pass
     srs_a = mem_gpkg.spatial_references[4326]
