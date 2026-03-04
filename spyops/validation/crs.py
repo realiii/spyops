@@ -21,7 +21,7 @@ from spyops.validation.base import AbstractValidate
 class ValidateCRS(AbstractValidate):
     """
     Validate that feature classes have a Spatial Reference System that can
-    be understood as a Coordinate Reference System.  Optionally check that
+    be understood as a Coordinate Reference System.  Optionally, check that
     the CRSs are the same.
     """
     def __init__(self, *names: str, same: bool = False) -> None:
