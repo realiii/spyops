@@ -18,7 +18,7 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.util import get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.environment.core import HasZM
+from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
     get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
@@ -659,6 +659,15 @@ class QueryXYTable(AbstractSourceQuery):
         has_m = m_field is not None
         return HasZM(has_z=has_z, has_m=has_m)
     # End _has_zm property
+
+    @property
+    def zm_config(self) -> ZMConfig:
+        """
+        ZM Configuration
+        """
+        has_z, has_m = self._has_zm
+        return ZMConfig(is_different=False, z_enabled=has_z, m_enabled=has_m)
+    # End zm_config property
 
     @cached_property
     def spatial_reference_system(self) -> SpatialReferenceSystem:
