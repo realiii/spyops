@@ -7,6 +7,15 @@ Enumerations
 from enum import IntFlag, STRICT, StrEnum, auto
 
 
+class LineTypeOption(StrEnum):
+    """
+    Line Type Options
+    """
+    GEODESIC = auto()
+    PLANAR = auto()
+# End LineTypeOption class
+
+
 class AttributeOption(StrEnum):
     """
     Attribute Options

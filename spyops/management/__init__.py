@@ -3,6 +3,7 @@
 Package Initialization
 """
 
+
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.management.feature_class import (
     create_feature_class, recalculate_feature_class_extent)
@@ -19,7 +20,8 @@ from spyops.management.indexes import (
 from spyops.management.table import (
     create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
-    GeometryAttribute, GeometryCheck, WeightOption, FieldProperty)
+    FieldProperty, GeometryAttribute, GeometryCheck, LineTypeOption,
+    WeightOption)
 
 
 __all__ = [
@@ -54,6 +56,7 @@ __all__ = [
     'GeometryAttribute',
     'GeometryCheck',
     'LengthUnit',
+    'LineTypeOption',
     'WeightOption',
 ]
 
