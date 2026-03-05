@@ -62,7 +62,13 @@ X_FIELD: str = 'x_field'
 Y_FIELD: str = 'y_field'
 Z_FIELD: str = 'z_field'
 M_FIELD: str = 'm_field'
+START_X_FIELD: str = 'start_x_field'
+START_Y_FIELD: str = 'start_y_field'
+END_X_FIELD: str = 'end_x_field'
+END_Y_FIELD: str = 'end_y_field'
 COORDINATE_SYSTEM: str = 'coordinate_system'
+LINE_TYPE: str = 'line_type'
+POINT_COUNT: str = 'point_count'
 
 
 if __name__ == '__main__':  # pragma: no cover
