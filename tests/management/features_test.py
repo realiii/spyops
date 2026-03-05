@@ -21,11 +21,13 @@ from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, multipart_to_singlepart)
-from spyops.management.features import check_geometry, repair_geometry
+from spyops.management.features import (
+    check_geometry, repair_geometry,
+    xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
     GeometryAttribute, GeometryCheck, WeightOption)
-from spyops.shared.field import ORIG_FID, POINT_M, POINT_Z
+from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 
 from tests.util import UseGrids
 
@@ -1173,6 +1175,68 @@ class TestRepairGeometry:
         assert len(source) == post_count
     # End test_repair_geometry_drop_empty method
 # End TestRepairGeometry class
+
+
+class TestXYTableToPoint:
+    """
+    Test XY Table to Point
+    """
+    @mark.parametrize('fields', [
+        (POINT_X, POINT_Y, None, None),
+        (POINT_X, POINT_Y, POINT_Z, None),
+        (POINT_X, POINT_Y, None, POINT_M),
+        (POINT_X, POINT_Y, POINT_Z, POINT_M),
+    ])
+    @mark.parametrize('extent, count', [
+        (None, 12_950),
+        (Extent.from_bounds(-114, 51, -114.1, 51.15, CRS(4326)), 35),
+    ])
+    def test_xy_table_to_point_extent(self, inputs, mem_gpkg, fields, extent, count):
+        """
+        Test XY Table to Point using extent
+        """
+        source = inputs['xyzm_table']
+        target = FeatureClass(geopackage=mem_gpkg, name='out_points')
+        crs = CRS(4617)
+        x_field, y_field, z_field, m_field = fields
+        with Swap(Setting.EXTENT, extent):
+            result = xy_table_to_point(
+                source, target=target, coordinate_system=crs,
+                x_field=x_field, y_field=y_field,
+                z_field=z_field, m_field=m_field)
+        *_, z_field, m_field = fields
+        has_z = z_field is not None
+        has_m = m_field is not None
+        assert len(result) == count
+        assert result.has_z is has_z
+        assert result.has_m is has_m
+    # End test_xy_table_to_point_extent method
+
+    def test_xy_table_to_point_output_crs(self, inputs, mem_gpkg):
+        """
+        Test XY Table to Point using extent
+        """
+        source = inputs['xyzm_table']
+        target = FeatureClass(geopackage=mem_gpkg, name='out_points')
+        crs = CRS(4617)
+        fields = POINT_X, POINT_Y, POINT_Z, POINT_M
+        x_field, y_field, z_field, m_field = fields
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(32611)):
+            result = xy_table_to_point(
+                source, target=target, coordinate_system=crs,
+                x_field=x_field, y_field=y_field,
+                z_field=z_field, m_field=m_field)
+        *_, z_field, m_field = fields
+        has_z = z_field is not None
+        has_m = m_field is not None
+        assert len(result) == 12_950
+        assert result.has_z is has_z
+        assert result.has_m is has_m
+
+        assert approx(result.extent, abs=0.001) == (
+            639364.4375, 5596842.0, 783367.125, 5712288.0)
+    # End test_xy_table_to_point_extent method
+# End TestXYTableToPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
