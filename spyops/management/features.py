@@ -66,7 +66,7 @@ def multipart_to_singlepart(source: 'FeatureClass',
     transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
-          ExecuteMany(connection=cout, table=target) as executor):
+          ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query.select)
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
