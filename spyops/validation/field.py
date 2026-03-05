@@ -26,7 +26,7 @@ class ValidateField(AbstractValidateType):
     def __init__(self, name: str, *, data_types: NAMES = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
-                 exclude_primary: bool = True) -> None:
+                 exclude_primary: bool = True, is_optional: bool = False) -> None:
         """
         Initialize the ValidateField class
 
@@ -45,6 +45,7 @@ class ValidateField(AbstractValidateType):
         self._single: bool = single
         self._exclude_geometry: bool = exclude_geometry
         self._exclude_primary: bool = exclude_primary
+        self._is_optional: bool = is_optional
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -94,6 +95,8 @@ class ValidateField(AbstractValidateType):
         if self._single:
             if fields:
                 return fields[0]
+            if self._is_optional:
+                return None
             name = getattr(obj, NAME_ATTR, obj)
             raise ValueError(f'{name} not found in {element.name}')
         if not fields:
@@ -113,6 +116,8 @@ class ValidateField(AbstractValidateType):
         Validate Type
         """
         if self._single:
+            if self._is_optional and obj is None:
+                return
             super()._validate_type(obj)
         else:
             for item in obj:
@@ -132,6 +137,8 @@ class ValidateField(AbstractValidateType):
             aliases.update(TYPE_ALIAS_LUT[data_type])
         aliases = tuple(a.casefold() for a in aliases)
         if self._single:
+            if self._is_optional and obj is None:
+                return
             if obj.data_type.casefold().startswith(aliases):
                 return
         else:
@@ -151,6 +158,8 @@ class ValidateField(AbstractValidateType):
             return
         source_names = {n.casefold() for n in element.field_names}
         if self._single:
+            if self._is_optional and obj is None:
+                return
             names = obj.name.casefold(),
         else:
             names = [item.name.casefold() for item in obj]

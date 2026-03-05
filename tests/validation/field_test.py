@@ -73,24 +73,26 @@ def test_validate_field_data_type(data_type, data_types, single, throws):
 # End test_validate_field_data_type function
 
 
-@mark.parametrize('single, field', [
-    (True, 'ID'),
-    (False, 'ID'),
-    (False, ['ID']),
+@mark.parametrize('single, field, optional, expected', [
+    (True, None, True, type(None)),
+    (True, 'ID', False, Field),
+    (False, 'ID', False, Field),
+    (False, ['ID'], False, Field),
 ])
-def test_validate_field_data_type_and_string_name(inputs, single, field):
+def test_validate_field_data_type_and_string_name(inputs, single, field, optional, expected):
     """
     Test validate field data type
     """
     fc = inputs['intersect_a']
-    @validate_field('fld', data_types=TEXT_AND_NUMBERS, single=single, element_name='element')
+    @validate_field('fld', data_types=TEXT_AND_NUMBERS, single=single,
+                    element_name='element', is_optional=optional)
     def field_function(fld, element):
         return fld
     result = field_function(field, element=fc)
     if single:
-        assert isinstance(result, Field)
+        assert isinstance(result, expected)
     else:
-        assert all(isinstance(f, Field) for f in result)
+        assert all(isinstance(f, expected) for f in result)
 # End test_validate_field_data_type_and_string_name function
 
 

@@ -8,6 +8,7 @@ from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType
+from fudgeo.geometry import Point, PointM, PointZ, PointZM
 from pyproj import CRS
 from pytest import approx, mark, raises
 
@@ -16,9 +17,11 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry, QueryMultiPartToSinglePart, QueryRepairGeometry)
+    QueryCheckGeometry, QueryMultiPartToSinglePart, QueryRepairGeometry,
+    QueryXYTable)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
+
 
 pytestmark = [mark.features, mark.query, mark.management]
 
@@ -398,6 +401,119 @@ class TestQueryRepairGeometry:
         assert 'DELETE FROM temp.tmp_admin_a_repair_geom_20' in sql
     # End test_truncate method
 # End TestQueryRepairGeometry class
+
+
+class TestQueryXYTable:
+    """
+    Test Query XY Table
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test Get Target Shape Type
+        """
+        query = QueryXYTable(None, None, fields=(), coordinate_system=None)
+        assert query._get_target_shape_type() == 'POINT'
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('fields, expected', [
+        ((POINT_X, POINT_Y, None, None), Point),
+        ((POINT_X, POINT_Y, POINT_Z, None), PointZ),
+        ((POINT_X, POINT_Y, None, POINT_M), PointM),
+        ((POINT_X, POINT_Y, POINT_Z, POINT_M), PointZM),
+    ])
+    def test_point_class(self, fields, expected):
+        """
+        Test point class
+        """
+        query = QueryXYTable(None, None, fields=fields, coordinate_system=None)
+        assert query.point_class is expected
+    # End test_point_class method
+
+    @mark.parametrize('fields, expected', [
+        ((POINT_X, POINT_Y, None, None), (10, 11)),
+        ((POINT_X, POINT_Y, POINT_Z, None), (10, 11, 12)),
+        ((POINT_X, POINT_Y, None, POINT_M), (10, 11, 13)),
+        ((POINT_X, POINT_Y, POINT_Z, POINT_M), (10, 11, 12, 13)),
+    ])
+    def test_item_getter(self, inputs, fields, expected):
+        """
+        Test item getter
+        """
+        source = inputs['xyzm_table']
+        query = QueryXYTable(
+            source, None, fields=fields, coordinate_system=None)
+        assert query.item_getter(range(len(source.fields))) == expected
+    # End test_item_getter method
+
+    def test_select(self, inputs):
+        """
+        Test Select
+        """
+        source = inputs['xyzm_table']
+        query = QueryXYTable(
+            source, None, fields=(), coordinate_system=None)
+        sql = query.select
+        select = """SELECT FEATURE_ID, PART_ID, ENTITY, ENTITY_NAME, """
+        more = """VALDATE, PROVIDER, DATANAME, ACCURACY, FILE_NAME, """
+        plus = """CODE, POINT_X, POINT_Y, POINT_Z, POINT_M"""
+        assert select in sql
+        assert more in sql
+        assert plus in sql
+        assert 'FROM xyzm_table' in sql
+        assert 'WHERE ROWID > -1' in sql
+    # End test_select method
+
+    def test_insert(self, inputs, mem_gpkg):
+        """
+        Test Insert
+        """
+        source = inputs['xyzm_table']
+        target = FeatureClass(geopackage=mem_gpkg, name='asdf')
+        fields = POINT_X, POINT_Y, POINT_Z, POINT_M
+        crs = CRS(4326)
+        query = QueryXYTable(
+            source, target=target, fields=fields, coordinate_system=crs)
+        sql = query.insert
+        insert = """ INTO asdf(SHAPE, FEATURE_ID, PART_ID, ENTITY, ENTITY_NAME, """
+        more = """VALDATE, PROVIDER, DATANAME, ACCURACY, FILE_NAME, """
+        plus = """CODE, POINT_X, POINT_Y, POINT_Z, POINT_M)"""
+        assert insert in sql
+        assert more in sql
+        assert plus in sql
+    # End test_insert method
+
+    def test_source_transformer(self, inputs, mem_gpkg):
+        """
+        Test source transformer
+        """
+        source = inputs['xyzm_table']
+        target = FeatureClass(geopackage=mem_gpkg, name='asdf')
+        fields = POINT_X, POINT_Y, POINT_Z, POINT_M
+        crs = CRS(4617)
+        query = QueryXYTable(
+            source, target=target, fields=fields, coordinate_system=crs)
+        assert query.source_transformer is None
+
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            query = QueryXYTable(
+                source, target=target, fields=fields, coordinate_system=crs)
+            assert query.source_transformer is not None
+    # End test_source_transformer method
+
+    def test_filter_extent(self):
+        """
+        Test filter extent
+        """
+
+        crs = CRS(4617)
+        query = QueryXYTable(
+            None, target=None, fields=(), coordinate_system=crs)
+        assert query.filter_extent is None
+        with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, CRS(4326))):
+            assert approx(query.filter_extent.bounds, abs=1e-6) == (
+                -99.9999731, -60.0000257, 99.9999828, 89.999988)
+    # End test_filter_extent method
+# End TestQueryXYTable class
 
 
 if __name__ == '__main__':  # pragma: no cover

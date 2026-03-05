@@ -4,7 +4,7 @@ Utility Functions
 """
 
 
-from typing import Any, Callable, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from numpy import array, diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
@@ -15,6 +15,7 @@ from spyops.shared.constant import GEOMS_ATTR
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from shapely import Polygon
     from shapely.geometry.base import (
         BaseMultipartGeometry, BaseGeometry, GeometrySequence)
 
@@ -66,18 +67,30 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 
 def to_shapely(features: list[tuple], transformer: Callable | None,
                *, option: DimensionOption = DimensionOption.SAME,
-               on_invalid: str = 'raise') -> tuple[list[tuple], 'ndarray']:
+               on_invalid: str = 'raise', extent: Optional['Polygon'] = None) \
+        -> tuple[list[tuple], 'ndarray']:
     """
     Convert to Shapely Geometry from Fudgeo Geometry, optionally changing
     geometry dimension by forcing to 2D or 3D and/or transforming.
 
-    When a transformer is provided the geometries are transformed, validity
+    When a transformer is provided, the geometries are transformed, validity
     checked, and valid geometries (and corresponding features) are returned.
+
+    When an extent is provided, it is used to retain the geometries (and
+    features) with which it intersects.  The extent must be in the same
+    coordinate reference system as the geometries e.g., the coordinate system
+    prior to transformation.
     """
+    # noinspection PyTypeChecker
     geometries = from_wkb([g.wkb for g, *_ in features], on_invalid=on_invalid)
+    if extent:
+        mask = extent.intersects(geometries)
+        geometries = geometries[mask]
+        # noinspection PyTypeChecker
+        features = [feature for feature, v in zip(features, mask) if v]
     if transformer:
         geometries = transformer(geometries)
-        validity = get_validity(geometries, transformer)
+        validity = get_validity(geometries, transformer=transformer)
         features = [feature for feature, v in zip(features, validity) if v]
     if option == DimensionOption.TWO_D:
         geometries = force_2d(geometries)
