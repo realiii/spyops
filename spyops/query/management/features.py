@@ -236,6 +236,7 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         Truncate Query for Intermediate Table
         """
         name = self._intermediate_table
+        # noinspection SqlWithoutWhere
         return f"""DELETE FROM {name}"""
     # End truncate method
 
