@@ -5,7 +5,7 @@ Records / Features Helper Functions
 
 
 from math import nan
-from typing import Callable, TYPE_CHECKING, Type
+from typing import Callable, Optional, TYPE_CHECKING, Type
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
@@ -26,6 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Cursor
     from fudgeo import FeatureClass
     from fudgeo.geometry.base import AbstractGeometry
+    from shapely import Polygon
     from spyops.geometry.config import GeometryConfig
     from spyops.query.base import BaseQuerySelect
     from spyops.shared.base import QueryConfig
@@ -48,11 +49,13 @@ def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
 
 def insert_many(config: 'GeometryConfig', executor: 'ExecuteMany',
                 transformer: Callable | None, insert_sql: str,
-                features: list[tuple], records: list[tuple]) -> None:
+                features: list[tuple], records: list[tuple],
+                extent: Optional['Polygon'] = None) -> None:
     """
     Insert Many
     """
-    features, geometries = to_shapely(features, transformer=transformer)
+    features, geometries = to_shapely(
+        features, transformer=transformer, extent=extent)
     results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
     extend_records(results, records=records, config=config)
     executor(sql=insert_sql, data=records)
