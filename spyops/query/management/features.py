@@ -6,16 +6,19 @@ Query Classes for management.features module
 
 from functools import cached_property, partial
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Type
 
-from fudgeo import Field
+from fudgeo import Field, SpatialReferenceSystem
 from fudgeo.enumeration import ShapeType
-from shapely import get_num_coordinates, get_num_geometries
+from fudgeo.geometry import Point, PointZ, PointM, PointZM
+from pyproj import CRS
+from shapely import get_num_coordinates, get_num_geometries, Polygon
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
-from spyops.crs.util import get_crs_from_source
+from spyops.crs.util import get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.core import HasZM
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
     get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
@@ -34,7 +37,6 @@ from spyops.shared.sql import SQL_ALL_ID
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Table
-    from pyproj import CRS
 
 
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
@@ -543,6 +545,135 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
             return lambda _: None
     # End attribute_getter property
 # End QueryCalculateGeometryAttributes class
+
+
+class QueryXYTable(AbstractSourceQuery):
+    """
+    Query for XY Table to Point Feature Class
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 fields: tuple[Field | None, ...],
+                 coordinate_system: CRS | SpatialReferenceSystem) -> None:
+        """
+        Initialize the QueryXYTable class
+        """
+        super().__init__(source, target=target, xy_tolerance=None)
+        self._fields: tuple[Field | None, ...] = fields
+        self._coord_sys: CRS | SpatialReferenceSystem = coordinate_system
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.point
+    # End _get_target_shape_type method
+
+    @property
+    def point_class(self) -> Type[Point | PointZ | PointM | PointZM]:
+        """
+        Point Class
+        """
+        has_z, has_m = self._has_zm
+        if has_z and has_m:
+            return PointZM
+        elif has_z:
+            return PointZ
+        elif has_m:
+            return PointM
+        return Point
+    # End point_class property
+
+    @property
+    def item_getter(self) -> itemgetter:
+        """
+        Item Getter
+        """
+        indexes = []
+        lookup = {field.name.casefold(): i for i, field in
+                  enumerate(self._get_unique_fields())}
+        for field in self._fields:
+            if not field:
+                continue
+            indexes.append(lookup[field.name.casefold()])
+        return itemgetter(*indexes)
+    # End item_getter property
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source
+        """
+        select_names = make_field_names(self._get_unique_fields())
+        return self._make_select(
+            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+    # End select property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        fields = self._get_unique_fields()
+        insert_names = make_field_names(fields)
+        geom = get_geometry_column_name(self.target)
+        insert_names = self._concatenate(geom, insert_names)
+        return self._make_insert(
+            self.target.escaped_name, field_names=insert_names,
+            field_count=len(fields) + 1)
+    # End insert property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        in_crs = get_crs_from_source(self._coord_sys)
+        out_crs = get_crs_from_source(self.spatial_reference_system)
+        transformer = self._get_transformer_or_guess(in_crs, out_crs)
+        has_z, has_m = self._has_zm
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=has_z, has_m=has_m,
+            transformer=transformer)
+    # End source_transformer property
+
+    @property
+    def filter_extent(self) -> Polygon | None:
+        """
+        Filter Extent
+        """
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return None
+        return self._get_extent_polygon(
+            extent, crs=get_crs_from_source(self._coord_sys))
+    # End filter_extent property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        *_, z_field, m_field = self._fields
+        has_z = z_field is not None
+        has_m = m_field is not None
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
+
+    @cached_property
+    def spatial_reference_system(self) -> SpatialReferenceSystem:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the input coordinate system.
+        """
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        if isinstance(self._coord_sys, CRS):
+            return srs_from_crs(self._coord_sys)
+        return self._coord_sys
+    # End spatial_reference_system property
+# End QueryXYTable class
 
 
 if __name__ == '__main__':  # pragma: no cover
