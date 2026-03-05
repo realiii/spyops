@@ -18,7 +18,7 @@ from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryMultiPartToSinglePart, QueryRepairGeometry,
-    QueryXYTable)
+    QueryXYTablePoint)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
@@ -411,7 +411,7 @@ class TestQueryXYTable:
         """
         Test Get Target Shape Type
         """
-        query = QueryXYTable(None, None, fields=(), coordinate_system=None)
+        query = QueryXYTablePoint(None, None, fields=(), coordinate_system=None)
         assert query._get_target_shape_type() == 'POINT'
     # End test_get_target_shape_type method
 
@@ -425,7 +425,7 @@ class TestQueryXYTable:
         """
         Test point class
         """
-        query = QueryXYTable(None, None, fields=fields, coordinate_system=None)
+        query = QueryXYTablePoint(None, None, fields=fields, coordinate_system=None)
         assert query.point_class is expected
     # End test_point_class method
 
@@ -440,7 +440,7 @@ class TestQueryXYTable:
         Test item getter
         """
         source = inputs['xyzm_table']
-        query = QueryXYTable(
+        query = QueryXYTablePoint(
             source, None, fields=fields, coordinate_system=None)
         assert query.item_getter(range(len(source.fields))) == expected
     # End test_item_getter method
@@ -450,7 +450,7 @@ class TestQueryXYTable:
         Test Select
         """
         source = inputs['xyzm_table']
-        query = QueryXYTable(
+        query = QueryXYTablePoint(
             source, None, fields=(), coordinate_system=None)
         sql = query.select
         select = """SELECT FEATURE_ID, PART_ID, ENTITY, ENTITY_NAME, """
@@ -471,7 +471,7 @@ class TestQueryXYTable:
         target = FeatureClass(geopackage=mem_gpkg, name='asdf')
         fields = POINT_X, POINT_Y, POINT_Z, POINT_M
         crs = CRS(4326)
-        query = QueryXYTable(
+        query = QueryXYTablePoint(
             source, target=target, fields=fields, coordinate_system=crs)
         sql = query.insert
         insert = """ INTO asdf(SHAPE, FEATURE_ID, PART_ID, ENTITY, ENTITY_NAME, """
@@ -490,12 +490,12 @@ class TestQueryXYTable:
         target = FeatureClass(geopackage=mem_gpkg, name='asdf')
         fields = POINT_X, POINT_Y, POINT_Z, POINT_M
         crs = CRS(4617)
-        query = QueryXYTable(
+        query = QueryXYTablePoint(
             source, target=target, fields=fields, coordinate_system=crs)
         assert query.source_transformer is None
 
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
-            query = QueryXYTable(
+            query = QueryXYTablePoint(
                 source, target=target, fields=fields, coordinate_system=crs)
             assert query.source_transformer is not None
     # End test_source_transformer method
@@ -504,9 +504,8 @@ class TestQueryXYTable:
         """
         Test filter extent
         """
-
         crs = CRS(4617)
-        query = QueryXYTable(
+        query = QueryXYTablePoint(
             None, target=None, fields=(), coordinate_system=crs)
         assert query.filter_extent is None
         with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, CRS(4326))):

@@ -20,7 +20,7 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
     QueryCopyFeatures, QueryMultiPartToSinglePart, QueryRepairGeometry,
-    QueryXYTable)
+    QueryXYTablePoint)
 from spyops.shared.constant import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, FIELD, GEOMETRY_ATTRIBUTE,
     LENGTH_UNIT, M_FIELD, SOURCE, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
@@ -412,8 +412,8 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
     records = []
     fields = x_field, y_field, z_field, m_field
     # noinspection PyTypeChecker
-    query = QueryXYTable(source, target=target, fields=fields,
-                         coordinate_system=coordinate_system)
+    query = QueryXYTablePoint(source, target=target, fields=fields,
+                              coordinate_system=coordinate_system)
     cls = query.point_class
     insert_sql = query.insert
     getter = query.item_getter

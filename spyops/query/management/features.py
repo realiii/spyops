@@ -548,7 +548,7 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
 # End QueryCalculateGeometryAttributes class
 
 
-class QueryXYTable(AbstractSourceQuery):
+class QueryXYTablePoint(AbstractSourceQuery):
     """
     Query for XY Table to Point Feature Class
     """
@@ -556,7 +556,7 @@ class QueryXYTable(AbstractSourceQuery):
                  fields: tuple[Field | None, ...],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
-        Initialize the QueryXYTable class
+        Initialize the QueryXYTablePoint class
         """
         super().__init__(source, target=target, xy_tolerance=None)
         self._fields: tuple[Field | None, ...] = fields
@@ -683,7 +683,7 @@ class QueryXYTable(AbstractSourceQuery):
             return srs_from_crs(self._coord_sys)
         return self._coord_sys
     # End spatial_reference_system property
-# End QueryXYTable class
+# End QueryXYTablePoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
