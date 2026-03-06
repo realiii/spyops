@@ -17,6 +17,7 @@ from spyops.validation.enumish import (
     ValidateIntFlagEnumeration, ValidateStrEnumeration,
     ValidateGeometryAttribute, ValidateOutputType)
 from spyops.validation.field import ValidateField, ValidateGeometryDimension
+from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
 from spyops.validation.setting import ValidateXYTolerance
 
@@ -35,9 +36,11 @@ validate_geometry_dimension = ValidateGeometryDimension
 validate_geopackage = ValidateGeopackage
 validate_output_type = ValidateOutputType
 validate_overwrite_input = ValidateOverwriteInput
+validate_range = ValidateRange
 validate_result = ValidateResult
 validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
+
 
 # NOTE commonly used configurations
 validate_source_feature_class = partial(validate_feature_class, name=SOURCE)

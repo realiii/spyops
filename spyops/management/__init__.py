@@ -3,13 +3,14 @@
 Package Initialization
 """
 
+
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.management.feature_class import (
     create_feature_class, recalculate_feature_class_extent)
 from spyops.management.features import (
     add_xy_coordinates, calculate_geometry_attributes, check_geometry,
     copy_features, delete_features, explode, multipart_to_singlepart,
-    repair_geometry, xy_table_to_point)
+    repair_geometry, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete
@@ -19,7 +20,8 @@ from spyops.management.indexes import (
 from spyops.management.table import (
     create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
-    GeometryAttribute, GeometryCheck, WeightOption, FieldProperty)
+    FieldProperty, GeometryAttribute, GeometryCheck, LineTypeOption,
+    WeightOption)
 
 
 __all__ = [
@@ -48,12 +50,15 @@ __all__ = [
     'repair_geometry',
     'truncate_table',
     'xy_table_to_point',
+    'xy_table_to_line',
+    'xy_to_line',
 
     'AreaUnit',
     'FieldProperty',
     'GeometryAttribute',
     'GeometryCheck',
     'LengthUnit',
+    'LineTypeOption',
     'WeightOption',
 ]
 
