@@ -10,7 +10,7 @@ from spyops.management.feature_class import (
 from spyops.management.features import (
     add_xy_coordinates, calculate_geometry_attributes, check_geometry,
     copy_features, delete_features, explode, multipart_to_singlepart,
-    repair_geometry, xy_table_to_point, xy_to_line)
+    repair_geometry, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete
@@ -50,6 +50,7 @@ __all__ = [
     'repair_geometry',
     'truncate_table',
     'xy_table_to_point',
+    'xy_table_to_line',
     'xy_to_line',
 
     'AreaUnit',

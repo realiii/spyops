@@ -50,7 +50,7 @@ if TYPE_CHECKING:  # pragma: no cover
 __all__ = [
     'add_xy_coordinates', 'calculate_geometry_attributes', 'check_geometry',
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
-    'repair_geometry', 'xy_table_to_point', 'xy_to_line']
+    'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line']
 
 
 @validate_result()
@@ -499,6 +499,9 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
+xy_table_to_line: Callable[[ELEMENT, 'FeatureClass', CRS | SpatialReferenceSystem,
+                            Field | str, Field | str, Field | str, Field | str,
+                            LineTypeOption, int], 'FeatureClass'] = xy_to_line
 
 
 if __name__ == '__main__':  # pragma: no cover
