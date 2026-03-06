@@ -20,13 +20,13 @@ from spyops.environment.core import zm_config
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
-    delete_features, multipart_to_singlepart)
+    delete_features, multipart_to_singlepart, xy_to_line)
 from spyops.management.features import (
     check_geometry, repair_geometry,
     xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
-    GeometryAttribute, GeometryCheck, WeightOption)
+    GeometryAttribute, GeometryCheck, LineTypeOption, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 
 from tests.util import UseGrids
@@ -1191,7 +1191,7 @@ class TestXYTableToPoint:
         (None, 12_950),
         (Extent.from_bounds(-114, 51, -114.1, 51.15, CRS(4326)), 35),
     ])
-    def test_xy_table_to_point_extent(self, inputs, mem_gpkg, fields, extent, count):
+    def test_extent(self, inputs, mem_gpkg, fields, extent, count):
         """
         Test XY Table to Point using extent
         """
@@ -1210,9 +1210,9 @@ class TestXYTableToPoint:
         assert len(result) == count
         assert result.has_z is has_z
         assert result.has_m is has_m
-    # End test_xy_table_to_point_extent method
+    # End test_extent method
 
-    def test_xy_table_to_point_output_crs(self, inputs, mem_gpkg):
+    def test_output_crs(self, inputs, mem_gpkg):
         """
         Test XY Table to Point using extent
         """
@@ -1235,8 +1235,62 @@ class TestXYTableToPoint:
 
         assert approx(result.extent, abs=0.001) == (
             639364.4375, 5596842.0, 783367.125, 5712288.0)
-    # End test_xy_table_to_point_extent method
+    # End test_output_crs method
 # End TestXYTableToPoint class
+
+
+class TestXYTableToLine:
+    """
+    Test XY Table to Line
+    """
+    @mark.parametrize('name, point_count, crs, count', [
+        ('transmission_xy_4617', 0, CRS(4617), 66),
+        ('transmission_xy_102179', 0, CRS('ESRI:102179'), 66),
+        ('transmission_xy_4617', 10, CRS(4617), 66),
+        ('transmission_xy_102179', 10, CRS('ESRI:102179'), 66),
+    ])
+    def test_planar(self, inputs, mem_gpkg, name, point_count, crs, count):
+        """
+        Test planar
+        """
+        source = inputs[name]
+        start_x = Field('START_X', data_type=FieldType.real)
+        start_y = Field('START_Y', data_type=FieldType.real)
+        end_x = Field('END_X', data_type=FieldType.real)
+        end_y = Field('END_Y', data_type=FieldType.real)
+        target = FeatureClass(geopackage=mem_gpkg, name='out_lines')
+        result = xy_to_line(
+            source, target=target, coordinate_system=crs,
+            start_x_field=start_x, start_y_field=start_y,
+            end_x_field=end_x, end_y_field=end_y,
+            line_type=LineTypeOption.PLANAR, point_count=point_count)
+        assert len(result) == count
+    # End test_planar method
+
+    @mark.parametrize('name, point_count, crs, count', [
+        ('transmission_xy_4617', 0, CRS(4617), 66),
+        ('transmission_xy_102179', 0, CRS('ESRI:102179'), 66),
+        ('transmission_xy_4617', 10, CRS(4617), 66),
+        ('transmission_xy_102179', 10, CRS('ESRI:102179'), 66),
+    ])
+    def test_geodesic(self, inputs, mem_gpkg, name, point_count, crs, count):
+        """
+        Test geodesic
+        """
+        source = inputs[name]
+        start_x = Field('START_X', data_type=FieldType.real)
+        start_y = Field('START_Y', data_type=FieldType.real)
+        end_x = Field('END_X', data_type=FieldType.real)
+        end_y = Field('END_Y', data_type=FieldType.real)
+        target = FeatureClass(geopackage=mem_gpkg, name='out_lines')
+        result = xy_to_line(
+            source, target=target, coordinate_system=crs,
+            start_x_field=start_x, start_y_field=start_y,
+            end_x_field=end_x, end_y_field=end_y,
+            line_type=LineTypeOption.GEODESIC, point_count=point_count)
+        assert len(result) == count
+    # End test_geodesic method
+# End TestXYTableToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -14,24 +14,29 @@ from fudgeo.util import get_extent
 from pyproj import CRS
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.crs.util import get_crs_from_source
 from spyops.geometry.check import check_feature_class_geometry
 from spyops.geometry.repair import repair_feature_class_geometry
 from spyops.geometry.util import filter_features, to_shapely
+from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
     QueryCopyFeatures, QueryMultiPartToSinglePart, QueryRepairGeometry,
-    QueryXYTablePoint)
+    QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.constant import (
-    AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, FIELD, GEOMETRY_ATTRIBUTE,
-    LENGTH_UNIT, M_FIELD, SOURCE, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
+    AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
+    FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
+    SOURCE, START_X_FIELD, START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD,
+    Z_FIELD)
 from spyops.shared.enumeration import (
-    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, WeightOption)
+    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, LineTypeOption,
+    WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import ELEMENT, XY_TOL
 from spyops.shared.records import insert_many, select_and_transform_features
 from spyops.validation import (
     validate_coordinate_system, validate_element, validate_int_flag_enumeration,
-    validate_source_element, validate_source_numeric_field,
+    validate_range, validate_source_element, validate_source_numeric_field,
     validate_str_enumeration, validate_feature_class,
     validate_geometry_attribute, validate_overwrite_source, validate_result,
     validate_source_feature_class, validate_target_feature_class,
@@ -45,7 +50,7 @@ if TYPE_CHECKING:  # pragma: no cover
 __all__ = [
     'add_xy_coordinates', 'calculate_geometry_attributes', 'check_geometry',
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
-    'repair_geometry', 'xy_table_to_point']
+    'repair_geometry', 'xy_table_to_point', 'xy_to_line']
 
 
 @validate_result()
@@ -435,6 +440,62 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
                         records=records, extent=extent)
     return query.target
 # End xy_table_to_point function
+
+
+@validate_result()
+@validate_source_element()
+@validate_target_feature_class()
+@validate_coordinate_system(COORDINATE_SYSTEM)
+@validate_source_numeric_field(START_X_FIELD)
+@validate_source_numeric_field(START_Y_FIELD)
+@validate_source_numeric_field(END_X_FIELD)
+@validate_source_numeric_field(END_Y_FIELD)
+@validate_str_enumeration(LINE_TYPE, LineTypeOption)
+@validate_range(POINT_COUNT, default=9, max_value=1000, type_=int)
+@validate_overwrite_source()
+def xy_to_line(source: ELEMENT, target: 'FeatureClass',
+               coordinate_system: CRS | SpatialReferenceSystem, *,
+               start_x_field: Field | str, start_y_field: Field | str,
+               end_x_field: Field | str, end_y_field: Field | str,
+               line_type: LineTypeOption = LineTypeOption.GEODESIC,
+               point_count: int = 9) -> 'FeatureClass':
+    """
+    XY to Line
+
+    Converts a table with Start XY and End XY coordinates into a line feature
+    class.  The input fields for XY must be numeric, fields from the input
+    table will be added to the output feature class.  The output feature
+    class will be in the specified coordinate reference system.
+
+    The line type option determines the type of line that is created.  The
+    point count specifies the number of additional points to be created
+    along the line in addition to the start and end points.
+    """
+    records = []
+    fields = start_x_field, start_y_field, end_x_field, end_y_field
+    query = QueryXYTableLine(source, target=target, fields=fields,
+                             coordinate_system=coordinate_system)
+    insert_sql = query.insert
+    getter = query.item_getter
+    config = query.geometry_config
+    srs_id = query.target.spatial_reference_system.srs_id
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while rows := cursor.fetchmany(FETCH_SIZE):
+            lines = _build_lines_factory(
+                coords=[getter(row) for row in rows],
+                crs=get_crs_from_source(coordinate_system),
+                srs_id=srs_id, line_type=line_type, point_count=point_count)
+            features = [(line, *row) for line, row in zip(lines, rows)]
+            if not (features := filter_features(features)):
+                continue
+            insert_many(config, executor=executor, transformer=None,
+                        insert_sql=insert_sql, features=features,
+                        records=records)
+    return query.target
+# End xy_to_line function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
