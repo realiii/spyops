@@ -18,7 +18,7 @@ from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryMultiPartToSinglePart, QueryRepairGeometry,
-    QueryXYTablePoint)
+    QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
@@ -403,9 +403,9 @@ class TestQueryRepairGeometry:
 # End TestQueryRepairGeometry class
 
 
-class TestQueryXYTable:
+class TestQueryXYTablePoint:
     """
-    Test Query XY Table
+    Test Query XY Table Point
     """
     def test_get_target_shape_type(self):
         """
@@ -512,7 +512,102 @@ class TestQueryXYTable:
             assert approx(query.filter_extent.bounds, abs=1e-6) == (
                 -99.9999731, -60.0000257, 99.9999828, 89.999988)
     # End test_filter_extent method
-# End TestQueryXYTable class
+# End TestQueryXYTablePoint class
+
+
+class TestQueryXYTableLine:
+    """
+    Test Query XY Table Line
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test Get Target Shape Type
+        """
+        query = QueryXYTableLine(None, None, fields=(), coordinate_system=None)
+        assert query._get_target_shape_type() == 'LINESTRING'
+    # End test_get_target_shape_type method
+
+    def test_item_getter(self, inputs):
+        """
+        Test item getter
+        """
+        fields = (
+            Field('START_X', data_type=FieldType.real),
+            Field('START_Y', data_type=FieldType.real),
+            Field('END_X', data_type=FieldType.real),
+            Field('END_Y', data_type=FieldType.real),
+        )
+        source = inputs['transmission_xy_4617']
+        query = QueryXYTableLine(
+            source, None, fields=fields, coordinate_system=None)
+        assert query.item_getter(range(len(source.fields))) == (10, 11, 12, 13)
+    # End test_item_getter method
+
+    def test_select(self, inputs):
+        """
+        Test Select
+        """
+        source = inputs['transmission_xy_4617']
+        query = QueryXYTableLine(
+            source, None, fields=(), coordinate_system=None)
+        sql = query.select
+        select = """SELECT FEATURE_ID, PART_ID, ENTITY, ENTITY_NAME, """
+        more = """VALDATE, PROVIDER, DATANAME, ACCURACY, FILE_NAME, """
+        plus = """CODE, START_X, START_Y, END_X, END_Y"""
+        assert select in sql
+        assert more in sql
+        assert plus in sql
+        assert 'FROM transmission_xy_4617' in sql
+        assert 'WHERE ROWID > -1' in sql
+    # End test_select method
+
+    def test_insert(self, inputs, mem_gpkg):
+        """
+        Test Insert
+        """
+        source = inputs['transmission_xy_4617']
+        target = FeatureClass(geopackage=mem_gpkg, name='asdf')
+        fields = (
+            Field('START_X', data_type=FieldType.real),
+            Field('START_Y', data_type=FieldType.real),
+            Field('END_X', data_type=FieldType.real),
+            Field('END_Y', data_type=FieldType.real),
+        )
+        crs = CRS(4326)
+        query = QueryXYTablePoint(
+            source, target=target, fields=fields, coordinate_system=crs)
+        sql = query.insert
+        insert = """ INTO asdf(SHAPE, FEATURE_ID, PART_ID, ENTITY, ENTITY_NAME, """
+        more = """VALDATE, PROVIDER, DATANAME, ACCURACY, FILE_NAME, """
+        plus = """CODE, START_X, START_Y, END_X, END_Y)"""
+        assert insert in sql
+        assert more in sql
+        assert plus in sql
+    # End test_insert method
+
+    def test_source_transformer(self, inputs, mem_gpkg):
+        """
+        Test source transformer
+        """
+        source = inputs['xyzm_table']
+        target = FeatureClass(geopackage=mem_gpkg, name='asdf')
+        fields = POINT_X, POINT_Y, POINT_Z, POINT_M
+        crs = CRS(4617)
+        query = QueryXYTablePoint(
+            source, target=target, fields=fields, coordinate_system=crs)
+        assert query.source_transformer is None
+    # End test_source_transformer method
+
+    def test_filter_extent(self):
+        """
+        Test filter extent
+        """
+        crs = CRS(4617)
+        query = QueryXYTablePoint(
+            None, target=None, fields=(), coordinate_system=crs)
+        assert query.filter_extent is None
+    # End test_filter_extent method
+# End TestQueryXYTableLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

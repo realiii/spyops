@@ -686,5 +686,64 @@ class QueryXYTablePoint(AbstractSourceQuery):
 # End QueryXYTablePoint class
 
 
+class QueryXYTableLine(QueryXYTablePoint):
+    """
+    Query for XY to Line Feature Class
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 fields: tuple[Field, Field, Field, Field],
+                 coordinate_system: CRS | SpatialReferenceSystem) -> None:
+        """
+        Initialize the QueryXYTableLine class
+        """
+        super().__init__(source, target=target, fields=fields,
+                         coordinate_system=coordinate_system)
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        return None
+    # End source_transformer property
+
+    @property
+    def filter_extent(self) -> Polygon | None:
+        """
+        Filter Extent
+        """
+        return None
+    # End filter_extent property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        return HasZM(has_z=False, has_m=False)
+    # End _has_zm property
+
+    @cached_property
+    def spatial_reference_system(self) -> SpatialReferenceSystem:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the input coordinate system.
+        """
+        if isinstance(self._coord_sys, CRS):
+            return srs_from_crs(self._coord_sys)
+        return self._coord_sys
+    # End spatial_reference_system property
+# End QueryXYTableLine class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
