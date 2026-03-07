@@ -7,6 +7,9 @@ Database Functionality
 from pathlib import Path
 from sqlite3 import Connection, DatabaseError, OperationalError, connect
 
+from spyops.shared.constant import SPYOPS, UNDERSCORE
+from spyops.shared.stats import STATS_FUNCS
+
 
 BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',
                          'gpkg_geometry_columns', 'gpkg_tile_matrix_set',
@@ -97,6 +100,24 @@ def has_table(connection: 'Connection', table_name: str) -> bool:
     cursor = connection.execute(sql, {param: table_name})
     return bool(cursor.fetchone())
 # End has_table method
+
+
+def add_statistics_functions(conn: 'Connection') -> None:
+    """
+    Add Statistics Functions, avoid stomping on possible existing functions
+    """
+    for name, func in STATS_FUNCS.items():
+        conn.create_function(f'{SPYOPS}{UNDERSCORE}{name}', 1, func)
+# End add_statistics_functions function
+
+
+def remove_statistics_functions(conn: 'Connection') -> None:
+    """
+    Remove Statistics Functions
+    """
+    for name in STATS_FUNCS:
+        conn.create_function(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
+# End remove_statistics_functions function
 
 
 if __name__ == '__main__':  # pragma: no cover
