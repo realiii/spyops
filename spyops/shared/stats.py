@@ -10,14 +10,6 @@ from statistics import (
 from typing import Any, Callable
 
 
-def _filter_none(values: list) -> list:
-    """
-    Filter None's out of a list
-    """
-    return [v for v in values if v is not None]
-# End _filter_none function
-
-
 def mode(values: list) -> Any:
     """
     Calculate Mode, ignoring Null values.  Works on a sequence of
@@ -86,6 +78,14 @@ def _calculate_stat(func: Callable, values: list) -> float | None:
     except (IndexError, ValueError, StatisticsError):
         return None
 # End _calculate_stat function
+
+
+def _filter_none(values: list) -> list:
+    """
+    Filter None's out of a list
+    """
+    return [v for v in values if v is not None]
+# End _filter_none function
 
 
 STATS_FUNCS: dict[str, Callable] = {
