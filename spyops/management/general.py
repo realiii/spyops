@@ -6,7 +6,7 @@ General Data Management
 
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
-from spyops.shared.constant import SOURCE
+from spyops.shared.keywords import SOURCE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, ELEMENTS
 from spyops.validation import (

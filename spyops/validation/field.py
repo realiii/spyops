@@ -11,7 +11,8 @@ from fudgeo import Field
 
 from spyops.geometry.validate import (
     check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
-from spyops.shared.constant import NAME_ATTR, PADDED_PIPE
+from spyops.shared.constant import PADDED_PIPE
+from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import TYPE_ALIAS_LUT, validate_fields
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateType

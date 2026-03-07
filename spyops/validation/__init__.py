@@ -6,7 +6,7 @@ Validation
 
 from functools import partial
 
-from spyops.shared.constant import OPERATOR, SOURCE, TARGET
+from spyops.shared.keywords import OPERATOR, SOURCE, TARGET
 from spyops.shared.field import NUMBERS
 from spyops.validation.container import ValidateGeopackage
 from spyops.validation.crs import ValidateSupportedCRS, ValidateCoordinateSystem

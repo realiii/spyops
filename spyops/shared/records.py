@@ -18,7 +18,8 @@ from shapely.io import from_wkb
 from spyops.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
 from spyops.geometry.wa import USE_WORKAROUNDS, set_precision
-from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, SRS_ID_WKB
+from spyops.shared.constant import SRS_ID_WKB
+from spyops.shared.keywords import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z
 from spyops.shared.hint import GRID_SIZE
 
 

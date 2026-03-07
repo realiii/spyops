@@ -10,7 +10,7 @@ from fudgeo import GeoPackage, MemoryGeoPackage
 from fudgeo.constant import MEMORY
 
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.shared.constant import GEOPACKAGE
+from spyops.shared.keywords import GEOPACKAGE
 from spyops.shared.hint import GPKG
 from spyops.validation.base import AbstractValidateTypeExists
 

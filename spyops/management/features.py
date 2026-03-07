@@ -23,7 +23,7 @@ from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
     QueryCopyFeatures, QueryMultiPartToSinglePart, QueryRepairGeometry,
     QueryXYTableLine, QueryXYTablePoint)
-from spyops.shared.constant import (
+from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
     FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
     SOURCE, START_X_FIELD, START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD,

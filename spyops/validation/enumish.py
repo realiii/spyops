@@ -11,7 +11,7 @@ from typing import Any, Callable, TYPE_CHECKING, Type
 from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.validate import get_geometry_dimension
-from spyops.shared.constant import GEOMETRY_ATTRIBUTE, SOURCE
+from spyops.shared.keywords import GEOMETRY_ATTRIBUTE, SOURCE
 from spyops.shared.enumeration import GeometryAttribute, OutputTypeOption
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_int_flag_enum, check_str_enum
