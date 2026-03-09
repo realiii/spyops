@@ -6,7 +6,8 @@ Statistics Functions for use within SQLite
 
 from math import isfinite
 from statistics import (
-    StatisticsError, mode as _mode, stdev as _standard_deviation, variance)
+    StatisticsError, median as _median, mode as _mode,
+    stdev as _standard_deviation, variance)
 from typing import Any, Callable
 
 
@@ -40,6 +41,15 @@ def var(values: list) -> float | None:
     """
     return _calculate_stat(variance, values)
 # End var function
+
+
+def median(values: list) -> float | None:
+    """
+    Calculate Median, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_median, values)
+# End median function
 
 
 def first(values: list) -> Any:

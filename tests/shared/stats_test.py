@@ -6,7 +6,7 @@ Test Statistics
 
 from pytest import mark, approx
 
-from spyops.shared.stats import first, last, mode, stdev, var
+from spyops.shared.stats import first, last, median, mode, stdev, var
 
 pytestmark = [mark.statistics]
 
@@ -57,6 +57,22 @@ def test_var(values, expected):
     """
     assert approx(var(values), abs=0.001) == expected
 # End test_var function
+
+
+@mark.parametrize('values, expected', [
+    ([], None),
+    ([[]], None),
+    ([1, 2, 3], 2),
+    ([1, 2, 3, 4, 5], 3),
+    ([1, 2, None, 3], 2),
+    (['a', 'b', 'c', None, 'c'], None),
+])
+def test_median(values, expected):
+    """
+    Test median
+    """
+    assert approx(median(values), abs=0.001) == expected
+# End test_median function
 
 
 @mark.parametrize('values, expected', [
