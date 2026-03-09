@@ -258,7 +258,7 @@ class Average(_NumericStatisticField):
 
 class _FunctionNumericStatisticField(_NumericStatisticField):
     """
-    Function based Numeric Statistic Field
+    Function-based Numeric Statistic Field
     """
     @property
     def function_stub(self) -> str:
