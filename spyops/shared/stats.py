@@ -210,7 +210,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
 # End AbstractStatisticField class
 
 
-class NumericStatisticField(AbstractStatisticField):
+class _NumericStatisticField(AbstractStatisticField):
     """
     Numeric Statistic Field
     """
@@ -232,10 +232,10 @@ class NumericStatisticField(AbstractStatisticField):
         """
         return f'{self.prefix}({self.field.escaped_name})'
     # End function_stub property
-# End NumericStatisticField class
+# End _NumericStatisticField class
 
 
-class Average(NumericStatisticField):
+class Average(_NumericStatisticField):
     """
     Average Statistics Field
     """
@@ -256,7 +256,7 @@ class Average(NumericStatisticField):
 # End Average class
 
 
-class _FunctionNumericStatisticField(NumericStatisticField):
+class _FunctionNumericStatisticField(_NumericStatisticField):
     """
     Function based Numeric Statistic Field
     """
@@ -284,7 +284,7 @@ class Median(_FunctionNumericStatisticField):
 # End Median class
 
 
-class Minimum(NumericStatisticField):
+class Minimum(_NumericStatisticField):
     """
     Minimum Statistics Field
     """
@@ -305,7 +305,7 @@ class Minimum(NumericStatisticField):
 # End Minimum class
 
 
-class Maximum(NumericStatisticField):
+class Maximum(_NumericStatisticField):
     """
     Maximum Statistics Field
     """
@@ -326,7 +326,7 @@ class Maximum(NumericStatisticField):
 # End Maximum class
 
 
-class Range(NumericStatisticField):
+class Range(_NumericStatisticField):
     """
     Range Statistics Field
     """
@@ -390,7 +390,7 @@ class Variance(_FunctionNumericStatisticField):
 # End StandardDeviation class
 
 
-class Summation(NumericStatisticField):
+class Summation(_NumericStatisticField):
     """
     Summation Statistics Field
     """
