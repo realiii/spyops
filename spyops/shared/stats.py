@@ -9,7 +9,7 @@ from math import isfinite
 from statistics import (
     StatisticsError, median as _median, mode as _mode,
     stdev as _standard_deviation, variance)
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
@@ -128,6 +128,29 @@ class AbstractStatisticField(metaclass=ABCMeta):
         self._field: Field | str = field
         self._stat: Statistic = stat
     # End init built-in
+
+    def __eq__(self, other: Self) -> bool:
+        """
+        Equals Override
+        """
+        if not isinstance(other, self.__class__):  # pragma: no cover
+            return NotImplemented
+        return self.field == other.field and self.statistic == other.statistic
+    # End eq built-in
+
+    def __hash__(self) -> int:
+        """
+        Hash Implementation
+        """
+        return hash((self.field, self.statistic))
+    # End hash built-in
+
+    def __repr__(self) -> str:
+        """
+        Representation Override
+        """
+        return self.function_stub
+    # End repr built-in
 
     @property
     def field(self) -> Field | str:
