@@ -45,6 +45,34 @@ class QuerySplitByAttributes(AbstractGroupQuery):
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert('{}', insert_field_names, field_count)
     # End insert property
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        *_, select_field_names = self._field_names_and_count(elm)
+        where_clause = self._build_spatial_rank(elm)
+        return self._make_select(
+            elm, field_names=select_field_names, where_clause=where_clause)
+    # End select property
+
+    @property
+    def groups(self) -> str:
+        """
+        Groups
+        """
+        elm = self.source
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT DISTINCT * 
+            FROM (SELECT dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
+            FROM {elm.escaped_name} {index_where})
+        """
+    # End groups property
 # End QuerySplitByAttributes class
 
 

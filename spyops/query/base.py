@@ -277,40 +277,21 @@ class AbstractGroupQuery(AbstractQuery, metaclass=ABCMeta):
         return index_where
     # End _spatial_index_where function
 
-    @property
-    def select(self) -> str:
+    def _build_spatial_rank(self, element: ELEMENT) -> str:
         """
-        Selection Query
+        Build Spatial Rank
         """
-        elm = self.source
-        *_, select_field_names = self._field_names_and_count(elm)
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        primary = elm.primary_key_field.escaped_name
-        where_clause = f"""
+        primary = element.primary_key_field.escaped_name
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(element, extent=(0, 0, 0, 0))
+        return f"""
             {primary} IN (SELECT {primary}
             FROM (SELECT {primary}, 
                          dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
-                  FROM {elm.escaped_name} {index_where})
+                  FROM {element.escaped_name} {index_where})
             WHERE __DRID__ = ?) 
         """
-        return self._make_select(
-            elm, field_names=select_field_names, where_clause=where_clause)
-    # End select property
-
-    @property
-    def groups(self) -> str:
-        """
-        Groups
-        """
-        elm = self.source
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        return f"""
-            SELECT DISTINCT * 
-            FROM (SELECT dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
-            FROM {elm.escaped_name} {index_where})
-        """
-    # End groups property
+    # End _build_spatial_rank method
 # End AbstractGroupQuery class
 
 
