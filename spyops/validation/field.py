@@ -15,6 +15,7 @@ from spyops.shared.constant import PADDED_PIPE
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import TYPE_ALIAS_LUT, validate_fields
 from spyops.shared.hint import ELEMENT, NAMES
+from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
 
@@ -172,6 +173,82 @@ class ValidateField(AbstractValidateType):
             raise ValueError(f'{names} not found in {element.name}')
     # End _validate_exists method
 # End ValidateField class
+
+
+class ValidateStatisticField(ValidateField):
+    """
+    Validate Statistic Field
+    """
+    _types: ClassVar[tuple[type, ...]] = AbstractStatisticField,
+
+    def __init__(self, name: str, *, element_name: str,
+                 is_optional: bool = True) -> None:
+        """
+        Initialize the ValidateStatisticField class
+
+        :param name: Name of the argument to validate
+        :param element_name: Argument Name of the element to validate against
+        :param is_optional: Field argument is not required
+        """
+        # noinspection PyArgumentEqualDefault
+        super().__init__(name=name, element_name=element_name, exists=True,
+                         single=False, exclude_geometry=True,
+                         exclude_primary=False, is_optional=is_optional)
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            if not (obj := [o for o in self._make_iterable(obj) if o]):
+                self._set_object(obj, kwargs=kwargs)
+                return func(**kwargs)
+            self._validate_type(obj)
+            element = self._get_element(kwargs)
+            obj = self._find_field(obj, element=element)
+            self._set_object(obj, kwargs=kwargs)
+            self._validate_data_type(obj)
+            self._validate_exists(obj, element=element)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _find_field(self, obj: Any, element: ELEMENT) -> Any:
+        """
+        Find Fields and set them onto the statistics objects
+        """
+        obj = self._make_iterable(obj)
+        fields = [stat.field for stat in obj]
+        fields = super()._find_field(fields, element=element)
+        for stat, field in zip(obj, fields):
+            stat.field = field
+        return obj
+    # End _find_field method
+
+    def _validate_data_type(self, obj: Any) -> None:
+        """
+        Validate Data Type
+        """
+        for stat in obj:
+            stat.validate()
+    # End _validate_data_type method
+
+    def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
+        """
+        Validate Exists
+        """
+        obj = [stat.field for stat in obj if stat.field]
+        super()._validate_exists(obj, element=element)
+    # End _validate_exists method
+# End ValidateStatisticField class
 
 
 class ValidateGeometryDimension(AbstractValidate):
