@@ -38,6 +38,7 @@ class ValidateField(AbstractValidateType):
         :param single: Expect only a single field
         :param exclude_geometry: Exclude geometry column
         :param exclude_primary: Exclude primary key attributes should be excluded
+        :param is_optional: Field argument is not required
         """
         super().__init__(name=name)
         self._data_types: NAMES = data_types
