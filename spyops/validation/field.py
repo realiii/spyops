@@ -63,7 +63,7 @@ class ValidateField(AbstractValidateType):
             obj = self._get_object(kwargs)
             element = self._get_element(kwargs)
             obj = self._find_field(obj, element=element)
-            kwargs[self._name] = obj
+            self._set_object(obj, kwargs=kwargs)
             self._validate_type(obj)
             self._validate_data_type(obj)
             self._validate_exists(obj, element=element)
