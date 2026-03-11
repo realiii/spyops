@@ -247,6 +247,73 @@ class AbstractQuery(metaclass=ABCMeta):
 # End AbstractQuery class
 
 
+class AbstractGroupQuery(AbstractQuery, metaclass=ABCMeta):
+    """
+    Abstract Group Query
+    """
+    def __init__(self, element: ELEMENT, fields: FIELDS,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractGroupQuery class
+        """
+        super().__init__(element, xy_tolerance=xy_tolerance)
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
+
+    def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
+        """
+        Make a where clause stub that can be used to select features which
+        intersect an extent. The query is based on a spatial index (if present).
+        """
+        if not isinstance(element, FeatureClass):
+            return EMPTY
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return EMPTY
+        polygon = self._get_extent_polygon(
+            extent, crs=crs_from_srs(element.spatial_reference_system))
+        if index_where := super()._spatial_index_where(
+                element, extent=polygon.bounds):
+            index_where = f'WHERE ({index_where.format(IN)})'
+        return index_where
+    # End _spatial_index_where function
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        *_, select_field_names = self._field_names_and_count(elm)
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        primary = elm.primary_key_field.escaped_name
+        where_clause = f"""
+            {primary} IN (SELECT {primary}
+            FROM (SELECT {primary}, 
+                         dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
+                  FROM {elm.escaped_name} {index_where})
+            WHERE __DRID__ = ?) 
+        """
+        return self._make_select(
+            elm, field_names=select_field_names, where_clause=where_clause)
+    # End select property
+
+    @property
+    def groups(self) -> str:
+        """
+        Groups
+        """
+        elm = self.source
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT DISTINCT * 
+            FROM (SELECT dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
+            FROM {elm.escaped_name} {index_where})
+        """
+    # End groups property
+# End AbstractGroupQuery class
+
+
 class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
     """
     Abstract Source Query
