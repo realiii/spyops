@@ -9,7 +9,10 @@ from fudgeo import Field
 from fudgeo.enumeration import FieldType
 
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
-from spyops.validation import validate_field, validate_table
+from spyops.shared.stats import Average, Avg, First
+from spyops.validation import (
+    validate_field, validate_statistic_field,
+    validate_table)
 
 
 pytestmark = [mark.validation]
@@ -121,6 +124,37 @@ def test_validate_field_single_field(world_tables, fld, exists, throws):
     else:
         field_function(tbl, fld)
 # End test_validate_field_single_field function
+
+
+@mark.parametrize('stats, expected, throws', [
+    (Average('ISO_CODE'), None, True),
+    (Average('PART_ID'), None, True),
+    (Average('LAND_RANK'), [Average(Field('LAND_RANK', data_type='SMALLINT'))], False),
+    (First('ISO_CODE'), [First(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    (First(Field('ISO_CODE', data_type='TEXT')), [First(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    ([First(Field('ISO_CODE', data_type='TEXT'))], [First(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    (Field('ISO_CODE', data_type='TEXT'), None, True),
+    (None, [], False),
+    ([None], [], False),
+    ((), [], False),
+])
+def test_validate_statistic_field(world_tables, stats, expected, throws):
+    """
+    Test validate statistic field
+    """
+    @validate_table('table')
+    @validate_statistic_field('stat_fields', element_name='table')
+    def stat_function(table, stat_fields):
+        return stat_fields
+    tbl = world_tables['admin']
+    if throws:
+        with raises((ValueError, TypeError)):
+            stat_function(tbl, stats)
+    else:
+        result = stat_function(tbl, stats)
+        assert all(isinstance(s.field, Field) for s in result)
+        assert tuple(result) == tuple(expected)
+# End test_validate_statistic_field function
 
 
 if __name__ == '__main__':  # pragma: no cover
