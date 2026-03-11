@@ -244,8 +244,8 @@ class _NumericStatisticField(AbstractStatisticField):
         super().validate()
         if (data_type := self._get_data_type()) in NUMBERS:
             return
-        raise TypeError(
-            f'Expected field data type to be numeric, got {data_type}')
+        raise ValueError(
+            f'Expected {self.field.name} field to be numeric, got {data_type}')
     # End validate method
 
     @property
