@@ -68,8 +68,10 @@ def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
     if not len(geoms):
         return MultiPolygon()
     multi = union_all(normalize(geoms)).normalize()
+    if not hasattr(multi, GEOMS_ATTR):
+        # noinspection PyTypeChecker
+        multi = MultiPolygon([multi])
     prepare(multi)
-    # noinspection PyTypeChecker
     return multi
 # End _multi_polygon function
 
