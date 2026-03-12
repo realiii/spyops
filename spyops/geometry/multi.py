@@ -24,7 +24,7 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
                 transformer: Callable | None) \
         -> MultiPoint | MultiLineString | MultiPolygon | None:
     """
-    Build MultiPoint, MultiLineString or MultiPolygon from a Feature Class or
+    Build MultiPoint, MultiLineString, or MultiPolygon from a Feature Class or
     collection of geometries.
     """
     if not len(features):
