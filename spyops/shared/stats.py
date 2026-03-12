@@ -16,7 +16,7 @@ from fudgeo.enumeration import FieldType
 
 from spyops.shared.constant import COMMA, SPYOPS, UNDERSCORE
 from spyops.shared.enumeration import Statistic
-from spyops.shared.field import ALIAS_TYPE_LUT, NUMBERS
+from spyops.shared.field import ALIAS_TYPE_LUT, NUMBERS, clone_field
 
 
 def mode(values: list) -> Any:
@@ -165,6 +165,14 @@ class AbstractStatisticField(metaclass=ABCMeta):
             return
         self._field = value
     # End field property
+
+    @property
+    def output_field(self) -> Field:
+        """
+        Output Field
+        """
+        return clone_field(self.field, name=self.output_name)
+    # End output_field property
 
     @property
     def statistic(self) -> Statistic:
