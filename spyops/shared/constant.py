@@ -27,6 +27,7 @@ SRS_ID_WKB: int = -1  # used where only need WKB
 
 
 SPYOPS: str = 'spyops'
+DRID: str = '__DRID__'
 
 
 if __name__ == '__main__':  # pragma: no cover

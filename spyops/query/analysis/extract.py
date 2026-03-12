@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Union
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
     AbstractGroupQuery, AbstractSpatialQuery, BaseQuerySelect)
-from spyops.shared.constant import EMPTY
+from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.hint import ELEMENT, FIELDS
 
 
@@ -69,7 +69,7 @@ class QuerySplitByAttributes(AbstractGroupQuery):
         return f"""
             SELECT DISTINCT * 
             FROM (SELECT dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
+                    ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
             FROM {elm.escaped_name} {index_where})
         """
     # End groups property
