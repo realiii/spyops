@@ -150,7 +150,7 @@ class TestStatisticField:
         obj.field = field
         assert obj.field == field
         assert obj.statistic == stat
-        assert obj.function_stub == stub.format(field.escaped_name)
+        assert obj.aggregate == stub.format(field.escaped_name)
         assert obj.prefix == prefix
         assert obj.output_name == f'{prefix}_asdf'
         assert obj.data_type == FieldType.integer
@@ -172,7 +172,7 @@ class TestStatisticField:
         obj.field = field
         assert obj.field == field
         assert obj.statistic == Statistic.CONCATENATE
-        assert obj.function_stub == "group_concat(asdf, ',')"
+        assert obj.aggregate == "group_concat(asdf, ',')"
         assert obj.prefix == 'CONCAT'
         assert obj.output_name == 'CONCAT_asdf'
         assert obj.data_type == FieldType.text

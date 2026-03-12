@@ -149,7 +149,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Representation Override
         """
-        return self.function_stub
+        return self.aggregate
     # End repr built-in
 
     @property
@@ -200,12 +200,12 @@ class AbstractStatisticField(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def function_stub(self) -> str:  # pragma: no cover
+    def aggregate(self) -> str:  # pragma: no cover
         """
         Function Stub
         """
         pass
-    # End function_stub property
+    # End aggregate property
 
     @property
     def prefix(self) -> str:
@@ -249,12 +249,12 @@ class _NumericStatisticField(AbstractStatisticField):
     # End validate method
 
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         return f'{self.prefix}({self.field.escaped_name})'
-    # End function_stub property
+    # End aggregate property
 # End _NumericStatisticField class
 
 
@@ -284,13 +284,13 @@ class _FunctionNumericStatisticField(_NumericStatisticField):
     Function-based Numeric Statistic Field
     """
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
         return f'{name}({self.field.escaped_name})'
-    # End function_stub property
+    # End aggregate property
 # End _FunctionNumericStatisticField class
 
 
@@ -361,13 +361,13 @@ class Range(_NumericStatisticField):
     # End init built-in
 
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         name = self.field.escaped_name
         return f'(MAX({name}) - MIN({name}))'
-    # End function_stub property
+    # End aggregate property
 # End Range class
 
 
@@ -446,12 +446,12 @@ class Count(AbstractStatisticField):
     # End init built-in
 
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         return f'{self.prefix}({self.field.escaped_name})'
-    # End function_stub property
+    # End aggregate property
 
     @property
     def prefix(self) -> str:
@@ -475,12 +475,12 @@ class Unique(AbstractStatisticField):
     # End init built-in
 
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         return f'COUNT(DISTINCT {self.field.escaped_name})'
-    # End function_stub property
+    # End aggregate property
 
     @property
     def prefix(self) -> str:
@@ -497,13 +497,13 @@ class _FunctionStatisticField(AbstractStatisticField):
     Function Statistic Field
     """
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
         return f'{name}({self.field.escaped_name})'
-    # End function_stub property
+    # End aggregate property
 # End _FunctionStatisticField class
 
 
@@ -559,12 +559,12 @@ class Concatenate(AbstractStatisticField):
     # End init built-in
 
     @property
-    def function_stub(self) -> str:
+    def aggregate(self) -> str:
         """
         Function Stub
         """
         return f"group_concat({self.field.escaped_name}, '{self._delimiter}')"
-    # End function_stub property
+    # End aggregate property
 
     @property
     def prefix(self) -> str:
