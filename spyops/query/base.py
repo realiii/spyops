@@ -28,7 +28,7 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
-    DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
+    DOT, DRID, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -247,19 +247,10 @@ class AbstractQuery(metaclass=ABCMeta):
 # End AbstractQuery class
 
 
-class AbstractGroupQuery(AbstractQuery, metaclass=ABCMeta):
+class GroupQueryMixin:
     """
-    Abstract Group Query
+    Group Query Mixin
     """
-    def __init__(self, element: ELEMENT, fields: FIELDS,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the AbstractGroupQuery class
-        """
-        super().__init__(element, xy_tolerance=xy_tolerance)
-        self._group_names: str = make_field_names(fields)
-    # End init built-in
-
     def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
         """
         Make a where clause stub that can be used to select features which
@@ -287,11 +278,27 @@ class AbstractGroupQuery(AbstractQuery, metaclass=ABCMeta):
         return f"""
             {primary} IN (SELECT {primary}
             FROM (SELECT {primary}, 
-                         dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
+                         dense_rank() OVER (ORDER BY {self._group_names}) AS {DRID} 
                   FROM {element.escaped_name} {index_where})
-            WHERE __DRID__ = ?) 
+            WHERE {DRID} = ?) 
         """
     # End _build_spatial_rank method
+# End GroupQueryMixin class
+
+
+class AbstractGroupQuery(GroupQueryMixin, AbstractQuery, metaclass=ABCMeta):
+    """
+    Abstract Group Query
+    """
+    def __init__(self, element: ELEMENT, fields: FIELDS, *,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractGroupQuery class
+        """
+        super().__init__(element, xy_tolerance=xy_tolerance)
+        self._fields: FIELDS = fields
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
 # End AbstractGroupQuery class
 
 
