@@ -260,8 +260,10 @@ class GroupQueryMixin:
             return EMPTY
         if not (extent := ANALYSIS_SETTINGS.extent):
             return EMPTY
+        # noinspection PyUnresolvedReferences
         polygon = self._get_extent_polygon(
             extent, crs=crs_from_srs(element.spatial_reference_system))
+        # noinspection PyProtectedMember,PyUnresolvedReferences
         if index_where := super()._spatial_index_where(
                 element, extent=polygon.bounds):
             index_where = f'WHERE ({index_where.format(IN)})'
@@ -275,6 +277,7 @@ class GroupQueryMixin:
         primary = element.primary_key_field.escaped_name
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(element, extent=(0, 0, 0, 0))
+        # noinspection PyUnresolvedReferences
         return f"""
             {primary} IN (SELECT {primary}
             FROM (SELECT {primary}, 
