@@ -27,8 +27,7 @@ if TYPE_CHECKING:  # pragma: no cover
 @validate_overwrite_source()
 def dissolve(source: 'FeatureClass', target: 'FeatureClass',
              group_fields: FIELDS | FIELD_NAMES, *,
-             statistics: STATS_FIELDS | None = None,
-             as_multi_part: bool = True, vertex_only: bool = False,
+             statistics: STATS_FIELDS | None = None, as_multi_part: bool = True,
              xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Dissolve
@@ -36,9 +35,6 @@ def dissolve(source: 'FeatureClass', target: 'FeatureClass',
     Aggregate features based on one or more group fields and optionally
     summarize attributes.  The as_multi_part option controls whether the
     output is a single-part or multipart feature class.
-
-    The vertex_only option applies to lines only.  When True only those line
-    features that shared a common end-point will be dissolved into one another.
     """
     pass
 # End dissolve function
