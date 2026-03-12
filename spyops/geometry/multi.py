@@ -12,7 +12,7 @@ from numpy import asarray, ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.constructive import normalize
 from shapely.creation import prepare
-from shapely.ops import unary_union
+from shapely.set_operations import union_all
 
 from spyops.geometry.util import get_validity
 from spyops.geometry.validate import (
@@ -67,7 +67,7 @@ def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
         geoms = asarray(geoms, dtype=object)
     if not len(geoms):
         return MultiPolygon()
-    multi = unary_union(normalize(geoms)).normalize()
+    multi = union_all(normalize(geoms)).normalize()
     prepare(multi)
     # noinspection PyTypeChecker
     return multi
