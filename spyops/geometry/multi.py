@@ -14,7 +14,6 @@ from shapely.constructive import normalize
 from shapely.creation import prepare
 from shapely.set_operations import union_all
 
-from spyops.geometry.config import get_combiner
 from spyops.geometry.util import get_geoms_iter, get_validity
 from spyops.geometry.validate import (
     _check_geometries, _get_validated_geoms, check_linestring, check_point,
@@ -133,13 +132,10 @@ def _dissolve_point(geoms: ndarray | list, grid_size: GRID_SIZE) -> MultiPoint:
 def _dissolve_linestring(geoms: ndarray | list,
                          grid_size: GRID_SIZE) -> MultiLineString:
     """
-    Dissolve LineStrings
+    Dissolve LineStrings (combining done during extend_records via the
+    geometry configuration combiner)
     """
-    has_m = any(geom.has_m for geom in geoms)
-    combiner = get_combiner(ShapeType.linestring, has_m=has_m)
     lines = union_all(geoms, grid_size=grid_size)
-    # noinspection PyTypeChecker
-    lines = combiner(MultiLineString(get_geoms_iter(lines)))
     # noinspection PyTypeChecker
     return MultiLineString(get_geoms_iter(lines))
 # End _dissolve_linestring function
