@@ -269,6 +269,22 @@ class GroupQueryMixin:
             index_where = f'WHERE ({index_where.format(IN)})'
         return index_where
     # End _spatial_index_where function
+# End GroupQueryMixin class
+
+
+class AbstractGroupQuery(GroupQueryMixin, AbstractQuery, metaclass=ABCMeta):
+    """
+    Abstract Group Query
+    """
+    def __init__(self, element: ELEMENT, fields: FIELDS, *,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractGroupQuery class
+        """
+        super().__init__(element, xy_tolerance=xy_tolerance)
+        self._fields: FIELDS = fields
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
 
     def _build_spatial_rank(self, element: ELEMENT) -> str:
         """
@@ -286,22 +302,6 @@ class GroupQueryMixin:
             WHERE {DRID} = ?) 
         """
     # End _build_spatial_rank method
-# End GroupQueryMixin class
-
-
-class AbstractGroupQuery(GroupQueryMixin, AbstractQuery, metaclass=ABCMeta):
-    """
-    Abstract Group Query
-    """
-    def __init__(self, element: ELEMENT, fields: FIELDS, *,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the AbstractGroupQuery class
-        """
-        super().__init__(element, xy_tolerance=xy_tolerance)
-        self._fields: FIELDS = fields
-        self._group_names: str = make_field_names(fields)
-    # End init built-in
 # End AbstractGroupQuery class
 
 
