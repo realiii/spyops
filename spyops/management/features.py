@@ -372,18 +372,18 @@ def repair_geometry(source: 'FeatureClass', drop_empty: bool = False) \
       as a manual edit
     * EXTENT: updates the feature class extent to match the geometry extent
     """
-    query = QueryRepairGeometry(source)
-    with (query.source.geopackage.connection as cin,
-          ExecuteMany(connection=cin, table=query.target) as executor):
-        updates, identifiers = repair_feature_class_geometry(
-            query.source, drop_empty=drop_empty)
-        if drop_empty:
-            cin.executemany(query.insert_identifiers, identifiers)
-            cin.execute(query.drop_empty)
-            cin.execute(query.truncate)
-        executor(sql=query.insert, data=updates)
-        cin.execute(query.update)
-        query.source.extent = get_extent(query.source)
+    with QueryRepairGeometry(source) as query:
+        with (query.source.geopackage.connection as cin,
+              ExecuteMany(connection=cin, table=query.target) as executor):
+            updates, identifiers = repair_feature_class_geometry(
+                query.source, drop_empty=drop_empty)
+            if drop_empty:
+                cin.executemany(query.insert_identifiers, identifiers)
+                cin.execute(query.drop_empty)
+                cin.execute(query.truncate)
+            executor(sql=query.insert, data=updates)
+            cin.execute(query.update)
+            query.source.extent = get_extent(query.source)
     return query.source
 # End repair_geometry function
 
