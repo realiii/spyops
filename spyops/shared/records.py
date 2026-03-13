@@ -76,7 +76,7 @@ def extend_records(results: list[tuple], records: list[tuple],
     types = _, multi_cls = config.filter_types
     refined = []
     for geom, attrs in results:
-        if geom.is_empty:
+        if geom is None or geom.is_empty:
             continue
         if isinstance(geom, GeometryCollection):
             geom = multi_cls([g for g in get_geoms(geom) if isinstance(g, types)])
