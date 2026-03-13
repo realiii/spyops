@@ -7,9 +7,10 @@ from pytest import approx, mark
 from shapely import (
     MultiLineString, MultiPoint, MultiPolygon, Point, LineString, Polygon)
 
+from spyops.geometry.config import _combine_lines
 from spyops.geometry.multi import (
     build_multi, _dissolve_point, _dissolve_linestring, _dissolve_polygon)
-
+from spyops.geometry.util import get_geoms_iter
 
 pytestmark = [mark.geometry]
 
@@ -83,7 +84,8 @@ def test_dissolve_linestring(geoms, grid_size, expected):
     """
     Test Dissolve LineString
     """
-    assert _dissolve_linestring(geoms, grid_size=grid_size) == expected
+    result = _dissolve_linestring(geoms, grid_size=grid_size)
+    assert MultiLineString(get_geoms_iter(_combine_lines(result))) == expected
 # End test_dissolve_linestring method
 
 
