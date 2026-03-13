@@ -120,7 +120,7 @@ def _multi_point(features: FeatureClass | ndarray, select_sql: str | None,
 # End _multi_point function
 
 
-def _dissolve_point(geoms: ndarray, grid_size: GRID_SIZE) -> MultiPoint:
+def _dissolve_point(geoms: ndarray | list, grid_size: GRID_SIZE) -> MultiPoint:
     """
     Dissolve Points
     """
@@ -130,7 +130,8 @@ def _dissolve_point(geoms: ndarray, grid_size: GRID_SIZE) -> MultiPoint:
 # End _dissolve_point function
 
 
-def _dissolve_linestring(geoms: ndarray, grid_size: GRID_SIZE) -> MultiLineString:
+def _dissolve_linestring(geoms: ndarray | list,
+                         grid_size: GRID_SIZE) -> MultiLineString:
     """
     Dissolve LineStrings
     """
@@ -144,7 +145,8 @@ def _dissolve_linestring(geoms: ndarray, grid_size: GRID_SIZE) -> MultiLineStrin
 # End _dissolve_linestring function
 
 
-def _dissolve_polygon(geoms: ndarray, grid_size: GRID_SIZE) -> MultiPolygon:
+def _dissolve_polygon(geoms: ndarray | list,
+                      grid_size: GRID_SIZE) -> MultiPolygon:
     """
     Dissolve Polygons
     """
