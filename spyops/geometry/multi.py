@@ -14,10 +14,13 @@ from shapely.constructive import normalize
 from shapely.creation import prepare
 from shapely.set_operations import union_all
 
-from spyops.geometry.util import get_validity
+from spyops.geometry.config import get_combiner
+from spyops.geometry.util import get_geoms_iter, get_validity
 from spyops.geometry.validate import (
     _check_geometries, _get_validated_geoms, check_linestring, check_point,
     check_polygon)
+from spyops.shared.hint import GRID_SIZE
+from spyops.shared.keywords import GEOMS_ATTR
 
 
 def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
@@ -115,6 +118,40 @@ def _multi_point(features: FeatureClass | ndarray, select_sql: str | None,
     prepare(multi)
     return multi
 # End _multi_point function
+
+
+def _dissolve_point(geoms: ndarray, grid_size: GRID_SIZE) -> MultiPoint:
+    """
+    Dissolve Points
+    """
+    points = union_all(geoms, grid_size=grid_size)
+    # noinspection PyTypeChecker
+    return MultiPoint(get_geoms_iter(points))
+# End _dissolve_point function
+
+
+def _dissolve_linestring(geoms: ndarray, grid_size: GRID_SIZE) -> MultiLineString:
+    """
+    Dissolve LineStrings
+    """
+    has_m = any(geom.has_m for geom in geoms)
+    combiner = get_combiner(ShapeType.linestring, has_m=has_m)
+    lines = union_all(geoms, grid_size=grid_size)
+    # noinspection PyTypeChecker
+    lines = combiner(MultiLineString(get_geoms_iter(lines)))
+    # noinspection PyTypeChecker
+    return MultiLineString(get_geoms_iter(lines))
+# End _dissolve_linestring function
+
+
+def _dissolve_polygon(geoms: ndarray, grid_size: GRID_SIZE) -> MultiPolygon:
+    """
+    Dissolve Polygons
+    """
+    polys = union_all(normalize(geoms), grid_size=grid_size).normalize()
+    # noinspection PyTypeChecker
+    return MultiPolygon(get_geoms_iter(polys))
+# End _dissolve_polygon function
 
 
 if __name__ == '__main__':  # pragma: no cover
