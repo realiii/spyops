@@ -85,7 +85,7 @@ def get_table_names(connection: 'Connection') -> list[str]:
 
 def has_table(connection: 'Connection', table_name: str) -> bool:
     """
-    Check for a table by name, case insensitive
+    Check for a table by name, case-insensitive
     """
     param: str = 'table_name'
     sql = f"""
