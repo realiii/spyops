@@ -102,22 +102,22 @@ def has_table(connection: 'Connection', table_name: str) -> bool:
 # End has_table method
 
 
-def add_statistics_functions(conn: 'Connection') -> None:
+def add_aggregates(conn: 'Connection') -> None:
     """
-    Add Statistics Functions, avoid stomping on possible existing functions
+    Add Aggregate Classes, avoid stomping on possible existing functions
     """
     for name, func in STATS_FUNCS.items():
-        conn.create_function(f'{SPYOPS}{UNDERSCORE}{name}', 1, func)
-# End add_statistics_functions function
+        conn.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, func)
+# End add_aggregates function
 
 
-def remove_statistics_functions(conn: 'Connection') -> None:
+def remove_aggregates(conn: 'Connection') -> None:
     """
-    Remove Statistics Functions
+    Remove Aggregate Classes
     """
     for name in STATS_FUNCS:
-        conn.create_function(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
-# End remove_statistics_functions function
+        conn.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
+# End remove_aggregates function
 
 
 if __name__ == '__main__':  # pragma: no cover

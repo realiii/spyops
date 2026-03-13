@@ -80,7 +80,7 @@ def last(values: list) -> Any:
 # End last function
 
 
-def _calculate_stat(func: Callable, values: list) -> float | None:
+def _calculate_stat(func: Callable, values: list | float | None) -> float | None:
     """
     Calculate Statistic, ignoring Null values and non-finite values.
     """
@@ -102,17 +102,128 @@ def _filter_none(values: list) -> list:
     """
     Filter None's out of a list
     """
+    if values is None:
+        return []
+    if not isinstance(values, list):
+        values = [values]
     return [v for v in values if v is not None]
 # End _filter_none function
 
 
+class AbstractAggregate(metaclass=ABCMeta):
+    """
+    Abstract Aggregate
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the AbstractAggregate class
+        """
+        super().__init__()
+        self._values: list = []
+    # End init built-in
+
+    def step(self, value: Any) -> None:
+        """
+        Step
+        """
+        self._values.append(value)
+    # End step method
+
+    @abstractmethod
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        pass
+    # End finalize method
+# End AbstractAggregate class
+
+
+class _ModeAggregate(AbstractAggregate):
+    """
+    Mode Aggregate for SQLite
+    """
+    def finalize(self) -> float | None:
+        """
+        Finalize
+        """
+        return mode(self._values)
+    # End finalize method
+# End _ModeAggregate class
+
+
+class _StandardDeviationAggregate(AbstractAggregate):
+    """
+    Standard Deviation Aggregate for SQLite
+    """
+    def finalize(self) -> float | None:
+        """
+        Finalize
+        """
+        return stdev(self._values)
+    # End finalize method
+# End _StandardDeviationAggregate class
+
+
+class _VarianceAggregate(AbstractAggregate):
+    """
+    Variance Aggregate for SQLite
+    """
+    def finalize(self) -> float | None:
+        """
+        Finalize
+        """
+        return var(self._values)
+    # End finalize method
+# End _VarianceAggregate class
+
+
+class _MedianAggregate(AbstractAggregate):
+    """
+    Median Aggregate for SQLite
+    """
+    def finalize(self) -> float | None:
+        """
+        Finalize
+        """
+        return median(self._values)
+    # End finalize method
+# End _MedianAggregate class
+
+
+class _FirstAggregate(AbstractAggregate):
+    """
+    First Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return first(self._values)
+    # End finalize method
+# End _FirstAggregate class
+
+
+class _LastAggregate(AbstractAggregate):
+    """
+    Last Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return last(self._values)
+    # End finalize method
+# End _LastAggregate class
+
+
 STATS_FUNCS: dict[str, Callable] = {
-    'mode': mode,
-    'stdev': stdev,
-    'var': var,
-    'median': median,
-    'first': first,
-    'last': last,
+    'mode': _ModeAggregate,
+    'stdev': _StandardDeviationAggregate,
+    'var': _VarianceAggregate,
+    'median': _MedianAggregate,
+    'first': _FirstAggregate,
+    'last': _LastAggregate,
 }
 
 
