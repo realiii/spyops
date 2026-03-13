@@ -79,7 +79,8 @@ def extend_records(results: list[tuple], records: list[tuple],
         if geom is None or geom.is_empty:
             continue
         if isinstance(geom, GeometryCollection):
-            geom = multi_cls([g for g in get_geoms(geom) if isinstance(g, types)])
+            geom = multi_cls([g for g in get_geoms(geom)
+                              if isinstance(g, types)])
         elif not isinstance(geom, types):
             continue
         geom = combiner(geom)
