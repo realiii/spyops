@@ -177,9 +177,9 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         steps, remainder = divmod(self.group_count, size)
         steps += bool(remainder)
         sql = self.select_geometry
-        is_point = self.source.shape_type in (
-            ShapeType.point, ShapeType.multi_point)
-        builder = partial(build_dissolved, shape_type=self.source.shape_type,
+        shape_type = self.source.shape_type
+        is_point = ShapeType.point in shape_type
+        builder = partial(build_dissolved, shape_type=shape_type,
                           grid_size=self.grid_size)
         with self.source.geopackage.connection as cin:
             for step in range(steps):
