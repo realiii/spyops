@@ -152,6 +152,8 @@ def _dissolve_point(geoms: ndarray | list, grid_size: GRID_SIZE) -> MultiPoint:
     Dissolve Points
     """
     points = union_all(geoms, grid_size=grid_size)
+    if isinstance(points, MultiPoint):
+        return points
     # noinspection PyTypeChecker
     return MultiPoint(get_geoms_iter(points))
 # End _dissolve_point function
@@ -164,6 +166,8 @@ def _dissolve_linestring(geoms: ndarray | list,
     geometry configuration combiner)
     """
     lines = union_all(geoms, grid_size=grid_size)
+    if isinstance(lines, MultiLineString):
+        return lines
     # noinspection PyTypeChecker
     return MultiLineString(get_geoms_iter(lines))
 # End _dissolve_linestring function
@@ -175,6 +179,8 @@ def _dissolve_polygon(geoms: ndarray | list,
     Dissolve Polygons
     """
     polys = union_all(normalize(geoms), grid_size=grid_size).normalize()
+    if isinstance(polys, MultiPolygon):
+        return polys
     # noinspection PyTypeChecker
     return MultiPolygon(get_geoms_iter(polys))
 # End _dissolve_polygon function
