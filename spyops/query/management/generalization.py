@@ -197,9 +197,7 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
                 else:
                     parts = [geometries[ids == i] for i in unique_ids]
                     with ProcessPoolExecutor() as executor:
-                        # noinspection PyProtectedMember,PyUnresolvedReferences
-                        chunk = max(1, len(unique_ids) // executor._max_workers)
-                        results = executor.map(builder, parts, chunksize=chunk)
+                        results = executor.map(builder, parts)
                         results = {i: result for i, result in
                                    zip(unique_ids, results)}
                 dissolved.update(results)
