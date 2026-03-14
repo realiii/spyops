@@ -4,6 +4,7 @@ Query Classes for management.generalization module
 """
 
 
+from concurrent.futures.process import ProcessPoolExecutor
 from functools import cache, cached_property, partial
 from typing import Generator, Self, TYPE_CHECKING
 
@@ -176,6 +177,8 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         steps, remainder = divmod(self.group_count, size)
         steps += bool(remainder)
         sql = self.select_geometry
+        is_point = self.source.shape_type in (
+            ShapeType.point, ShapeType.multi_point)
         builder = partial(build_dissolved, shape_type=self.source.shape_type,
                           grid_size=self.grid_size)
         with self.source.geopackage.connection as cin:
@@ -187,8 +190,18 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
                 features, geometries = to_shapely(
                     features, transformer=self.source_transformer)
                 ids = array([i for _, i in features], dtype=int)
-                dissolved.update({i: builder(geometries[ids == i])
-                                  for i in set(ids)})
+                if is_point:
+                    dissolved.update({i: builder(geometries[ids == i])
+                                      for i in set(ids)})
+                else:
+                    unique_ids = set(ids)
+                    parts = [geometries[ids == i] for i in unique_ids]
+                    with ProcessPoolExecutor() as executor:
+                        # noinspection PyProtectedMember,PyUnresolvedReferences
+                        chunk = len(unique_ids) // executor._max_workers
+                        results = executor.map(builder, parts, chunksize=chunk)
+                        dissolved.update({i: result for i, result in
+                                          zip(unique_ids, results)})
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved
         yield dissolved
