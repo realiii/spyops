@@ -22,9 +22,8 @@ from spyops.geometry.lookup import (
     FUDGEO_GEOMETRY_LOOKUP, SHAPELY_GEOMETRY_LOOKUP)
 from spyops.geometry.util import get_geoms, nada
 from spyops.geometry.wa import USE_WORKAROUNDS
-from spyops.shared.constant import (
-    GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY, SRS_ID_WKB)
-
+from spyops.shared.constant import SRS_ID_WKB
+from spyops.shared.keywords import GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass

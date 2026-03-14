@@ -145,6 +145,28 @@ class GeometryCheck(IntFlag, boundary=STRICT):
 # End GeometryCheck class
 
 
+class Statistic(StrEnum):
+    """
+    Statistic
+    """
+    AVERAGE = auto()
+    MEDIAN = auto()
+    MINIMUM = auto()
+    MAXIMUM = auto()
+    RANGE = auto()
+    STANDARD_DEVIATION = auto()
+    VARIANCE = auto()
+    SUMMATION = auto()
+
+    COUNT = auto()
+    UNIQUE = auto()
+    MODE = auto()
+    FIRST = auto()
+    LAST = auto()
+    CONCATENATE = auto()
+# End Statistic class
+
+
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
     GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |

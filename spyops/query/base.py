@@ -28,7 +28,7 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import (
-    DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
+    DOT, DRID, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -245,6 +245,64 @@ class AbstractQuery(metaclass=ABCMeta):
         pass
     # End insert property
 # End AbstractQuery class
+
+
+class GroupQueryMixin:
+    """
+    Group Query Mixin
+    """
+    def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
+        """
+        Make a where clause stub that can be used to select features which
+        intersect an extent. The query is based on a spatial index (if present).
+        """
+        if not isinstance(element, FeatureClass):
+            return EMPTY
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return EMPTY
+        # noinspection PyUnresolvedReferences
+        polygon = self._get_extent_polygon(
+            extent, crs=crs_from_srs(element.spatial_reference_system))
+        # noinspection PyProtectedMember,PyUnresolvedReferences
+        if index_where := super()._spatial_index_where(
+                element, extent=polygon.bounds):
+            index_where = f'WHERE ({index_where.format(IN)})'
+        return index_where
+    # End _spatial_index_where function
+# End GroupQueryMixin class
+
+
+class AbstractGroupQuery(GroupQueryMixin, AbstractQuery, metaclass=ABCMeta):
+    """
+    Abstract Group Query
+    """
+    def __init__(self, element: ELEMENT, fields: FIELDS, *,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractGroupQuery class
+        """
+        super().__init__(element, xy_tolerance=xy_tolerance)
+        self._fields: FIELDS = fields
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
+
+    def _build_spatial_rank(self, element: ELEMENT) -> str:
+        """
+        Build Spatial Rank
+        """
+        primary = element.primary_key_field.escaped_name
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(element, extent=(0, 0, 0, 0))
+        # noinspection PyUnresolvedReferences
+        return f"""
+            {primary} IN (SELECT {primary}
+            FROM (SELECT {primary}, 
+                         dense_rank() OVER (ORDER BY {self._group_names}) AS {DRID} 
+                  FROM {element.escaped_name} {index_where})
+            WHERE {DRID} = ?) 
+        """
+    # End _build_spatial_rank method
+# End AbstractGroupQuery class
 
 
 class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):

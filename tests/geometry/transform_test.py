@@ -31,7 +31,7 @@ from spyops.geometry.transform import (
     transform_multi_points, transform_multi_polygons, transform_points,
     transform_polygons)
 from spyops.geometry.util import find_slice_indexes, get_validity
-from spyops.shared.constant import (
+from spyops.shared.keywords import (
     HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, TRANSFORMER_KEY)
 
 pytestmark = [mark.geometry]

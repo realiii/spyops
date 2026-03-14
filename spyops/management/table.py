@@ -7,7 +7,7 @@ Data Management for Tables
 from typing import Callable, TYPE_CHECKING
 
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.shared.constant import SOURCE
+from spyops.shared.keywords import SOURCE
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
 from spyops.shared.util import make_valid_name
 from spyops.validation import (

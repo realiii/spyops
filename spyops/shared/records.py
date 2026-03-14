@@ -18,7 +18,8 @@ from shapely.io import from_wkb
 from spyops.geometry.util import (
     filter_features, get_geoms, get_geoms_iter, to_shapely)
 from spyops.geometry.wa import USE_WORKAROUNDS, set_precision
-from spyops.shared.constant import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z, SRS_ID_WKB
+from spyops.shared.constant import SRS_ID_WKB
+from spyops.shared.keywords import GEOMS_ATTR, INCLUDE_M, INCLUDE_Z
 from spyops.shared.hint import GRID_SIZE
 
 
@@ -75,10 +76,11 @@ def extend_records(results: list[tuple], records: list[tuple],
     types = _, multi_cls = config.filter_types
     refined = []
     for geom, attrs in results:
-        if geom.is_empty:
+        if geom is None or geom.is_empty:
             continue
         if isinstance(geom, GeometryCollection):
-            geom = multi_cls([g for g in get_geoms(geom) if isinstance(g, types)])
+            geom = multi_cls([g for g in get_geoms(geom)
+                              if isinstance(g, types)])
         elif not isinstance(geom, types):
             continue
         geom = combiner(geom)

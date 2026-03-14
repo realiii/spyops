@@ -6,7 +6,7 @@ Data Management for Indexes
 
 from typing import TYPE_CHECKING
 
-from spyops.shared.constant import INDEX_FIELDS, SOURCE
+from spyops.shared.keywords import INDEX_FIELDS, SOURCE
 from spyops.shared.field import TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES
 from spyops.validation import (

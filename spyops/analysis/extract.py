@@ -10,8 +10,8 @@ from fudgeo import FeatureClass, MemoryGeoPackage
 
 from spyops.analysis.util import _clip, _split_by_attributes
 from spyops.query.analysis.extract import QuerySelect, QuerySplit
-from spyops.shared.constant import (
-    FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET, UNDERSCORE)
+from spyops.shared.constant import UNDERSCORE
+from spyops.shared.keywords import FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET
 from spyops.shared.element import copy_element
 from spyops.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL

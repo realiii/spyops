@@ -42,7 +42,7 @@ class Extent:
 
     def __eq__(self, other: Self) -> bool:
         """
-        Equality
+        Equals Override
         """
         if not isinstance(other, Extent):  # pragma: no cover
             return NotImplemented

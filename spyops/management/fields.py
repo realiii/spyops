@@ -9,8 +9,9 @@ from collections import defaultdict
 from fudgeo import Field
 from fudgeo.enumeration import FieldPropertyType
 
-from spyops.shared.constant import (
-    ELEMENTS_ARG, EMPTY, FIELD, FIELDS_ARG, FIELD_PROPERTY, SOURCE)
+from spyops.shared.constant import EMPTY
+from spyops.shared.keywords import (
+    ELEMENTS_ARG, FIELD, FIELDS_ARG, FIELD_PROPERTY, SOURCE)
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (

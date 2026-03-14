@@ -11,7 +11,8 @@ from typing import Callable
 from fudgeo import FeatureClass, Table
 
 from spyops.geometry.extent import set_extent
-from spyops.shared.constant import NAME_ATTR, SKIP_FILE_PREFIXES
+from spyops.shared.constant import SKIP_FILE_PREFIXES
+from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.exception import EmptyResultWarning, NoResultWarning
 from spyops.shared.hint import ELEMENT
 from spyops.validation.base import AbstractValidate

@@ -14,6 +14,7 @@ from spyops.management.features import (
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete
+from spyops.management.generalization import dissolve
 from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
     remove_spatial_index)
@@ -22,6 +23,10 @@ from spyops.management.table import (
 from spyops.shared.enumeration import (
     FieldProperty, GeometryAttribute, GeometryCheck, LineTypeOption,
     WeightOption)
+from spyops.shared.stats import (
+    Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
+    Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
+    Summation, Unique, Var, Variance)
 
 
 __all__ = [
@@ -41,6 +46,7 @@ __all__ = [
     'delete_features',
     'delete_field',
     'delete_rows',
+    'dissolve',
     'explode',
     'get_count',
     'multipart_to_singlepart',
@@ -60,6 +66,29 @@ __all__ = [
     'LengthUnit',
     'LineTypeOption',
     'WeightOption',
+
+    'Average',
+    'Avg',
+    'Concat',
+    'Concatenate',
+    'Count',
+    'First',
+    'Last',
+    'Max',
+    'Maximum',
+    'Mean',
+    'Median',
+    'Min',
+    'Minimum',
+    'Mode',
+    'Range',
+    'StandardDeviation',
+    'StdDev',
+    'Sum',
+    'Summation',
+    'Unique',
+    'Var',
+    'Variance'
 ]
 
 

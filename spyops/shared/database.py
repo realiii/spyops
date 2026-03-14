@@ -7,6 +7,9 @@ Database Functionality
 from pathlib import Path
 from sqlite3 import Connection, DatabaseError, OperationalError, connect
 
+from spyops.shared.constant import SPYOPS, UNDERSCORE
+from spyops.shared.stats import STATS_FUNCS
+
 
 BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',
                          'gpkg_geometry_columns', 'gpkg_tile_matrix_set',
@@ -82,7 +85,7 @@ def get_table_names(connection: 'Connection') -> list[str]:
 
 def has_table(connection: 'Connection', table_name: str) -> bool:
     """
-    Check for a table by name, case insensitive
+    Check for a table by name, case-insensitive
     """
     param: str = 'table_name'
     sql = f"""
@@ -97,6 +100,24 @@ def has_table(connection: 'Connection', table_name: str) -> bool:
     cursor = connection.execute(sql, {param: table_name})
     return bool(cursor.fetchone())
 # End has_table method
+
+
+def add_aggregates(conn: 'Connection') -> None:
+    """
+    Add Aggregate Classes, avoid stomping on possible existing functions
+    """
+    for name, func in STATS_FUNCS.items():
+        conn.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, func)
+# End add_aggregates function
+
+
+def remove_aggregates(conn: 'Connection') -> None:
+    """
+    Remove Aggregate Classes
+    """
+    for name in STATS_FUNCS:
+        conn.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
+# End remove_aggregates function
 
 
 if __name__ == '__main__':  # pragma: no cover

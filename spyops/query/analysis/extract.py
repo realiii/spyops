@@ -7,17 +7,11 @@ Query Classes for analysis.extract module
 from functools import cached_property
 from typing import TYPE_CHECKING, Union
 
-from fudgeo import FeatureClass
-
-from spyops.crs.util import crs_from_srs
-from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
-    AbstractQuery, AbstractSpatialQuery, BaseQuerySelect)
-from spyops.shared.constant import EMPTY
-from spyops.shared.field import make_field_names
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS
-from spyops.shared.sql import IN
+    AbstractGroupQuery, AbstractSpatialQuery, BaseQuerySelect)
+from spyops.shared.constant import DRID, EMPTY
+from spyops.shared.hint import ELEMENT, FIELDS
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -31,7 +25,7 @@ class QuerySelect(BaseQuerySelect):
 # End QuerySelect class
 
 
-class QuerySplitByAttributes(AbstractQuery):
+class QuerySplitByAttributes(AbstractGroupQuery):
     """
     Queries for Split by Attributes
     """
@@ -39,61 +33,8 @@ class QuerySplitByAttributes(AbstractQuery):
         """
         Initialize the QuerySplitByAttributes class
         """
-        super().__init__(element, xy_tolerance=None)
-        self._group_names: str = make_field_names(fields)
+        super().__init__(element, fields=fields, xy_tolerance=None)
     # End init built-in
-
-    def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
-        """
-        Make a where clause stub that can be used to select features which
-        intersect an extent. The query is based on a spatial index (if present).
-        """
-        if not isinstance(element, FeatureClass):
-            return EMPTY
-        if not (extent := ANALYSIS_SETTINGS.extent):
-            return EMPTY
-        polygon = self._get_extent_polygon(
-            extent, crs=crs_from_srs(element.spatial_reference_system))
-        if index_where := super()._spatial_index_where(
-                element, extent=polygon.bounds):
-            index_where = f'WHERE ({index_where.format(IN)})'
-        return index_where
-    # End _spatial_index_where function
-
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        elm = self.source
-        *_, select_field_names = self._field_names_and_count(elm)
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        primary = elm.primary_key_field.escaped_name
-        where_clause = f"""
-            {primary} IN (SELECT {primary}
-            FROM (SELECT {primary}, 
-                         dense_rank() OVER (ORDER BY {self._group_names}) AS __DRID__ 
-                  FROM {elm.escaped_name} {index_where})
-            WHERE __DRID__ = ?) 
-        """
-        return self._make_select(
-            elm, field_names=select_field_names, where_clause=where_clause)
-    # End select property
-
-    @property
-    def groups(self) -> str:
-        """
-        Groups
-        """
-        elm = self.source
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        return f"""
-            SELECT DISTINCT * 
-            FROM (SELECT dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS __DRID__, {self._group_names} 
-            FROM {elm.escaped_name} {index_where})
-        """
-    # End groups property
 
     @property
     def insert(self) -> str:
@@ -104,6 +45,34 @@ class QuerySplitByAttributes(AbstractQuery):
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert('{}', insert_field_names, field_count)
     # End insert property
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        *_, select_field_names = self._field_names_and_count(elm)
+        where_clause = self._build_spatial_rank(elm)
+        return self._make_select(
+            elm, field_names=select_field_names, where_clause=where_clause)
+    # End select property
+
+    @property
+    def groups(self) -> str:
+        """
+        Groups
+        """
+        elm = self.source
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT DISTINCT * 
+            FROM (SELECT dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
+            FROM {elm.escaped_name} {index_where})
+        """
+    # End groups property
 # End QuerySplitByAttributes class
 
 

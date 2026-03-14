@@ -15,7 +15,7 @@ from spyops.query.analysis.overlay import (
     QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)
-from spyops.shared.constant import (
+from spyops.shared.keywords import (
     ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, OUTPUT_TYPE_OPTION, SOURCE,
     TARGET)
 from spyops.shared.enumeration import (

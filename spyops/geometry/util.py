@@ -11,7 +11,7 @@ from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 
 from spyops.geometry.enumeration import DimensionOption
-from spyops.shared.constant import GEOMS_ATTR
+from spyops.shared.keywords import GEOMS_ATTR
 
 
 if TYPE_CHECKING:  # pragma: no cover

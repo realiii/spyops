@@ -11,9 +11,11 @@ from fudgeo import Field
 
 from spyops.geometry.validate import (
     check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
-from spyops.shared.constant import NAME_ATTR, PADDED_PIPE
+from spyops.shared.constant import PADDED_PIPE
+from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import TYPE_ALIAS_LUT, validate_fields
 from spyops.shared.hint import ELEMENT, NAMES
+from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
 
@@ -37,6 +39,7 @@ class ValidateField(AbstractValidateType):
         :param single: Expect only a single field
         :param exclude_geometry: Exclude geometry column
         :param exclude_primary: Exclude primary key attributes should be excluded
+        :param is_optional: Field argument is not required
         """
         super().__init__(name=name)
         self._data_types: NAMES = data_types
@@ -61,7 +64,7 @@ class ValidateField(AbstractValidateType):
             obj = self._get_object(kwargs)
             element = self._get_element(kwargs)
             obj = self._find_field(obj, element=element)
-            kwargs[self._name] = obj
+            self._set_object(obj, kwargs=kwargs)
             self._validate_type(obj)
             self._validate_data_type(obj)
             self._validate_exists(obj, element=element)
@@ -170,6 +173,89 @@ class ValidateField(AbstractValidateType):
             raise ValueError(f'{names} not found in {element.name}')
     # End _validate_exists method
 # End ValidateField class
+
+
+class ValidateStatisticField(ValidateField):
+    """
+    Validate Statistic Field
+    """
+    _types: ClassVar[tuple[type, ...]] = AbstractStatisticField,
+
+    def __init__(self, name: str, *, element_name: str,
+                 is_optional: bool = True) -> None:
+        """
+        Initialize the ValidateStatisticField class
+
+        :param name: Name of the argument to validate
+        :param element_name: Argument Name of the element to validate against
+        :param is_optional: Field argument is not required
+        """
+        # noinspection PyArgumentEqualDefault
+        super().__init__(name=name, element_name=element_name, exists=True,
+                         single=False, exclude_geometry=True,
+                         exclude_primary=False, is_optional=is_optional)
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            if not (obj := [o for o in self._make_iterable(obj) if o]):
+                self._set_object(obj, kwargs=kwargs)
+                return func(**kwargs)
+            self._validate_type(obj)
+            element = self._get_element(kwargs)
+            obj = self._find_field(obj, element=element)
+            self._set_object(obj, kwargs=kwargs)
+            self._validate_data_type(obj)
+            self._validate_exists(obj, element=element)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _find_field(self, obj: Any, element: ELEMENT) -> Any:
+        """
+        Find Fields and set them onto the statistics objects
+        """
+        obj = self._make_iterable(obj)
+        fields = {}
+        for stat in obj:
+            field = stat.field
+            if not isinstance(field, (Field, str)):
+                continue
+            fields[getattr(field, NAME_ATTR, field).casefold()] = field
+        fields = super()._find_field(list(fields.values()), element=element)
+        fields = {field.name.casefold(): field for field in fields}
+        for stat in obj:
+            field = stat.field
+            stat.field = fields[getattr(field, NAME_ATTR, field).casefold()]
+        return obj
+    # End _find_field method
+
+    def _validate_data_type(self, obj: Any) -> None:
+        """
+        Validate Data Type
+        """
+        for stat in obj:
+            stat.validate()
+    # End _validate_data_type method
+
+    def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
+        """
+        Validate Exists
+        """
+        obj = [stat.field for stat in obj if stat.field]
+        super()._validate_exists(obj, element=element)
+    # End _validate_exists method
+# End ValidateStatisticField class
 
 
 class ValidateGeometryDimension(AbstractValidate):

@@ -12,6 +12,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geometry.base import AbstractGeometry
     from shapely.geometry import (
         LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
+    from spyops.shared.stats import AbstractStatisticField
+
 
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
@@ -23,6 +25,7 @@ ELEMENTS: TypeAlias = list[ELEMENT] | tuple[ELEMENT, ...]
 EXTENT: TypeAlias = tuple[float, float, float, float]
 FIELD_NAMES: TypeAlias = NAMES
 FIELDS: TypeAlias = list['Field'] | tuple['Field', ...]
+STATS_FIELDS: TypeAlias = list['AbstractStatisticField'] | tuple['AbstractStatisticField', ...]
 GPKG: TypeAlias = Union['GeoPackage', 'MemoryGeoPackage']
 
 

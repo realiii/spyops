@@ -20,8 +20,9 @@ from spyops.crs.message import (
 from spyops.crs.util import (
     change_crs_dimension, equals, get_crs_authority, get_crs_from_source)
 from spyops.geometry.transform import GEOMETRY_TRANSFORM
-from spyops.shared.constant import (
-    HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, SKIP_FILE_PREFIXES, TRANSFORMER_KEY)
+from spyops.shared.constant import SKIP_FILE_PREFIXES
+from spyops.shared.keywords import (
+    HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, TRANSFORMER_KEY)
 from spyops.shared.exception import (
     CoordinateSystemNotSupportedError, InvalidAreaOfInterestError,
     NoValidTransformerError, TransformationGuessWarning)
