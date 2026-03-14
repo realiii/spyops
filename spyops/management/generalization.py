@@ -38,8 +38,8 @@ def dissolve(source: 'FeatureClass', target: 'FeatureClass',
     Dissolve
 
     Aggregate features based on one or more group fields and optionally
-    summarize attributes.  The as_multi_part option controls whether the
-    output is a single-part or multipart feature class.
+    generate statistics for attributes.  The as_multi_part option controls
+    whether the output is a single-part or multipart feature class.
     """
     records = []
     with QueryDissolve(source, target=target, fields=group_fields,
