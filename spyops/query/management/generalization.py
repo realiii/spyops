@@ -190,18 +190,19 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
                 features, geometries = to_shapely(
                     features, transformer=self.source_transformer)
                 ids = array([i for _, i in features], dtype=int)
+                unique_ids = set(ids)
                 if is_point:
-                    dissolved.update({i: builder(geometries[ids == i])
-                                      for i in set(ids)})
+                    results = {i: builder(geometries[ids == i])
+                               for i in unique_ids}
                 else:
-                    unique_ids = set(ids)
                     parts = [geometries[ids == i] for i in unique_ids]
                     with ProcessPoolExecutor() as executor:
                         # noinspection PyProtectedMember,PyUnresolvedReferences
                         chunk = max(1, len(unique_ids) // executor._max_workers)
                         results = executor.map(builder, parts, chunksize=chunk)
-                        dissolved.update({i: result for i, result in
-                                          zip(unique_ids, results)})
+                        results = {i: result for i, result in
+                                   zip(unique_ids, results)}
+                dissolved.update(results)
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved
         yield dissolved
