@@ -6,8 +6,13 @@ Generalization Data Management
 
 from typing import TYPE_CHECKING
 
+from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
+
+from spyops.query.management.generalization import QueryDissolve
 from spyops.shared.hint import FIELDS, FIELD_NAMES, STATS_FIELDS, XY_TOL
 from spyops.shared.keywords import GROUP_FIELDS, SOURCE, STATISTICS
+from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_field, validate_overwrite_source, validate_result,
     validate_source_feature_class, validate_statistic_field,
@@ -36,7 +41,23 @@ def dissolve(source: 'FeatureClass', target: 'FeatureClass',
     summarize attributes.  The as_multi_part option controls whether the
     output is a single-part or multipart feature class.
     """
-    pass
+    records = []
+    with QueryDissolve(source, target=target, fields=group_fields,
+                       statistics=statistics, as_multi_part=as_multi_part,
+                       xy_tolerance=xy_tolerance) as query:
+        insert_sql = query.insert
+        config = query.geometry_config
+        with (query.source.geopackage.connection as cin,
+              query.target.geopackage.connection as cout,
+              ExecuteMany(connection=cout, table=query.target) as executor):
+            cursor = cin.execute(query.select)
+            while rows := cursor.fetchmany(FETCH_SIZE):
+                geoms = next(query.dissolved_geometries(), {})
+                results = [(geoms.pop(i, None), attrs) for i, *attrs in rows]
+                extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
+    return query.target
 # End dissolve function
 
 
