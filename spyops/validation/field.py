@@ -226,10 +226,17 @@ class ValidateStatisticField(ValidateField):
         Find Fields and set them onto the statistics objects
         """
         obj = self._make_iterable(obj)
-        fields = [stat.field for stat in obj]
-        fields = super()._find_field(fields, element=element)
-        for stat, field in zip(obj, fields):
-            stat.field = field
+        fields = {}
+        for stat in obj:
+            field = stat.field
+            if not isinstance(field, (Field, str)):
+                continue
+            fields[getattr(field, NAME_ATTR, field).casefold()] = field
+        fields = super()._find_field(list(fields.values()), element=element)
+        fields = {field.name.casefold(): field for field in fields}
+        for stat in obj:
+            field = stat.field
+            stat.field = fields[getattr(field, NAME_ATTR, field).casefold()]
         return obj
     # End _find_field method
 
