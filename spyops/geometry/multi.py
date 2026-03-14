@@ -53,6 +53,34 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
 # End build_multi function
 
 
+def build_dissolved(geometries: ndarray, shape_type: str,
+                    grid_size: GRID_SIZE) \
+        -> MultiPoint | MultiLineString | MultiPolygon | None:
+    """
+    Build MultiPoint, MultiLineString, or MultiPolygon from geometries.
+    """
+    if shape_type in (ShapeType.point, ShapeType.multi_point):
+        checker = check_point
+        cls = MultiPoint
+        dissolver = _dissolve_point
+    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
+        checker = check_linestring
+        cls = MultiLineString
+        dissolver = _dissolve_linestring
+    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
+        checker = check_polygon
+        cls = MultiPolygon
+        dissolver = _dissolve_polygon
+    else:  # pragma: no cover
+        raise ValueError(f'Unsupported shape type: {shape_type}')
+    geoms = []
+    _check_geometries(geometries, checker=checker, geoms=geoms)
+    if len(geoms) <= 1:
+        return cls(geoms)
+    return dissolver(geoms, grid_size=grid_size)
+# End build_dissolved function
+
+
 def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
                    transformer: Callable | None) -> MultiPolygon:
     """
