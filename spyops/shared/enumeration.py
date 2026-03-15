@@ -16,6 +16,46 @@ class LineTypeOption(StrEnum):
 # End LineTypeOption class
 
 
+class BufferTypeOption(StrEnum):
+    """
+    Buffer Type Options
+    """
+    GEODESIC = auto()
+    PLANAR = auto()
+# End BufferTypeOption class
+
+
+class SideOption(StrEnum):
+    """
+    Side Options
+    """
+    FULL = auto()
+    LEFT = auto()
+    RIGHT = auto()
+    ONLY_OUTSIDE = auto()
+# End SideOption class
+
+
+class EndOption(StrEnum):
+    """
+    End Options
+    """
+    ROUND = auto()
+    FLAT = auto()
+    SQUARE = auto()
+# End EndOption class
+
+
+class DissolveOption(StrEnum):
+    """
+    Dissolve Options
+    """
+    ALL = auto()
+    LIST = auto()
+    NONE = auto()
+# End DissolveOption class
+
+
 class AttributeOption(StrEnum):
     """
     Attribute Options
