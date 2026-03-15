@@ -5,13 +5,15 @@ Units
 
 
 from functools import cache
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Self, TYPE_CHECKING, Type, Union
 
 from pyproj.database import get_units_map
 
 from spyops.crs.constant import EPSG
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.util import get_crs_horizontal_component
+from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
+from spyops.shared.util import safe_float
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -88,6 +90,340 @@ def get_conv_factor(value: str | float):
         return _get_unit_by_name(value).conv_factor
     return value
 # End get_conv_factor function
+
+
+def unit_factory(value: str) -> Optional[Union['_LinearUnit', 'DecimalDegrees']]:
+    """
+    Unit Factory for Linear Units or Decimal Degrees
+    """
+    if not value:
+        return None
+    parts = str(value).strip().split(maxsplit=1)
+    if len(parts) != 2:
+        return None
+    value, name = parts
+    if (value := safe_float(value)) is None:
+        return None
+    if (unit_class := UNIT_CLASS_MAP.get(name.strip().casefold())) is None:
+        return None
+    return unit_class(value)
+# End unit_factory function
+
+
+class _LinearUnit:
+    """
+    Linear Unit
+    """
+    def __init__(self, value: str | float, unit: LengthUnit) -> None:
+        """
+        Initialize the _LinearUnit class
+        """
+        super().__init__()
+        self._value: float | None = safe_float(value)
+        self._unit: LengthUnit = unit
+    # End init built-in
+
+    def __repr__(self) -> str:
+        """
+        Representation Override
+        """
+        return f'{self.__class__.__name__}({self.value})'
+    # End repr built-in
+
+    def __eq__(self, other: Self) -> bool:
+        """
+        Equals Override
+        """
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.value == other.value and self.unit == other.unit
+    # End eq built-in
+
+    @property
+    def value(self) -> float | None:
+        """
+        Value
+        """
+        return self._value
+    # End value property
+
+    @property
+    def unit(self) -> LengthUnit:
+        """
+        Unit
+        """
+        return self._unit
+    # End unit property
+
+    def as_meters(self) -> float | None:
+        """
+        As Meters
+        """
+        if self.value is None:
+            return None
+        return self.value * get_unit_conversion(
+            from_unit=self.unit, to_unit=LengthUnit.METERS)
+    # End as_meters method
+# End _LinearUnit class
+
+
+class FeetInternational(_LinearUnit):
+    """
+    Feet International
+    """
+    def __init__(self, value: str| float) -> None:
+        """
+        Initialize the FeetInternational class
+        """
+        super().__init__(value, unit=LengthUnit.FEET_INTERNATIONAL)
+    # End init built-in
+# End FeetInternational class
+
+
+class FeetUS(_LinearUnit):
+    """
+    Feet US
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the FeetUS class
+        """
+        super().__init__(value, unit=LengthUnit.FEET_US)
+    # End init built-in
+# End FeetUS class
+
+
+class Kilometers(_LinearUnit):
+    """
+    Kilometers
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the Kilometers class
+        """
+        super().__init__(value, unit=LengthUnit.KILOMETERS)
+    # End init built-in
+# End Kilometers class
+
+
+class Meters(_LinearUnit):
+    """
+    Meters
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the Meters class
+        """
+        super().__init__(value, unit=LengthUnit.METERS)
+    # End init built-in
+# End Meters class
+
+
+class MilesInternational(_LinearUnit):
+    """
+    Miles International
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the MilesInternational class
+        """
+        super().__init__(value, unit=LengthUnit.MILES_INTERNATIONAL)
+    # End init built-in
+# End MilesInternational class
+
+
+class MilesUS(_LinearUnit):
+    """
+    Miles US
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the MilesUS class
+        """
+        super().__init__(value, unit=LengthUnit.MILES_US)
+    # End init built-in
+# End MilesUS class
+
+
+class NauticalMilesInternational(_LinearUnit):
+    """
+    Nautical Miles International
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the NauticalMilesInternational class
+        """
+        super().__init__(value, unit=LengthUnit.NAUTICAL_MILES_INTERNATIONAL)
+    # End init built-in
+# End NauticalMilesInternational class
+
+
+class NauticalMilesUS(_LinearUnit):
+    """
+    Nautical Miles US
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the NauticalMilesUS class
+        """
+        super().__init__(value, unit=LengthUnit.NAUTICAL_MILES_US)
+    # End init built-in
+# End NauticalMilesUS class
+
+
+class YardsInternational(_LinearUnit):
+    """
+    Yards International
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the YardsInternational class
+        """
+        super().__init__(value, unit=LengthUnit.YARDS_INTERNATIONAL)
+    # End init built-in
+# End YardsInternational class
+
+
+class YardsUS(_LinearUnit):
+    """
+    Yards US
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the YardsUS class
+        """
+        super().__init__(value, unit=LengthUnit.YARDS_US)
+    # End init built-in
+# End YardsUS class
+
+
+class DecimalDegrees:
+    """
+    Decimal Degrees
+    """
+    def __init__(self, value: str | float) -> None:
+        """
+        Initialize the DecimalDegrees class
+        """
+        super().__init__()
+        self._value: float | None = safe_float(value)
+    # End init built-in
+
+    def __repr__(self) -> str:
+        """
+        Representation Override
+        """
+        return f'{self.__class__.__name__}({self.value})'
+    # End repr built-in
+
+    def __eq__(self, other: Self) -> bool:
+        """
+        Equals Override
+        """
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.value == other.value
+    # End eq built-in
+
+    @property
+    def value(self) -> float | None:
+        """
+        Value
+        """
+        return self._value
+    # End value property
+# End DecimalDegrees class
+
+
+# Aliases
+Feet = FeetInternational
+USSurveyFeet = FeetUS
+Kilometres = Kilometers
+Metres = Meters
+Miles = MilesInternational
+StatuteMiles = MilesInternational
+USSurveyMiles = MilesUS
+NauticalMiles = NauticalMilesInternational
+Yards = YardsInternational
+USSurveyYards = YardsUS
+Degrees = DecimalDegrees
+
+
+UNIT_CLASS_MAP: dict[str, Type['_LinearUnit'] | Type['DecimalDegrees']] = {
+    'ft': FeetInternational,
+    'feet': FeetInternational,
+    'foot': FeetInternational,
+    'feet_international': FeetInternational,
+    'foot_international': FeetInternational,
+    'us_survey_foot': FeetUS,
+    'us_survey_feet': FeetUS,
+    'feet_us': FeetUS,
+    'foot_us': FeetUS,
+    'us_feet': FeetUS,
+    'us_foot': FeetUS,
+
+    'km': Kilometers,
+    'kms': Kilometers,
+    'kilometers': Kilometers,
+    'kilometres': Kilometers,
+    'kilometre': Kilometers,
+    'kilometer': Kilometers,
+
+    'm': Meters,
+    'ms': Meters,
+    'meters': Meters,
+    'metres': Meters,
+    'meter': Meters,
+    'metre': Meters,
+
+    'mi': MilesInternational,
+    'miles': MilesInternational,
+    'mile': MilesInternational,
+    'miles_international': MilesInternational,
+    'mile_international': MilesInternational,
+    'statute_miles': StatuteMiles,
+    'statute_mile': StatuteMiles,
+    'us_survey_miles': MilesUS,
+    'us_survey_mile': MilesUS,
+    'miles_us': MilesUS,
+    'mile_us': MilesUS,
+    'us_miles': MilesUS,
+    'us_mile': MilesUS,
+
+    'nm': NauticalMilesInternational,
+    'nautical_miles': NauticalMilesInternational,
+    'nautical_mile': NauticalMilesInternational,
+    'nautical_miles_international': NauticalMilesInternational,
+    'nautical_mile_international': NauticalMilesInternational,
+    'nautical_miles_us': NauticalMilesUS,
+    'nautical_mile_us': NauticalMilesUS,
+    'us_nautical_miles': NauticalMilesUS,
+    'us_nautical_mile': NauticalMilesUS,
+
+    'yd': YardsInternational,
+    'yds': YardsInternational,
+    'yards': YardsInternational,
+    'yard': YardsInternational,
+    'yards_international': YardsInternational,
+    'yard_international': YardsInternational,
+    'us_survey_yards': YardsUS,
+    'us_survey_yard': YardsUS,
+    'yards_us': YardsUS,
+    'yard_us': YardsUS,
+    'us_yards': YardsUS,
+    'us_yard': YardsUS,
+
+    'dd': DecimalDegrees,
+    'deg': DecimalDegrees,
+    'degrees': DecimalDegrees,
+    'degree': DecimalDegrees,
+    'decimal_degrees': DecimalDegrees,
+    'decimal_degree': DecimalDegrees,
+}
+UNIT_CLASS_MAP.update(
+    {k.replace(UNDERSCORE, SPACE): v for k, v in UNIT_CLASS_MAP.items()})
+UNIT_CLASS_MAP.update(
+    {k.replace(UNDERSCORE, EMPTY): v for k, v in UNIT_CLASS_MAP.items()})
 
 
 LENGTH_UNIT_LUT: dict[LengthUnit, str | float] = {

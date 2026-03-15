@@ -9,8 +9,11 @@ from pytest import approx, mark, raises
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.unit import (
-    get_linear_unit_conversion_factor, get_unit_conversion, get_unit_name)
-
+    DecimalDegrees, FeetInternational, FeetUS, Kilometers, Meters,
+    get_linear_unit_conversion_factor,
+    get_unit_conversion,
+    get_unit_name,
+    unit_factory)
 
 pytestmark = [mark.crs]
 
@@ -90,6 +93,63 @@ def test_get_unit_name(code, expected):
     crs = CRS.from_epsg(code)
     assert get_unit_name(crs) == expected
 # End test_get_unit_name function
+
+
+@mark.parametrize('value, expected, meters', [
+    ('5 meters', Meters(5), 5),
+    ('6 METERS', Meters(6), 6),
+    ('7 Meters', Meters(7), 7),
+    ('8 Metres', Meters(8), 8),
+    ('9 Metre', Meters(9), 9),
+    ('9   Metre', Meters(9), 9),
+    ('  9   Metre', Meters(9), 9),
+    ('10 m', Meters(10), 10),
+    ('11 km', Kilometers(11), 11_000),
+    ('12 km', Kilometers(12), 12_000),
+    ('13 kilometers', Kilometers(13), 13_000),
+    ('123.456 feet', FeetInternational(123.456), 37.6),
+    ('123.456 feet', FeetInternational(123.456), 37.6),
+    ('543.210 us survey feet', FeetUS(543.210), 165.57),
+    ('-543.210 foot_us', FeetUS(-543.210), -165.57),
+    ('-543.210 foot us', FeetUS(-543.210), -165.57),
+    ('-543.210 feet us', FeetUS(-543.210), -165.57),
+    ('1.0 decimal degrees', DecimalDegrees(1.), None),
+    ('45.5 decimal degree', DecimalDegrees(45.5), None),
+    ('90 dd', DecimalDegrees(90), None),
+    ('1.234 deg', DecimalDegrees(1.234), None),
+    ('1.234 degrees', DecimalDegrees(1.234), None),
+    ('1.234 degree', DecimalDegrees(1.234), None),
+    ('-1.234 degree', DecimalDegrees(-1.234), None),
+])
+def test_unit_factory_valid(value, expected, meters):
+    """
+    Test unit_factory with valid inputs
+    """
+    result = unit_factory(value)
+    assert result == expected
+    if meters is not None:
+        assert approx(result.as_meters(), abs=0.1) == meters
+# End test_unit_factory_valid function
+
+
+@mark.parametrize('value', [
+    None,
+    '',
+    'invalid_unit',
+    'meter',
+    'oo meter',
+    123,
+    12.34,
+    [],
+    {},
+    object(),
+])
+def test_unit_factory_invalid(value):
+    """
+    Test unit_factory with invalid inputs that should return None
+    """
+    assert unit_factory(value) is None
+# End test_unit_factory_invalid function
 
 
 if __name__ == '__main__':  # pragma: no cover
