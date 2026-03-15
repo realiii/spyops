@@ -4,8 +4,11 @@ Query Classes for management.generalization module
 """
 
 
-from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures.process import ProcessPoolExecutor, _MAX_WINDOWS_WORKERS
 from functools import cache, cached_property, partial
+# noinspection PyProtectedMember
+from os import process_cpu_count
+from sys import platform
 from typing import Generator, Self, TYPE_CHECKING
 
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
@@ -107,6 +110,19 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         stat_fields = make_unique_fields(self._fields, stat_fields)
         return [*self._fields, *stat_fields]
     # End _get_unique_fields meth
+    # End _get_unique_fields method
+
+    @staticmethod
+    def _get_worker_count() -> int:
+        """
+        Get Worker Count
+        """
+        count = process_cpu_count() or 1
+        if platform == 'win32':
+            count = min(count, _MAX_WINDOWS_WORKERS)
+        return max(1, int(round(count * 0.75)))
+    # End _get_worker_count method
+
 
     @property
     def select(self) -> str:
@@ -178,7 +194,7 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         steps += bool(remainder)
         sql = self.select_geometry
         shape_type = self.source.shape_type
-        is_point = ShapeType.point in shape_type
+        worker_count = self._get_worker_count()
         builder = partial(build_dissolved, shape_type=shape_type,
                           grid_size=self.grid_size)
         with self.source.geopackage.connection as cin:
@@ -196,8 +212,8 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
                                for i in unique_ids}
                 else:
                     parts = [geometries[ids == i] for i in unique_ids]
-                    with ProcessPoolExecutor() as executor:
-                        results = executor.map(builder, parts)
+                    with ProcessPoolExecutor(max_workers=worker_count) as ppe:
+                        results = ppe.map(builder, parts)
                         results = {i: result for i, result in
                                    zip(unique_ids, results)}
                 dissolved.update(results)
