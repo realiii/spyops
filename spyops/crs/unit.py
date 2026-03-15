@@ -91,36 +91,34 @@ def get_conv_factor(value: str | float):
 
 
 LENGTH_UNIT_LUT: dict[LengthUnit, str | float] = {
+    LengthUnit.FEET_INTERNATIONAL: 'foot',
+    LengthUnit.FEET_US: 'US survey foot',
     LengthUnit.KILOMETERS: 'kilometre',
     LengthUnit.METERS: 'metre',
     LengthUnit.MILES_INTERNATIONAL: 'Statute mile',
-    LengthUnit.NAUTICAL_MILES_INTERNATIONAL: 'nautical mile',
-    LengthUnit.YARDS_INTERNATIONAL: 'yard',
-    LengthUnit.FEET_INTERNATIONAL: 'foot',
     LengthUnit.MILES_US: 'US survey mile',
+    LengthUnit.NAUTICAL_MILES_INTERNATIONAL: 'nautical mile',
     LengthUnit.NAUTICAL_MILES_US: 1853.248,
+    LengthUnit.YARDS_INTERNATIONAL: 'yard',
     LengthUnit.YARDS_US: 0.9144018288036576,
-    LengthUnit.FEET_US: 'US survey foot',
 }
 
 
 AREA_UNIT_LUT: dict[AreaUnit, tuple[str | float, float]] = {
+    AreaUnit.ACRES_INTERNATIONAL: ('foot', 43560.),
+    AreaUnit.ACRES_US: ('US survey foot', 43560.),
+    AreaUnit.HECTARES: ('kilometre', 100.),
+    AreaUnit.SQUARE_FEET_INTERNATIONAL: ('foot', 1.),
+    AreaUnit.SQUARE_FEET_US: ('US survey foot', 1.),
     AreaUnit.SQUARE_KILOMETERS: ('kilometre', 1.),
     AreaUnit.SQUARE_METERS: ('metre', 1.),
     AreaUnit.SQUARE_MILES_INTERNATIONAL: ('Statute mile', 1.),
-    AreaUnit.SQUARE_NAUTICAL_MILES_INTERNATIONAL: ('nautical mile', 1.),
-    AreaUnit.SQUARE_YARDS_INTERNATIONAL: ('yard', 1.),
-    AreaUnit.SQUARE_FEET_INTERNATIONAL: ('foot', 1.),
     AreaUnit.SQUARE_MILES_US: ('US survey mile', 1.),
+    AreaUnit.SQUARE_NAUTICAL_MILES_INTERNATIONAL: ('nautical mile', 1.),
     AreaUnit.SQUARE_NAUTICAL_MILES_US: (
         LENGTH_UNIT_LUT[LengthUnit.NAUTICAL_MILES_US], 1.),
-    AreaUnit.SQUARE_YARDS_US: (
-        LENGTH_UNIT_LUT[LengthUnit.YARDS_US], 1.),
-    AreaUnit.SQUARE_FEET_US: ('US survey foot', 1.),
-
-    AreaUnit.HECTARES: ('kilometre', 100.),
-    AreaUnit.ACRES_INTERNATIONAL: ('foot', 43560.),
-    AreaUnit.ACRES_US: ('US survey foot', 43560.),
+    AreaUnit.SQUARE_YARDS_INTERNATIONAL: ('yard', 1.),
+    AreaUnit.SQUARE_YARDS_US: (LENGTH_UNIT_LUT[LengthUnit.YARDS_US], 1.),
 }
 
 
