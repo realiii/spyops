@@ -4,16 +4,18 @@ Coordinate Reference System Functionality
 """
 
 
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
+from pyproj.crs import ProjectedCRS
+from pyproj.crs.coordinate_operation import AzimuthalEquidistantConversion
 from pyproj.enums import WktVersion
 from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
 from pyproj.network import set_network_enabled
-
 
 from spyops.crs.authority import Authority, authorities, to_authority
 from spyops.crs.constant import (
@@ -30,6 +32,7 @@ from spyops.shared.util import safe_int
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
 
 
 def configure_grids(data_path: Path | str | None = None,
@@ -215,6 +218,33 @@ def get_crs_horizontal_component(crs: CRS) -> CRS:
     """
     return _get_crs_component(crs, use_horizontal=True)
 # End get_crs_horizontal_component function
+
+
+def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') -> list[ProjectedCRS]:
+    """
+    Get Equidistant Projections for Latitude / Longitude Pairs
+    """
+    geodetic_crs = crs.geodetic_crs
+    coordinates = coordinates.round(4)
+    return [ProjectedCRS(
+        conversion=_equidistant_conversion(lat=lat, lon=lon),
+        geodetic_crs=geodetic_crs) for lon, lat in coordinates]
+# End get_equidistant_projections function
+
+
+@lru_cache()
+def _equidistant_conversion(*, lat: float, lon: float) \
+        -> AzimuthalEquidistantConversion:
+    """
+    Build an Azimuthal Equidistant Conversion for the given latitude and
+    longitude values.
+
+    For caching purposes keep the latitude and longitude values to 4 decimal
+    places (funsies: https://xkcd.com/2170/)
+    """
+    return AzimuthalEquidistantConversion(
+        latitude_natural_origin=lat, longitude_natural_origin=lon)
+# End _equidistant_conversion function
 
 
 def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
