@@ -39,6 +39,7 @@ class ValidateResult(AbstractValidate):
                 if isinstance(element, FeatureClass):
                     _check_output(element)
                     set_extent(element)
+                    element.add_spatial_index()
             return result
         # End wrapper function
         return wrapper
