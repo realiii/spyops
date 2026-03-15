@@ -51,8 +51,8 @@ def dissolve(source: 'FeatureClass', target: 'FeatureClass',
               query.target.geopackage.connection as cout,
               ExecuteMany(connection=cout, table=query.target) as executor):
             cursor = cin.execute(query.select)
-            while rows := cursor.fetchmany(FETCH_SIZE):
-                geoms = next(query.dissolved_geometries(), {})
+            for geoms in query.dissolved_geometries():
+                rows = cursor.fetchmany(FETCH_SIZE)
                 results = [(geoms.pop(i, None), attrs) for i, *attrs in rows]
                 extend_records(results, records=records, config=config)
                 executor(sql=insert_sql, data=records)
