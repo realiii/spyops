@@ -146,6 +146,52 @@ class TestDissolve:
         assert len(result) == count
     # End test_line method
 
+    @mark.slow
+    @mark.parametrize('fc_name, fields, as_multi_part, count', [
+        ('road_seg_l', ('NID',), True, 336_572),
+        ('road_seg_l', ('TRAFFICDIR',), True, 4),
+        ('road_seg_l', ('PAVSTATUS',), True, 2),
+        ('road_seg_l', ('REVDATE',), True, 159),
+        ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), True, 8),
+        ('road_seg_l', ('NID',), False, 342_741),
+        ('road_seg_l', ('TRAFFICDIR',), False, 290_000),
+        ('road_seg_l', ('PAVSTATUS',), False, 357_193),
+        ('road_seg_l', ('REVDATE',), False, 289_853),
+        ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), False, 305_827),
+    ])
+    def test_line_nrn(self, nrn_geopackage, mem_gpkg, fc_name, fields, as_multi_part, count):
+        """
+        Test dissolve using lines and NRN dataset
+        """
+        source = nrn_geopackage[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        result = dissolve(
+            source, target=target, group_fields=fields, statistics=[],
+            as_multi_part=as_multi_part)
+        assert result.is_multi_part is as_multi_part
+        assert len(result) == count
+    # End test_line_nrn method
+
+    @mark.slow
+    @mark.parametrize('fc_name, fields, as_multi_part, count', [
+        ('junction_p', ('NID',), True, 255_559),
+        ('junction_p', ('JUNCTYPE',), True, 4),
+        ('junction_p', ('REVDATE',), True, 156),
+        ('junction_p', ('JUNCTYPE', 'REVDATE'), True, 336),
+    ])
+    def test_point_nrn(self, nrn_geopackage, mem_gpkg, fc_name, fields, as_multi_part, count):
+        """
+        Test dissolve using points and NRN dataset
+        """
+        source = nrn_geopackage[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        result = dissolve(
+            source, target=target, group_fields=fields, statistics=[],
+            as_multi_part=as_multi_part)
+        assert result.is_multi_part is as_multi_part
+        assert len(result) == count
+    # End test_point_nrn method
+
     @mark.parametrize('fc_name, as_multi_part, count', [
         ('roads_l', True, 18),
         ('roads_l', False, 1335),
