@@ -148,6 +148,15 @@ def crs_geopackage(data_path) -> Generator[GeoPackage, None, None]:
 # End crs_geopackage function
 
 
+@fixture(scope='session')
+def nrn_geopackage(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    NRN GeoPackage
+    """
+    yield from _open_geopackage(data_path.joinpath('nrn.gpkg'))
+# End nrn_geopackage function
+
+
 @fixture(scope='function')
 def fresh_gpkg(tmp_path) -> Generator[GeoPackage, None, None]:
     """
