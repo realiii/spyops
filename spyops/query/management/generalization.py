@@ -4,10 +4,12 @@ Query Classes for management.generalization module
 """
 
 
+from collections import Counter
 from concurrent.futures.process import ProcessPoolExecutor, _MAX_WINDOWS_WORKERS
 from functools import cache, cached_property, partial
 # noinspection PyProtectedMember
 from os import process_cpu_count
+from statistics import median
 from sys import platform
 from typing import Generator, Self, TYPE_CHECKING
 
@@ -29,6 +31,7 @@ from spyops.shared.hint import ELEMENT, FIELDS, STATS_FIELDS, XY_TOL
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from shapely.geometry.base import BaseMultipartGeometry
+    from numpy import ndarray
 
 
 class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
@@ -109,7 +112,6 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         stat_fields = [stat.output_field for stat in self.statistics]
         stat_fields = make_unique_fields(self._fields, stat_fields)
         return [*self._fields, *stat_fields]
-    # End _get_unique_fields meth
     # End _get_unique_fields method
 
     @staticmethod
@@ -123,6 +125,19 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         return max(1, int(round(count * 0.75)))
     # End _get_worker_count method
 
+    @staticmethod
+    def _use_serial(ids: 'ndarray', shape_type: str, worker_count: int) -> bool:
+        """
+        Use Serial Processing
+        """
+        if ShapeType.point in shape_type or worker_count == 1:
+            return True
+        counter = Counter(ids)
+        if len(counter) <= worker_count:
+            return True
+        # NOTE checking if there is much grouping
+        return median(counter.values()) <= 2
+    # End _use_serial method
 
     @property
     def select(self) -> str:
@@ -207,7 +222,8 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
                     features, transformer=self.source_transformer)
                 ids = array([i for _, i in features], dtype=int)
                 unique_ids = set(ids)
-                if is_point:
+                if self._use_serial(ids, shape_type=shape_type,
+                                    worker_count=worker_count):
                     results = {i: builder(geometries[ids == i])
                                for i in unique_ids}
                 else:
