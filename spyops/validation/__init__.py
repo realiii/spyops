@@ -45,18 +45,18 @@ validate_xy_tolerance = ValidateXYTolerance
 
 
 # NOTE commonly used configurations
+validate_operator_feature_class = partial(validate_feature_class, name=OPERATOR)
+validate_overwrite_source = partial(validate_overwrite_input, TARGET, SOURCE)
 validate_source_feature_class = partial(validate_feature_class, name=SOURCE)
 validate_source_element = partial(validate_element, name=SOURCE)
-validate_operator_feature_class = partial(validate_feature_class, name=OPERATOR)
+validate_source_numeric_field = partial(
+    validate_field, single=True, element_name=SOURCE, data_types=NUMBERS)
 validate_target_element = partial(
     validate_element, name=TARGET, exists=False, is_output=True)
 validate_target_feature_class = partial(
     validate_feature_class, name=TARGET, exists=False, is_output=True)
 validate_target_table = partial(
     validate_table, name=TARGET, exists=False, is_output=True)
-validate_overwrite_source = partial(validate_overwrite_input, TARGET, SOURCE)
-validate_source_numeric_field = partial(
-    validate_field, single=True, element_name=SOURCE, data_types=NUMBERS)
 
 
 if __name__ == '__main__':  # pragma: no cover
