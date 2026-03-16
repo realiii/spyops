@@ -10,10 +10,9 @@ from pytest import approx, mark, raises
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.unit import (
     DecimalDegrees, FeetInternational, FeetUS, Kilometers, Meters,
-    get_linear_unit_conversion_factor,
-    get_unit_conversion,
-    get_unit_name,
+    get_linear_unit_conversion_factor, get_unit_conversion, get_unit_name,
     unit_factory)
+
 
 pytestmark = [mark.crs]
 

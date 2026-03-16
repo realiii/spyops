@@ -5,16 +5,20 @@ Test Coordinate Reference System
 
 
 from fudgeo import SpatialReferenceSystem
-from pyproj import CRS
-from pytest import mark, raises
+from numpy import array
+from pyproj import CRS, Transformer
+from pyproj.crs import ProjectedCRS
+from pytest import approx, mark, raises
 
 from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
     NAD_1983_StatePlane_Texas_North_Central_FIPS_4202, NAD_1983_UTM_Zone_15N)
 from spyops.crs.util import (
-    equals, check_same_crs, from_authority, srs_from_crs, get_crs_from_source,
-    _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs)
+    equals, check_same_crs, from_authority, get_equidistant_from_extent,
+    get_geographic_centroid, srs_from_crs, get_crs_from_source,
+    _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs,
+    get_equidistant_projections)
 from spyops.shared.exception import OperationsError
 
 
@@ -172,6 +176,58 @@ def test_validate_srs_custom_in_range(crs_geopackage, replace_id):
     assert srs.organization == 'ThirdParty'
     assert srs.srs_id == replace_id
 # End test_validate_srs_custom_in_range function
+
+
+@mark.parametrize('epsg_code, coords', [
+    (4326, [(0, 0), (1, 1), (-1, -1)]),
+    (3857, [(-100_000, -100_000), (100_000, 100_000)]),
+    (26915, [(600_000, 5_500_000)]),
+])
+def test_get_equidistant_projections(epsg_code, coords):
+    """
+    Test get_equidistant_projections returns appropriate projections for various CRS
+    """
+    crs = CRS(epsg_code)
+    coords = array(coords, dtype=float)
+    xform = Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
+    xs, ys = xform.transform(coords[:, 0], coords[:, 1])
+    coords[:, 0] = xs
+    coords[:, 1] = ys
+    result = get_equidistant_projections(crs, coords)
+    assert all(isinstance(proj, ProjectedCRS) for proj in result)
+    assert len(result) == len(coords)
+# End test_get_equidistant_projections function
+
+
+@mark.parametrize('name', [
+    'hydro_6654_a',
+    'hydro_a',
+    'hydro_lcc_a',
+    'hydro_utm11_a',
+])
+def test_get_equidistant_from_extent(ntdb_zm_small, name):
+    """
+    Test get equidistant projection from extent
+    """
+    source = ntdb_zm_small[name]
+    result = get_equidistant_from_extent(source)
+    assert isinstance(result, ProjectedCRS)
+# End test_get_equidistant_from_extent function
+
+
+@mark.parametrize('epsg_code, extent, expected', [
+    (4326, (0, 0, 1, 1), (0.5, 0.5)),
+    (3857, (-100_000, -100_000, 100_000, 100_000), (0, 0)),
+    (26915, (600_000, 5_500_000, 650_000, 5_550_000), (-91.2606, 49.8643)),
+])
+def test_get_geographic_centroid(epsg_code, extent, expected):
+    """
+    Test get_geographic_centroid
+    """
+    crs = CRS(epsg_code)
+    pt = get_geographic_centroid(crs, extent)
+    assert approx((pt.x, pt.y), abs=0.001) == expected
+# End test_get_geographic_centroid function
 
 
 if __name__ == '__main__':  # pragma: no cover

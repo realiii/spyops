@@ -9,13 +9,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 from fudgeo import SpatialReferenceSystem
-from pyproj import CRS
+from numpy import isfinite
+from pyproj import CRS, Transformer
 from pyproj.crs import ProjectedCRS
 from pyproj.crs.coordinate_operation import AzimuthalEquidistantConversion
 from pyproj.enums import WktVersion
 from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
 from pyproj.network import set_network_enabled
+from shapely.creation import box
+from shapely.ops import transform
 
 from spyops.crs.authority import Authority, authorities, to_authority
 from spyops.crs.constant import (
@@ -23,16 +26,18 @@ from spyops.crs.constant import (
     UNDEFINED)
 from spyops.crs.enumeration import InfoOption
 from spyops.crs.message import UNABLE_TO_USE_CRS, UNSUPPORTED_WKT
+from spyops.geometry.extent import extent_from_index_or_geometry
 from spyops.shared.constant import EMPTY
 from spyops.shared.exception import (
     CoordinateSystemDifferentError, CoordinateSystemNotSupportedError)
-from spyops.shared.hint import GPKG
+from spyops.shared.hint import EXTENT, GPKG
 from spyops.shared.util import safe_int
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
+    from shapely import Point
 
 
 def configure_grids(data_path: Path | str | None = None,
@@ -220,16 +225,55 @@ def get_crs_horizontal_component(crs: CRS) -> CRS:
 # End get_crs_horizontal_component function
 
 
-def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') -> list[ProjectedCRS]:
+def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
+        -> list[ProjectedCRS | None]:
     """
     Get Equidistant Projections for Latitude / Longitude Pairs
     """
     geodetic_crs = crs.geodetic_crs
     coordinates = coordinates.round(4)
-    return [ProjectedCRS(
-        conversion=_equidistant_conversion(lat=lat, lon=lon),
-        geodetic_crs=geodetic_crs) for lon, lat in coordinates]
+    projections = []
+    for lon, lat in coordinates:
+        if not isfinite(lon) or not isfinite(lat):
+            projections.append(None)
+            continue
+        prj = ProjectedCRS(
+            conversion=_equidistant_conversion(lat=lat, lon=lon),
+            geodetic_crs=geodetic_crs)
+        projections.append(prj)
+    return projections
 # End get_equidistant_projections function
+
+
+def get_equidistant_from_extent(source: 'FeatureClass') -> ProjectedCRS | None:
+    """
+    Get Equidistant Projection for an Extent, uses the centroid of the
+    for the latitude and longitude values.
+    """
+    digits = 4
+    crs = get_crs_from_source(source)
+    extent = extent_from_index_or_geometry(source)
+    if not isfinite(extent).all():
+        return None
+    pt = get_geographic_centroid(crs, extent=extent)
+    lat, lon = round(pt.y, digits), round(pt.x, digits)
+    return ProjectedCRS(
+        conversion=_equidistant_conversion(lat=lat, lon=lon),
+        geodetic_crs=crs.geodetic_crs)
+# End get_equidistant_from_extent function
+
+
+def get_geographic_centroid(crs: CRS, extent: EXTENT) -> Point:
+    """
+    Get Geographic Centroid from an Extent
+    """
+    pt = box(*extent).centroid
+    if not crs.is_projected:
+        return pt
+    transformer = Transformer.from_crs(
+        crs, crs.geodetic_crs, always_xy=True)
+    return transform(transformer.transform, pt)
+# End get_geographic_centroid function
 
 
 @lru_cache()
