@@ -155,15 +155,15 @@ class _LinearUnit:
         return self._unit
     # End unit property
 
-    def as_meters(self) -> float | None:
+    def to_meters(self) -> float | None:
         """
-        As Meters
+        To Meters
         """
         if self.value is None:
             return None
         return self.value * get_unit_conversion(
             from_unit=self.unit, to_unit=LengthUnit.METERS)
-    # End as_meters method
+    # End to_meters method
 # End _LinearUnit class
 
 
