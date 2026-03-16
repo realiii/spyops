@@ -245,22 +245,22 @@ def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
 # End get_equidistant_projections function
 
 
-def get_equidistant_from_extent(source: 'FeatureClass') -> ProjectedCRS | None:
+def get_equidistant_from_feature_class(source: 'FeatureClass') -> ProjectedCRS | None:
     """
-    Get Equidistant Projection for an Extent, uses the centroid of the
-    for the latitude and longitude values.
+    Get Equidistant Projection for a Feature Class, uses the centroid of the
+    Feature Class extent for the latitude and longitude values.
     """
-    digits = 4
-    crs = get_crs_from_source(source)
     extent = extent_from_index_or_geometry(source)
     if not isfinite(extent).all():
         return None
+    digits = 4
+    crs = get_crs_from_source(source)
     pt = get_geographic_centroid(crs, extent=extent)
     lat, lon = round(pt.y, digits), round(pt.x, digits)
     return ProjectedCRS(
         conversion=_equidistant_conversion(lat=lat, lon=lon),
         geodetic_crs=crs.geodetic_crs)
-# End get_equidistant_from_extent function
+# End get_equidistant_from_feature_class function
 
 
 def get_geographic_centroid(crs: CRS, extent: EXTENT) -> Point:
