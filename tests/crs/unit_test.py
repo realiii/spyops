@@ -4,14 +4,17 @@ Test for Units
 """
 
 
+from math import nan
+
+from numpy import array
 from pyproj import CRS
 from pytest import approx, mark, raises
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.unit import (
     DecimalDegrees, FeetInternational, FeetUS, Kilometers, Meters,
-    get_linear_unit_conversion_factor, get_unit_conversion, get_unit_name,
-    unit_factory)
+    degrees_to_meters, get_linear_unit_conversion_factor, get_unit_conversion,
+    get_unit_name, unit_factory)
 
 
 pytestmark = [mark.crs]
@@ -149,6 +152,24 @@ def test_unit_factory_invalid(value):
     """
     assert unit_factory(value) is None
 # End test_unit_factory_invalid function
+
+
+@mark.parametrize('epsg_code, expected', [
+    (4326, (136964.03, 136953.84, 112909.82, 108214.27, nan, 71348.17, 92431.81)),
+    (3857, (136964.03, 136953.84, 112909.82, 108214.27, nan, 71348.17, 92431.81)),
+    (26912, (136964.03, 136953.84, 112909.82, 108214.27, nan, 71348.17, 92431.81)),
+    (26712, (136960.42, 136950.23, 112911.39, 108216.46, nan, 71351.60, 92435.26)),
+])
+def test_degrees_to_meters(epsg_code, expected):
+    """
+    Test degrees_to_meters
+    """
+    coords = array([(0, 0), (1, 1), (-114, 50), (-113, 55),
+                    (-99, 99), (-100, 88), (70, 70)], dtype=float)
+    crs = CRS.from_epsg(epsg_code)
+    result = degrees_to_meters(crs, coords, value=1.2345)
+    assert approx(result.tolist(), abs=0.1, nan_ok=True) == expected
+# End test_degrees_to_meters function
 
 
 if __name__ == '__main__':  # pragma: no cover

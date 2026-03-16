@@ -5,8 +5,11 @@ Units
 
 
 from functools import cache
+from math import nan
 from typing import Optional, Self, TYPE_CHECKING, Type, Union
 
+from bottleneck import nanmean
+from numpy import isfinite, sign, zeros
 from pyproj.database import get_units_map
 
 from spyops.crs.constant import EPSG
@@ -17,18 +20,30 @@ from spyops.shared.util import safe_float
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from numpy import ndarray
     from pyproj import CRS
     from pyproj.database import Unit
 
 
-@cache
-def _get_unit_by_name(name: str) -> Optional['Unit']:
+def degrees_to_meters(crs: 'CRS', coords: 'ndarray', value: float) -> 'ndarray':
     """
-    Get Unit by unit name
+    Convert Degrees to Meters, using the given CRS and latitude / longitude
+    coordinates.
     """
-    units = get_units_map(EPSG.casefold(), category='linear')
-    return units.get(name)
-# End _get_unit_by_name function
+    value += 0
+    if not value:
+        return zeros(len(coords), dtype=float)
+    geod = crs.get_geod()
+    lon = coords[:, 0]
+    lat = coords[:, 1]
+    *_, east = geod.inv(lons1=lon, lats1=lat, lats2=lat, lons2=lon + value)
+    *_, west = geod.inv(lons1=lon, lats1=lat, lats2=lat, lons2=lon - value)
+    *_, north = geod.inv(lons1=lon, lats1=lat, lons2=lon, lats2=lat + value)
+    *_, south = geod.inv(lons1=lon, lats1=lat, lons2=lon, lats2=lat - value)
+    xs = _calculate_average_length(east, west)
+    ys = _calculate_average_length(north, south)
+    return _calculate_average_length(xs, ys) * sign(value)
+# End degrees_to_meters function
 
 
 def get_linear_unit_conversion_factor(from_name: str, to_name: str) -> float:
@@ -108,6 +123,29 @@ def unit_factory(value: str) -> Optional[Union['_LinearUnit', 'DecimalDegrees']]
         return None
     return unit_class(value)
 # End unit_factory function
+
+
+@cache
+def _get_unit_by_name(name: str) -> Optional['Unit']:
+    """
+    Get Unit by unit name
+    """
+    units = get_units_map(EPSG.casefold(), category='linear')
+    return units.get(name)
+# End _get_unit_by_name function
+
+
+def _calculate_average_length(first: 'ndarray', second: 'ndarray') -> 'ndarray':
+    """
+    Calculate Average Length
+    """
+    lengths = zeros((len(first), 2), dtype=float)
+    for i, data in enumerate((first, second)):
+        data[data == 0] = nan
+        data[~isfinite(data)] = nan
+        lengths[:, i] = data
+    return nanmean(lengths, axis=1)
+# End _calculate_average_length function
 
 
 class _LinearUnit:
