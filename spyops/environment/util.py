@@ -9,12 +9,11 @@ from typing import Optional, TYPE_CHECKING
 
 from numpy import isfinite
 from pyproj.transformer import Transformer
-from shapely.creation import box
-from shapely.ops import transform
 
 from spyops.environment.constant import DEGREE, METRE
 from spyops.crs.unit import get_linear_unit_conversion_factor, get_unit_name
-from spyops.crs.util import crs_from_srs, equals, get_crs_from_source
+from spyops.crs.util import (
+    crs_from_srs, equals, get_crs_from_source, get_geographic_centroid)
 from spyops.environment.enumeration import Setting
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
@@ -48,11 +47,7 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     if not isfinite(extent).all():
         return 1.
     crs = get_crs_from_source(feature_class)
-    pt = box(*extent, ccw=False).centroid
-    if crs.is_projected:
-        transformer = Transformer.from_crs(
-            crs, crs.geodetic_crs, always_xy=True)
-        pt = transform(transformer.transform, pt)
+    pt = get_geographic_centroid(crs, extent=extent)
     geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
     x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=0, dist=1)
