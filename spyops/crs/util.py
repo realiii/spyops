@@ -224,7 +224,7 @@ def get_crs_horizontal_component(crs: CRS) -> CRS:
 # End get_crs_horizontal_component function
 
 
-def get_equidistant_from_feature_class(source: 'FeatureClass') -> ProjectedCRS | None:
+def get_equidistant_crs(source: 'FeatureClass') -> ProjectedCRS | None:
     """
     Get Equidistant Projection for a Feature Class, uses the centroid of the
     Feature Class extent for the latitude and longitude values.
@@ -239,7 +239,7 @@ def get_equidistant_from_feature_class(source: 'FeatureClass') -> ProjectedCRS |
     return ProjectedCRS(
         conversion=_equidistant_conversion(lat=lat, lon=lon),
         geodetic_crs=crs.geodetic_crs)
-# End get_equidistant_from_feature_class function
+# End get_equidistant_crs function
 
 
 def get_geographic_centroid(crs: CRS, extent: EXTENT) -> Point:

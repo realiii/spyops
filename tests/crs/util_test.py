@@ -14,7 +14,7 @@ from tests.constants import (
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
     NAD_1983_StatePlane_Texas_North_Central_FIPS_4202, NAD_1983_UTM_Zone_15N)
 from spyops.crs.util import (
-    equals, check_same_crs, from_authority, get_equidistant_from_feature_class,
+    equals, check_same_crs, from_authority, get_equidistant_crs,
     get_geographic_centroid, srs_from_crs, get_crs_from_source,
     _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs)
 from spyops.shared.exception import OperationsError
@@ -187,7 +187,7 @@ def test_get_equidistant_from_feature_class(ntdb_zm_small, name):
     Test get equidistant projection from feature class
     """
     source = ntdb_zm_small[name]
-    result = get_equidistant_from_feature_class(source)
+    result = get_equidistant_crs(source)
     assert isinstance(result, ProjectedCRS)
 # End test_get_equidistant_from_feature_class function
 
