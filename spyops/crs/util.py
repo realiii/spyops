@@ -4,7 +4,6 @@ Coordinate Reference System Functionality
 """
 
 
-from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
@@ -236,9 +235,9 @@ def get_equidistant_crs(source: 'FeatureClass') -> ProjectedCRS | None:
     crs = get_crs_from_source(source)
     pt = get_geographic_centroid(crs, extent=extent)
     lat, lon = round(pt.y, digits), round(pt.x, digits)
-    return ProjectedCRS(
-        conversion=_equidistant_conversion(lat=lat, lon=lon),
-        geodetic_crs=crs.geodetic_crs)
+    conversion = AzimuthalEquidistantConversion(
+        latitude_natural_origin=lat, longitude_natural_origin=lon)
+    return ProjectedCRS(conversion=conversion, geodetic_crs=crs.geodetic_crs)
 # End get_equidistant_crs function
 
 
@@ -253,21 +252,6 @@ def get_geographic_centroid(crs: CRS, extent: EXTENT) -> Point:
         crs, crs.geodetic_crs, always_xy=True)
     return transform(transformer.transform, pt)
 # End get_geographic_centroid function
-
-
-@lru_cache()
-def _equidistant_conversion(*, lat: float, lon: float) \
-        -> AzimuthalEquidistantConversion:
-    """
-    Build an Azimuthal Equidistant Conversion for the given latitude and
-    longitude values.
-
-    For caching purposes keep the latitude and longitude values to 4 decimal
-    places (funsies: https://xkcd.com/2170/)
-    """
-    return AzimuthalEquidistantConversion(
-        latitude_natural_origin=lat, longitude_natural_origin=lon)
-# End _equidistant_conversion function
 
 
 def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
