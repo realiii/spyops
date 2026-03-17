@@ -16,7 +16,8 @@ from spyops.shared.enumeration import GeometryAttribute, OutputTypeOption
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_int_flag_enum, check_str_enum
 from spyops.validation.base import (
-    AbstractValidate, AbstractValidateArgument, AbstractValidateType)
+    AbstractValidateArgument, AbstractValidateEnumDependency,
+    AbstractValidateType)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -109,19 +110,10 @@ class ValidateIntFlagEnumeration(AbstractValidateArgument):
 # End ValidateIntFlagEnumeration class
 
 
-class ValidateOutputType(AbstractValidate):
+class ValidateOutputType(AbstractValidateEnumDependency):
     """
     Validate Output Type
     """
-    def __init__(self, enum_name: str, name: str) -> None:
-        """
-        Initialize the ValidateOutputType class
-        """
-        super().__init__()
-        self._enum_name: str = enum_name
-        self._name: str = name
-    # End init built-in
-
     def __call__(self, func: Callable) -> Callable:
         """
         Make the class callable
