@@ -9,10 +9,9 @@ from fudgeo import Field
 from fudgeo.enumeration import FieldType
 
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
-from spyops.shared.stats import Average, Avg, First
+from spyops.shared.stats import Average, First
 from spyops.validation import (
-    validate_field, validate_statistic_field,
-    validate_table)
+    validate_field, validate_statistic_field, validate_table)
 
 
 pytestmark = [mark.validation]
