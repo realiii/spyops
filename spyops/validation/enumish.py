@@ -12,7 +12,9 @@ from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.keywords import GEOMETRY_ATTRIBUTE, SOURCE
-from spyops.shared.enumeration import GeometryAttribute, OutputTypeOption
+from spyops.shared.enumeration import (
+    DissolveOption, EndOption, GeometryAttribute, OutputTypeOption,
+    SideOption)
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_int_flag_enum, check_str_enum
 from spyops.validation.base import (
@@ -137,6 +139,87 @@ class ValidateOutputType(AbstractValidateEnumDependency):
         return wrapper
     # End call built-in
 # End ValidateOutputType class
+
+
+class ValidateSideOption(AbstractValidateEnumDependency):
+    """
+    Validate Side Option
+    """
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            if (dim := get_geometry_dimension(kwargs[self._name])) < 0:
+                return func(**kwargs)
+            option = kwargs[self._enum_name]
+            if (dim == 0 and option != SideOption.FULL) or (
+                    dim == 1 and option == SideOption.ONLY_OUTSIDE) or (
+                    dim == 2 and option in (SideOption.LEFT, SideOption.RIGHT)):
+                kwargs[self._enum_name] = SideOption.FULL
+            return func(**kwargs)
+        # Side wrapper function
+        return wrapper
+    # Side call built-in
+# Side ValidateSideOption class
+
+
+class ValidateEndOption(AbstractValidateEnumDependency):
+    """
+    Validate End Option
+    """
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            if get_geometry_dimension(kwargs[self._name]) != 1:
+                kwargs[self._enum_name] = EndOption.ROUND
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+# End ValidateEndOption class
+
+
+class ValidateDissolveOption(AbstractValidateEnumDependency):
+    """
+    Validate Dissolve Option
+    """
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            if kwargs[self._enum_name] != DissolveOption.LIST:
+                kwargs[self._name] = None
+                return func(**kwargs)
+            if not kwargs[self._name]:
+                raise ValueError(
+                    f'{self._name} must be a non-empty list of fields')
+            return func(**kwargs)
+        # Dissolve wrapper function
+        return wrapper
+    # Dissolve call built-in
+# Dissolve ValidateDissolveOption class
 
 
 class ValidateGeometryAttribute(AbstractValidateType):
