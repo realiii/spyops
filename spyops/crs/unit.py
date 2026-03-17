@@ -25,13 +25,14 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj.database import Unit
 
 
-def degrees_to_meters(crs: 'CRS', coords: 'ndarray', value: float) -> 'ndarray':
+def degrees_to_meters(crs: 'CRS', coords: 'ndarray',
+                      value: Union[float, 'ndarray']) -> 'ndarray':
     """
     Convert Degrees to Meters, using the given CRS and latitude / longitude
     coordinates.
     """
     value += 0
-    if not value:
+    if isinstance(value, (float, int)) and not value:
         return zeros(len(coords), dtype=float)
     geod = crs.get_geod()
     lon = coords[:, 0]

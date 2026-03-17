@@ -172,5 +172,24 @@ def test_degrees_to_meters(epsg_code, expected):
 # End test_degrees_to_meters function
 
 
+@mark.parametrize('epsg_code, expected', [
+    (4326, (136964.03, 136953.84, 112909.82, 108214.27, nan, 71348.17, 92431.81)),
+    (3857, (136964.03, 136953.84, 112909.82, 108214.27, nan, 71348.17, 92431.81)),
+    (26912, (136964.03, 136953.84, 112909.82, 108214.27, nan, 71348.17, 92431.81)),
+    (26712, (136960.42, 136950.23, 112911.39, 108216.46, nan, 71351.60, 92435.26)),
+])
+def test_degrees_to_meters_array(epsg_code, expected):
+    """
+    Test degrees_to_meters
+    """
+    coords = array([(0, 0), (1, 1), (-114, 50), (-113, 55),
+                    (-99, 99), (-100, 88), (70, 70)], dtype=float)
+    crs = CRS.from_epsg(epsg_code)
+    result = degrees_to_meters(
+        crs, coords, value=array([1.2345] * len(coords), dtype=float))
+    assert approx(result.tolist(), abs=0.1, nan_ok=True) == expected
+# End test_degrees_to_meters_array function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
