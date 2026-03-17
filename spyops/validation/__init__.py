@@ -18,7 +18,8 @@ from spyops.validation.enumish import (
     ValidateSideOption, ValidateStrEnumeration, ValidateGeometryAttribute,
     ValidateOutputType)
 from spyops.validation.field import (
-    ValidateField, ValidateGeometryDimension, ValidateStatisticField)
+    ValidateDistance, ValidateField, ValidateGeometryDimension,
+    ValidateStatisticField)
 from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
 from spyops.validation.setting import ValidateXYTolerance
@@ -27,6 +28,7 @@ from spyops.validation.setting import ValidateXYTolerance
 # NOTE aliases, decorators look better as snake case
 validate_coordinate_system = ValidateCoordinateSystem
 validate_dissolve_option = ValidateDissolveOption
+validate_distance = ValidateDistance
 validate_element = ValidateElement
 validate_elements = ValidateElements
 validate_end_option = ValidateEndOption
