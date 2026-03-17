@@ -4,13 +4,17 @@ Test for Validation used on Enumeration-esque values
 """
 
 
+from fudgeo import Field
 from pytest import raises, mark
 
 from spyops.shared.enumeration import (
-    AttributeOption, GeometryAttribute, OutputTypeOption)
+    AttributeOption, DissolveOption, EndOption, GeometryAttribute,
+    OutputTypeOption, SideOption)
 from spyops.shared.exception import OperationsError
 from spyops.validation import (
-    validate_str_enumeration, validate_geometry_attribute, validate_output_type)
+    validate_dissolve_option, validate_end_option, validate_field,
+    validate_side_option, validate_str_enumeration, validate_geometry_attribute,
+    validate_output_type)
 
 
 pytestmark = [mark.validation]
@@ -63,9 +67,9 @@ def test_validate_output_type(inputs, world_features, source_name, operator_name
     """
     source = world_features[source_name]
     operator = inputs[operator_name]
-    @validate_output_type('option', 's')
-    def geom_function(s, o, option):
-        return option
+    @validate_output_type('opt', 's')
+    def geom_function(s, o, opt):
+        return opt
 
     if throws:
         with raises(OperationsError):
@@ -73,6 +77,91 @@ def test_validate_output_type(inputs, world_features, source_name, operator_name
     else:
         assert geom_function(source, operator, option) == option
 # End test_validate_output_type function
+
+
+@mark.parametrize('fc_name, option, expected', [
+    ('admin_a', SideOption.FULL, SideOption.FULL),
+    ('admin_a', SideOption.RIGHT, SideOption.FULL),
+    ('admin_a', SideOption.LEFT, SideOption.FULL),
+    ('admin_a', SideOption.ONLY_OUTSIDE, SideOption.ONLY_OUTSIDE),
+    ('rivers_l', SideOption.FULL, SideOption.FULL),
+    ('rivers_l', SideOption.LEFT, SideOption.LEFT),
+    ('rivers_l', SideOption.RIGHT, SideOption.RIGHT),
+    ('rivers_l', SideOption.ONLY_OUTSIDE, SideOption.FULL),
+    ('airports_p', SideOption.FULL, SideOption.FULL),
+    ('airports_p', SideOption.LEFT, SideOption.FULL),
+    ('airports_p', SideOption.RIGHT, SideOption.FULL),
+    ('airports_p', SideOption.ONLY_OUTSIDE, SideOption.FULL),
+])
+def test_validate_side_option(world_features, fc_name, option, expected):
+    """
+    Test validate side option
+    """
+    source = world_features[fc_name]
+
+    @validate_side_option('opt', 's')
+    def diss_function(s, opt):
+        return opt
+
+    assert diss_function(source, option) == expected
+# End test_validate_side_option function
+
+
+@mark.parametrize('fc_name, option, expected', [
+    ('admin_a', EndOption.ROUND, EndOption.ROUND),
+    ('admin_a', EndOption.FLAT, EndOption.ROUND),
+    ('admin_a', EndOption.SQUARE, EndOption.ROUND),
+    ('rivers_l', EndOption.ROUND, EndOption.ROUND),
+    ('rivers_l', EndOption.FLAT, EndOption.FLAT),
+    ('rivers_l', EndOption.SQUARE, EndOption.SQUARE),
+    ('airports_p', EndOption.ROUND, EndOption.ROUND),
+    ('airports_p', EndOption.FLAT, EndOption.ROUND),
+    ('airports_p', EndOption.SQUARE, EndOption.ROUND),
+])
+def test_validate_end_option(world_features, fc_name, option, expected):
+    """
+    Test validate end option
+    """
+    source = world_features[fc_name]
+
+    @validate_end_option('opt', 's')
+    def diss_function(s, opt):
+        return opt
+
+    assert diss_function(source, option) == expected
+# End test_validate_end_option function
+
+
+@mark.parametrize('fc_name, option, fields, expected, throws', [
+    ('admin_a', DissolveOption.NONE, None, None, False),
+    ('admin_a', DissolveOption.NONE, [], None, False),
+    ('admin_a', DissolveOption.NONE, 'COUNTRY', None, False),
+    ('admin_a', DissolveOption.NONE, ['COUNTRY'], None, False),
+    ('admin_a', DissolveOption.ALL, None, None, False),
+    ('admin_a', DissolveOption.ALL, [], None, False),
+    ('admin_a', DissolveOption.ALL, 'COUNTRY', None, False),
+    ('admin_a', DissolveOption.ALL, ['COUNTRY'], None, False),
+    ('admin_a', DissolveOption.LIST, None, None, True),
+    ('admin_a', DissolveOption.LIST, [], None, True),
+    ('admin_a', DissolveOption.LIST, 'COUNTRY', [Field('COUNTRY', data_type='TEXT(50)')], False),
+    ('admin_a', DissolveOption.LIST, ['COUNTRY'], [Field('COUNTRY', data_type='TEXT(50)')], False),
+])
+def test_validate_dissolve_option(world_features, fc_name, option, fields, expected, throws):
+    """
+    Test validate dissolve option
+    """
+    source = world_features[fc_name]
+
+    @validate_field('flds', element_name='s', exclude_primary=False, is_optional=True)
+    @validate_dissolve_option('opt', 'flds')
+    def diss_function(s, opt, flds):
+        return flds
+    if throws:
+        with raises(ValueError):
+            diss_function(source, option, fields)
+    else:
+        assert diss_function(source, option, fields) == expected
+# End test_validate_dissolve_option function
 
 
 @mark.parametrize('name, attribute, throws', [
