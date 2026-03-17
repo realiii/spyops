@@ -8,13 +8,12 @@ from fudgeo import Field
 from pytest import raises, mark
 
 from spyops.shared.enumeration import (
-    AttributeOption, DissolveOption, EndOption, GeometryAttribute,
-    OutputTypeOption, SideOption)
+    AttributeOption, DissolveOption, GeometryAttribute, OutputTypeOption,
+    SideOption)
 from spyops.shared.exception import OperationsError
 from spyops.validation import (
-    validate_dissolve_option, validate_end_option, validate_field,
-    validate_side_option, validate_str_enumeration, validate_geometry_attribute,
-    validate_output_type)
+    validate_dissolve_option, validate_field, validate_side_option,
+    validate_str_enumeration, validate_geometry_attribute, validate_output_type)
 
 
 pytestmark = [mark.validation]
@@ -105,31 +104,6 @@ def test_validate_side_option(world_features, fc_name, option, expected):
 
     assert diss_function(source, option) == expected
 # End test_validate_side_option function
-
-
-@mark.parametrize('fc_name, option, expected', [
-    ('admin_a', EndOption.ROUND, EndOption.ROUND),
-    ('admin_a', EndOption.FLAT, EndOption.ROUND),
-    ('admin_a', EndOption.SQUARE, EndOption.ROUND),
-    ('rivers_l', EndOption.ROUND, EndOption.ROUND),
-    ('rivers_l', EndOption.FLAT, EndOption.FLAT),
-    ('rivers_l', EndOption.SQUARE, EndOption.SQUARE),
-    ('airports_p', EndOption.ROUND, EndOption.ROUND),
-    ('airports_p', EndOption.FLAT, EndOption.ROUND),
-    ('airports_p', EndOption.SQUARE, EndOption.ROUND),
-])
-def test_validate_end_option(world_features, fc_name, option, expected):
-    """
-    Test validate end option
-    """
-    source = world_features[fc_name]
-
-    @validate_end_option('opt', 's')
-    def diss_function(s, opt):
-        return opt
-
-    assert diss_function(source, option) == expected
-# End test_validate_end_option function
 
 
 @mark.parametrize('fc_name, option, fields, expected, throws', [

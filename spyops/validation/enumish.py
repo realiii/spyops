@@ -13,8 +13,7 @@ from fudgeo.enumeration import ShapeType
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.keywords import GEOMETRY_ATTRIBUTE, SOURCE
 from spyops.shared.enumeration import (
-    DissolveOption, EndOption, GeometryAttribute, OutputTypeOption,
-    SideOption)
+    DissolveOption, GeometryAttribute, OutputTypeOption, SideOption)
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_int_flag_enum, check_str_enum
 from spyops.validation.base import (
@@ -168,30 +167,6 @@ class ValidateSideOption(AbstractValidateEnumDependency):
         return wrapper
     # Side call built-in
 # Side ValidateSideOption class
-
-
-class ValidateEndOption(AbstractValidateEnumDependency):
-    """
-    Validate End Option
-    """
-    def __call__(self, func: Callable) -> Callable:
-        """
-        Make the class callable
-        """
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            """
-            Handler for the arguments and keyword arguments.
-            """
-            kwargs = self._get_arguments(
-                func=func, args=args, kwargs=kwargs)
-            if get_geometry_dimension(kwargs[self._name]) != 1:
-                kwargs[self._enum_name] = EndOption.ROUND
-            return func(**kwargs)
-        # End wrapper function
-        return wrapper
-    # End call built-in
-# End ValidateEndOption class
 
 
 class ValidateDissolveOption(AbstractValidateEnumDependency):

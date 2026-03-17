@@ -13,8 +13,8 @@ from spyops.shared.keywords import (
     BUFFER_TYPE, DISSOLVE_OPTION, DISTANCE_ARG, END_OPTION, GROUP_FIELDS,
     RESOLUTION, SIDE_OPTION, SOURCE)
 from spyops.validation import (
-    validate_dissolve_option, validate_distance, validate_end_option,
-    validate_field, validate_overwrite_source, validate_range, validate_result,
+    validate_dissolve_option, validate_distance, validate_field,
+    validate_overwrite_source, validate_range, validate_result,
     validate_side_option, validate_source_feature_class,
     validate_str_enumeration, validate_target_feature_class,
     validate_xy_tolerance)
@@ -32,7 +32,7 @@ __all__ = ['buffer_']
 @validate_target_feature_class()
 @validate_distance(DISTANCE_ARG, element_name=SOURCE)
 @validate_side_option(SIDE_OPTION, SOURCE)
-@validate_end_option(END_OPTION, SOURCE)
+@validate_str_enumeration(END_OPTION, EndOption)
 @validate_field(GROUP_FIELDS, element_name=SOURCE, exclude_primary=False,
                 is_optional=True)
 @validate_dissolve_option(DISSOLVE_OPTION, GROUP_FIELDS)
