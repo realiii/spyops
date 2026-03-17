@@ -238,8 +238,8 @@ class ValidateStatisticField(ValidateField):
         fields = {field.name.casefold(): field for field in fields}
         for stat in obj:
             field = stat.field
-            stat.field = fields[getattr(field, NAME_ATTR, field).casefold()]
-        return obj
+            stat.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
+        return [stat for stat in obj if stat.field]
     # End _find_field method
 
     def _validate_data_type(self, obj: Any) -> None:
