@@ -103,6 +103,8 @@ class ValidateField(AbstractValidateType):
             name = getattr(obj, NAME_ATTR, obj)
             raise ValueError(f'{name} not found in {element.name}')
         if not fields:
+            if self._is_optional:
+                return []
             names = [getattr(i, NAME_ATTR, i) for i in self._make_iterable(obj)]
             raise ValueError(f'{names} not found in {element.name}')
         obj = self._make_iterable(obj)
