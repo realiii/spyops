@@ -5,8 +5,7 @@ Test Coordinate Reference System
 
 
 from fudgeo import SpatialReferenceSystem
-from numpy import array
-from pyproj import CRS, Transformer
+from pyproj import CRS
 from pyproj.crs import ProjectedCRS
 from pytest import approx, mark, raises
 
@@ -17,8 +16,7 @@ from tests.constants import (
 from spyops.crs.util import (
     equals, check_same_crs, from_authority, get_equidistant_from_feature_class,
     get_geographic_centroid, srs_from_crs, get_crs_from_source,
-    _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs,
-    get_equidistant_projections)
+    _has_same_org_name, _overlaps_builtin, _get_srs_id, validate_srs)
 from spyops.shared.exception import OperationsError
 
 
@@ -176,27 +174,6 @@ def test_validate_srs_custom_in_range(crs_geopackage, replace_id):
     assert srs.organization == 'ThirdParty'
     assert srs.srs_id == replace_id
 # End test_validate_srs_custom_in_range function
-
-
-@mark.parametrize('epsg_code, coords', [
-    (4326, [(0, 0), (1, 1), (-1, -1)]),
-    (3857, [(-100_000, -100_000), (100_000, 100_000)]),
-    (26915, [(600_000, 5_500_000)]),
-])
-def test_get_equidistant_projections(epsg_code, coords):
-    """
-    Test get_equidistant_projections returns appropriate projections for various CRS
-    """
-    crs = CRS(epsg_code)
-    coords = array(coords, dtype=float)
-    xform = Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
-    xs, ys = xform.transform(coords[:, 0], coords[:, 1])
-    coords[:, 0] = xs
-    coords[:, 1] = ys
-    result = get_equidistant_projections(crs, coords)
-    assert all(isinstance(proj, ProjectedCRS) for proj in result)
-    assert len(result) == len(coords)
-# End test_get_equidistant_projections function
 
 
 @mark.parametrize('name', [

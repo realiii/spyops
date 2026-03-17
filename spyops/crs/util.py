@@ -36,7 +36,6 @@ from spyops.shared.util import safe_int
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
-    from numpy import ndarray
     from shapely import Point
 
 
@@ -223,26 +222,6 @@ def get_crs_horizontal_component(crs: CRS) -> CRS:
     """
     return _get_crs_component(crs, use_horizontal=True)
 # End get_crs_horizontal_component function
-
-
-def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
-        -> list[ProjectedCRS | None]:
-    """
-    Get Equidistant Projections for Latitude / Longitude Pairs
-    """
-    geodetic_crs = crs.geodetic_crs
-    coordinates = coordinates.round(4)
-    projections = []
-    for lon, lat in coordinates:
-        if not isfinite(lon) or not isfinite(lat):
-            projections.append(None)
-            continue
-        prj = ProjectedCRS(
-            conversion=_equidistant_conversion(lat=lat, lon=lon),
-            geodetic_crs=geodetic_crs)
-        projections.append(prj)
-    return projections
-# End get_equidistant_projections function
 
 
 def get_equidistant_from_feature_class(source: 'FeatureClass') -> ProjectedCRS | None:
