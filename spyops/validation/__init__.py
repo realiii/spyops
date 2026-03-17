@@ -14,8 +14,9 @@ from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateOverwriteInput, ValidateTable)
 from spyops.validation.enumish import (
-    ValidateIntFlagEnumeration, ValidateStrEnumeration,
-    ValidateGeometryAttribute, ValidateOutputType)
+    ValidateDissolveOption, ValidateEndOption, ValidateIntFlagEnumeration,
+    ValidateSideOption, ValidateStrEnumeration, ValidateGeometryAttribute,
+    ValidateOutputType)
 from spyops.validation.field import (
     ValidateField, ValidateGeometryDimension, ValidateStatisticField)
 from spyops.validation.range import ValidateRange
@@ -25,21 +26,24 @@ from spyops.validation.setting import ValidateXYTolerance
 
 # NOTE aliases, decorators look better as snake case
 validate_coordinate_system = ValidateCoordinateSystem
-validate_supported_crs = ValidateSupportedCRS
+validate_dissolve_option = ValidateDissolveOption
 validate_element = ValidateElement
 validate_elements = ValidateElements
-validate_str_enumeration = ValidateStrEnumeration
-validate_int_flag_enumeration = ValidateIntFlagEnumeration
+validate_end_option = ValidateEndOption
 validate_feature_class = ValidateFeatureClass
 validate_field = ValidateField
 validate_geometry_attribute = ValidateGeometryAttribute
 validate_geometry_dimension = ValidateGeometryDimension
 validate_geopackage = ValidateGeopackage
+validate_int_flag_enumeration = ValidateIntFlagEnumeration
 validate_output_type = ValidateOutputType
 validate_overwrite_input = ValidateOverwriteInput
 validate_range = ValidateRange
 validate_result = ValidateResult
+validate_side_option = ValidateSideOption
 validate_statistic_field = ValidateStatisticField
+validate_str_enumeration = ValidateStrEnumeration
+validate_supported_crs = ValidateSupportedCRS
 validate_table = ValidateTable
 validate_xy_tolerance = ValidateXYTolerance
 
