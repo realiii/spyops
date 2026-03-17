@@ -108,7 +108,7 @@ def get_conv_factor(value: str | float):
 # End get_conv_factor function
 
 
-def unit_factory(value: str) -> Optional[Union['_LinearUnit', 'DecimalDegrees']]:
+def unit_factory(value: str) -> Optional[Union['LinearUnit', 'DecimalDegrees']]:
     """
     Unit Factory for Linear Units or Decimal Degrees
     """
@@ -149,13 +149,13 @@ def _calculate_average_length(first: 'ndarray', second: 'ndarray') -> 'ndarray':
 # End _calculate_average_length function
 
 
-class _LinearUnit:
+class LinearUnit:
     """
     Linear Unit
     """
     def __init__(self, value: str | float, unit: LengthUnit) -> None:
         """
-        Initialize the _LinearUnit class
+        Initialize the LinearUnit class
         """
         super().__init__()
         self._value: float | None = safe_float(value)
@@ -203,10 +203,10 @@ class _LinearUnit:
         return self.value * get_unit_conversion(
             from_unit=self.unit, to_unit=LengthUnit.METERS)
     # End to_meters method
-# End _LinearUnit class
+# End LinearUnit class
 
 
-class FeetInternational(_LinearUnit):
+class FeetInternational(LinearUnit):
     """
     Feet International
     """
@@ -219,7 +219,7 @@ class FeetInternational(_LinearUnit):
 # End FeetInternational class
 
 
-class FeetUS(_LinearUnit):
+class FeetUS(LinearUnit):
     """
     Feet US
     """
@@ -232,7 +232,7 @@ class FeetUS(_LinearUnit):
 # End FeetUS class
 
 
-class Kilometers(_LinearUnit):
+class Kilometers(LinearUnit):
     """
     Kilometers
     """
@@ -245,7 +245,7 @@ class Kilometers(_LinearUnit):
 # End Kilometers class
 
 
-class Meters(_LinearUnit):
+class Meters(LinearUnit):
     """
     Meters
     """
@@ -258,7 +258,7 @@ class Meters(_LinearUnit):
 # End Meters class
 
 
-class MilesInternational(_LinearUnit):
+class MilesInternational(LinearUnit):
     """
     Miles International
     """
@@ -271,7 +271,7 @@ class MilesInternational(_LinearUnit):
 # End MilesInternational class
 
 
-class MilesUS(_LinearUnit):
+class MilesUS(LinearUnit):
     """
     Miles US
     """
@@ -284,7 +284,7 @@ class MilesUS(_LinearUnit):
 # End MilesUS class
 
 
-class NauticalMilesInternational(_LinearUnit):
+class NauticalMilesInternational(LinearUnit):
     """
     Nautical Miles International
     """
@@ -297,7 +297,7 @@ class NauticalMilesInternational(_LinearUnit):
 # End NauticalMilesInternational class
 
 
-class NauticalMilesUS(_LinearUnit):
+class NauticalMilesUS(LinearUnit):
     """
     Nautical Miles US
     """
@@ -310,7 +310,7 @@ class NauticalMilesUS(_LinearUnit):
 # End NauticalMilesUS class
 
 
-class YardsInternational(_LinearUnit):
+class YardsInternational(LinearUnit):
     """
     Yards International
     """
@@ -323,7 +323,7 @@ class YardsInternational(_LinearUnit):
 # End YardsInternational class
 
 
-class YardsUS(_LinearUnit):
+class YardsUS(LinearUnit):
     """
     Yards US
     """
@@ -388,7 +388,7 @@ USSurveyYards = YardsUS
 Degrees = DecimalDegrees
 
 
-UNIT_CLASS_MAP: dict[str, Type['_LinearUnit'] | Type['DecimalDegrees']] = {
+UNIT_CLASS_MAP: dict[str, Type['LinearUnit'] | Type['DecimalDegrees']] = {
     'ft': FeetInternational,
     'feet': FeetInternational,
     'foot': FeetInternational,
