@@ -6,6 +6,8 @@ Keywords, Keys, and Attributes
 
 GEOMS_ATTR: str = 'geoms'
 NAME_ATTR: str = 'name'
+METERS_ATTR: str = 'meters'
+VALUE_ATTR: str = 'value'
 
 
 INCLUDE_Z: str = 'include_z'
