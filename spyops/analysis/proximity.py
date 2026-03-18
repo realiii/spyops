@@ -24,7 +24,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['buffer_']
+__all__ = ['buffer']
 
 
 @validate_result()
@@ -40,13 +40,13 @@ __all__ = ['buffer_']
 @validate_range(RESOLUTION, default=16, min_value=8, max_value=128, type_=int)
 @validate_xy_tolerance()
 @validate_overwrite_source()
-def buffer_(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
-            *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
-            dissolve_option: DissolveOption = DissolveOption.NONE,
-            group_fields: FIELDS | FIELD_NAMES = (),
-            side_option: SideOption = SideOption.FULL,
-            end_option: EndOption = EndOption.ROUND, resolution: int = 16,
-            xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
+           *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
+           dissolve_option: DissolveOption = DissolveOption.NONE,
+           group_fields: FIELDS | FIELD_NAMES = (),
+           side_option: SideOption = SideOption.FULL,
+           end_option: EndOption = EndOption.ROUND, resolution: int = 16,
+           xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Buffer
 
@@ -54,7 +54,7 @@ def buffer_(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
     distance(s) and optional attributes.
     """
     pass
-# End buffer_ function
+# End buffer function
 
 
 if __name__ == '__main__':  # pragma: no cover

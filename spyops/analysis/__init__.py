@@ -9,7 +9,7 @@ from spyops.analysis.extract import (
     select, split, split_by_attributes, table_select)
 from spyops.analysis.overlay import (
     erase, intersect, symmetrical_difference, union)
-from spyops.analysis.proximity import buffer_
+from spyops.analysis.proximity import buffer
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
     Kilometres, Meters, Metres, Miles, MilesInternational, MilesUS,
@@ -22,7 +22,7 @@ from spyops.shared.enumeration import (
 
 
 __all__ = [
-    'buffer_',
+    'buffer',
     'clip',
     'erase',
     'extract_features',
