@@ -12,7 +12,7 @@ from pyproj.transformer import Transformer
 
 from spyops.crs.unit import get_linear_unit_conversion_factor, get_unit_name
 from spyops.crs.util import (
-    crs_from_srs, equals, get_crs_from_source, get_geographic_centroid)
+    crs_from_srs, equals, get_crs_from_source, get_geographic_extent_centroid)
 from spyops.environment.enumeration import Setting
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import DEGREE, EMPTY, METRE, SPACE, UNDERSCORE
@@ -47,7 +47,7 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     if not isfinite(extent).all():
         return 1.
     crs = get_crs_from_source(feature_class)
-    pt = get_geographic_centroid(crs, extent=extent)
+    pt = get_geographic_extent_centroid(crs, extent=extent)
     geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
     # NOTE use 45 degrees to approximate movement in 0 and 90 degrees

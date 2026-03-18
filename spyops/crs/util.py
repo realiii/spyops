@@ -241,7 +241,7 @@ def get_equidistant_crs(source: 'FeatureClass') -> ProjectedCRS | None:
 # End get_equidistant_crs function
 
 
-def get_geographic_centroid(crs: CRS, extent: EXTENT) -> Point:
+def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> Point:
     """
     Get Geographic Centroid from an Extent
     """
@@ -251,7 +251,9 @@ def get_geographic_centroid(crs: CRS, extent: EXTENT) -> Point:
     transformer = Transformer.from_crs(
         crs, crs.geodetic_crs, always_xy=True)
     return transform(transformer.transform, pt)
-# End get_geographic_centroid function
+# End get_geographic_extent_centroid function
+
+
 
 
 def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
