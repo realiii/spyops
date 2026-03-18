@@ -10,13 +10,12 @@ from typing import Optional, TYPE_CHECKING
 from numpy import isfinite
 from pyproj.transformer import Transformer
 
-from spyops.environment.constant import DEGREE, METRE
 from spyops.crs.unit import get_linear_unit_conversion_factor, get_unit_name
 from spyops.crs.util import (
     crs_from_srs, equals, get_crs_from_source, get_geographic_centroid)
 from spyops.environment.enumeration import Setting
 from spyops.geometry.extent import extent_from_feature_class
-from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
+from spyops.shared.constant import DEGREE, EMPTY, METRE, SPACE, UNDERSCORE
 from spyops.shared.hint import GRID_SIZE, XY_TOL
 
 
