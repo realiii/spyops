@@ -251,6 +251,7 @@ class GroupQueryMixin:
     """
     Group Query Mixin
     """
+    # noinspection PyUnusedLocal
     def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
         """
         Make a where clause stub that can be used to select features which
