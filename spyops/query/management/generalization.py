@@ -14,7 +14,7 @@ from numpy import array
 
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import filter_features, to_shapely
-from spyops.query.base import AbstractSourceQuery, GroupQueryMixin
+from spyops.query.base import AbstractQueryDissolve
 from spyops.shared.constant import DRID
 from spyops.shared.database import (
     add_aggregates, remove_aggregates)
@@ -28,7 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseMultipartGeometry
 
 
-class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
+class QueryDissolve(AbstractQueryDissolve):
     """
     Queries for Dissolve
     """
@@ -38,11 +38,10 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         """
         Initialize the QueryDissolve class
         """
-        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
-        self._fields: FIELDS = fields
+        super().__init__(
+            source, target=target, fields=fields, as_multi_part=as_multi_part,
+            xy_tolerance=xy_tolerance)
         self._statistics: STATS_FIELDS = statistics
-        self._as_multi_part: bool = as_multi_part
-        self._group_names: str = make_field_names(fields)
     # End init built-in
 
     def __enter__(self) -> Self:
@@ -129,18 +128,6 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
             GROUP BY {DRID} 
         """
     # End select property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        elm = self.target
-        field_count, insert_field_names, _ = self._field_names_and_count(elm)
-        return self._make_insert(
-            elm.escaped_name, field_names=insert_field_names,
-            field_count=field_count)
-    # End insert property
 
     @property
     def select_geometry(self) -> str:

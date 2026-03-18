@@ -7,7 +7,7 @@ Abstract Classes in support of Query objects
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from functools import cache, cached_property
-from typing import Callable, Optional, Self, TYPE_CHECKING
+from typing import Callable, Generator, Optional, Self, TYPE_CHECKING
 from warnings import warn
 
 from fudgeo import FeatureClass, Table
@@ -44,6 +44,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Field, SpatialReferenceSystem
     from pyproj.transformer import Transformer
     from shapely import Polygon
+    from shapely.geometry.base import BaseMultipartGeometry
     from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig
     from spyops.geometry.config import GeometryConfig
@@ -992,6 +993,78 @@ class BaseQuerySelect(AbstractSourceQuery):
             field_count=field_count)
     # End insert property
 # End BaseQuerySelect class
+
+
+class AbstractQueryDissolve(GroupQueryMixin, AbstractSourceQuery,
+                            metaclass=ABCMeta):
+    """
+    Abstract Query Dissolve
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+                 fields: FIELDS, as_multi_part: bool,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryDissolve class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        self._fields: FIELDS = fields
+        self._as_multi_part: bool = as_multi_part
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        elm = self.target
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End insert property
+
+    @cached_property
+    def group_count(self) -> int:
+        """
+        Group Count
+        """
+        elm = self.source
+        with elm.geopackage.connection as cin:
+            cursor = cin.execute(f"""
+                SELECT COUNT(*) AS CNT 
+                FROM (SELECT DISTINCT {self._group_names} 
+                      FROM {elm.escaped_name})
+            """)
+            count, = cursor.fetchone()
+        return count
+    # End group_count property
+
+    @property
+    @abstractmethod
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        pass
+    # End select_geometry property
+
+    @abstractmethod
+    def dissolved_geometries(self) \
+            -> Generator[dict[int, 'BaseMultipartGeometry'], None]:
+        """
+        Dissolved Geometries stored as a dictionary of Dense Range IDs
+        and Multi-Part Geometries.  Page over the number of groups to
+        avoid loading all geometries into memory at once.
+
+        This method builds up a dictionary of geometries and yields it when it
+        reaches (or exceeds) fetch size.  There is an expectation that when a
+        geometry is stitched together with its aggregate row that the geometry
+        will be popped from the dictionary.
+        """
+        pass
+    # End dissolved_geometries method
+# End AbstractQueryDissolve class
 
 
 if __name__ == '__main__':  # pragma: no cover
