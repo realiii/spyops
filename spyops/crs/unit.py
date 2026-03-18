@@ -210,7 +210,7 @@ class FeetInternational(LinearUnit):
     """
     Feet International
     """
-    def __init__(self, value: str| float) -> None:
+    def __init__(self, value: str | float) -> None:
         """
         Initialize the FeetInternational class
         """
