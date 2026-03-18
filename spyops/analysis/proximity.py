@@ -31,22 +31,21 @@ __all__ = ['buffer_']
 @validate_source_feature_class()
 @validate_target_feature_class()
 @validate_distance(DISTANCE_ARG, element_name=SOURCE)
-@validate_side_option(SIDE_OPTION, SOURCE)
-@validate_str_enumeration(END_OPTION, EndOption)
+@validate_str_enumeration(BUFFER_TYPE, BufferTypeOption)
 @validate_field(GROUP_FIELDS, element_name=SOURCE, exclude_primary=False,
                 is_optional=True)
 @validate_dissolve_option(DISSOLVE_OPTION, GROUP_FIELDS)
-@validate_str_enumeration(BUFFER_TYPE, BufferTypeOption)
+@validate_side_option(SIDE_OPTION, SOURCE)
+@validate_str_enumeration(END_OPTION, EndOption)
 @validate_range(RESOLUTION, default=16, min_value=8, max_value=128, type_=int)
 @validate_xy_tolerance()
 @validate_overwrite_source()
 def buffer_(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
-            *, side_option: SideOption = SideOption.FULL,
-            end_option: EndOption = EndOption.ROUND,
+            *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
             dissolve_option: DissolveOption = DissolveOption.NONE,
             group_fields: FIELDS | FIELD_NAMES = (),
-            buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
-            resolution: int = 16,
+            side_option: SideOption = SideOption.FULL,
+            end_option: EndOption = EndOption.ROUND, resolution: int = 16,
             xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Buffer
