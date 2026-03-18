@@ -130,7 +130,7 @@ def test_unit_factory_valid(value, expected, meters):
     result = unit_factory(value)
     assert result == expected
     if meters is not None:
-        assert approx(result.to_meters(), abs=0.1) == meters
+        assert approx(result.meters, abs=0.1) == meters
 # End test_unit_factory_valid function
 
 
