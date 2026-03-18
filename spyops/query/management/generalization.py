@@ -176,6 +176,8 @@ class QueryDissolve(AbstractQueryDissolve):
                 features = filter_features(cursor.fetchall())
                 features, geometries = to_shapely(
                     features, transformer=self.source_transformer)
+                if not features:
+                    continue
                 ids = array([i for _, i in features], dtype=int)
                 unique_ids = set(ids)
                 if is_point:
