@@ -187,8 +187,7 @@ class QueryDissolve(AbstractQueryDissolve):
                     parts = [geometries[ids == i] for i in unique_ids]
                     with ProcessPoolExecutor() as executor:
                         results = executor.map(builder, parts)
-                        results = {i: result for i, result in
-                                   zip(unique_ids, results)}
+                        results = dict(zip(unique_ids, results))
                 dissolved.update(results)
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved
