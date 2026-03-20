@@ -273,6 +273,18 @@ def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> Point:
 # End get_geographic_extent_centroid function
 
 
+@lru_cache(maxsize=1000)
+def _equidistant_projection(geodetic_crs: CRS, *, lat: float, lon: float) \
+        -> ProjectedCRS:
+    """
+    Build an Azimuthal Equidistant Projection for the given latitude and
+    longitude values.  Appears like we only need a projection for every
+    10 x 10 degree block of latitude and longitude values.
+    """
+    conversion = AzimuthalEquidistantConversion(
+        latitude_natural_origin=lat, longitude_natural_origin=lon)
+    return ProjectedCRS(conversion=conversion, geodetic_crs=geodetic_crs)
+# End _equidistant_projection function
 
 
 def _get_crs_component(crs: CRS, use_horizontal: bool) -> CRS:
