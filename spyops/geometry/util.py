@@ -9,6 +9,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 from numpy import diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
+from shapely.predicates import is_empty, is_valid
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.shared.keywords import GEOMS_ATTR
@@ -106,8 +107,10 @@ def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
     """
     if transformer is None:
         return ones(len(geoms), dtype=bool)
-    return array([not (g is None or g.is_empty or not g.is_valid)
-                  for g in geoms], dtype=bool)
+    mask_none = make_none_mask(geoms)
+    mask_empty = is_empty(geoms)
+    mask_invalid = ~is_valid(geoms)
+    return ~(mask_none | mask_empty | mask_invalid)
 # End get_validity function
 
 
