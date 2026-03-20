@@ -6,7 +6,7 @@ Utility Functions
 
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from numpy import array, diff, ndarray, nonzero, ones
+from numpy import diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 
@@ -109,6 +109,15 @@ def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
     return array([not (g is None or g.is_empty or not g.is_valid)
                   for g in geoms], dtype=bool)
 # End get_validity function
+
+
+def make_none_mask(values: 'ndarray') -> 'ndarray':
+    """
+    Create a mask of None values for the given array.
+    """
+    # NOTE this is the way
+    return values == None
+# End make_none_mask function
 
 
 if __name__ == '__main__':  # pragma: no cover
