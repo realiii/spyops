@@ -37,7 +37,7 @@ __all__ = ['buffer']
 @validate_dissolve_option(DISSOLVE_OPTION, GROUP_FIELDS)
 @validate_side_option(SIDE_OPTION, SOURCE)
 @validate_str_enumeration(END_OPTION, EndOption)
-@validate_range(RESOLUTION, default=16, min_value=8, max_value=128, type_=int)
+@validate_range(RESOLUTION, default=32, min_value=8, max_value=256, type_=int)
 @validate_xy_tolerance()
 @validate_overwrite_source()
 def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
@@ -45,7 +45,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
            dissolve_option: DissolveOption = DissolveOption.NONE,
            group_fields: FIELDS | FIELD_NAMES = (),
            side_option: SideOption = SideOption.FULL,
-           end_option: EndOption = EndOption.ROUND, resolution: int = 16,
+           end_option: EndOption = EndOption.ROUND, resolution: int = 32,
            xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Buffer
