@@ -17,6 +17,8 @@ INCLUDE_M: str = 'include_m'
 HAS_Z_KEY: str = 'has_z'
 HAS_M_KEY: str = 'has_m'
 SRS_ID_KEY: str = 'srs_id'
+CRS_KEY: str = 'crs'
+SHAPE_TYPE_KEY: str = 'shape_type'
 
 
 INCLUDE_VERTICAL_KEY: str = 'include_vertical'
