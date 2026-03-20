@@ -99,7 +99,7 @@ def test_dissolve_polygon():
     assert _dissolve_polygon([poly2], grid_size=None) == MultiPolygon([poly2])
     geoms = [poly1, poly2]
     expected = MultiPolygon([[[(0, 0), (0, 10), (5, 10), (5, 15), (15, 15), (15, 5), (10, 5), (10, 0), (0, 0)]]])
-    assert _dissolve_polygon(geoms, grid_size=None) == expected
+    assert _dissolve_polygon(geoms, grid_size=None).normalize() == expected
 # End test_dissolve_polygon function
 
 
