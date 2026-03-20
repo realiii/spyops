@@ -18,7 +18,7 @@ from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_ccw, is_closed, is_valid
 
-from spyops.geometry.util import find_slice_indexes
+from spyops.geometry.util import find_slice_indexes, make_none_mask
 from spyops.shared.enumeration import GeometryCheck
 from spyops.shared.hint import FEATURES, GRID_SIZE
 
@@ -391,8 +391,12 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     check_mismatch_m = GeometryCheck.MISMATCH_M in options and has_m
     wkb, fids = zip(*[(geom.wkb, fid) for geom, fid in features])
     geoms = from_wkb(wkb, on_invalid='ignore')
-    if not (fids := [i for i, geom in zip(fids, geoms) if geom is not None]):
+    mask_keep = ~make_none_mask(geoms)
+    if not mask_keep.any():
         return
+    fids = array(fids, dtype=int)
+    fids = fids[mask_keep]
+    geoms = geoms[mask_keep]
     coords, indexes = get_coordinates(
         geoms, include_z=has_z, include_m=has_m, return_index=True)
     if not grid_size:
