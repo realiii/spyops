@@ -228,11 +228,18 @@ def get_crs_horizontal_component(crs: CRS) -> CRS:
 def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
         -> list[ProjectedCRS | None]:
     """
-    Get Equidistant Projections for Latitude / Longitude Pairs
+    Get Equidistant Projections using representative coordinates from
+    geometries.  The coordinates should the same CRS as the input geometry
+    and will be transformed to latitude / longitude if CRS is projected.
     """
-    geodetic_crs = crs.geodetic_crs
-    coordinates = coordinates.round(-1)
     projections = []
+    geodetic_crs = crs.geodetic_crs
+    if crs.is_projected:
+        transformer = Transformer.from_crs(crs, geodetic_crs, always_xy=True)
+        xs, ys = transformer.transform(coordinates[:, 0], coordinates[:, 1])
+        for i, values in enumerate((xs, ys)):
+            coordinates[:, i] = values
+    coordinates = coordinates.round(-1)
     for lon, lat in coordinates:
         if not isfinite(lon) or not isfinite(lat):
             projections.append(None)
