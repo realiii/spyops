@@ -166,7 +166,7 @@ def test_degrees_to_meters(epsg_code, expected):
     """
     coords = array([(0, 0), (1, 1), (-114, 50), (-113, 55),
                     (-99, 99), (-100, 88), (70, 70)], dtype=float)
-    crs = CRS.from_epsg(epsg_code)
+    crs = CRS.from_epsg(epsg_code).geodetic_crs
     result = degrees_to_meters(crs, coords, value=1.2345)
     assert approx(result.tolist(), abs=0.1, nan_ok=True) == expected
 # End test_degrees_to_meters function
@@ -184,7 +184,7 @@ def test_degrees_to_meters_array(epsg_code, expected):
     """
     coords = array([(0, 0), (1, 1), (-114, 50), (-113, 55),
                     (-99, 99), (-100, 88), (70, 70)], dtype=float)
-    crs = CRS.from_epsg(epsg_code)
+    crs = CRS.from_epsg(epsg_code).geodetic_crs
     result = degrees_to_meters(
         crs, coords, value=array([1.2345] * len(coords), dtype=float))
     assert approx(result.tolist(), abs=0.1, nan_ok=True) == expected
