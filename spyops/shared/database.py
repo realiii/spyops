@@ -102,21 +102,21 @@ def has_table(connection: 'Connection', table_name: str) -> bool:
 # End has_table method
 
 
-def add_aggregates(conn: 'Connection') -> None:
+def add_aggregates(connection: 'Connection') -> None:
     """
     Add Aggregate Classes, avoid stomping on possible existing functions
     """
     for name, func in STATS_FUNCS.items():
-        conn.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, func)
+        connection.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, func)
 # End add_aggregates function
 
 
-def remove_aggregates(conn: 'Connection') -> None:
+def remove_aggregates(connection: 'Connection') -> None:
     """
     Remove Aggregate Classes
     """
     for name in STATS_FUNCS:
-        conn.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
+        connection.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
 # End remove_aggregates function
 
 
