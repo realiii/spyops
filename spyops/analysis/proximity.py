@@ -63,7 +63,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
     elif dissolve_option == DissolveOption.LIST:
         cls = QueryBufferDissolveList
     else:
-        cls = None
+        cls = QueryBufferDissolveAll
     query = cls(source, target=target, distance=distance,
                 buffer_type=buffer_type, fields=group_fields,
                 side_option=side_option, end_option=end_option,

@@ -4,6 +4,7 @@ Query Classes for management.proximity module
 """
 
 
+from abc import ABCMeta
 from concurrent.futures.process import ProcessPoolExecutor
 from math import nan
 from functools import cache, cached_property, partial
@@ -60,10 +61,27 @@ class BufferConfig(NamedTuple):
 # End BufferConfig class
 
 
-class BufferMixin:
+class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     """
     Buffer Mixin
     """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+                 distance: Field | LinearUnit | DecimalDegrees,
+                 buffer_type: BufferTypeOption, fields: FIELDS,
+                 side_option: SideOption, end_option: EndOption,
+                 resolution: int, xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryBufferDissolveList class
+        """
+        super().__init__(
+            source, target=target, fields=fields, as_multi_part=True,
+            xy_tolerance=xy_tolerance)
+        self._config: BufferConfig = BufferConfig(
+            distance=distance, buffer_type=buffer_type, side_option=side_option,
+            end_option=end_option, resolution=resolution)
+        self._counter: int = 0
+    # End init built-in
+
     @property
     def _is_distance_from_field(self) -> bool:
         """
@@ -311,73 +329,6 @@ class BufferMixin:
                    f'from {distance !r}')
         warn(msg, category=category, skip_file_prefixes=SKIP_FILE_PREFIXES)
     # End show_warning method
-# End BufferMixin class
-
-
-class QueryBufferDissolveList(BufferMixin, AbstractQueryDissolve):
-    """
-    Queries for Buffer (Dissolve List)
-    """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
-                 distance: Field | LinearUnit | DecimalDegrees,
-                 buffer_type: BufferTypeOption, fields: FIELDS,
-                 side_option: SideOption, end_option: EndOption,
-                 resolution: int, xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the QueryBufferDissolveList class
-        """
-        super().__init__(
-            source, target=target, fields=fields, as_multi_part=True,
-            xy_tolerance=xy_tolerance)
-        self._config: BufferConfig = BufferConfig(
-            distance=distance, buffer_type=buffer_type, side_option=side_option,
-            end_option=end_option, resolution=resolution)
-        self._counter: int = 0
-    # End init built-in
-
-    def _get_unique_fields(self) -> FIELDS:
-        """
-        Get Unique Fields
-        """
-        return self._fields
-    # End _get_unique_fields meth
-
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        # noinspection PyUnresolvedReferences
-        return f"""
-            SELECT {DRID}, {self._group_names}
-            FROM (SELECT dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
-                  FROM {elm.escaped_name} {index_where})
-            GROUP BY {DRID} 
-        """
-    # End select property
-
-    @property
-    def select_geometry(self) -> str:
-        """
-        Select Geometry
-        """
-        elm = self.source
-        geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        distance = self._build_distance_field()
-        return f"""
-            SELECT * 
-            FROM (SELECT {geom}, dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS {DRID}{distance}
-                  FROM {elm.escaped_name} {index_where})
-            WHERE {DRID} BETWEEN ? AND ?
-        """
-    # End select_geometry property
 
     def dissolved_geometries(self) \
             -> Generator[dict[int, 'MultiPolygon'], None]:
@@ -495,7 +446,57 @@ class QueryBufferDissolveList(BufferMixin, AbstractQueryDissolve):
             geometries = list(executor.map(builder, parts))
         return geometries, unique_ids
     # End _dissolve_polygons method
-# End QueryBuffer class
+# End AbstractQueryBufferDissolve class
+
+
+class QueryBufferDissolveList(AbstractQueryBufferDissolve):
+    """
+    Queries for Buffer (Dissolve List)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return self._fields
+    # End _get_unique_fields meth
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        # noinspection PyUnresolvedReferences
+        return f"""
+            SELECT {DRID}, {self._group_names}
+            FROM (SELECT dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
+                  FROM {elm.escaped_name} {index_where})
+            GROUP BY {DRID} 
+        """
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        distance = self._build_distance_field()
+        return f"""
+            SELECT * 
+            FROM (SELECT {geom}, dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}{distance}
+                  FROM {elm.escaped_name} {index_where})
+            WHERE {DRID} BETWEEN ? AND ?
+        """
+    # End select_geometry property
+# End QueryBufferDissolveList class
 
 
 if __name__ == '__main__':  # pragma: no cover
