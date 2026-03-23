@@ -81,6 +81,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
             extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
             records.clear()
+    query.show_warning()
     return query.target
 # End buffer function
 
