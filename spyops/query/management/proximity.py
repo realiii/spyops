@@ -323,15 +323,13 @@ class QueryBufferDissolveList(BufferMixin, AbstractQueryDissolve):
         Selection Query
         """
         elm = self.source
-        *_, select_field_names = self._field_names_and_count(elm)
-        dr_select_names = make_field_names(self._fields)
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
         # noinspection PyUnresolvedReferences
         return f"""
-            SELECT {select_field_names}
+            SELECT {DRID}, {self._group_names}
             FROM (SELECT dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS {DRID}, {dr_select_names} 
+                    ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
                   FROM {elm.escaped_name} {index_where})
             GROUP BY {DRID} 
         """
