@@ -8,6 +8,7 @@ from concurrent.futures.process import ProcessPoolExecutor
 from math import nan
 from functools import cache, cached_property, partial
 from typing import Callable, Generator, NamedTuple, TYPE_CHECKING
+from warnings import warn
 
 from fudgeo import Field
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
@@ -28,9 +29,10 @@ from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
 from spyops.query.base import AbstractQueryDissolve
-from spyops.shared.constant import DRID, EMPTY, METRE
+from spyops.shared.constant import DRID, EMPTY, METRE, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
+from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
     NUMBERS, TYPE_ALIAS_LUT, get_geometry_column_name)
 from spyops.shared.hint import FIELDS, XY_TOL
@@ -288,6 +290,27 @@ class BufferMixin:
         return get_linear_unit_conversion_factor(
             from_name=METRE, to_name=unit_name)
     # End _get_conversion_factor method
+
+    def show_warning(self) -> None:
+        """
+        Show Warning
+        """
+        # noinspection PyUnresolvedReferences
+        counter = self._counter
+        if not counter:
+            return
+        # noinspection PyUnresolvedReferences
+        distance = self._config.distance
+        if self._is_distance_from_field:
+            category = UnitParseWarning
+            msg = (f'Unable to parse {counter} distance(s) '
+                   f'from {distance}')
+        else:
+            category = DistanceCalculationWarning
+            msg = (f'Unable to calculate {counter} distance(s) '
+                   f'from {distance !r}')
+        warn(msg, category=category, skip_file_prefixes=SKIP_FILE_PREFIXES)
+    # End show_warning method
 # End BufferMixin class
 
 
