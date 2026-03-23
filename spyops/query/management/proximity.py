@@ -4,6 +4,7 @@ Query Classes for management.proximity module
 """
 
 
+from concurrent.futures.process import ProcessPoolExecutor
 from math import nan
 from functools import cache, cached_property, partial
 from typing import Callable, Generator, NamedTuple, TYPE_CHECKING
@@ -11,7 +12,7 @@ from typing import Callable, Generator, NamedTuple, TYPE_CHECKING
 from fudgeo import Field
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
-from numpy import array, isfinite, ones_like
+from numpy import array, isfinite, ones_like, unique
 from shapely.constructive import centroid
 from shapely.coordinates import get_coordinates
 from shapely.predicates import is_empty
@@ -23,6 +24,7 @@ from spyops.crs.unit import (
 from spyops.environment import Setting
 from spyops.geometry.buffer import geodesic_buffer, planar_buffer
 from spyops.geometry.enumeration import DimensionOption
+from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
 from spyops.query.base import AbstractQueryDissolve
@@ -30,7 +32,7 @@ from spyops.shared.constant import DRID, EMPTY, METRE
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.field import (
-    NUMBERS, TYPE_ALIAS_LUT, get_geometry_column_name, make_field_names)
+    NUMBERS, TYPE_ALIAS_LUT, get_geometry_column_name)
 from spyops.shared.hint import FIELDS, XY_TOL
 from spyops.shared.keywords import (
     CRS_KEY, END_OPTION, METERS_ATTR, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION,
@@ -405,7 +407,7 @@ class QueryBufferDissolveList(BufferMixin, AbstractQueryDissolve):
                 if not valid.any():
                     continue
                 polygons = bufferer(geometries[valid], distances[valid])
-                dissolved.update(self._apply_transform(ids[valid], polygons))
+                dissolved.update(self._dissolve_and_transform(polygons, ids[valid]))
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved
         yield dissolved
@@ -433,28 +435,43 @@ class QueryBufferDissolveList(BufferMixin, AbstractQueryDissolve):
                     continue
                 ids = array([i for _, i in features], dtype=int)
                 polygons = bufferer(geometries[valid], distances[valid])
-                dissolved.update(self._apply_transform(ids[valid], polygons))
+                dissolved.update(self._dissolve_and_transform(polygons, ids[valid]))
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved
         yield dissolved
     # End _from_distance method
 
-    def _apply_transform(self, ids: 'ndarray', geometries: 'ndarray') \
+    def _dissolve_and_transform(self, geometries: 'ndarray', ids: 'ndarray') \
             -> dict[int, 'MultiPolygon']:
         """
-        Filter out None and Empty Geometries, then Apply Transform and
-        Filter results based on Bad Geometries
+        Filter out None and Empty Geometries, Dissolve groups of Polygons,
+        and then Apply Transform
         """
         mask = ~(make_none_mask(geometries) | is_empty(geometries))
-        ids = ids[mask]
-        geometries = geometries[mask]
+        if not mask.any():
+            return {}
+        geometries, ids = self._dissolve_polygons(geometries[mask], ids[mask])
         if transformer := self.source_transformer:
             geometries = transformer(geometries)
             validity = get_validity(geometries, transformer=transformer)
             ids = ids[validity]
             geometries = geometries[validity]
         return dict(zip(ids, geometries))
-    # End _apply_transform method
+    # End _dissolve_and_transform method
+
+    def _dissolve_polygons(self, geometries: 'ndarray', ids: 'ndarray') \
+            -> tuple[list, 'ndarray']:
+        """
+        Dissolve Polygons
+        """
+        builder = partial(build_dissolved, shape_type=ShapeType.multi_polygon,
+                          grid_size=self._xy_tolerance)
+        unique_ids = unique(ids)
+        parts = [geometries[ids == i] for i in unique_ids]
+        with ProcessPoolExecutor() as executor:
+            geometries = list(executor.map(builder, parts))
+        return geometries, unique_ids
+    # End _dissolve_polygons method
 # End QueryBuffer class
 
 
