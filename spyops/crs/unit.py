@@ -14,7 +14,7 @@ from pyproj.database import get_units_map
 
 from spyops.crs.constant import EPSG
 from spyops.crs.enumeration import AreaUnit, LengthUnit
-from spyops.crs.util import get_crs_horizontal_component
+from spyops.crs.util import get_crs_horizontal_component, xy_to_dd
 from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
 from spyops.shared.util import safe_float
 
@@ -25,18 +25,20 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj.database import Unit
 
 
-def degrees_to_meters(crs: 'CRS', coords: 'ndarray',
+def degrees_to_meters(crs: 'CRS', coordinates: 'ndarray',
                       value: Union[float, 'ndarray']) -> 'ndarray':
     """
-    Convert Degrees to Meters, using the given CRS and latitude / longitude
-    coordinates.
+    Convert Degrees to Meters, using the given CRS and coordinates.  Coordinates
+    should be in the same projection as the CRS.  If the CRS is projected
+    then the coordinates will be transformed to latitude / longitude values.
     """
     value += 0
     if isinstance(value, (float, int)) and not value:
-        return zeros(len(coords), dtype=float)
+        return zeros(len(coordinates), dtype=float)
+    coordinates = xy_to_dd(crs, coordinates=coordinates)
+    lon = coordinates[:, 0]
+    lat = coordinates[:, 1]
     geod = crs.get_geod()
-    lon = coords[:, 0]
-    lat = coords[:, 1]
     *_, east = geod.inv(lons1=lon, lats1=lat, lats2=lat, lons2=lon + value)
     *_, west = geod.inv(lons1=lon, lats1=lat, lats2=lat, lons2=lon - value)
     *_, north = geod.inv(lons1=lon, lats1=lat, lons2=lon, lats2=lat + value)

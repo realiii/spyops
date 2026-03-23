@@ -234,12 +234,7 @@ def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
     """
     projections = []
     geodetic_crs = crs.geodetic_crs
-    if crs.is_projected:
-        transformer = Transformer.from_crs(crs, geodetic_crs, always_xy=True)
-        xs, ys = transformer.transform(coordinates[:, 0], coordinates[:, 1])
-        for i, values in enumerate((xs, ys)):
-            coordinates[:, i] = values
-    coordinates = coordinates.round(-1)
+    coordinates = xy_to_dd(crs, coordinates=coordinates).round(-1)
     for lon, lat in coordinates:
         if not isfinite(lon) or not isfinite(lat):
             projections.append(None)
@@ -286,6 +281,19 @@ def make_geodetic_transformer(crs: CRS) -> Transformer:
     return Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
 # End make_geodetic_transformer function
 
+
+def xy_to_dd(crs: CRS, coordinates: 'ndarray') -> 'ndarray':
+    """
+    Transforms XY coordinates to Latitude / Longitude as needed
+    """
+    if not crs.is_projected:
+        return coordinates
+    transformer = make_geodetic_transformer(crs)
+    xs, ys = transformer.transform(coordinates[:, 0], coordinates[:, 1])
+    for i, values in enumerate((xs, ys)):
+        coordinates[:, i] = values
+    return coordinates
+# End xy_to_lat_lon function
 
 
 @lru_cache(maxsize=1000)
