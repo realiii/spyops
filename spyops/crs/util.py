@@ -274,10 +274,18 @@ def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> Point:
     pt = box(*extent).centroid
     if not crs.is_projected:
         return pt
-    transformer = Transformer.from_crs(
-        crs, crs.geodetic_crs, always_xy=True)
+    transformer = make_geodetic_transformer(crs)
     return transform(transformer.transform, pt)
 # End get_geographic_extent_centroid function
+
+
+def make_geodetic_transformer(crs: CRS) -> Transformer:
+    """
+    Make Geodetic Transformer
+    """
+    return Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
+# End make_geodetic_transformer function
+
 
 
 @lru_cache(maxsize=1000)

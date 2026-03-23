@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 from fudgeo.geometry import LineString
 from numpy import array, linspace, outer
 from pyproj import Transformer
-from pyproj.enums import TransformDirection
 
+from spyops.crs.util import make_geodetic_transformer
 from spyops.shared.enumeration import LineTypeOption
 
 
@@ -86,7 +86,7 @@ def _prepare_coordinates(coordinates: 'ndarray', crs: 'CRS') -> 'ndarray':
     """
     if not crs.is_projected:
         return coordinates
-    transformer = Transformer.from_crs(crs, crs.geodetic_crs, always_xy=True)
+    transformer = make_geodetic_transformer(crs)
     start_x, start_y = transformer.transform(
         coordinates[:, 0], coordinates[:, 1])
     end_x, end_y = transformer.transform(
