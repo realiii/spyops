@@ -122,6 +122,22 @@ def make_field_names(fields: FIELDS) -> str:
 # End make_field_names function
 
 
+def add_orig_fid(feature_class: FeatureClass) -> FIELDS:
+    """
+    Add Original FID
+    """
+    key = ORIG_FID.name.casefold()
+    fields = validate_fields(feature_class, fields=feature_class.fields)
+    names = [f.name.casefold() for f in fields]
+    if key not in names:
+        return ORIG_FID, *fields
+    index = names.index(key)
+    field, = make_unique_fields([ORIG_FID, *fields], others=[fields[index]])
+    fields[index] = field
+    return ORIG_FID, *fields
+# End add_orig_fid function
+
+
 def get_geometry_column_name(feature_class: FeatureClass,
                              include_geom_type: bool = False) -> str:
     """

@@ -29,8 +29,7 @@ from spyops.query.base import (
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
-    get_geometry_column_name, make_field_names, make_unique_fields,
-    validate_fields)
+    add_orig_fid, get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
 from spyops.shared.sql import SQL_ALL_ID
 
@@ -66,15 +65,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         """
         Get Unique Fields and Rename Primary Key Columns if included
         """
-        key = ORIG_FID.name.casefold()
-        fields = validate_fields(self.source, fields=self.source.fields)
-        names = [f.name.casefold() for f in fields]
-        if key not in names:
-            return ORIG_FID, *fields
-        index = names.index(key)
-        field, = make_unique_fields([ORIG_FID, *fields], others=[fields[index]])
-        fields[index] = field
-        return ORIG_FID, *fields
+        return add_orig_fid(self.source)
     # End _get_unique_fields method
 
     @property
