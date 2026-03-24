@@ -10,7 +10,7 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from spyops.query.management.proximity import (
-    QueryBufferDissolveAll, QueryBufferDissolveList)
+    QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
@@ -64,7 +64,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
                   side_option=side_option, end_option=end_option,
                   resolution=resolution, xy_tolerance=xy_tolerance)
     if dissolve_option == DissolveOption.NONE:
-        query = None
+        query = QueryBufferDissolveNone(**kwargs)
     elif dissolve_option == DissolveOption.LIST:
         query = QueryBufferDissolveList(**kwargs)
     else:
