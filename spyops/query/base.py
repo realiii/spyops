@@ -1030,11 +1030,12 @@ class AbstractQueryDissolve(GroupQueryMixin, AbstractSourceQuery,
         Group Count
         """
         elm = self.source
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
         with elm.geopackage.connection as cin:
             cursor = cin.execute(f"""
                 SELECT COUNT(*) AS CNT 
                 FROM (SELECT DISTINCT {self._group_names} 
-                      FROM {elm.escaped_name})
+                      FROM {elm.escaped_name} {index_where})
             """)
             count, = cursor.fetchone()
         return count
