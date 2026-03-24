@@ -5,11 +5,11 @@ Tests for Proximity
 
 from fudgeo import FeatureClass
 from pyproj import CRS
-from pytest import mark, param
+from pytest import mark, param, approx
 
 from spyops.analysis import buffer
-from spyops.crs.unit import DecimalDegrees, Kilometers, Meters
-from spyops.environment import Extent, Setting
+from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
+from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, SideOption)
@@ -69,6 +69,37 @@ class TestBuffer:
                 dissolve_option=DissolveOption.LIST, group_fields=fields)
             assert len(result) == expected
     # End test_list_polygon method
+
+    @mark.zm
+    @mark.parametrize('fc_name, distance, extent', [
+        ('admin_a', Kilometers(12.345), (-2318644.25, 1008274.1875, -765862.3125, 2723458.75)),
+        ('roads_l', Miles(12.345), (-1406919.0, 1003453.0, -872218.0625, 1636588.625)),
+        ('airports_p', Meters(20_000), (-1377437.125, 984348.8125, -979955.375, 1559509.375)),
+    ])
+    @mark.parametrize('buffer_type', [
+        BufferTypeOption.PLANAR,
+        BufferTypeOption.GEODESIC,
+    ])
+    def test_output_settings(self, mem_gpkg, buffering, fc_name, distance, extent, buffer_type):
+        """
+        Test Buffering with Z output and M output + reprojecting features
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = buffer(
+                source, target=target, distance=distance,
+                buffer_type=buffer_type, side_option=SideOption.FULL,
+                dissolve_option=DissolveOption.NONE)
+            assert result.has_z
+            assert result.has_m
+            assert result.spatial_reference_system.srs_id == 102009
+            assert approx(result.extent, abs=1) == extent
+    # End test_output_settings method
 
     @mark.parametrize('fc_name, distance, expected', [
         ('roads_l', Kilometers(12.345), 4),
