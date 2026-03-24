@@ -67,14 +67,14 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
                  distance: Field | LinearUnit | DecimalDegrees,
-                 buffer_type: BufferTypeOption, fields: FIELDS,
+                 buffer_type: BufferTypeOption, fields: FIELDS | None,
                  side_option: SideOption, end_option: EndOption,
                  resolution: int, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryBufferDissolveList class
         """
         super().__init__(
-            source, target=target, fields=fields, as_multi_part=True,
+            source, target=target, fields=fields or [], as_multi_part=True,
             xy_tolerance=xy_tolerance)
         self._config: BufferConfig = BufferConfig(
             distance=distance, buffer_type=buffer_type, side_option=side_option,
@@ -347,9 +347,9 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         steps += bool(remainder)
         sql = self.select_geometry
         if self._is_distance_from_field:
-            yield from self._from_field(sql, size, steps)
+            yield from self._from_field(sql, size=size, steps=steps)
         else:
-            yield from self._from_distance(sql, size, steps)
+            yield from self._from_distance(sql, size=size, steps=steps)
     # End dissolved_geometries method
 
     def _from_field(self, sql: str, size: int, steps: int) \
@@ -497,6 +497,158 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
         """
     # End select_geometry property
 # End QueryBufferDissolveList class
+
+
+class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
+    """
+    Queries for Buffer (Dissolve All)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return []
+    # End _get_unique_fields meth
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        return EMPTY
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        distance = self._build_distance_field()
+        return f"""SELECT {geom}{distance} 
+                   FROM {elm.escaped_name} {index_where}
+        """
+    # End select_geometry property
+
+    @cached_property
+    def group_count(self) -> int:
+        """
+        Group Count
+        """
+        return len(self.source)
+    # End group_count property
+
+    def dissolved_geometries(self) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Dissolved Geometries stored as a dictionary of Dense Range IDs
+        and Multi-Part Geometries.  Page over the number of groups to
+        avoid loading all geometries into memory at once.
+
+        This method builds up a dictionary of geometries and yields it when it
+        reaches (or exceeds) fetch size.  There is an expectation that when a
+        geometry is stitched together with its aggregate row that the geometry
+        will be popped from the dictionary.
+        """
+        size = FETCH_SIZE // 5
+        steps, remainder = divmod(self.group_count, size)
+        steps += bool(remainder)
+        sql = self.select_geometry
+        if self._is_distance_from_field:
+            yield from self._from_field(sql, size=size, steps=steps)
+        else:
+            yield from self._from_distance(sql, size=size, steps=steps)
+    # End dissolved_geometries method
+
+    def _from_field(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Buffer and Dissolve using Distances from Field
+        """
+        counter = 0
+        dissolved = {}
+        bufferer = self._buffer_function
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(size):
+                features = filter_features(features)
+                if not features:
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=None, option=DimensionOption.TWO_D)
+                units = [unit_factory(v) for _, v in features]
+                # NOTE conversion validity
+                valid = array([unit is not None for unit in units], dtype=bool)
+                self._counter += ~valid.sum()
+                if not valid.any():
+                    continue
+                geometries = geometries[valid]
+                # NOTE distance validity
+                distances = self._convert_units(geometries, units=units)
+                valid = isfinite(distances)
+                self._counter += ~valid.sum()
+                if not valid.any():
+                    continue
+                polygons = bufferer(geometries[valid], distances[valid])
+                ids = ones_like(polygons, dtype=int) * counter
+                dissolved.update(self._dissolve_and_transform(polygons, ids))
+                counter += 1
+        yield from self._build_single_polygon(dissolved)
+    # End _from_field method
+
+    def _from_distance(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Buffer and Dissolve using Distances from Input Distance
+        """
+        counter = 0
+        dissolved = {}
+        bufferer = self._buffer_function
+        unit = self._config.distance
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(size):
+                features = filter_features(features)
+                if not features:
+                    continue
+                _, geometries = to_shapely(
+                    features, transformer=None, option=DimensionOption.TWO_D)
+                distances = self._convert_unit(geometries, unit=unit)
+                # NOTE distance validity
+                valid = isfinite(distances)
+                self._counter += ~valid.sum()
+                if not valid.any():
+                    continue
+                polygons = bufferer(geometries[valid], distances[valid])
+                ids = ones_like(polygons, dtype=int) * counter
+                dissolved.update(self._dissolve_and_transform(polygons, ids))
+                counter += 1
+        yield from self._build_single_polygon(dissolved)
+    # End _from_distance method
+
+    def _build_single_polygon(self, dissolved: dict[int, 'MultiPolygon']):
+        """
+        Build Single Dissolved Polygon from Page-Dissolved Geometries
+        """
+        key = 1
+        if not dissolved:
+            yield {key: MultiPolygon([])}
+        elif len(dissolved) == 1:
+            _, result = dissolved.popitem()
+            yield {key: result}
+        else:
+            geometries = array(list(dissolved.values()))
+            # NOTE grid size is used here since we are dealing with
+            #  geometry post transformation
+            result = build_dissolved(
+                geometries, shape_type=ShapeType.multi_polygon,
+                grid_size=self.grid_size)
+            yield {key: result}
+    # End _build_single_polygon method
+# End QueryBufferDissolveAll class
 
 
 if __name__ == '__main__':  # pragma: no cover
