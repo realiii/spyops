@@ -528,8 +528,9 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
         distance = self._build_distance_field()
-        return f"""SELECT {geom}{distance} 
-                   FROM {elm.escaped_name} {index_where}
+        return f"""
+            SELECT {geom}{distance} 
+            FROM {elm.escaped_name} {index_where}
         """
     # End select_geometry property
 
