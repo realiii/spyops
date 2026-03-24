@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
-from spyops.query.management.proximity import QueryBufferDissolveList
+from spyops.query.management.proximity import (
+    QueryBufferDissolveAll, QueryBufferDissolveList)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
@@ -58,26 +59,33 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
     Create polygons that are buffers of the input features based on specified
     distance(s) and optional attributes.
     """
+    kwargs = dict(source=source, target=target, distance=distance,
+                  buffer_type=buffer_type, fields=group_fields,
+                  side_option=side_option, end_option=end_option,
+                  resolution=resolution, xy_tolerance=xy_tolerance)
     if dissolve_option == DissolveOption.NONE:
-        cls = None
+        query = None
     elif dissolve_option == DissolveOption.LIST:
-        cls = QueryBufferDissolveList
+        query = QueryBufferDissolveList(**kwargs)
     else:
-        cls = QueryBufferDissolveAll
-    query = cls(source, target=target, distance=distance,
-                buffer_type=buffer_type, fields=group_fields,
-                side_option=side_option, end_option=end_option,
-                resolution=resolution, xy_tolerance=xy_tolerance)
+        query = QueryBufferDissolveAll(**kwargs)
     records = []
     insert_sql = query.insert
     config = query.geometry_config
     with (query.source.geopackage.connection as cin,
           query.target.geopackage.connection as cout,
           ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.select)
-        while rows := cursor.fetchmany(FETCH_SIZE):
+        if dissolve_option in (DissolveOption.NONE, DissolveOption.LIST):
+            cursor = cin.execute(query.select)
+            while rows := cursor.fetchmany(FETCH_SIZE):
+                geoms = next(query.dissolved_geometries(), {})
+                results = [(geoms.pop(i, None), attrs) for i, *attrs in rows]
+                extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
+        elif dissolve_option == DissolveOption.ALL:
             geoms = next(query.dissolved_geometries(), {})
-            results = [(geoms.pop(i, None), attrs) for i, *attrs in rows]
+            results = [(g, ()) for g in geoms.values()]
             extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
             records.clear()

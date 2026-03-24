@@ -152,6 +152,129 @@ class TestBuffer:
                 dissolve_option=DissolveOption.LIST, group_fields=fields)
             assert len(result) == expected
     # End test_list_point method
+
+    @mark.parametrize('fc_name, distance', [
+        ('admin_a', Kilometers(12.345)),
+        ('admin_a', DecimalDegrees(1.2345)),
+        ('admin_a', 'NUM_DIST'),
+        param('admin_a', 'LIN_UNIT', marks=mark.large),
+        param('admin_a', 'ANG_UNIT', marks=mark.large),
+        ('admin_a', 'MIX_UNIT'),
+        param('admin_mp_a', Kilometers(12.345), marks=mark.slow),
+        param('admin_mp_a', DecimalDegrees(1.2345), marks=mark.slow),
+        param('admin_mp_a', 'NUM_DIST', marks=mark.slow),
+        param('admin_mp_a', 'LIN_UNIT', marks=mark.slow),
+        param('admin_mp_a', 'ANG_UNIT', marks=mark.slow),
+        param('admin_mp_a', 'MIX_UNIT', marks=mark.slow),
+        param('admin_lcc_na_a', Kilometers(12.345), marks=mark.slow),
+        param('admin_lcc_na_a', DecimalDegrees(1.2345), marks=mark.slow),
+        param('admin_lcc_na_a', 'NUM_DIST', marks=mark.slow),
+        param('admin_lcc_na_a', 'LIN_UNIT', marks=mark.slow),
+        param('admin_lcc_na_a', 'ANG_UNIT', marks=mark.slow),
+        param('admin_lcc_na_a', 'MIX_UNIT', marks=mark.slow),
+        param('admin_lcc_na_mp_a', Kilometers(12.345), marks=mark.slow),
+        param('admin_lcc_na_mp_a', DecimalDegrees(1.2345), marks=mark.slow),
+        param('admin_lcc_na_mp_a', 'NUM_DIST', marks=mark.slow),
+        param('admin_lcc_na_mp_a', 'LIN_UNIT', marks=mark.slow),
+        param('admin_lcc_na_mp_a', 'ANG_UNIT', marks=mark.slow),
+        param('admin_lcc_na_mp_a', 'MIX_UNIT', marks=mark.slow),
+    ])
+    @mark.parametrize('buffer_type', [
+        param(BufferTypeOption.PLANAR, marks=mark.large),
+        BufferTypeOption.GEODESIC,
+    ])
+    @mark.parametrize('side_option', [
+        SideOption.FULL,
+        param(SideOption.ONLY_OUTSIDE, marks=mark.large),
+    ])
+    def test_all_polygon(self, mem_gpkg, buffering, fc_name, distance, buffer_type, side_option):
+        """
+        Test Dissolve All for Polygon
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=distance,
+                buffer_type=buffer_type, side_option=side_option,
+                dissolve_option=DissolveOption.ALL)
+            assert len(result) == 1
+    # End test_all_polygon method
+
+    @mark.parametrize('fc_name, distance', [
+        ('roads_l', Kilometers(12.345)),
+        ('roads_l', DecimalDegrees(1.2345)),
+        ('roads_l', 'NUM_DIST'),
+        param('roads_l', 'LIN_UNIT', marks=mark.large),
+        param('roads_l', 'ANG_UNIT', marks=mark.large),
+        ('roads_l', 'MIX_UNIT'),
+    ])
+    @mark.parametrize('buffer_type', [
+        param(BufferTypeOption.PLANAR, marks=mark.large),
+        BufferTypeOption.GEODESIC,
+    ])
+    @mark.parametrize('side_option', [
+        SideOption.FULL,
+        param(SideOption.LEFT, marks=mark.large),
+        param(SideOption.RIGHT, marks=mark.large),
+    ])
+    def test_all_line(self, mem_gpkg, buffering, fc_name, distance, buffer_type, side_option):
+        """
+        Test Dissolve All for line
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=distance,
+                buffer_type=buffer_type, side_option=side_option,
+                dissolve_option=DissolveOption.ALL)
+            assert len(result) == 1
+    # End test_all_line method
+
+    @mark.parametrize('fc_name, distance', [
+        param('airports_p', Meters(200), marks=mark.large),
+        param('airports_p', DecimalDegrees(0.01), marks=mark.large),
+        param('airports_p', 'NUM_DIST', marks=mark.large),
+        param('airports_p', 'LIN_UNIT', marks=mark.large),
+        param('airports_p', 'ANG_UNIT', marks=mark.large),
+        param('airports_p', 'MIX_UNIT', marks=mark.large),
+        param('airports_mp_p', Meters(200), marks=mark.large),
+        param('airports_mp_p', DecimalDegrees(0.01), marks=mark.large),
+        param('airports_mp_p', 'NUM_DIST', marks=mark.large),
+        param('airports_mp_p', 'LIN_UNIT', marks=mark.large),
+        param('airports_mp_p', 'ANG_UNIT', marks=mark.large),
+        param('airports_mp_p', 'MIX_UNIT', marks=mark.large),
+        ('airports_lcc_na_p', Meters(200)),
+        ('airports_lcc_na_p', DecimalDegrees(0.01)),
+        ('airports_lcc_na_p', 'NUM_DIST'),
+        ('airports_lcc_na_p', 'LIN_UNIT'),
+        ('airports_lcc_na_p', 'ANG_UNIT'),
+        ('airports_lcc_na_p', 'MIX_UNIT'),
+        param('airports_lcc_na_mp_p', Meters(200), marks=mark.large),
+        param('airports_lcc_na_mp_p', DecimalDegrees(0.01), marks=mark.large),
+        param('airports_lcc_na_mp_p', 'NUM_DIST', marks=mark.large),
+        param('airports_lcc_na_mp_p', 'LIN_UNIT', marks=mark.large),
+        param('airports_lcc_na_mp_p', 'ANG_UNIT', marks=mark.large),
+        param('airports_lcc_na_mp_p', 'MIX_UNIT', marks=mark.large),
+    ])
+    @mark.parametrize('buffer_type', [
+        param(BufferTypeOption.PLANAR, marks=mark.large),
+        BufferTypeOption.GEODESIC,
+    ])
+    def test_all_point(self, mem_gpkg, buffering, fc_name, distance, buffer_type):
+        """
+        Test Dissolve All Point
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=distance,
+                buffer_type=buffer_type, side_option=SideOption.FULL,
+                dissolve_option=DissolveOption.ALL)
+            assert len(result) == 1
+    # End test_all_point method
 # End TestBufferDissolveList class
 
 
