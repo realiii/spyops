@@ -4,7 +4,7 @@ Query Classes for management.proximity module
 """
 
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from concurrent.futures.process import ProcessPoolExecutor
 from math import nan
 from functools import cache, cached_property, partial
@@ -35,7 +35,8 @@ from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    NUMBERS, TYPE_ALIAS_LUT, get_geometry_column_name)
+    NUMBERS, TYPE_ALIAS_LUT, add_orig_fid, get_geometry_column_name,
+    make_field_names)
 from spyops.shared.hint import FIELDS, XY_TOL
 from spyops.shared.keywords import (
     CRS_KEY, END_OPTION, METERS_ATTR, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION,
@@ -352,67 +353,22 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             yield from self._from_distance(sql, size=size, steps=steps)
     # End dissolved_geometries method
 
+    @abstractmethod
     def _from_field(self, sql: str, size: int, steps: int) \
             -> Generator[dict[int, 'MultiPolygon'], None]:
         """
         Buffer and Dissolve using Distances from Field
         """
-        dissolved = {}
-        bufferer = self._buffer_function
-        with self.source.geopackage.connection as cin:
-            for step in range(steps):
-                features, geometries = self._fetch_features(
-                    cin, sql=sql, size=size, step=step)
-                if not features:
-                    continue
-                units = [unit_factory(v) for _, _, v in features]
-                # NOTE conversion validity
-                valid = array([unit is not None for unit in units], dtype=bool)
-                self._counter += ~valid.sum()
-                if not valid.any():
-                    continue
-                ids = array([i for _, i, _ in features], dtype=int)
-                ids = ids[valid]
-                geometries = geometries[valid]
-                # NOTE distance validity
-                distances = self._convert_units(geometries, units=units)
-                valid = isfinite(distances)
-                self._counter += ~valid.sum()
-                if not valid.any():
-                    continue
-                polygons = bufferer(geometries[valid], distances[valid])
-                dissolved.update(self._dissolve_and_transform(polygons, ids[valid]))
-                if len(dissolved) >= FETCH_SIZE:
-                    yield dissolved
-        yield dissolved
+        pass
     # End _from_field method
 
+    @abstractmethod
     def _from_distance(self, sql: str, size: int, steps: int) \
             -> Generator[dict[int, 'MultiPolygon'], None]:
         """
         Buffer and Dissolve using Distances from Input Distance
         """
-        dissolved = {}
-        bufferer = self._buffer_function
-        unit = self._config.distance
-        with self.source.geopackage.connection as cin:
-            for step in range(steps):
-                features, geometries = self._fetch_features(
-                    cin, sql=sql, size=size, step=step)
-                if not features:
-                    continue
-                distances = self._convert_unit(geometries, unit=unit)
-                # NOTE distance validity
-                valid = isfinite(distances)
-                self._counter += ~valid.sum()
-                if not valid.any():
-                    continue
-                ids = array([i for _, i in features], dtype=int)
-                polygons = bufferer(geometries[valid], distances[valid])
-                dissolved.update(self._dissolve_and_transform(polygons, ids[valid]))
-                if len(dissolved) >= FETCH_SIZE:
-                    yield dissolved
-        yield dissolved
+        pass
     # End _from_distance method
 
     def _dissolve_and_transform(self, geometries: 'ndarray', ids: 'ndarray') \
@@ -446,6 +402,41 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             geometries = list(executor.map(builder, parts))
         return geometries, unique_ids
     # End _dissolve_polygons method
+
+    def _get_units(self, features: list[tuple]) -> tuple[
+            list[LinearUnit | DecimalDegrees | None], 'ndarray']:
+        """
+        Get Units and Conversion Validity
+        """
+        units = [unit_factory(feature[-1]) for feature in features]
+        valid = array([unit is not None for unit in units], dtype=bool)
+        self._counter += ~valid.sum()
+        return units, valid
+    # End _get_units method
+
+    def _get_distances(self, geometries: 'ndarray',
+                       units: list[LinearUnit | DecimalDegrees | None]) \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Get Distances and Distance Validity
+        """
+        distances = self._convert_units(geometries, units=units)
+        valid = isfinite(distances)
+        self._counter += ~valid.sum()
+        return distances, valid
+    # End _get_distances method
+
+    def _get_distances_broadcast(self, geometries: 'ndarray',
+                                 unit: LinearUnit | DecimalDegrees) \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Get Distances and Distance Validity, broadcasting unit to all geometries
+        """
+        distances = self._convert_unit(geometries, unit=unit)
+        valid = isfinite(distances)
+        self._counter += ~valid.sum()
+        return distances, valid
+    # End _get_distances_broadcast method
 # End AbstractQueryBufferDissolve class
 
 
@@ -496,6 +487,63 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
             WHERE {DRID} BETWEEN ? AND ?
         """
     # End select_geometry property
+
+    def _from_field(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Buffer and Dissolve using Distances from Field
+        """
+        dissolved = {}
+        bufferer = self._buffer_function
+        with self.source.geopackage.connection as cin:
+            for step in range(steps):
+                features, geometries = self._fetch_features(
+                    cin, sql=sql, size=size, step=step)
+                if not features:
+                    continue
+                units, valid = self._get_units(features)
+                if not valid.any():
+                    continue
+                ids = array([i for _, i, _ in features], dtype=int)
+                ids = ids[valid]
+                geometries = geometries[valid]
+                distances, valid = self._get_distances(geometries, units=units)
+                if not valid.any():
+                    continue
+                polygons = bufferer(geometries[valid], distances[valid])
+                dissolved.update(
+                    self._dissolve_and_transform(polygons, ids[valid]))
+                if len(dissolved) >= FETCH_SIZE:
+                    yield dissolved
+        yield dissolved
+    # End _from_field method
+
+    def _from_distance(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Buffer and Dissolve using Distances from Input Distance
+        """
+        dissolved = {}
+        bufferer = self._buffer_function
+        unit = self._config.distance
+        with self.source.geopackage.connection as cin:
+            for step in range(steps):
+                features, geometries = self._fetch_features(
+                    cin, sql=sql, size=size, step=step)
+                if not features:
+                    continue
+                distances, valid = self._get_distances_broadcast(
+                    geometries, unit=unit)
+                if not valid.any():
+                    continue
+                ids = array([i for _, i in features], dtype=int)
+                polygons = bufferer(geometries[valid], distances[valid])
+                dissolved.update(
+                    self._dissolve_and_transform(polygons, ids[valid]))
+                if len(dissolved) >= FETCH_SIZE:
+                    yield dissolved
+        yield dissolved
+    # End _from_distance method
 # End QueryBufferDissolveList class
 
 
@@ -553,22 +601,15 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         with self.source.geopackage.connection as cin:
             cursor = cin.execute(sql)
             while features := cursor.fetchmany(size):
-                features = filter_features(features)
-                if not features:
+                if not (features := filter_features(features)):
                     continue
                 features, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
-                units = [unit_factory(v) for _, v in features]
-                # NOTE conversion validity
-                valid = array([unit is not None for unit in units], dtype=bool)
-                self._counter += ~valid.sum()
+                units, valid = self._get_units(features)
                 if not valid.any():
                     continue
                 geometries = geometries[valid]
-                # NOTE distance validity
-                distances = self._convert_units(geometries, units=units)
-                valid = isfinite(distances)
-                self._counter += ~valid.sum()
+                distances, valid = self._get_distances(geometries, units=units)
                 if not valid.any():
                     continue
                 polygons = bufferer(geometries[valid], distances[valid])
@@ -590,8 +631,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         with self.source.geopackage.connection as cin:
             cursor = cin.execute(sql)
             while features := cursor.fetchmany(size):
-                features = filter_features(features)
-                if not features:
+                if not (features := filter_features(features)):
                     continue
                 _, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
@@ -628,6 +668,132 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
             yield {key: result}
     # End _build_single_polygon method
 # End QueryBufferDissolveAll class
+
+
+class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
+    """
+    Queries for Buffer (Dissolve None)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return add_orig_fid(self.source)
+    # End _get_unique_fields meth
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        name = self.source.primary_key_field.escaped_name
+        field_names = make_field_names(self._get_unique_fields()[1:])
+        # NOTE double up on the key name, first value is used for lookup in
+        #  the geometry dictionary, the second is used to store in ORIG_FID
+        key_names = self._concatenate(name, name)
+        field_names = self._concatenate(key_names, field_names)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT {field_names} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        distance = self._build_distance_field()
+        name = self.source.primary_key_field.escaped_name
+        geom_and_fid = self._concatenate(geom, name)
+        return f"""
+            SELECT {geom_and_fid}{distance} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select_geometry property
+
+    @cached_property
+    def group_count(self) -> int:
+        """
+        Group Count
+        """
+        return len(self.source)
+    # End group_count property
+
+    def _from_field(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Buffer and Dissolve using Distances from Field
+        """
+        dissolved = {}
+        bufferer = self._buffer_function
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(size):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=None, option=DimensionOption.TWO_D)
+                units, valid = self._get_units(features)
+                if not valid.any():
+                    continue
+                ids = array([i for _, i, _ in features], dtype=int)
+                ids = ids[valid]
+                geometries = geometries[valid]
+                distances, valid = self._get_distances(geometries, units=units)
+                if not valid.any():
+                    continue
+                polygons = bufferer(geometries[valid], distances[valid])
+                dissolved.update(
+                    self._dissolve_and_transform(polygons, ids[valid]))
+                if len(dissolved) >= FETCH_SIZE:
+                    yield dissolved
+        yield dissolved
+    # End _from_field method
+
+    def _from_distance(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, 'MultiPolygon'], None]:
+        """
+        Buffer and Dissolve using Distances from Input Distance
+        """
+        dissolved = {}
+        bufferer = self._buffer_function
+        unit = self._config.distance
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(size):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=None, option=DimensionOption.TWO_D)
+                distances, valid = self._get_distances_broadcast(
+                    geometries, unit=unit)
+                if not valid.any():
+                    continue
+                ids = array([i for _, i in features], dtype=int)
+                polygons = bufferer(geometries[valid], distances[valid])
+                dissolved.update(
+                    self._dissolve_and_transform(polygons, ids[valid]))
+                if len(dissolved) >= FETCH_SIZE:
+                    yield dissolved
+        yield dissolved
+    # End _from_distance method
+
+    def _dissolve_polygons(self, geometries: 'ndarray', ids: 'ndarray') \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Dissolve Polygons
+        """
+        return geometries, ids
+    # End _dissolve_polygons method
+# End QueryBufferDissolveNone class
 
 
 if __name__ == '__main__':  # pragma: no cover
