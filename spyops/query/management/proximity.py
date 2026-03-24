@@ -542,28 +542,6 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         return len(self.source)
     # End group_count property
 
-    def dissolved_geometries(self) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
-        """
-        Dissolved Geometries stored as a dictionary of Dense Range IDs
-        and Multi-Part Geometries.  Page over the number of groups to
-        avoid loading all geometries into memory at once.
-
-        This method builds up a dictionary of geometries and yields it when it
-        reaches (or exceeds) fetch size.  There is an expectation that when a
-        geometry is stitched together with its aggregate row that the geometry
-        will be popped from the dictionary.
-        """
-        size = FETCH_SIZE // 5
-        steps, remainder = divmod(self.group_count, size)
-        steps += bool(remainder)
-        sql = self.select_geometry
-        if self._is_distance_from_field:
-            yield from self._from_field(sql, size=size, steps=steps)
-        else:
-            yield from self._from_distance(sql, size=size, steps=steps)
-    # End dissolved_geometries method
-
     def _from_field(self, sql: str, size: int, steps: int) \
             -> Generator[dict[int, 'MultiPolygon'], None]:
         """
