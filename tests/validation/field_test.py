@@ -8,11 +8,12 @@ from pytest import raises, mark
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
 
+from spyops.crs.unit import DecimalDegrees, Kilometers, Meters
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
-from spyops.shared.stats import Average, Avg, First
+from spyops.shared.stats import Average, First
 from spyops.validation import (
-    validate_field, validate_statistic_field,
-    validate_table)
+    validate_distance, validate_feature_class, validate_field,
+    validate_statistic_field, validate_table)
 
 
 pytestmark = [mark.validation]
@@ -155,6 +156,36 @@ def test_validate_statistic_field(world_tables, stats, expected, throws):
         assert all(isinstance(s.field, Field) for s in result)
         assert tuple(result) == tuple(expected)
 # End test_validate_statistic_field function
+
+
+@mark.parametrize('fc_name, value, expected, throws', [
+    ('hydro_4617_a', None, None, True),
+    ('hydro_4617_a', [], None, True),
+    ('hydro_4617_a', 5, DecimalDegrees(5), False),
+    ('hydro_4617_a', 5.6, DecimalDegrees(5.6), False),
+    ('hydro_6654_a', 5, Meters(5), False),
+    ('hydro_6654_a', 5.6, Meters(5.6), False),
+    ('hydro_6654_a', 'asdf', None, True),
+    ('hydro_6654_a', '5 kms', Kilometers(5), False),
+    ('hydro_6654_a', 'CODE', Field('CODE', data_type=FieldType.mediumint), False),
+    ('hydro_6654_a', 'PART_ID', Field('PART_ID', data_type=FieldType.integer), False),
+    ('hydro_6654_a', 'VALDATE', Field('VALDATE', data_type='TEXT(10)'), False),
+])
+def test_validate_distance(ntdb_zm_small, fc_name, value, expected, throws):
+    """
+    Test validate distance
+    """
+    @validate_feature_class('fc')
+    @validate_distance('dist', element_name='fc')
+    def dist_function(fc, dist):
+        return dist
+    tbl = ntdb_zm_small[fc_name]
+    if throws:
+        with raises((TypeError, ValueError)):
+            dist_function(tbl, value)
+    else:
+        assert dist_function(tbl, value) == expected
+# End test_validate_distance function
 
 
 if __name__ == '__main__':  # pragma: no cover

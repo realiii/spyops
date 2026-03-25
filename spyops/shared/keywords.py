@@ -6,6 +6,8 @@ Keywords, Keys, and Attributes
 
 GEOMS_ATTR: str = 'geoms'
 NAME_ATTR: str = 'name'
+METERS_ATTR: str = 'meters'
+VALUE_ATTR: str = 'value'
 
 
 INCLUDE_Z: str = 'include_z'
@@ -15,6 +17,8 @@ INCLUDE_M: str = 'include_m'
 HAS_Z_KEY: str = 'has_z'
 HAS_M_KEY: str = 'has_m'
 SRS_ID_KEY: str = 'srs_id'
+CRS_KEY: str = 'crs'
+SHAPE_TYPE_KEY: str = 'shape_type'
 
 
 INCLUDE_VERTICAL_KEY: str = 'include_vertical'
@@ -51,6 +55,12 @@ END_Y_FIELD: str = 'end_y_field'
 COORDINATE_SYSTEM: str = 'coordinate_system'
 LINE_TYPE: str = 'line_type'
 POINT_COUNT: str = 'point_count'
+SIDE_OPTION: str = 'side_option'
+END_OPTION: str = 'end_option'
+DISSOLVE_OPTION: str = 'dissolve_option'
+BUFFER_TYPE: str = 'buffer_type'
+RESOLUTION: str = 'resolution'
+DISTANCE_ARG: str = 'distance'
 
 
 if __name__ == '__main__':  # pragma: no cover

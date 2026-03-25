@@ -4,13 +4,8 @@ Query Classes for management.generalization module
 """
 
 
-from collections import Counter
-from concurrent.futures.process import ProcessPoolExecutor, _MAX_WINDOWS_WORKERS
+from concurrent.futures.process import ProcessPoolExecutor
 from functools import cache, cached_property, partial
-# noinspection PyProtectedMember
-from os import process_cpu_count
-from statistics import median
-from sys import platform
 from typing import Generator, Self, TYPE_CHECKING
 
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
@@ -19,7 +14,7 @@ from numpy import array
 
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import filter_features, to_shapely
-from spyops.query.base import AbstractSourceQuery, GroupQueryMixin
+from spyops.query.base import AbstractQueryDissolve
 from spyops.shared.constant import DRID
 from spyops.shared.database import (
     add_aggregates, remove_aggregates)
@@ -31,10 +26,9 @@ from spyops.shared.hint import ELEMENT, FIELDS, STATS_FIELDS, XY_TOL
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from shapely.geometry.base import BaseMultipartGeometry
-    from numpy import ndarray
 
 
-class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
+class QueryDissolve(AbstractQueryDissolve):
     """
     Queries for Dissolve
     """
@@ -44,11 +38,10 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         """
         Initialize the QueryDissolve class
         """
-        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
-        self._fields: FIELDS = fields
+        super().__init__(
+            source, target=target, fields=fields, as_multi_part=as_multi_part,
+            xy_tolerance=xy_tolerance)
         self._statistics: STATS_FIELDS = statistics
-        self._as_multi_part: bool = as_multi_part
-        self._group_names: str = make_field_names(fields)
     # End init built-in
 
     def __enter__(self) -> Self:
@@ -112,32 +105,7 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         stat_fields = [stat.output_field for stat in self.statistics]
         stat_fields = make_unique_fields(self._fields, stat_fields)
         return [*self._fields, *stat_fields]
-    # End _get_unique_fields method
-
-    @staticmethod
-    def _get_worker_count() -> int:
-        """
-        Get Worker Count
-        """
-        count = process_cpu_count() or 1
-        if platform == 'win32':
-            count = min(count, _MAX_WINDOWS_WORKERS)
-        return max(1, int(round(count * 0.75)))
-    # End _get_worker_count method
-
-    @staticmethod
-    def _use_serial(ids: 'ndarray', shape_type: str, worker_count: int) -> bool:
-        """
-        Use Serial Processing
-        """
-        if ShapeType.point in shape_type or worker_count == 1:
-            return True
-        counter = Counter(ids)
-        if len(counter) <= worker_count:
-            return True
-        # NOTE checking if there is much grouping
-        return median(counter.values()) <= 2
-    # End _use_serial method
+    # End _get_unique_fields meth
 
     @property
     def select(self) -> str:
@@ -160,18 +128,6 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
             GROUP BY {DRID} 
         """
     # End select property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        elm = self.target
-        field_count, insert_field_names, _ = self._field_names_and_count(elm)
-        return self._make_insert(
-            elm.escaped_name, field_names=insert_field_names,
-            field_count=field_count)
-    # End insert property
 
     @property
     def select_geometry(self) -> str:
@@ -209,7 +165,7 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
         steps += bool(remainder)
         sql = self.select_geometry
         shape_type = self.source.shape_type
-        worker_count = self._get_worker_count()
+        is_point = ShapeType.point in shape_type
         builder = partial(build_dissolved, shape_type=shape_type,
                           grid_size=self.grid_size)
         with self.source.geopackage.connection as cin:
@@ -224,16 +180,14 @@ class QueryDissolve(GroupQueryMixin, AbstractSourceQuery):
                     continue
                 ids = array([i for _, i in features], dtype=int)
                 unique_ids = set(ids)
-                if self._use_serial(ids, shape_type=shape_type,
-                                    worker_count=worker_count):
+                if is_point:
                     results = {i: builder(geometries[ids == i])
                                for i in unique_ids}
                 else:
                     parts = [geometries[ids == i] for i in unique_ids]
-                    with ProcessPoolExecutor(max_workers=worker_count) as ppe:
-                        results = ppe.map(builder, parts)
-                        results = {i: result for i, result in
-                                   zip(unique_ids, results)}
+                    with ProcessPoolExecutor() as executor:
+                        results = executor.map(builder, parts)
+                        results = dict(zip(unique_ids, results))
                 dissolved.update(results)
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved

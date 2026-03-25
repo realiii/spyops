@@ -30,5 +30,9 @@ SPYOPS: str = 'spyops'
 DRID: str = '__DRID__'
 
 
+DEGREE: str = 'degree'
+METRE: str = 'metre'
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

@@ -143,7 +143,7 @@ class TestQueryClip:
     # End test_select_and_insert method
 
     @mark.parametrize('epsg_code, expected', [
-        (4326, 8.988709851109888e-05),
+        (4326, 0.00011933719123988563),
         (6654, 10),
     ])
     @mark.parametrize('op_name', [

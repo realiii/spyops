@@ -19,7 +19,7 @@ from spyops.geometry.constant import (
     REASON_HOLE_OUTSIDE_SHELL, REASON_INVALID_COORDINATE,
     REASON_SELF_INTERSECTION, REASON_TOO_FEW_POINTS, REASON_VALID_GEOMETRY)
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import get_geoms_iter, to_shapely
+from spyops.geometry.util import get_geoms_iter, make_none_mask, to_shapely
 from spyops.geometry.wa import make_valid_structure
 
 
@@ -285,15 +285,6 @@ def _make_valid(geoms: 'ndarray') -> 'ndarray':
 # End _make_valid function
 
 
-def _make_none_mask(values: 'ndarray') -> 'ndarray':
-    """
-    Create a mask of None values for the given array.
-    """
-    # NOTE this is the way
-    return values == None
-# End _make_none_mask function
-
-
 def _capture_valid_and_empty(geoms: 'ndarray', *, ids: 'ndarray',
                              deletes: DELETES, updates: UPDATES,
                              empties: EMPTIES,  fixer: Optional[Callable]) \
@@ -323,7 +314,7 @@ def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
     """
     Filter Empty and None, tracking in the relevant lists.
     """
-    mask_none = _make_none_mask(geoms)
+    mask_none = make_none_mask(geoms)
     empties.extend(ids[mask_none])
     mask_empty = is_empty(geoms)
     deletes.extend(ids[mask_empty])
@@ -337,7 +328,7 @@ def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
     """
     Track Updates and Empties
     """
-    mask = is_empty(geoms) | _make_none_mask(geoms)
+    mask = is_empty(geoms) | make_none_mask(geoms)
     empties.extend(ids[mask])
     updates.extend(list(zip(ids[~mask], geoms[~mask])))
 # End _track_updates_empties function

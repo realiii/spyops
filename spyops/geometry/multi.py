@@ -97,7 +97,7 @@ def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
         geoms = asarray(geoms, dtype=object)
     if not len(geoms):
         return MultiPolygon()
-    multi = union_all(normalize(geoms)).normalize()
+    multi = union_all(normalize(geoms))
     if not hasattr(multi, GEOMS_ATTR):
         # noinspection PyTypeChecker
         multi = MultiPolygon([multi])
@@ -178,7 +178,7 @@ def _dissolve_polygon(geoms: ndarray | list,
     """
     Dissolve Polygons
     """
-    polys = union_all(normalize(geoms), grid_size=grid_size).normalize()
+    polys = union_all(normalize(geoms), grid_size=grid_size)
     if isinstance(polys, MultiPolygon):
         return polys
     # noinspection PyTypeChecker

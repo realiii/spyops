@@ -40,6 +40,15 @@ def inputs(data_path) -> Generator[GeoPackage, None, None]:
 
 
 @fixture(scope='session')
+def buffering(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    Buffering
+    """
+    yield from _open_geopackage(data_path.joinpath('buffering.gpkg'))
+# End buffering function
+
+
+@fixture(scope='session')
 def check_repair(data_path) -> Generator[GeoPackage, None, None]:
     """
     Check Repair

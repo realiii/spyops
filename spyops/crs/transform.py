@@ -95,7 +95,8 @@ def get_transforms(source_crs: Union[CRS, 'FeatureClass', 'SpatialReferenceSyste
 # End get_transforms function
 
 
-def get_transform_best_guess(source_crs: CRS, target_crs: CRS) -> Transformer | None:
+def get_transform_best_guess(source_crs: CRS, target_crs: CRS,
+                             suppress: bool = False) -> Transformer | None:
     """
     Get Transformer for the best available guess between the source CRS
     and target CRS.  It will either be None if no transformation is required,
@@ -111,6 +112,8 @@ def get_transform_best_guess(source_crs: CRS, target_crs: CRS) -> Transformer | 
     if not best:
         first, *_ = options
         best = first.transformer
+    if suppress:
+        return best
     warn(f'Guessed best geographic transformation from CRS '
          f'{source_crs.name!r} to CRS {target_crs.name!r} using:'
          f'{best.description!r}',

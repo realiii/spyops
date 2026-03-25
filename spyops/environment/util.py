@@ -9,15 +9,13 @@ from typing import Optional, TYPE_CHECKING
 
 from numpy import isfinite
 from pyproj.transformer import Transformer
-from shapely.creation import box
-from shapely.ops import transform
 
-from spyops.environment.constant import DEGREE, METRE
 from spyops.crs.unit import get_linear_unit_conversion_factor, get_unit_name
-from spyops.crs.util import crs_from_srs, equals, get_crs_from_source
+from spyops.crs.util import (
+    crs_from_srs, equals, get_crs_from_source, get_geographic_extent_centroid)
 from spyops.environment.enumeration import Setting
 from spyops.geometry.extent import extent_from_feature_class
-from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
+from spyops.shared.constant import DEGREE, EMPTY, METRE, SPACE, UNDERSCORE
 from spyops.shared.hint import GRID_SIZE, XY_TOL
 
 
@@ -42,20 +40,18 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     """
     Scale Factor approximation for 1 metre of XY Tolerance in Decimal Degrees,
     if the CRS is geographic or the extent is invalid then return 1, that is,
-    no scaling will occur.
+    no scaling will occur.  Results of this function are intended for use with
+    relatively small values of XY Tolerance.
     """
     extent = extent_from_feature_class(feature_class)
     if not isfinite(extent).all():
         return 1.
     crs = get_crs_from_source(feature_class)
-    pt = box(*extent, ccw=False).centroid
-    if crs.is_projected:
-        transformer = Transformer.from_crs(
-            crs, crs.geodetic_crs, always_xy=True)
-        pt = transform(transformer.transform, pt)
+    pt = get_geographic_extent_centroid(crs, extent=extent)
     geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
-    x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=0, dist=1)
+    # NOTE use 45 degrees to approximate movement in 0 and 90 degrees
+    x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=45, dist=1)
     return hypot(center_x - x, center_y - y)
 # End tolerance_scale_factor function
 

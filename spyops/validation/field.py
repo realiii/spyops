@@ -9,11 +9,16 @@ from typing import Any, Callable, ClassVar
 
 from fudgeo import Field
 
+from spyops.crs.unit import (
+    DecimalDegrees, LinearUnit, UNIT_CLASS_MAP, get_unit_name, unit_factory)
+from spyops.crs.util import get_crs_from_source
 from spyops.geometry.validate import (
     check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
 from spyops.shared.constant import PADDED_PIPE
+from spyops.shared.exception import CoordinateSystemNotSupportedError
 from spyops.shared.keywords import NAME_ATTR
-from spyops.shared.field import TYPE_ALIAS_LUT, validate_fields
+from spyops.shared.field import (
+    TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
@@ -103,6 +108,8 @@ class ValidateField(AbstractValidateType):
             name = getattr(obj, NAME_ATTR, obj)
             raise ValueError(f'{name} not found in {element.name}')
         if not fields:
+            if self._is_optional:
+                return []
             names = [getattr(i, NAME_ATTR, i) for i in self._make_iterable(obj)]
             raise ValueError(f'{names} not found in {element.name}')
         obj = self._make_iterable(obj)
@@ -175,6 +182,64 @@ class ValidateField(AbstractValidateType):
 # End ValidateField class
 
 
+class ValidateDistance(ValidateField):
+    """
+    Validate Distance
+    """
+    _types: ClassVar[tuple[type, ...]] = (
+        LinearUnit, DecimalDegrees, Field, str, float, int)
+
+    def __init__(self, name: str, *, element_name: str) -> None:
+        """
+        Initialize the ValidateDistance class
+
+        :param name: Name of the argument to validate
+        :param element_name: Argument Name of the element to validate against
+        """
+        # noinspection PyArgumentEqualDefault
+        super().__init__(
+            name=name, data_types=TEXT_AND_NUMBERS, element_name=element_name,
+            exists=True, single=True, exclude_geometry=True,
+            exclude_primary=False, is_optional=False)
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            self._validate_type(obj)
+            element = self._get_element(kwargs)
+            if isinstance(obj, (float, int)):
+                unit_name = get_unit_name(get_crs_from_source(element))
+                if cls := UNIT_CLASS_MAP.get(unit_name.casefold()):
+                    obj = cls(obj)
+                else:
+                    raise CoordinateSystemNotSupportedError(
+                        f'{self._element_name} has unsupported CRS axis units '
+                        f'{unit_name}, use a LinearUnit object instead of a '
+                        f'number for {self._name}')
+            if isinstance(obj, str):
+                if unit := unit_factory(obj):
+                    obj = unit
+            if isinstance(obj, (Field, str)):
+                obj = self._find_field(obj, element=element)
+                self._validate_data_type(obj)
+                self._validate_exists(obj, element=element)
+            self._set_object(obj, kwargs=kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+# End ValidateDistance class
+
+
 class ValidateStatisticField(ValidateField):
     """
     Validate Statistic Field
@@ -236,8 +301,8 @@ class ValidateStatisticField(ValidateField):
         fields = {field.name.casefold(): field for field in fields}
         for stat in obj:
             field = stat.field
-            stat.field = fields[getattr(field, NAME_ATTR, field).casefold()]
-        return obj
+            stat.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
+        return [stat for stat in obj if stat.field]
     # End _find_field method
 
     def _validate_data_type(self, obj: Any) -> None:

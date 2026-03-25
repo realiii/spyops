@@ -123,7 +123,7 @@ def transform_multi_polygons(geoms: 'ndarray', transformer: 'Transformer',
 # End transform_multi_polygons function
 
 
-def _transform_linear(geoms:'ndarray', transformer: 'Transformer',
+def _transform_linear(geoms: 'ndarray', transformer: 'Transformer',
                       include_vertical: bool, has_z: bool, has_m: bool,
                       geom_type: str) -> 'ndarray':
     """

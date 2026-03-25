@@ -51,6 +51,21 @@ class AbstractValidate(metaclass=ABCMeta):
 # End AbstractValidate class
 
 
+class AbstractValidateEnumDependency(AbstractValidate, metaclass=ABCMeta):
+    """
+    Abstract Validate Enumeration Dependency
+    """
+    def __init__(self, enum_name: str, name: str) -> None:
+        """
+        Initialize the AbstractValidateEnumDependency class
+        """
+        super().__init__()
+        self._enum_name: str = enum_name
+        self._name: str = name
+    # End init built-in
+# End AbstractValidateEnumDependency class
+
+
 class AbstractValidateArgument(AbstractValidate, metaclass=ABCMeta):
     """
     Abstract Validation on an Argument by Name

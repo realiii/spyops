@@ -8,7 +8,6 @@ from typing import Callable, TYPE_CHECKING
 
 from bottleneck import nanmax, nanmin
 from numpy import array
-from pyproj.transformer import Transformer
 from shapely import (
     MultiPolygon, Polygon, get_coordinates, get_num_interior_rings, get_point,
     point_on_surface, get_x, get_y)
@@ -20,7 +19,7 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.unit import (
     AREA_UNIT_LUT, LENGTH_UNIT_LUT, get_conv_factor, get_unit_conversion,
     get_unit_name)
-from spyops.crs.util import equals
+from spyops.crs.util import equals, make_geodetic_transformer
 from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 
 
@@ -103,8 +102,7 @@ def _transform_geometries(geoms: 'ndarray', crs: 'CRS') -> 'ndarray':
     """
     if equals(crs, crs.geodetic_crs):
         return geoms
-    transformer = Transformer.from_crs(
-        crs, crs.geodetic_crs, always_xy=True)
+    transformer = make_geodetic_transformer(crs)
     # noinspection PyTypeChecker
     return transform(
         geoms, transformation=transformer.transform, interleaved=False)

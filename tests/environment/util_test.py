@@ -39,11 +39,11 @@ def test_as_title(value, expected):
 
 
 @mark.parametrize('fc_name, expected', [
-    ('hydro_4617_a', 8.988709950585871e-06),
-    ('hydro_6654_a', 8.988710035851e-06),
-    ('hydro_lcc_a', 8.988709851109888e-06),
-    ('hydro_utm11_a', 8.988709851109888e-06),
-    ('toponymy_10tm_p', 8.988674167653699e-06),
+    ('hydro_4617_a', 1.1933707531202796e-05),
+    ('hydro_6654_a', 1.1933719123988563e-05),
+    ('hydro_lcc_a', 1.1933696981032446e-05 ),
+    ('hydro_utm11_a', 1.1933719123988563e-05),
+    ('toponymy_10tm_p', 1.1933488384570633e-05),
 ])
 def test_scale_factor(ntdb_zm_small, fc_name, expected):
     """
@@ -55,18 +55,18 @@ def test_scale_factor(ntdb_zm_small, fc_name, expected):
 
 
 @mark.parametrize('fc_name, epsg_code, from_name, to_name, expected', [
-    ('structures_10tm_a', 4326, 'metre', 'degree', 8.988679418564516e-05),
+    ('structures_10tm_a', 4326, 'metre', 'degree', 0.00011932871152618218),
     ('structures_4617_a', 4326, 'degree', 'degree', 10),
-    ('structures_6654_a', 4326, 'metre', 'degree', 8.988711179824804e-05),
-    ('structures_lcc_p', 4326, 'metre', 'degree', 8.98871027743553e-05),
-    ('structures_utm11_p', 4326, 'metre', 'degree', 8.98870804633134e-05),
+    ('structures_6654_a', 4326, 'metre', 'degree', 0.00011933562596155579),
+    ('structures_lcc_p', 4326, 'metre', 'degree', 0.00011933669067992621),
+    ('structures_utm11_p', 4326, 'metre', 'degree', 0.00011933933920758763),
     ('structures_10tm_a', 6654, 'metre', 'metre', 10.),
-    ('structures_4617_a', 6654, 'degree', 'metre', 1112505.9844928253),
+    ('structures_4617_a', 6654, 'degree', 'metre', 838010.59),
     ('structures_6654_a', 6654, 'metre', 'metre', 10.),
     ('structures_lcc_p', 6654, 'metre', 'metre', 10.),
     ('structures_utm11_p', 6654, 'metre', 'metre', 10.),
     ('structures_10tm_a', 2274, 'metre', 'US survey foot', 32.80833333333335),
-    ('structures_4617_a', 2274, 'degree', 'US survey foot', 3649946.71745688),
+    ('structures_4617_a', 2274, 'degree', 'US survey foot', 2749373.10),
     ('structures_6654_a', 2274, 'metre', 'US survey foot', 32.80833333333335),
     ('structures_lcc_p', 2274, 'metre', 'US survey foot', 32.80833333333335),
     ('structures_utm11_p', 2274, 'metre', 'US survey foot', 32.80833333333335),

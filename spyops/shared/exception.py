@@ -123,5 +123,19 @@ class TransformationGuessWarning(OperationsWarning):
 # End TransformationGuessWarning class
 
 
+class UnitParseWarning(OperationsWarning):
+    """
+    Unit Parse Warning
+    """
+# End UnitParseWarning class
+
+
+class DistanceCalculationWarning(OperationsWarning):
+    """
+    Distance Calculation Warning
+    """
+# End DistanceCalculationWarning class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

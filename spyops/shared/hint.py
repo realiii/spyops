@@ -10,11 +10,14 @@ from typing import TYPE_CHECKING, TypeAlias, Union
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field, GeoPackage, MemoryGeoPackage, Table
     from fudgeo.geometry.base import AbstractGeometry
+    from spyops.crs.unit import DecimalDegrees, LinearUnit
     from shapely.geometry import (
         LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
     from spyops.shared.stats import AbstractStatisticField
 
 
+DISTANCE: TypeAlias = Union[
+    'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 XY_TOL: TypeAlias = float | int | None
