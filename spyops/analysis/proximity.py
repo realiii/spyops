@@ -56,8 +56,13 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
     """
     Buffer
 
-    Create polygons that are buffers of the input features based on specified
-    distance(s) and optional attributes.
+    Create polygons that are a specified distance around the input features.
+
+    All geometry types are supported.  However, not all options apply to or
+    are useful on all geometry types.
+
+    The output will not have Z or M values unless the OUTPUT_Z_OPTION or
+    OUTPUT_M_OPTION environment variables are set.
     """
     kwargs = dict(source=source, target=target, distance=distance,
                   buffer_type=buffer_type, fields=group_fields,
