@@ -14,8 +14,8 @@ from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
     Kilometres, Meters, Metres, Miles, MilesInternational, MilesUS,
     NauticalMiles, NauticalMilesInternational, NauticalMilesUS, StatuteMiles,
-    USSurveyFeet, USSurveyMiles, USSurveyYards, Yards, YardsInternational,
-    YardsUS)
+    USNauticalMiles, USSurveyFeet, USSurveyMiles, USSurveyYards, Yards,
+    YardsInternational, YardsUS)
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, BufferTypeOption, DissolveOption,
     EndOption, OutputTypeOption, SideOption)
@@ -59,6 +59,7 @@ __all__ = [
     'NauticalMilesInternational',
     'NauticalMilesUS',
     'StatuteMiles',
+    'USNauticalMiles',
     'USSurveyFeet',
     'USSurveyMiles',
     'USSurveyYards',

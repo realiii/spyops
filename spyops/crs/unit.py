@@ -386,6 +386,7 @@ Miles = MilesInternational
 StatuteMiles = MilesInternational
 USSurveyMiles = MilesUS
 NauticalMiles = NauticalMilesInternational
+USNauticalMiles = NauticalMilesUS
 Yards = YardsInternational
 USSurveyYards = YardsUS
 Degrees = DecimalDegrees
