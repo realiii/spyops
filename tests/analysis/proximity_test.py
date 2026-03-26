@@ -70,6 +70,28 @@ class TestBuffer:
             assert len(result) == expected
     # End test_list_polygon method
 
+    def test_sans_attr(self, mem_gpkg, buffering):
+        """
+        Test Polygon with no Attributes
+        """
+        source = buffering['admin_sans_attr_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'sans_all_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=Meters(1234.5),
+                buffer_type=BufferTypeOption.PLANAR, side_option=SideOption.FULL,
+                dissolve_option=DissolveOption.ALL)
+            assert len(result) == 1
+
+        target = FeatureClass(geopackage=mem_gpkg, name=f'sans_none_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=Meters(1234.5),
+                buffer_type=BufferTypeOption.PLANAR, side_option=SideOption.FULL,
+                dissolve_option=DissolveOption.NONE)
+            assert len(result) == 11
+    # End test_sans_attr method
+
     @mark.zm
     @mark.parametrize('fc_name, distance, extent', [
         ('admin_a', Kilometers(12.345), (-2318644.25, 1008274.1875, -765862.3125, 2723458.75)),
