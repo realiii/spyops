@@ -68,5 +68,36 @@ class AreaUnit(StrEnum):
 # End AreaUnit class
 
 
+class DistanceUnit(StrEnum):
+    """
+    Distance Units
+    """
+    KILOMETERS = auto()
+    METERS = auto()
+
+    MILES_INTERNATIONAL = auto()
+    NAUTICAL_MILES_INTERNATIONAL = auto()
+    YARDS_INTERNATIONAL = auto()
+    FEET_INTERNATIONAL = auto()
+
+    STATUTE_MILES = auto()
+    MILES = auto()
+    YARDS = auto()
+    FEET = auto()
+
+    MILES_US = auto()
+    NAUTICAL_MILES_US = auto()
+    YARDS_US = auto()
+    FEET_US = auto()
+
+    US_SURVEY_MILES = auto()
+    US_SURVEY_YARDS = auto()
+    US_SURVEY_FEET = auto()
+
+    DECIMAL_DEGREES = auto()
+    DEGREES = auto()
+# End DistanceUnit class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

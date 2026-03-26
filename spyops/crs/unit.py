@@ -13,7 +13,7 @@ from numpy import isfinite, sign, zeros
 from pyproj.database import get_units_map
 
 from spyops.crs.constant import EPSG
-from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.crs.enumeration import AreaUnit, DistanceUnit, LengthUnit
 from spyops.crs.util import get_crs_horizontal_component, xy_to_dd
 from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
 from spyops.shared.util import safe_float
@@ -473,6 +473,34 @@ UNIT_CLASS_MAP.update(
     {k.replace(UNDERSCORE, SPACE): v for k, v in UNIT_CLASS_MAP.items()})
 UNIT_CLASS_MAP.update(
     {k.replace(UNDERSCORE, EMPTY): v for k, v in UNIT_CLASS_MAP.items()})
+
+
+DISTANCE_UNIT_LUT: dict[DistanceUnit, Type[LinearUnit | DecimalDegrees]] = {
+    DistanceUnit.KILOMETERS: Kilometers,
+    DistanceUnit.METERS: Meters,
+
+    DistanceUnit.MILES_INTERNATIONAL: MilesInternational,
+    DistanceUnit.NAUTICAL_MILES_INTERNATIONAL: NauticalMilesInternational,
+    DistanceUnit.YARDS_INTERNATIONAL: YardsInternational,
+    DistanceUnit.FEET_INTERNATIONAL: FeetInternational,
+
+    DistanceUnit.STATUTE_MILES: StatuteMiles,
+    DistanceUnit.MILES: Miles,
+    DistanceUnit.YARDS: Yards,
+    DistanceUnit.FEET: Feet,
+
+    DistanceUnit.MILES_US: MilesUS,
+    DistanceUnit.NAUTICAL_MILES_US: NauticalMilesUS,
+    DistanceUnit.YARDS_US: YardsUS,
+    DistanceUnit.FEET_US: FeetUS,
+
+    DistanceUnit.US_SURVEY_MILES: USSurveyMiles,
+    DistanceUnit.US_SURVEY_YARDS: USSurveyYards,
+    DistanceUnit.US_SURVEY_FEET: USSurveyFeet,
+
+    DistanceUnit.DECIMAL_DEGREES: DecimalDegrees,
+    DistanceUnit.DEGREES: Degrees,
+}
 
 
 LENGTH_UNIT_LUT: dict[LengthUnit, str | float] = {
