@@ -476,16 +476,27 @@ UNIT_CLASS_MAP.update(
 
 
 LENGTH_UNIT_LUT: dict[LengthUnit, str | float] = {
-    LengthUnit.FEET_INTERNATIONAL: 'foot',
-    LengthUnit.FEET_US: 'US survey foot',
     LengthUnit.KILOMETERS: 'kilometre',
     LengthUnit.METERS: 'metre',
+
     LengthUnit.MILES_INTERNATIONAL: 'Statute mile',
-    LengthUnit.MILES_US: 'US survey mile',
     LengthUnit.NAUTICAL_MILES_INTERNATIONAL: 'nautical mile',
-    LengthUnit.NAUTICAL_MILES_US: 1853.248,
     LengthUnit.YARDS_INTERNATIONAL: 'yard',
+    LengthUnit.FEET_INTERNATIONAL: 'foot',
+
+    LengthUnit.STATUTE_MILES: 'Statute mile',
+    LengthUnit.MILES: 'Statute mile',
+    LengthUnit.YARDS: 'yard',
+    LengthUnit.FEET: 'foot',
+
+    LengthUnit.MILES_US: 'US survey mile',
+    LengthUnit.NAUTICAL_MILES_US: 1853.248,
     LengthUnit.YARDS_US: 0.9144018288036576,
+    LengthUnit.FEET_US: 'US survey foot',
+
+    LengthUnit.US_SURVEY_FEET: 'US survey foot',
+    LengthUnit.US_SURVEY_MILES: 'US survey mile',
+    LengthUnit.US_SURVEY_YARDS: 0.9144018288036576,
 }
 
 
