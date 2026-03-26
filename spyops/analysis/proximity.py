@@ -9,14 +9,15 @@ from typing import TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
+from spyops.crs.enumeration import DistanceUnit
 from spyops.query.management.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
 from spyops.shared.keywords import (
-    BUFFER_TYPE, DISSOLVE_OPTION, DISTANCE_ARG, END_OPTION, GROUP_FIELDS,
-    RESOLUTION, SIDE_OPTION, SOURCE)
+    BUFFER_TYPE, DISSOLVE_OPTION, DISTANCE_ARG, DISTANCE_UNIT, END_OPTION,
+    GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_dissolve_option, validate_distance, validate_field,
@@ -96,6 +97,35 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
     query.show_warning()
     return query.target
 # End buffer function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_target_feature_class()
+@validate_str_enumeration(DISTANCE_UNIT, DistanceUnit)
+@validate_str_enumeration(BUFFER_TYPE, BufferTypeOption)
+@validate_range(RESOLUTION, default=32, min_value=8, max_value=256, type_=int)
+@validate_xy_tolerance()
+@validate_overwrite_source()
+def multiple_ring_buffer(source: 'FeatureClass', target: 'FeatureClass',
+                         distance_unit: DistanceUnit, distances: list[float],
+                         *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
+                         overlapping: bool = False, only_outside: bool = False,
+                         resolution: int = 32, xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Multiple Ring Buffer
+
+    Generate polygons around the input features using the input distances.  The
+    polygons can be created as overlapping or non-overlapping.
+
+    All geometry types are supported.  For polygon feature classes the input
+    feature can be removed from the buffer by using the only outside option.
+
+    The output will not have Z or M values unless the OUTPUT_Z_OPTION or
+    OUTPUT_M_OPTION environment variables are set.
+    """
+    pass
+# End multiple_ring_buffer function
 
 
 if __name__ == '__main__':  # pragma: no cover
