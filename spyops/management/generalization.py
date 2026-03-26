@@ -26,7 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
 @validate_result()
 @validate_source_feature_class()
 @validate_target_feature_class()
-@validate_field(GROUP_FIELDS, element_name=SOURCE, exclude_primary=False)
+@validate_field(GROUP_FIELDS, element_name=SOURCE)
 @validate_statistic_field(STATISTICS, element_name=SOURCE)
 @validate_xy_tolerance()
 @validate_overwrite_source()
