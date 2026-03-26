@@ -31,7 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['buffer']
+__all__ = ['buffer', 'multiple_buffer']
 
 
 @validate_result()
@@ -107,13 +107,13 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
 @validate_range(RESOLUTION, default=32, min_value=8, max_value=256, type_=int)
 @validate_xy_tolerance()
 @validate_overwrite_source()
-def multiple_ring_buffer(source: 'FeatureClass', target: 'FeatureClass',
-                         distance_unit: DistanceUnit, distances: list[float],
-                         *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
-                         overlapping: bool = False, only_outside: bool = False,
-                         resolution: int = 32, xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
+                    distance_unit: DistanceUnit, distances: list[float],
+                    *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
+                    overlapping: bool = False, only_outside: bool = False,
+                    resolution: int = 32, xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
-    Multiple Ring Buffer
+    Multiple Buffer
 
     Generate polygons around the input features using the input distances.  The
     polygons can be created as overlapping or non-overlapping.
@@ -125,7 +125,7 @@ def multiple_ring_buffer(source: 'FeatureClass', target: 'FeatureClass',
     OUTPUT_M_OPTION environment variables are set.
     """
     pass
-# End multiple_ring_buffer function
+# End multiple_buffer function
 
 
 if __name__ == '__main__':  # pragma: no cover
