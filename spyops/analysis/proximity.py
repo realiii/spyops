@@ -112,7 +112,8 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
                     distance_unit: DistanceUnit, distances: list[float],
                     *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
                     overlapping: bool = False, only_outside: bool = False,
-                    resolution: int = 32, xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+                    field_name: str | None = None, resolution: int = 32,
+                    xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Multiple Buffer
 
