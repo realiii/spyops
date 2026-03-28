@@ -16,15 +16,15 @@ from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
 from spyops.shared.keywords import (
-    BUFFER_TYPE, DISSOLVE_OPTION, DISTANCE_ARG, DISTANCE_UNIT, END_OPTION,
-    GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
+    BUFFER_TYPE, DISSOLVE_OPTION, DISTANCES, DISTANCE_ARG, DISTANCE_UNIT,
+    END_OPTION, GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_dissolve_option, validate_distance, validate_field,
     validate_overwrite_source, validate_range, validate_result,
     validate_side_option, validate_source_feature_class,
     validate_str_enumeration, validate_target_feature_class,
-    validate_xy_tolerance)
+    validate_values, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -103,6 +103,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
 @validate_source_feature_class()
 @validate_target_feature_class()
 @validate_str_enumeration(DISTANCE_UNIT, DistanceUnit)
+@validate_values(DISTANCES)
 @validate_str_enumeration(BUFFER_TYPE, BufferTypeOption)
 @validate_range(RESOLUTION, default=32, min_value=8, max_value=256, type_=int)
 @validate_xy_tolerance()
