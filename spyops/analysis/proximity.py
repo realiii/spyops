@@ -121,7 +121,8 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
     polygons can be created as overlapping or non-overlapping.
 
     All geometry types are supported.  For polygon feature classes the input
-    feature can be removed from the buffer by using the only outside option.
+    feature can be removed from the buffer by using the only outside option
+    set to True.
 
     The output will not have Z or M values unless the OUTPUT_Z_OPTION or
     OUTPUT_M_OPTION environment variables are set.
