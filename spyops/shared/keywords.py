@@ -62,6 +62,7 @@ DISSOLVE_OPTION: str = 'dissolve_option'
 BUFFER_TYPE: str = 'buffer_type'
 RESOLUTION: str = 'resolution'
 DISTANCE_ARG: str = 'distance'
+DISTANCES: str = 'distances'
 
 
 if __name__ == '__main__':  # pragma: no cover
