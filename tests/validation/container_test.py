@@ -73,7 +73,6 @@ def test_validate_values(type_, values, expected, throws):
     """
     Test validate values
     """
-
     @validate_values('vs', type_=type_)
     def values_function(vs):
         return vs
