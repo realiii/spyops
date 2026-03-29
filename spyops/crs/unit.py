@@ -164,6 +164,13 @@ class LinearUnit:
         self._unit: LengthUnit = unit
     # End init built-in
 
+    def __str__(self) -> str:
+        """
+        String Representation
+        """
+        return f'{self.value} {self.unit.value}'
+    # End str built-in
+
     def __repr__(self) -> str:
         """
         Representation Override
@@ -350,6 +357,13 @@ class DecimalDegrees:
         super().__init__()
         self._value: float | None = safe_float(value)
     # End init built-in
+
+    def __str__(self) -> str:
+        """
+        String Representation
+        """
+        return f'{self.value} dd'
+    # End str built-in
 
     def __repr__(self) -> str:
         """
