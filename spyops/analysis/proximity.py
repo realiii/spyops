@@ -88,7 +88,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
                 extend_records(results, records=records, config=config)
                 executor(sql=insert_sql, data=records)
                 records.clear()
-        elif dissolve_option == DissolveOption.ALL:
+        else:
             geoms = next(query.dissolved_geometries(), {})
             results = [(g, ()) for g in geoms.values()]
             extend_records(results, records=records, config=config)
