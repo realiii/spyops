@@ -5,7 +5,6 @@ Query Classes for management.proximity module
 
 
 from abc import ABCMeta, abstractmethod
-from concurrent.futures.process import ProcessPoolExecutor
 from math import nan
 from functools import cache, cached_property, partial
 from typing import Callable, Generator, NamedTuple, TYPE_CHECKING
@@ -398,8 +397,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
                           grid_size=self._xy_tolerance)
         unique_ids = unique(ids)
         parts = [geometries[ids == i] for i in unique_ids]
-        with ProcessPoolExecutor() as executor:
-            geometries = list(executor.map(builder, parts))
+        geometries = [builder(part) for part in parts]
         return geometries, unique_ids
     # End _dissolve_polygons method
 
