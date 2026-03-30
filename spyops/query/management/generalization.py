@@ -4,6 +4,7 @@ Query Classes for management.generalization module
 """
 
 
+from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
 from functools import cache, cached_property, partial
 from typing import Generator, Self, TYPE_CHECKING
 
@@ -184,8 +185,9 @@ class QueryDissolve(AbstractQueryDissolve):
                                for i in unique_ids}
                 else:
                     parts = [geometries[ids == i] for i in unique_ids]
-                    results = [builder(part) for part in parts]
-                    results = dict(zip(unique_ids, results))
+                    with PoolExecutor() as executor:
+                        results = executor.map(builder, parts)
+                        results = dict(zip(unique_ids, results))
                 dissolved.update(results)
                 if len(dissolved) >= FETCH_SIZE:
                     yield dissolved
