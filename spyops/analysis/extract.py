@@ -46,6 +46,7 @@ def table_select(source: 'Table', target: 'Table', *,
     Select rows from a table using a where clause (optional) and write results
     to a target table.
     """
+    # noinspection PyTypeChecker
     return copy_element(source=source, target=target, where_clause=where_clause)
 # End table_select function
 
@@ -129,6 +130,7 @@ def split(source: FeatureClass, operator: FeatureClass,
     if not query.has_intersection:
         return features
     scratch = MemoryGeoPackage.create()
+    # noinspection PyTypeChecker
     splitters = _split_by_attributes(
         source=operator, group_fields=[field], geopackage=scratch,
         ignore_zm_settings=True)
@@ -136,11 +138,13 @@ def split(source: FeatureClass, operator: FeatureClass,
         name = make_valid_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
         # NOTE raw xy_tolerance used, avoid repeated conversion
+        # noinspection PyTypeChecker
         target = _clip(
             source=source, operator=s, xy_tolerance=xy_tolerance,
             target=FeatureClass(geopackage=geopackage, name=name))
         features.append(target)
-    scratch.connection.close()
+    if conn := scratch.connection:
+        conn.close()
     return features
 # End split function
 

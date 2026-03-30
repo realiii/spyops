@@ -964,7 +964,8 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
                 attrs = ()
             ordered.append((geom, attrs))
             distances.append(unit.value)
-        scratch.connection.close()
+        if conn := scratch.connection:
+            conn.close()
         return self._resolve_overlaps(ordered, distances=distances)
     # End dissolved_geometries method
 

@@ -19,7 +19,7 @@ from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
     remove_spatial_index)
 from spyops.management.table import (
-    create_table, delete_rows, get_count, truncate_table)
+    copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
     FieldProperty, GeometryAttribute, GeometryCheck, LineTypeOption,
     WeightOption)
@@ -40,6 +40,7 @@ __all__ = [
     'check_geometry',
     'copy',
     'copy_features',
+    'copy_rows',
     'create_feature_class',
     'create_table',
     'delete',

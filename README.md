@@ -74,6 +74,7 @@ MIT
 - added `add_spatial_index` (Management - Indexes)
 - added `remove_attribute_index` (Management - Indexes)
 - added `remove_spatial_index` (Management - Indexes)
+- added `copy_rows` (Management - Table)
 - added `create_table` (Management - Table)
 - added `delete_rows` (Management - Table) and aliased as `truncate_table`
 - added `get_count` (Management - Table)
