@@ -64,7 +64,7 @@ class BufferConfig(NamedTuple):
 
 class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     """
-    Buffer Mixin
+    Abstract Query Buffer Dissolve Class
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
                  distance: Field | LinearUnit | DecimalDegrees,
@@ -72,7 +72,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
                  side_option: SideOption, end_option: EndOption,
                  resolution: int, xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QueryBufferDissolveList class
+        Initialize the AbstractQueryBufferDissolve class
         """
         super().__init__(
             source, target=target, fields=fields or [], as_multi_part=True,
