@@ -143,7 +143,8 @@ def split(source: FeatureClass, operator: FeatureClass,
             source=source, operator=s, xy_tolerance=xy_tolerance,
             target=FeatureClass(geopackage=geopackage, name=name))
         features.append(target)
-    scratch.connection.close()
+    if conn := scratch.connection:
+        conn.close()
     return features
 # End split function
 
