@@ -7,7 +7,8 @@ from fudgeo import FeatureClass
 from pyproj import CRS
 from pytest import mark, param, approx
 
-from spyops.analysis import buffer
+from spyops.analysis import buffer, multiple_buffer
+from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
@@ -473,6 +474,45 @@ class TestBuffer:
             assert len(result) == expected
     # End test_none_point method
 # End TestBuffer class
+
+
+class TestMultipleBuffer:
+    """
+    Test Multiple Buffer
+    """
+    @mark.parametrize('overlap, only, distances, expected', [
+        (True, True, [-20, -10, 0, 10, 20, 35, 50], 24),
+        (True, False, [-20, -10, 0, 10, 20, 35, 50], 28),
+        (False, True, [-20, -10, 0, 10, 20, 35, 50], 6),
+        (False, False, [-20, -10, 0, 10, 20, 35, 50], 7),
+        (True, True, [-20, -10], 8),
+        (True, False, [-20, -10], 12),
+        (False, True, [-20, -10], 2),
+        (False, False, [-20, -10], 3),
+        (True, True, [10, 20, 35, 50], 16),
+        (True, False, [10, 20, 35, 50], 16),
+        (False, True, [10, 20, 35, 50], 4),
+        (False, False, [10, 20, 35, 50], 4),
+    ])
+    @mark.parametrize('field_name', [
+        'buffer_distance',
+        None
+    ])
+    def test_polygons(self, mem_gpkg, buffering, overlap, only, distances, expected, field_name):
+        """
+        Test polygons
+        """
+        source = buffering['mb_boxes_a']
+        target = FeatureClass(mem_gpkg, name=f'mb_boxes_buffer_a')
+        result = multiple_buffer(
+            source, target=target, distance_unit=DistanceUnit.KILOMETERS,
+            distances=distances, buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap, only_outside=only, field_name=field_name)
+        assert not result.has_z
+        assert not result.has_m
+        assert len(result) == expected
+    # End test_polygons method
+# End TestMultipleBuffer class
 
 
 if __name__ == '__main__':  # pragma: no cover
