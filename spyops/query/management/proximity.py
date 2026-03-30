@@ -1069,7 +1069,10 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         """
         elm = self.source
         name = self.source.primary_key_field.escaped_name
-        field_names = make_field_names(self._get_unique_fields()[1:-1])
+        fields = self._get_unique_fields()[1:]
+        if self._distance_field:
+            fields = fields[:-1]
+        field_names = make_field_names(fields)
         # NOTE double up on the key name, first value is used for lookup in
         #  the geometry dictionary, the second is used to store in ORIG_FID
         key_names = self._concatenate(name, name)
