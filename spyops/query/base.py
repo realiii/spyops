@@ -1052,7 +1052,7 @@ class AbstractQueryDissolve(GroupQueryMixin, AbstractSourceQuery,
 
     @abstractmethod
     def dissolved_geometries(self) \
-            -> Generator[dict[int, 'BaseMultipartGeometry'], None]:
+            -> Generator[dict[int, 'BaseMultipartGeometry'], None, None]:
         """
         Dissolved Geometries stored as a dictionary of Dense Range IDs
         and Multi-Part Geometries.  Page over the number of groups to
