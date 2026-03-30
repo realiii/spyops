@@ -1110,7 +1110,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
             return super().insert
         elm = self.target
         fields = validate_fields(elm, fields=elm.fields)
-        if self._field_name:
+        if self._distance_field:
             fields = fields[:-1]
         insert_field_names = make_field_names(fields)
         geom = get_geometry_column_name(elm)
