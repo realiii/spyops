@@ -11,7 +11,8 @@ from fudgeo.context import ExecuteMany
 
 from spyops.crs.enumeration import DistanceUnit
 from spyops.query.management.proximity import (
-    QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone)
+    QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
+    QueryMultipleBuffer)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
@@ -109,10 +110,10 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
 @validate_xy_tolerance()
 @validate_overwrite_source()
 def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
-                    distance_unit: DistanceUnit, distances: list[float],
-                    *, buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
+                    distance_unit: DistanceUnit, distances: list[float], *,
+                    buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
                     overlapping: bool = False, only_outside: bool = False,
-                    field_name: str | None = None, resolution: int = 32,
+                    field_name: str | None = DISTANCE_ARG, resolution: int = 32,
                     xy_tolerance: XY_TOL = None) -> 'FeatureClass':
     """
     Multiple Buffer
@@ -127,7 +128,35 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
     The output will not have Z or M values unless the OUTPUT_Z_OPTION or
     OUTPUT_M_OPTION environment variables are set.
     """
-    pass
+    query = QueryMultipleBuffer(
+        source=source, target=target, distance_unit=distance_unit,
+        distances=distances, buffer_type=buffer_type, overlapping=overlapping,
+        only_outside=only_outside, field_name=field_name, resolution=resolution,
+        xy_tolerance=xy_tolerance)
+    records = []
+    insert_sql = query.insert
+    select_sql = query.select
+    config = query.geometry_config
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        if overlapping:
+            for sub, update_sql in query:
+                cursor = cin.execute(select_sql)
+                while rows := cursor.fetchmany(FETCH_SIZE):
+                    geoms = next(sub.dissolved_geometries(), {})
+                    results = [(geoms.pop(i, None), attrs) for i, *attrs in rows]
+                    extend_records(results, records=records, config=config)
+                    executor(sql=insert_sql, data=records)
+                    records.clear()
+                    if update_sql:
+                        cout.execute(update_sql)
+        else:
+            results = query.dissolved_geometries()
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
 # End multiple_buffer function
 
 
