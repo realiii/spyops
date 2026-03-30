@@ -43,6 +43,7 @@ CHECK_OPTIONS: str = 'check_options'
 OUTPUT_TYPE_OPTION: str = 'output_type_option'
 GEOMETRY_ATTRIBUTE: str = 'geometry_attribute'
 LENGTH_UNIT: str = 'length_unit'
+DISTANCE_UNIT: str = 'distance_unit'
 AREA_UNIT: str = 'area_unit'
 X_FIELD: str = 'x_field'
 Y_FIELD: str = 'y_field'
@@ -61,6 +62,7 @@ DISSOLVE_OPTION: str = 'dissolve_option'
 BUFFER_TYPE: str = 'buffer_type'
 RESOLUTION: str = 'resolution'
 DISTANCE_ARG: str = 'distance'
+DISTANCES: str = 'distances'
 
 
 if __name__ == '__main__':  # pragma: no cover

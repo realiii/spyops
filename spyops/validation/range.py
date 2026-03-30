@@ -122,7 +122,7 @@ class ValidateRange(AbstractValidate):
                     return self._max
         return value
     # End _validate_value method
-# End ValidateXYTolerance class
+# End ValidateRange class
 
 
 if __name__ == '__main__':  # pragma: no cover

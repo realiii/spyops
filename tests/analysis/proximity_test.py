@@ -7,7 +7,8 @@ from fudgeo import FeatureClass
 from pyproj import CRS
 from pytest import mark, param, approx
 
-from spyops.analysis import buffer
+from spyops.analysis import buffer, multiple_buffer
+from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
@@ -69,6 +70,28 @@ class TestBuffer:
                 dissolve_option=DissolveOption.LIST, group_fields=fields)
             assert len(result) == expected
     # End test_list_polygon method
+
+    def test_sans_attr(self, mem_gpkg, buffering):
+        """
+        Test Polygon with no Attributes
+        """
+        source = buffering['admin_sans_attr_a']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'sans_all_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=Meters(1234.5),
+                buffer_type=BufferTypeOption.PLANAR, side_option=SideOption.FULL,
+                dissolve_option=DissolveOption.ALL)
+            assert len(result) == 1
+
+        target = FeatureClass(geopackage=mem_gpkg, name=f'sans_none_buffer')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = buffer(
+                source, target=target, distance=Meters(1234.5),
+                buffer_type=BufferTypeOption.PLANAR, side_option=SideOption.FULL,
+                dissolve_option=DissolveOption.NONE)
+            assert len(result) == 11
+    # End test_sans_attr method
 
     @mark.zm
     @mark.parametrize('fc_name, distance, extent', [
@@ -451,6 +474,144 @@ class TestBuffer:
             assert len(result) == expected
     # End test_none_point method
 # End TestBuffer class
+
+
+class TestMultipleBuffer:
+    """
+    Test Multiple Buffer
+    """
+    @mark.parametrize('overlap, only, distances, expected', [
+        (True, True, [-20, -10, 0, 10, 20, 35, 50], 24),
+        (True, False, [-20, -10, 0, 10, 20, 35, 50], 28),
+        (False, True, [-20, -10, 0, 10, 20, 35, 50], 6),
+        (False, False, [-20, -10, 0, 10, 20, 35, 50], 7),
+        (True, True, [-20, -10], 8),
+        (True, False, [-20, -10], 12),
+        (False, True, [-20, -10], 2),
+        (False, False, [-20, -10], 3),
+        (True, True, [10, 20, 35, 50], 16),
+        (True, False, [10, 20, 35, 50], 16),
+        (False, True, [10, 20, 35, 50], 4),
+        (False, False, [10, 20, 35, 50], 4),
+    ])
+    @mark.parametrize('field_name', [
+        'buffer_distance',
+        None
+    ])
+    def test_polygons(self, mem_gpkg, buffering, overlap, only, distances, expected, field_name):
+        """
+        Test polygons
+        """
+        source = buffering['mb_boxes_a']
+        target = FeatureClass(mem_gpkg, name=f'mb_boxes_buffer_a')
+        result = multiple_buffer(
+            source, target=target, distance_unit=DistanceUnit.KILOMETERS,
+            distances=distances, buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap, only_outside=only, field_name=field_name)
+        assert not result.has_z
+        assert not result.has_m
+        assert len(result) == expected
+    # End test_polygons method
+
+    @mark.parametrize('overlap, only, distances, expected', [
+        (True, True, [-20, -10, 0, 10, 20, 35, 50], 64),
+        (True, False, [-20, -10, 0, 10, 20, 35, 50], 64),
+        (False, True, [-20, -10, 0, 10, 20, 35, 50], 4),
+        (False, False, [-20, -10, 0, 10, 20, 35, 50], 4),
+        (True, True, [-20, -10], 0),
+        (True, False, [-20, -10], 0),
+        (False, True, [-20, -10], 0),
+        (False, False, [-20, -10], 0),
+        (True, True, [10, 20, 35, 50], 64),
+        (True, False, [10, 20, 35, 50], 64),
+        (False, True, [10, 20, 35, 50], 4),
+        (False, False, [10, 20, 35, 50], 4),
+    ])
+    @mark.parametrize('field_name', [
+        'buffer_distance',
+        None
+    ])
+    def test_lines(self, mem_gpkg, buffering, overlap, only, distances, expected, field_name):
+        """
+        Test lines
+        """
+        source = buffering['mb_lines_l']
+        target = FeatureClass(mem_gpkg, name=f'mb_lines_buffer_a')
+        result = multiple_buffer(
+            source, target=target, distance_unit=DistanceUnit.KILOMETERS,
+            distances=distances, buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap, only_outside=only, field_name=field_name)
+        assert not result.has_z
+        assert not result.has_m
+        assert len(result) == expected
+    # End test_lines method
+
+    @mark.parametrize('overlap, only, distances, expected', [
+        (True, True, [-20, -10, 0, 10, 20, 35, 50], 184),
+        (True, False, [-20, -10, 0, 10, 20, 35, 50], 184),
+        (False, True, [-20, -10, 0, 10, 20, 35, 50], 4),
+        (False, False, [-20, -10, 0, 10, 20, 35, 50], 4),
+        (True, True, [-20, -10], 0),
+        (True, False, [-20, -10], 0),
+        (False, True, [-20, -10], 0),
+        (False, False, [-20, -10], 0),
+        (True, True, [10, 20, 35, 50], 184),
+        (True, False, [10, 20, 35, 50], 184),
+        (False, True, [10, 20, 35, 50], 4),
+        (False, False, [10, 20, 35, 50], 4),
+    ])
+    @mark.parametrize('field_name', [
+        'buffer_distance',
+        None
+    ])
+    def test_points(self, mem_gpkg, buffering, overlap, only, distances, expected, field_name):
+        """
+        Test points
+        """
+        source = buffering['mb_points_p']
+        target = FeatureClass(mem_gpkg, name=f'mb_points_buffer_a')
+        result = multiple_buffer(
+            source, target=target, distance_unit=DistanceUnit.KILOMETERS,
+            distances=distances, buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap, only_outside=only, field_name=field_name)
+        assert not result.has_z
+        assert not result.has_m
+        assert len(result) == expected
+    # End test_points method
+
+    @mark.zm
+    @mark.parametrize('fc_name, extent', [
+        ('mb_boxes_a', (-1525279.375, 1374077.125, -962867.9375, 1991558.375)),
+        ('mb_lines_l', (-1686072.875, 1209916.375, -909135.4375, 1753811.125)),
+        ('mb_points_p', (-1993130.625, 1041480.75, -758687.0625, 1959262.5)),
+    ])
+    @mark.parametrize('overlap', [
+        True, False
+    ])
+    @mark.parametrize('only', [
+        True, False
+    ])
+    def test_output_settings(self, mem_gpkg, buffering, fc_name, extent, overlap, only):
+        """
+        Test Buffering with Z output and M output + reprojecting features
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = multiple_buffer(
+                source, target=target, distance_unit=DistanceUnit.MILES,
+                distances=[5, 10, 20], buffer_type=BufferTypeOption.PLANAR,
+                overlapping=overlap, only_outside=only,)
+            assert result.has_z
+            assert result.has_m
+            assert result.spatial_reference_system.srs_id == 102009
+            assert approx(result.extent, abs=1) == extent
+    # End test_output_settings method
+# End TestMultipleBuffer class
 
 
 if __name__ == '__main__':  # pragma: no cover

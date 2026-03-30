@@ -4,7 +4,7 @@ Query Classes for management.generalization module
 """
 
 
-from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
 from functools import cache, cached_property, partial
 from typing import Generator, Self, TYPE_CHECKING
 
@@ -148,7 +148,7 @@ class QueryDissolve(AbstractQueryDissolve):
     # End select_geometry property
 
     def dissolved_geometries(self) -> Generator[
-            dict[int, 'BaseMultipartGeometry'], None]:
+            dict[int, 'BaseMultipartGeometry'], None, None]:
         """
         Dissolved Geometries stored as a dictionary of Dense Range IDs
         and Multi-Part Geometries.  Page over the number of groups to
@@ -185,7 +185,7 @@ class QueryDissolve(AbstractQueryDissolve):
                                for i in unique_ids}
                 else:
                     parts = [geometries[ids == i] for i in unique_ids]
-                    with ProcessPoolExecutor() as executor:
+                    with PoolExecutor() as executor:
                         results = executor.map(builder, parts)
                         results = dict(zip(unique_ids, results))
                 dissolved.update(results)

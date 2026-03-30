@@ -4,13 +4,15 @@ Test for Proximity Query classes
 """
 
 
-from fudgeo import Field
+from fudgeo import FeatureClass, Field
 from fudgeo.enumeration import FieldType, ShapeType
 from pytest import mark
 
+from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Meters, Miles
 from spyops.query.management.proximity import (
-    QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone)
+    QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
+    QueryMultipleBuffer)
 from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
 
 pytestmark = [mark.proximity, mark.query, mark.analysis]
@@ -501,6 +503,141 @@ class TestQueryBufferDissolveNone:
         assert 'SELECT geom "[Polygon]", fid, NUM_DIST || ' in sql
     # End test_select_geometry method
 # End TestQueryBufferDissolveNone class
+
+
+class TestQueryMultipleBuffer:
+    """
+    Test Query Multiple Buffer
+    """
+    def test_iteration(self, mem_gpkg, buffering):
+        """
+        Test iteration
+        """
+        source = buffering['mb_boxes_a']
+        target = FeatureClass(mem_gpkg, 'mb_boxes_buffer_a')
+        query = QueryMultipleBuffer(
+            source=source, target=target, distance_unit=DistanceUnit.METERS,
+            distances=[10, 20, 30], buffer_type=BufferTypeOption.GEODESIC,
+            field_name='distance'
+        )
+        queries, updates = zip(*query)
+        assert len(queries) == 3
+        assert len(updates) == 3
+        update, *_ = updates
+        assert '30.0 meters' in update
+    # End test_iteration method
+
+    def test_make_update_sql(self, mem_gpkg, buffering):
+        """
+        Test make update sql
+        """
+        source = buffering['mb_boxes_a']
+        target = FeatureClass(mem_gpkg, 'mb_boxes_buffer_a')
+        query = QueryMultipleBuffer(
+            source=source, target=target, distance_unit=DistanceUnit.METERS,
+            distances=[10, 20, 30], buffer_type=BufferTypeOption.GEODESIC,
+            field_name='distance'
+        )
+        assert query._make_update_sql(Meters(10))
+
+        query = QueryMultipleBuffer(
+            source=source, target=target, distance_unit=DistanceUnit.METERS,
+            distances=[10, 20, 30], buffer_type=BufferTypeOption.GEODESIC,
+        )
+        assert not query._make_update_sql(Meters(10))
+    # End test_make_update_sql method
+
+    @mark.parametrize('fc_name, overlap, only, distances, expected', [
+        ('mb_boxes_a', True, False, [-10, 0, 20, 30], ['-10.0 meters', '0.0 meters', '20.0 meters', '30.0 meters']),
+        ('mb_boxes_a', True, True, [-10, 20, 30], ['-10.0 meters', '20.0 meters', '30.0 meters']),
+        ('mb_boxes_a', True, False, [-10, 20, 30], ['-10.0 meters', '', '20.0 meters', '30.0 meters']),
+        ('mb_boxes_a', False, True, [-10, 20, 30], ['-10.0 meters', '20.0 meters', '30.0 meters']),
+        ('mb_boxes_a', False, False, [-10, 20, 30], ['-10.0 meters', '0.0 meters', '20.0 meters', '30.0 meters']),
+        ('mb_lines_l', True, True, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_lines_l', True, False, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_lines_l', False, True, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_lines_l', False, False, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_points_p', True, True, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_points_p', True, False, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_points_p', False, True, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+        ('mb_points_p', False, False, [-10, 20, 30], ['20.0 meters', '30.0 meters']),
+    ])
+    def test_distances_and_labels(self, mem_gpkg, buffering, fc_name, overlap,
+                                  only, distances, expected):
+        """
+        Test distances and labels
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(mem_gpkg, 'buffer_a')
+        query = QueryMultipleBuffer(
+            source=source, target=target, distance_unit=DistanceUnit.METERS,
+            distances=distances, buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap, only_outside=only,
+        )
+        _, labels = query._distances_and_labels()
+        assert labels == expected
+    # End test_distances_and_labels method
+
+    @mark.parametrize('overlap', [
+        True, False,
+    ])
+    def test_sql(self, mem_gpkg, buffering, overlap):
+        """
+        Test insert select and select geometry
+        """
+        source = buffering['mb_boxes_a']
+        target = FeatureClass(mem_gpkg, 'mb_boxes_buffer_a')
+        query = QueryMultipleBuffer(
+            source=source, target=target, distance_unit=DistanceUnit.METERS,
+            distances=[10, 20, 30], buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap,
+        )
+        assert source.name in query.select
+        assert 'geom "[Polygon]"' in query.select_geometry
+        assert target.name in query.insert
+    # End test_sql method
+
+    @mark.parametrize('fc_name, only, option', [
+        ('mb_boxes_a', True, SideOption.ONLY_OUTSIDE),
+        ('mb_boxes_a', False, SideOption.FULL),
+        ('mb_lines_l', True, SideOption.FULL),
+        ('mb_lines_l', False, SideOption.FULL),
+        ('mb_points_p', True, SideOption.FULL),
+        ('mb_points_p', False, SideOption.FULL),
+    ])
+    def test_get_side_option(self, buffering, fc_name, only, option):
+        """
+        Test get side option
+        """
+        source = buffering[fc_name]
+        query = QueryMultipleBuffer(
+            source=source, target=None, distance_unit=DistanceUnit.METERS,
+            distances=[10, 20, 30], buffer_type=BufferTypeOption.GEODESIC,
+            only_outside=only,
+        )
+        assert query._get_side_option(source, only) == option
+    # End test_get_side_option method
+
+    @mark.parametrize('overlap, field_name, expected', [
+        (True, 'distance', ['ORIG_FID', 'FEATURE_ID', 'distance']),
+        (False, 'distance', ['distance']),
+        (True, None, ['ORIG_FID', 'FEATURE_ID']),
+        (False, None, []),
+    ])
+    def test_get_unique_fields(self, buffering, overlap, field_name, expected):
+        """
+        Test get unique fields
+        """
+        source = buffering['mb_boxes_a']
+        query = QueryMultipleBuffer(
+            source=source, target=None, distance_unit=DistanceUnit.METERS,
+            distances=[10, 20, 30], buffer_type=BufferTypeOption.GEODESIC,
+            overlapping=overlap, field_name=field_name,
+        )
+        fields = query._get_unique_fields()
+        assert [f.name for f in fields] == expected
+    # End test_get_unique_fields method
+# End TestQueryMultipleBuffer class
 
 
 if __name__ == '__main__':  # pragma: no cover
