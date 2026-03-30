@@ -1022,7 +1022,11 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
             polygons = self._build_no_overlaps(geoms)
         if len(distances) != len([d for d in distances if d]):
             attributes = [attrs for attrs, d in zip(attributes, distances) if d]
-            attributes = [(None,), *attributes]
+            if self._distance_field:
+                first = None,
+            else:
+                first = ()
+            attributes = [first, *attributes]
         return list(zip(polygons, attributes))
     # End _resolve_overlaps method
 
