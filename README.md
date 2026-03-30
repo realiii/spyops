@@ -51,6 +51,7 @@ MIT
 - added `symmetrical_difference` (Analysis - Overlay)
 - added `union` (Analysis - Overlay)
 - added `buffer` (Analysis - Proximity)
+- added `multiple_buffer` (Analysis - Proximity)
 - added `add_xy_coordinates` (Management - Features)
 - added `calculate_geometry_attributes` (Management - Features)
 - added `copy_features` (Management - Features)
