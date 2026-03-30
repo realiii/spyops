@@ -8,25 +8,28 @@ from abc import ABCMeta, abstractmethod
 from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
 from math import nan
 from functools import cache, cached_property, partial
-from typing import Callable, Generator, NamedTuple, TYPE_CHECKING
+from typing import (
+    Callable, Generator, Iterator, NamedTuple, TYPE_CHECKING, Type)
 from warnings import warn
 
-from fudgeo import Field
+from fudgeo import Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
-from fudgeo.enumeration import ShapeType
-from numpy import array, isfinite, ones_like, unique
+from fudgeo.enumeration import FieldType, ShapeType
+from numpy import array, asarray, isfinite, ones_like, unique
 from shapely import GeometryCollection, MultiPolygon
 from shapely.constructive import centroid
 from shapely.coordinates import get_coordinates
 from shapely.predicates import is_empty
 
+from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
-    DecimalDegrees, LinearUnit, degrees_to_meters,
+    DISTANCE_UNIT_LUT, DecimalDegrees, LinearUnit, Meters, degrees_to_meters,
     get_linear_unit_conversion_factor, get_unit_name, unit_factory)
 from spyops.environment import Setting
 from spyops.geometry.buffer import geodesic_buffer, planar_buffer
 from spyops.geometry.enumeration import DimensionOption
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
@@ -37,7 +40,7 @@ from spyops.shared.enumeration import (
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
     NUMBERS, TYPE_ALIAS_LUT, add_orig_fid, get_geometry_column_name,
-    make_field_names)
+    make_field_names, make_unique_fields, validate_fields)
 from spyops.shared.hint import FIELDS, XY_TOL
 from spyops.shared.keywords import (
     CRS_KEY, END_OPTION, METERS_ATTR, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION,
@@ -794,6 +797,367 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         return geometries, ids
     # End _dissolve_polygons method
 # End QueryBufferDissolveNone class
+
+
+class QueryMultipleBuffer(AbstractQueryBufferDissolve):
+    """
+    Query Multiple Buffer
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 distance_unit: DistanceUnit, distances: list[float], *,
+                 buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
+                 overlapping: bool = False, only_outside: bool = False,
+                 field_name: str | None = None, resolution: int = 32,
+                 xy_tolerance: XY_TOL = None) -> None:
+        """
+        Initialize the QueryMultipleBuffer class
+        """
+        side_option = self._get_side_option(source, only_outside=only_outside)
+        super().__init__(source=source, target=target, distance=Meters(0),
+                         buffer_type=buffer_type, fields=None,
+                         side_option=side_option, end_option=EndOption.ROUND,
+                         resolution=resolution, xy_tolerance=xy_tolerance)
+        self._distance_unit: DistanceUnit = distance_unit
+        self._distances: list[float] = sorted(set(distances))
+        self._overlapping: bool = overlapping
+        self._only_outside: bool = only_outside
+        self._field_name: str | None = field_name
+    # End init built-in
+
+    def __iter__(self) -> Iterator[tuple[QueryBufferDissolveNone, str]]:
+        """
+        Iterate over the query results
+        """
+        config = self._config
+        units, labels = self._distances_and_labels()
+        for unit, label in reversed(list(zip(units, labels))):
+            # noinspection PyTypeChecker
+            query = QueryBufferDissolveNone(
+                source=self.source, target=None, buffer_type=self.buffer_type,
+                fields=None, distance=unit, side_option=config.side_option,
+                end_option=config.end_option, resolution=config.resolution,
+                xy_tolerance=self._xy_tolerance)
+            update_sql = self._make_update_sql(label)
+            yield query, update_sql
+    # End iter built-in
+
+    def _make_update_sql(self, distance: LinearUnit | DecimalDegrees) -> str:
+        """
+        Make Update SQL
+        """
+        if not self._distance_field:
+            return EMPTY
+        field = self._get_unique_fields()[-1]
+        return f"""
+            UPDATE {self.target.escaped_name}
+            SET {field.escaped_name} = '{distance}'
+            WHERE {field.escaped_name} IS NULL
+        """
+    # End _make_update_sql method
+
+    def _distances_and_labels(self) \
+            -> tuple[list[LinearUnit | DecimalDegrees], list[str]]:
+        """
+        Distances as Units and Corresponding Labels
+        """
+        unit = DISTANCE_UNIT_LUT[self._distance_unit]
+        if ShapeType.polygon not in self.source.shape_type:
+            units = [unit(d) for d in self._distances if d > 0]
+            return units, self._make_labels(units)
+        if self._overlapping:
+            return self._distances_labels_overlap(unit)
+        else:
+            return self._distance_labels_sans(unit)
+    # End _distances_and_labels method
+
+    def _distances_labels_overlap(self, unit: Type[LinearUnit | DecimalDegrees]) \
+            -> tuple[list[LinearUnit | DecimalDegrees], list[str]]:
+        """
+        Distances and Labels for Overlapping Polygons (aka Dissolve NONE)
+        """
+        if self._only_outside:
+            negatives = [d for d in self._distances if d < 0][::-1]
+            positives = [d for d in self._distances if d > 0]
+            units = [unit(d) for d in [*negatives, *positives]]
+            labels = self._make_labels(units)
+        else:
+            units = self._include_original_polygon(unit)
+            if 0 in self._distances:
+                labels = self._make_labels(units)
+            else:
+                labels = [str(unit) if unit.value else EMPTY for unit in units]
+        return units, labels
+    # End _distances_labels_overlap method
+
+    def _distance_labels_sans(self, unit: Type[LinearUnit | DecimalDegrees]) \
+            -> tuple[list[LinearUnit | DecimalDegrees], list[str]]:
+        """
+        Distance Labels for Non-Overlapping Polygons (aka Dissolve ALL)
+        """
+        if self._only_outside:
+            units = [unit(d) for d in self._distances if d]
+        else:
+            units = self._include_original_polygon(unit)
+        return units, self._make_labels(units)
+    # End _distance_labels_sans method
+
+    @staticmethod
+    def _make_labels(units: list[LinearUnit | DecimalDegrees]) -> list[str]:
+        """
+        Make Labels
+        """
+        return [str(unit) for unit in units]
+    # End _make_labels method
+
+    def _include_original_polygon(self, unit: Type[LinearUnit | DecimalDegrees]) \
+            -> list[LinearUnit | DecimalDegrees]:
+        """
+        Include Original Polygon
+        """
+        if min(self._distances) < 0:
+            return [unit(d) for d in sorted({0, *self._distances})]
+        return [unit(d) for d in self._distances]
+    # End _include_original_polygon method
+
+    @cached_property
+    def _distance_field(self) -> Field | None:
+        """
+        Distance Field
+        """
+        if not (name := self._field_name):
+            return None
+        if isinstance(name, Field):
+            name = name.name
+        if not isinstance(name, str):
+            return None
+        if not (name := name.strip()):
+            return None
+        return Field(name, data_type=FieldType.text)
+    # End _distance_field property
+
+    def dissolved_geometries(self) -> list[tuple[MultiPolygon, tuple]]:
+        """
+        Overload
+        """
+        ordered = []
+        distances = []
+        config = self._config
+        has_field = self._distance_field is not None
+        scratch = MemoryGeoPackage.create()
+        source = self._create_dissolved_source(scratch)
+        units, labels = self._distances_and_labels()
+        for unit, label in zip(units, labels):
+            # noinspection PyTypeChecker
+            query = QueryBufferDissolveAll(
+                source=source, target=None, buffer_type=self.buffer_type,
+                fields=None, distance=unit, side_option=config.side_option,
+                end_option=config.end_option, resolution=config.resolution,
+                xy_tolerance=self._xy_tolerance)
+            if not (geoms := next(query.dissolved_geometries(), {})):
+                continue
+            geom, = geoms.values()
+            if geom.is_empty:
+                continue
+            if has_field:
+                attrs = label,
+            else:
+                attrs = ()
+            ordered.append((geom, attrs))
+            distances.append(unit.value)
+        scratch.connection.close()
+        return self._resolve_overlaps(ordered, distances=distances)
+    # End dissolved_geometries method
+
+    def _create_dissolved_source(self, memory: MemoryGeoPackage) \
+            -> 'FeatureClass':
+        """
+        Create Dissolved Feature Class
+        """
+        geoms = []
+        shape_type = self.source.shape_type
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(self.select_geometry)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                _, geometries = to_shapely(
+                    features, transformer=None, option=DimensionOption.TWO_D)
+                geom = build_dissolved(
+                    geometries, shape_type=shape_type,
+                    grid_size=self._xy_tolerance)
+                geoms.append(geom)
+        if len(geoms) == 1:
+            geom, = geoms
+        else:
+            geom = build_dissolved(
+                asarray(geoms), shape_type=shape_type,
+                grid_size=self._xy_tolerance)
+        if not self.source.is_multi_part:
+            shape_type = f'MULTI{shape_type}'
+        fc = memory.create_feature_class(
+            name=f'memory_{shape_type}_dissolved', overwrite=True,
+            shape_type=shape_type, srs=self.source.spatial_reference_system)
+        cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][False, False]
+        with fc.geopackage.connection as cout:
+            srs_id = fc.spatial_reference_system.srs_id
+            cout.executemany(f"""
+                INSERT INTO {fc.escaped_name} ({fc.geometry_column_name}) 
+                VALUES (?)
+            """, [(cls.from_wkb(geom.wkb, srs_id=srs_id),)])
+        return fc
+    # End dissolved_geometries method
+
+    def _resolve_overlaps(self, ordered: list[tuple[MultiPolygon, tuple]],
+                          distances: list[float]) \
+            -> list[tuple[MultiPolygon, tuple]]:
+        """
+        Resolve Overlaps
+        """
+        if len(ordered) <= 1:
+            return ordered
+        geoms, attributes = zip(*ordered)
+        if self._only_outside:
+            polygons = self._build_only_outside(geoms, distances)
+        else:
+            polygons = self._build_no_overlaps(geoms)
+        if len(distances) != len([d for d in distances if d]):
+            attributes = [attrs for attrs, d in zip(attributes, distances) if d]
+            attributes = [(None,), *attributes]
+        return list(zip(polygons, attributes))
+    # End _resolve_overlaps method
+
+    def _build_only_outside(self, geoms: list[MultiPolygon],
+                            distances: list[float]) -> list[MultiPolygon]:
+        """
+        Build Non-Overlapping Polygons for Only Outside
+        """
+        negatives = []
+        negs = [g for g, d in zip(geoms, distances) if d <= 0]
+        for i, geom in enumerate(negs, 1):
+            poly = geom.difference(GeometryCollection(negs[i:]),
+                                   grid_size=self._xy_tolerance)
+            negatives.append(poly)
+        positives = []
+        poss = [g for g, d in zip(geoms, distances) if d > 0][::-1]
+        for i, geom in enumerate(poss, 1):
+            poly = geom.difference(GeometryCollection(poss[i:]),
+                                   grid_size=self._xy_tolerance)
+            positives.append(poly)
+        return [*negatives, *positives[::-1]]
+    # End _build_only_outside method
+
+    def _build_no_overlaps(self, geoms: list[MultiPolygon]) \
+            -> list[MultiPolygon]:
+        """
+        Build No Overlaps
+        """
+        polygons = []
+        for inner, outer in zip(geoms[:-1], geoms[1:]):
+            poly = outer.difference(inner, grid_size=self._xy_tolerance)
+            polygons.append(poly)
+        return [geoms[0], *polygons]
+    # End _build_no_overlaps method
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        name = self.source.primary_key_field.escaped_name
+        field_names = make_field_names(self._get_unique_fields()[1:-1])
+        # NOTE double up on the key name, first value is used for lookup in
+        #  the geometry dictionary, the second is used to store in ORIG_FID
+        key_names = self._concatenate(name, name)
+        field_names = self._concatenate(key_names, field_names)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT {field_names} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        distance = self._build_distance_field()
+        return f"""
+            SELECT {geom}{distance} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select_geometry property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        if not self._overlapping:
+            return super().insert
+        elm = self.target
+        fields = validate_fields(elm, fields=elm.fields)
+        if self._field_name:
+            fields = fields[:-1]
+        insert_field_names = make_field_names(fields)
+        geom = get_geometry_column_name(elm)
+        insert_field_names = self._concatenate(geom, insert_field_names)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=len(fields) + 1)
+    # End insert property
+
+    def _from_field(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, MultiPolygon], None, None]:  # pragma: no cover
+        """
+        Overload
+        """
+        pass
+    # End _from_field method
+
+    def _from_distance(self, sql: str, size: int, steps: int) \
+            -> Generator[dict[int, MultiPolygon], None, None]:  # pragma: no cover
+        """
+        Overload
+        """
+        pass
+    # End _from_distance method
+
+    @staticmethod
+    def _get_side_option(source: 'FeatureClass',
+                         only_outside: bool) -> SideOption:
+        """
+        Get Side Option, Only Outside applies to Polygons only
+        """
+        if not only_outside:
+            return SideOption.FULL
+        if ShapeType.polygon in source.shape_type:
+            return SideOption.ONLY_OUTSIDE
+        return SideOption.FULL
+    # End _get_side_option method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        distance_field = self._distance_field
+        if not self._overlapping:
+            if distance_field:
+                return [distance_field]
+            return []
+        fields = add_orig_fid(self.source)
+        if not distance_field:
+            return fields
+        distance_field = make_unique_fields(fields, [distance_field])
+        return [*fields, *distance_field]
+    # End _get_unique_fields meth
+# End QueryMultipleBuffer class
 
 
 if __name__ == '__main__':  # pragma: no cover
