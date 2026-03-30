@@ -578,6 +578,39 @@ class TestMultipleBuffer:
         assert not result.has_m
         assert len(result) == expected
     # End test_points method
+
+    @mark.zm
+    @mark.parametrize('fc_name, extent', [
+        ('mb_boxes_a', (-1525279.375, 1374077.125, -962867.9375, 1991558.375)),
+        ('mb_lines_l', (-1686072.875, 1209916.375, -909135.4375, 1753811.125)),
+        ('mb_points_p', (-1993130.625, 1041480.75, -758687.0625, 1959262.5)),
+    ])
+    @mark.parametrize('overlap', [
+        True, False
+    ])
+    @mark.parametrize('only', [
+        True, False
+    ])
+    def test_output_settings(self, mem_gpkg, buffering, fc_name, extent, overlap, only):
+        """
+        Test Buffering with Z output and M output + reprojecting features
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = multiple_buffer(
+                source, target=target, distance_unit=DistanceUnit.MILES,
+                distances=[5, 10, 20], buffer_type=BufferTypeOption.PLANAR,
+                overlapping=overlap, only_outside=only,)
+            assert result.has_z
+            assert result.has_m
+            assert result.spatial_reference_system.srs_id == 102009
+            assert approx(result.extent, abs=1) == extent
+    # End test_output_settings method
 # End TestMultipleBuffer class
 
 
