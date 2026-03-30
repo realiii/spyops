@@ -148,7 +148,7 @@ class QueryDissolve(AbstractQueryDissolve):
     # End select_geometry property
 
     def dissolved_geometries(self) -> Generator[
-            dict[int, 'BaseMultipartGeometry'], None]:
+            dict[int, 'BaseMultipartGeometry'], None, None]:
         """
         Dissolved Geometries stored as a dictionary of Dense Range IDs
         and Multi-Part Geometries.  Page over the number of groups to
