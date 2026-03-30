@@ -15,6 +15,7 @@ from fudgeo import Field
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from numpy import array, isfinite, ones_like, unique
+from shapely import GeometryCollection, MultiPolygon
 from shapely.constructive import centroid
 from shapely.coordinates import get_coordinates
 from shapely.predicates import is_empty
@@ -47,7 +48,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
     from fudgeo import FeatureClass
     from numpy import ndarray
-    from shapely import MultiPolygon
 
 
 class BufferConfig(NamedTuple):
@@ -331,8 +331,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         warn(msg, category=category, skip_file_prefixes=SKIP_FILE_PREFIXES)
     # End show_warning method
 
-    def dissolved_geometries(self) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+    def dissolved_geometries(self) -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Dissolved Geometries stored as a dictionary of Dense Range IDs
         and Multi-Part Geometries.  Page over the number of groups to
@@ -355,7 +354,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
 
     @abstractmethod
     def _from_field(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Field
         """
@@ -364,7 +363,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
 
     @abstractmethod
     def _from_distance(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Input Distance
         """
@@ -372,7 +371,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     # End _from_distance method
 
     def _dissolve_and_transform(self, geometries: 'ndarray', ids: 'ndarray') \
-            -> dict[int, 'MultiPolygon']:
+            -> dict[int, MultiPolygon]:
         """
         Filter out None and Empty Geometries, Dissolve groups of Polygons,
         and then Apply Transform
@@ -489,7 +488,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
     # End select_geometry property
 
     def _from_field(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Field
         """
@@ -519,7 +518,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
     # End _from_field method
 
     def _from_distance(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Input Distance
         """
@@ -591,7 +590,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
     # End group_count property
 
     def _from_field(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Field
         """
@@ -620,7 +619,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
     # End _from_field method
 
     def _from_distance(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Input Distance
         """
@@ -648,7 +647,8 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         yield from self._build_single_polygon(dissolved)
     # End _from_distance method
 
-    def _build_single_polygon(self, dissolved: dict[int, 'MultiPolygon']):
+    def _build_single_polygon(self, dissolved: dict[int, MultiPolygon]) \
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Build Single Dissolved Polygon from Page-Dissolved Geometries
         """
@@ -728,7 +728,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
     # End group_count property
 
     def _from_field(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Field
         """
@@ -759,7 +759,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
     # End _from_field method
 
     def _from_distance(self, sql: str, size: int, steps: int) \
-            -> Generator[dict[int, 'MultiPolygon'], None]:
+            -> Generator[dict[int, MultiPolygon], None, None]:
         """
         Buffer and Dissolve using Distances from Input Distance
         """
