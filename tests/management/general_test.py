@@ -9,7 +9,7 @@ from pytest import mark
 
 from spyops.environment import Setting
 from spyops.environment.context import Swap
-from spyops.management import copy, delete
+from spyops.management import copy, delete, rename
 
 pytestmark = [mark.management, mark.general]
 
@@ -48,6 +48,20 @@ def test_delete(ntdb_zm_small, mem_gpkg):
         result = delete([])
         assert result is False
 # End test_delete function
+
+
+def test_rename(ntdb_zm_small, mem_gpkg):
+    """
+    Test rename function
+    """
+    source = ntdb_zm_small['hydro_zm_a']
+    target_name = 'hydro_a_copy'
+    with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
+        copy(source, target_name)
+        name = 'hydro_a_copy_2'
+        rename(target_name, name)
+        assert isinstance(mem_gpkg[name], FeatureClass)
+# End test_rename function
 
 
 if __name__ == '__main__':  # pragma: no cover

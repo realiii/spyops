@@ -69,6 +69,7 @@ MIT
 - added `delete_field` (Management - Fields)
 - added `copy` (Management - General)
 - added `delete` (Management - General) with support for multiple
+- added `rename` (Management - General)
 - added `dissolve` (Management - Generalization)
 - added `add_attribute_index` (Management - Indexes)
 - added `add_spatial_index` (Management - Indexes)

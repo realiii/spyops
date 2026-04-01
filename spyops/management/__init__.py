@@ -13,7 +13,7 @@ from spyops.management.features import (
     repair_geometry, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
-from spyops.management.general import copy, delete
+from spyops.management.general import copy, delete, rename
 from spyops.management.generalization import dissolve
 from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
@@ -54,6 +54,7 @@ __all__ = [
     'recalculate_feature_class_extent',
     'remove_attribute_index',
     'remove_spatial_index',
+    'rename',
     'repair_geometry',
     'truncate_table',
     'xy_table_to_point',

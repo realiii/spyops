@@ -14,7 +14,7 @@ from spyops.validation import (
     validate_target_element)
 
 
-__all__ = ['copy', 'delete']
+__all__ = ['copy', 'delete', 'rename']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -49,6 +49,17 @@ def delete(source: ELEMENT | ELEMENTS) -> bool:
         element.drop()
     return True
 # End delete function
+
+
+@validate_element(SOURCE, has_content=False)
+def rename(source: ELEMENT, name: str) -> ELEMENT:
+    """
+    Rename Table or Feature Class
+    """
+    source.rename(name)
+    # noinspection PyTypeChecker
+    return source.geopackage[name]
+# End rename function
 
 
 if __name__ == '__main__':  # pragma: no cover
