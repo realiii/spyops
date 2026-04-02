@@ -83,11 +83,11 @@ def to_shapely(features: list[tuple], transformer: Callable | None,
     prior to transformation.
     """
     # noinspection PyTypeChecker
-    geometries = from_wkb([g.wkb for g, *_ in features], on_invalid=on_invalid)
+    geometries: 'ndarray' = from_wkb(
+        [g.wkb for g, *_ in features], on_invalid=on_invalid)
     if extent:
         mask = extent.intersects(geometries)
         geometries = geometries[mask]
-        # noinspection PyTypeChecker
         features = [feature for feature, v in zip(features, mask) if v]
     if transformer:
         geometries = transformer(geometries)
