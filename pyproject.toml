@@ -21,7 +21,7 @@ keywords = ["geopackage", "geometry", "gis", "spatial", "operations", "analysis"
 requires-python = ">=3.12"
 dependencies = [
     "fudgeo>=1.5.7",
-    "numpy>=2.4.3",
+    "numpy>=2.4.4",
     "pyproj>=3.7.2",
     "shapely>=2.1.2",
 ]
