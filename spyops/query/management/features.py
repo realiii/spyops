@@ -20,10 +20,10 @@ from spyops.crs.util import get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.attribute import (
-    area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
-    get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
-    line_start)
+    area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
+    length_planar, line_azimuth, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
+from spyops.geometry.extent import extent_maximum, extent_minimum
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption

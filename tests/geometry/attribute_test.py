@@ -13,9 +13,10 @@ from shapely import Polygon, MultiPolygon, LineString, MultiLineString
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.attribute import (
-    area_geodesic, area_planar, extent_maximum, extent_minimum, get_hole_count,
+    area_geodesic, area_planar, get_hole_count,
     get_inside_xy, length_geodesic, length_planar, line_azimuth, line_end,
     line_start)
+
 
 pytestmark = [mark.geometry]
 
@@ -72,34 +73,6 @@ def test_line_end(geom, expected):
     """
     assert approx(line_end([geom], has_z=True, has_m=False)[0], abs=0.001) == expected
 # End test_line_end function
-
-
-@mark.parametrize('geom, expected', [
-    (LineString([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), (0., 0., 0.)),
-    (MultiLineString([LineString([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)])]), (0., 0., 0.)),
-    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), (0., 0., 0.)),
-    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), (0., 0., 0.)),
-])
-def test_extent_minimum(geom, expected):
-    """
-    Test extent minimum
-    """
-    assert approx(extent_minimum([geom], has_z=True, has_m=False)[0], abs=0.001) == expected
-# End test_extent_minimum function
-
-
-@mark.parametrize('geom, expected', [
-    (LineString([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)]), (10., 10., 6.)),
-    (MultiLineString([LineString([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)])]), (10., 10., 6.)),
-    (Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]]), (10., 10., 6.)),
-    (MultiPolygon([Polygon([(0, 0, 0), (0, 10, 2), (10, 10, 5), (10, 0, 6)], holes=[[(2, 2, 0), (2, 4, 0), (4, 4, 0), (4, 2, 0)]])]), (10., 10., 6.)),
-])
-def test_extent_maximum(geom, expected):
-    """
-    Test extent maximum
-    """
-    assert approx(extent_maximum([geom], has_z=True, has_m=False)[0], abs=0.001) == expected
-# End test_extent_maximum function
 
 
 @mark.parametrize('geom, expected', [

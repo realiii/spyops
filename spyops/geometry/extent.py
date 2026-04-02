@@ -5,11 +5,14 @@ Extent functions
 
 
 from math import nan
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
+from bottleneck import nanmax, nanmin
 from fudgeo.util import get_extent
-from numpy import isfinite
+from numpy import isfinite, ndarray
+from shapely import get_coordinates
 
+from spyops.geometry.util import find_slice_indexes
 from spyops.shared.exception import BadExtentError
 from spyops.shared.hint import EXTENT
 
@@ -80,6 +83,34 @@ def extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
     else:  # pragma: no cover
         return get_extent(feature_class)
 # End extent_from_index_or_geometry function
+
+
+def extent_minimum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
+    """
+    Extent Minimums for Non-Point Geometries
+    """
+    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmin)
+# End extent_minimum function
+
+
+def extent_maximum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
+    """
+    Extent Maximums for Non-Point Geometries
+    """
+    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmax)
+# End extent_maximum function
+
+
+def _get_partial_extent(geoms: 'ndarray', *, has_z: bool, has_m: bool,
+                        func: Callable) -> list:
+    """
+    Get Partial Extent
+    """
+    coords, indexes = get_coordinates(
+        geoms, include_z=has_z, include_m=has_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    return [func(coords[b:e], axis=0) for b, e in zip(ids[:-1], ids[1:])]
+# End _get_partial_extent function
 
 
 if __name__ == '__main__':  # pragma: no cover
