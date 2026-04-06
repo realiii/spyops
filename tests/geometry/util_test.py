@@ -19,7 +19,7 @@ from shapely.geometry.base import GeometrySequence
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
     find_slice_indexes, get_geoms, get_geoms_iter,
-    nada, to_shapely)
+    nada, shoelace_area, to_shapely)
 from spyops.geometry.wa import (
     USE_WORKAROUNDS, make_valid_structure, set_precision)
 from spyops.shared.exception import OperationsWarning
@@ -190,6 +190,16 @@ def test_set_precision_nan(wkt, cls, expected):
     coords = get_coordinates(result, include_m=True)
     assert bool(isnan(coords[:, 2]).any()) is expected
 # End test_set_precision_nan function
+
+
+def test_shoelace_area():
+    """
+    Test Shoelace Area
+    """
+    coords = array([[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]], dtype=float)
+    area = shoelace_area(coords)
+    assert area == 1
+# End test_shoelace_area function
 
 
 if __name__ == '__main__':  # pragma: no cover

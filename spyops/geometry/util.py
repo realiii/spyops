@@ -6,6 +6,7 @@ Utility Functions
 
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
+from bottleneck import nansum
 from numpy import diff, ndarray, nonzero, ones
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
@@ -121,6 +122,16 @@ def make_none_mask(values: 'ndarray') -> 'ndarray':
     # NOTE this is the way
     return values == None
 # End make_none_mask function
+
+
+def shoelace_area(coords: 'ndarray') -> float:
+    """
+    Shoelace Area, area will be signed
+    """
+    xs = coords[:, 0]
+    ys = coords[:, 1]
+    return 0.5 * (nansum(xs[:-1] * ys[1:]) - nansum(xs[1:] * ys[:-1]))
+# End shoelace_area function
 
 
 if __name__ == '__main__':  # pragma: no cover
