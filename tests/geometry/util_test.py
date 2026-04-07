@@ -15,11 +15,12 @@ from shapely import (
     Point as ShapelyPoint, LineString, MultiPoint, MultiLineString,
     MultiPolygon, get_coordinates, from_wkt)
 from shapely.geometry.base import GeometrySequence
+from shapely.geometry.polygon import LinearRing
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
-    find_slice_indexes, get_geoms, get_geoms_iter,
-    nada, shoelace_area, to_shapely)
+    fan_area_and_centroid, find_slice_indexes, get_geoms, get_geoms_iter,
+    nada, to_shapely)
 from spyops.geometry.wa import (
     USE_WORKAROUNDS, make_valid_structure, set_precision)
 from spyops.shared.exception import OperationsWarning
@@ -192,30 +193,40 @@ def test_set_precision_nan(wkt, cls, expected):
 # End test_set_precision_nan function
 
 
-def test_shoelace_area():
+def test_fan_area_and_centroid():
     """
-    Test Shoelace Area
+    Test fan_area_and_centroid
     """
     coords = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
-    area = shoelace_area(array(coords, dtype=float))
+    ring = LinearRing(coords)
+    area, centroid = fan_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
     assert area == 1
-# End test_shoelace_area function
+    assert centroid.tolist() == [0.5, 0.5]
+    ring = LinearRing(list(reversed(coords)))
+    area, centroid = fan_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
+    assert area == -1
+    assert centroid.tolist() == [0.5, 0.5]
+# End test_fan_area_and_centroid function
 
 
-@mark.parametrize('coords, area_2d, area_3d', [
-    ([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 0]], 1, 1),
-    ([[0, 0, 0], [1, 0, 0], [1, 1, 1], [0, 1, 1], [0, 0, 0]], 1, 1.4142),
+@mark.parametrize('use_xy_length, coords, expected_area, expected_centroid', [
+    (True, [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 0]], 1, [0.5, 0.5, 0]),
+    (False, [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 0]], 1, [0.5, 0.5, 0]),
+    (True, [[0, 0, 0], [1, 0, 0], [1, 1, 1], [0, 1, 1], [0, 0, 0]], 1, [0.5, 0.5, 0]),
+    (False, [[0, 0, 0], [1, 0, 0], [1, 1, 1], [0, 1, 1], [0, 0, 0]], 1.4142, [0.5, 0.5, 0.5]),
+    (True, [[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0], [0, 0, 0]], 0, [0.5, 0, 0]),
+    (False, [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1], [0, 0, 0]], -1, [0.5, 0, 0.5]),
 ])
-def test_shoelace_area_use_xy(coords, area_2d, area_3d):
+def test_fan_area_centroid_3d(use_xy_length, coords, expected_area, expected_centroid):
     """
-    Test Shoelace Area for 3D area
+    Test fan area and centroid calculation
     """
-    coords = array(coords, dtype=float)
-    area = shoelace_area(coords, use_xy=True)
-    assert area == area_2d
-    area = shoelace_area(coords, use_xy=False)
-    assert approx(area, abs=0.001) == area_3d
-# End test_shoelace_area_use_xy function
+    ring = LinearRing(coords)
+    area, centroid = fan_area_and_centroid(
+        ring, has_z=True, has_m=False, use_xy_length=use_xy_length)
+    assert approx(area, abs=0.001) == expected_area
+    assert approx(centroid.tolist(), abs=0.001) == expected_centroid
+# End test_fan_area_centroid_3d function
 
 
 if __name__ == '__main__':  # pragma: no cover

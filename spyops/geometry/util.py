@@ -7,8 +7,11 @@ Utility Functions
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from bottleneck import nansum
-from numpy import diff, isfinite, ndarray, nonzero, ones, sqrt, zeros_like
+from numpy import cross, diff, isfinite, ndarray, nonzero, ones, sqrt, zeros_like
+from numpy.linalg import norm
+from numpy.ma.core import array, mean
 from shapely import force_2d, force_3d
+from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid
 
@@ -17,7 +20,7 @@ from spyops.shared.keywords import GEOMS_ATTR
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from shapely import Polygon
+    from shapely import LinearRing, Polygon
     from shapely.geometry.base import (
         BaseMultipartGeometry, BaseGeometry, GeometrySequence)
 
@@ -122,6 +125,57 @@ def make_none_mask(values: 'ndarray') -> 'ndarray':
     # NOTE this is the way
     return values == None
 # End make_none_mask function
+
+
+def fan_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
+                          use_xy_length: bool) -> tuple[float, 'ndarray']:
+    """
+    Use triangular fan approach to compute area and centroid of a
+    polygon ring.
+    """
+    sign = 1 if ring.is_ccw else -1
+    coords = get_coordinates(ring, include_z=True, include_m=has_m)
+    if use_xy_length or (has_z and not isfinite(coords[:, 2]).all()):
+        coords[:, 2] = 0
+    if not (coords[0] == coords[-1]).all():
+        coords = array([*coords, coords[0]], dtype=float)
+
+    # Use the first vertex as a fan origin
+    p0 = coords[0]
+
+    total_area = 0.0
+    weighted_centroid = array([0.0, 0.0, 0.0], dtype=float)
+
+    # Triangulate fan: (p0, p1, p2), (p0, p2, p3), ...
+    for i in range(1, len(coords) - 2):
+        p1 = coords[i]
+        p2 = coords[i + 1]
+
+        # Triangle area in 3D from cross product magnitude
+        v1 = p1 - p0
+        v2 = p2 - p0
+        tri_cross = cross(v1, v2)
+        tri_area = 0.5 * norm(tri_cross)
+
+        if tri_area == 0:
+            continue
+
+        # Triangle centroid
+        tri_centroid = (p0 + p1 + p2) / 3.0
+
+        weighted_centroid += tri_centroid * tri_area
+        total_area += tri_area
+
+    if total_area == 0:
+        # Degenerate polygon: fall back to simple average
+        return 0., mean(coords[:-1], axis=0)
+
+    centroid = weighted_centroid / total_area
+    mask = [True, True, has_z]
+    if has_m:
+        mask = [*mask, has_m]
+    return sign * total_area, centroid[mask]
+
 
 
 def shoelace_area(coords: 'ndarray', use_xy: bool = True) -> float:
