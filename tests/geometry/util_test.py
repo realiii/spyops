@@ -10,7 +10,7 @@ from fudgeo.constant import WGS84
 from fudgeo.geometry.point import Point, PointZ, PointZM
 from numpy import array, isnan, ndarray
 from warnings import simplefilter, catch_warnings
-from pytest import mark
+from pytest import mark, approx
 from shapely import (
     Point as ShapelyPoint, LineString, MultiPoint, MultiLineString,
     MultiPolygon, get_coordinates, from_wkt)
@@ -196,10 +196,26 @@ def test_shoelace_area():
     """
     Test Shoelace Area
     """
-    coords = array([[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]], dtype=float)
-    area = shoelace_area(coords)
+    coords = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
+    area = shoelace_area(array(coords, dtype=float))
     assert area == 1
 # End test_shoelace_area function
+
+
+@mark.parametrize('coords, area_2d, area_3d', [
+    ([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 0]], 1, 1),
+    ([[0, 0, 0], [1, 0, 0], [1, 1, 1], [0, 1, 1], [0, 0, 0]], 1, 1.4142),
+])
+def test_shoelace_area_use_xy(coords, area_2d, area_3d):
+    """
+    Test Shoelace Area for 3D area
+    """
+    coords = array(coords, dtype=float)
+    area = shoelace_area(coords, use_xy=True)
+    assert area == area_2d
+    area = shoelace_area(coords, use_xy=False)
+    assert approx(area, abs=0.001) == area_3d
+# End test_shoelace_area_use_xy function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -7,7 +7,7 @@ Utility Functions
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from bottleneck import nansum
-from numpy import diff, ndarray, nonzero, ones
+from numpy import diff, isfinite, ndarray, nonzero, ones, sqrt, zeros_like
 from shapely import force_2d, force_3d
 from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid
@@ -124,13 +124,25 @@ def make_none_mask(values: 'ndarray') -> 'ndarray':
 # End make_none_mask function
 
 
-def shoelace_area(coords: 'ndarray') -> float:
+def shoelace_area(coords: 'ndarray', use_xy: bool = True) -> float:
     """
     Shoelace Area, area will be signed
     """
     xs = coords[:, 0]
     ys = coords[:, 1]
-    return 0.5 * (nansum(xs[:-1] * ys[1:]) - nansum(xs[1:] * ys[:-1]))
+    _, dim = coords.shape
+    if use_xy or dim < 3:
+        return 0.5 * (nansum(xs[:-1] * ys[1:]) - nansum(xs[1:] * ys[:-1]))
+    zs = coords[:, 2]
+    if not isfinite(zs).all():
+        zs = zeros_like(xs, dtype=float)
+    dx = xs[1:] - xs[:-1]
+    dy = ys[1:] - ys[:-1]
+    dz = zs[1:] - zs[:-1]
+    cross_x = ys[:-1] * dz - zs[:-1] * dy
+    cross_y = zs[:-1] * dx - xs[:-1] * dz
+    cross_z = xs[:-1] * dy - ys[:-1] * dx
+    return 0.5 * nansum(sqrt(cross_x ** 2 + cross_y ** 2 + cross_z ** 2))
 # End shoelace_area function
 
 
