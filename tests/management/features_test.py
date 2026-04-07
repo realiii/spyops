@@ -426,7 +426,7 @@ class TestAddXYCoordinates:
             add_xy_coordinates(source)
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
-            assert approx(cursor.fetchone(), abs=0.1) == (-12719924.87, 6615617.49)
+            assert approx(cursor.fetchone(), abs=0.1) == (-12719899.44, 6615599.42)
     # End test_geographic_input_projected_output method
 
     @mark.zm

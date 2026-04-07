@@ -13,7 +13,8 @@ from shapely import get_rings
 from shapely.coordinates import get_coordinates
 from shapely.measurement import area, length
 
-from spyops.geometry.util import find_slice_indexes, get_geoms, shoelace_area
+from spyops.geometry.util import (
+    fan_area_and_centroid, find_slice_indexes, get_geoms)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -63,16 +64,18 @@ def centroid_multi_linestrings(geoms: 'ndarray', has_z: bool, has_m: bool,
 # End centroid_multi_linestrings function
 
 
-def centroid_polygons(geoms: 'ndarray', has_z: bool, has_m: bool, **kwargs) -> list:
+def centroid_polygons(geoms: 'ndarray', has_z: bool, has_m: bool,
+                      use_xy_length: bool) -> list:
     """
     Centroid for Polygons
     """
-    return _area_weighted_centroids(geoms, has_z=has_z, has_m=has_m)
+    return _area_weighted_centroids(geoms, has_z=has_z, has_m=has_m,
+                                    use_xy_length=use_xy_length)
 # End centroid_polygons function
 
 
 def centroid_multi_polygons(geoms: 'ndarray', has_z: bool, has_m: bool,
-                            **kwargs) -> list:
+                            use_xy_length: bool) -> list:
     """
     Centroid for MultiPolygons, area weighting combines individual
     Polygon centroids.
@@ -84,7 +87,8 @@ def centroid_multi_polygons(geoms: 'ndarray', has_z: bool, has_m: bool,
         weights = area(parts)
         # noinspection PyTypeChecker
         centers = array(_area_weighted_centroids(
-            parts, has_z=has_z, has_m=has_m), dtype=float).T
+            parts, has_z=has_z, has_m=has_m, use_xy_length=use_xy_length),
+            dtype=float).T
         centroids.append(nansum((weights * centers), axis=1) / nansum(weights))
     return centroids
 # End centroid_multi_polygons function
@@ -141,18 +145,21 @@ def _ring_centers(rings: 'ndarray', areas: 'ndarray',
 # End _raw_ring_centers function
 
 
-def _area_weighted_centroids(geoms: 'ndarray', has_z: bool, has_m: bool) -> list:
+def _area_weighted_centroids(geoms: 'ndarray', has_z: bool, has_m: bool,
+                             use_xy_length: bool) -> list:
     """
     Area Weighted Centroids
     """
     centroids = []
     for geom in geoms:
         rings = get_rings(geom)
-        areas = [shoelace_area(get_coordinates(r)) for r in rings]
+        if not len(rings):
+            continue
+        areas, centers = zip(*[fan_area_and_centroid(
+            ring, has_z=has_z, has_m=has_m, use_xy_length=use_xy_length)
+            for ring in rings])
         areas = array(areas, dtype=float)
-        centers = array(_ring_centers(
-            rings, areas=areas, has_z=has_z, has_m=has_m), dtype=float).T
-        areas = areas[areas != 0]
+        centers = array(centers, dtype=float).T
         centroids.append(nansum((areas * centers), axis=1) / nansum(areas))
     return centroids
 # End _area_weighted_centroids function
