@@ -429,6 +429,19 @@ class TestAddXYCoordinates:
             assert approx(cursor.fetchone(), abs=0.1) == (-12719899.44, 6615599.42)
     # End test_geographic_input_projected_output method
 
+    def test_centroid_polygon_with_holes(self, inputs, mem_gpkg):
+        """
+        Test centroid polygon with holes
+        """
+        name = 'yyc_a'
+        source = inputs[name].copy(name, geopackage=mem_gpkg)
+        add_xy_coordinates(source)
+        sql = f"""SELECT AVG(POINT_X) AS AVG_X, AVG(POINT_Y) AS AVG_Y FROM {source.escaped_name}"""
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert approx(cursor.fetchone(), abs=0.0001) == (-114.05345, 51.03441)
+    # End test_centroid_polygon_with_holes method
+
     @mark.zm
     def test_missing_zm_values(self, ntdb_zm_meh_small, mem_gpkg):
         """
