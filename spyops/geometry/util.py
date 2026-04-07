@@ -6,9 +6,9 @@ Utility Functions
 
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from bottleneck import nansum
-from numpy import cross, diff, isfinite, ndarray, nonzero, ones
-from numpy.ma.core import array, mean
+from bottleneck import nanmean, nansum
+from numpy import array, copysign, cross, diff, isfinite, ndarray, nonzero, ones
+from numpy.linalg import norm
 from shapely import force_2d, force_3d
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
@@ -136,20 +136,19 @@ def fan_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
         coords[:, 2] = 0
     if not ring.is_closed:
         coords = array([*coords, coords[0]], dtype=float)
-    sign = 1 if ring.is_ccw else -1
     origin = coords[0]
     firsts = coords[1:-1]
     seconds = coords[2:]
-    # NOTE using nansum instead of norm to avoid -ve areas being handled as +ve
-    areas = nansum(cross(firsts - origin, seconds - origin, axis=1), axis=1) / 2
+    crosses = cross(firsts - origin, seconds - origin, axis=1)
+    areas = copysign(norm(crosses, axis=1) / 2, nansum(crosses, axis=1))
     areas = areas.reshape(-1, 1)
     mask = [True, True, has_z]
     if has_m:
         mask = [*mask, has_m]
     if not (area := nansum(areas)):
-        return area, mean(coords[:-1], axis=0)[mask]
+        return area, nanmean(coords[:-1], axis=0)[mask]
     centroid = nansum(areas * ((origin + firsts + seconds) / 3), axis=0) / area
-    return sign * area, centroid[mask]
+    return area, centroid[mask]
 # End fan_area_and_centroid function
 
 
