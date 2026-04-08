@@ -4,6 +4,7 @@ Utility Functions
 """
 
 
+from math import nan
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from bottleneck import nanmean, nansum
@@ -131,7 +132,7 @@ def fan_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
     """
     Use the fan approach to compute the area and centroid of a polygon ring.
     """
-    coords = get_coordinates(ring, include_z=True, include_m=has_m)
+    coords = get_coordinates(ring, include_z=True)
     if use_xy_length or (has_z and not isfinite(coords[:, 2]).all()):
         coords[:, 2] = 0
     if not ring.is_closed:
@@ -142,14 +143,34 @@ def fan_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
     crosses = cross(firsts - origin, seconds - origin, axis=1)
     areas = copysign(norm(crosses, axis=1) / 2, nansum(crosses, axis=1))
     areas = areas.reshape(-1, 1)
-    mask = [True, True, has_z]
-    if has_m:
-        mask = [*mask, has_m]
     if not (area := nansum(areas)):
-        return area, nanmean(coords[:-1], axis=0)[mask]
+        coords = get_coordinates(ring, include_z=has_z, include_m=has_m)
+        return area, nanmean(coords[:-1], axis=0)
     centroid = nansum(areas * ((origin + firsts + seconds) / 3), axis=0) / area
-    return area, centroid[mask]
+    centroid = array([*centroid, nan], dtype=float)
+    if not has_z and not has_m:
+        return area, centroid[:2]
+    if has_m:
+        coords = get_coordinates(ring, include_m=True)
+        centroid[-1] = _get_weighted_dimension(coords, areas=areas, area=area)
+    if has_z and use_xy_length:
+        coords = get_coordinates(ring, include_z=True)
+        centroid[-2] = _get_weighted_dimension(coords, areas=areas, area=area)
+    return area, centroid[[True, True, has_z, has_m]]
 # End fan_area_and_centroid function
+
+
+def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray', area: float) -> float:
+    """
+    Get Weighted Dimension
+    """
+    values = coords[:, 2]
+    origin = values[0]
+    firsts = values[1:-1]
+    seconds = values[2:]
+    return nanmean(nansum(
+        areas * ((origin + firsts + seconds) / 3), axis=0) / area)
+# End _get_weighted_dimension function
 
 
 if __name__ == '__main__':  # pragma: no cover

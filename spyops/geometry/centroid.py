@@ -69,8 +69,8 @@ def centroid_polygons(geoms: 'ndarray', has_z: bool, has_m: bool,
     """
     Centroid for Polygons
     """
-    return _area_weighted_centroids(geoms, has_z=has_z, has_m=has_m,
-                                    use_xy_length=use_xy_length)
+    return _area_weighted_centroids(
+        geoms, has_z=has_z, has_m=has_m, use_xy_length=use_xy_length)
 # End centroid_polygons function
 
 

@@ -113,8 +113,11 @@ def test_centroid_polygons():
     assert approx((a.x, a.y), abs=0.01) == (0.5, 0.5)
     assert approx((b.x, b.y), abs=0.01) == (100.5, 100.5)
     a, b = centroid_polygons([poly_a, poly_b], has_z=True, has_m=True, use_xy_length=True)
-    assert approx(a.tolist(), abs=0.001) == [0.5, 0.5, 1.3333, 1.6666]
-    assert approx(b.tolist(), abs=0.001) == [100.5, 100.5, 101.3333, 101.6666]
+    assert approx(a.tolist(), abs=0.001) == [0.5, 0.5, 1.1111, 1.4444]
+    assert approx(b.tolist(), abs=0.001) == [100.5, 100.5, 101.1111, 101.4444]
+    a, b = centroid_polygons([poly_a, poly_b], has_z=True, has_m=True, use_xy_length=False)
+    assert approx(a.tolist(), abs=0.001) == [0.5585, 0.4414, 1.4503, 1.4444]
+    assert approx(b.tolist(), abs=0.001) == [100.5585, 100.4414, 101.4503, 101.4444]
 # End test_centroid_polygons function
 
 
@@ -128,7 +131,9 @@ def test_centroid_multi_polygons():
     a = centroid(multi)
     assert approx((a.x, a.y), abs=0.001) == (50.5, 50.5)
     a, = centroid_multi_polygons([multi], has_z=True, has_m=True, use_xy_length=True)
-    assert approx(a, abs=0.001) == [50.5, 50.5, 51.3333, 51.6666]
+    assert approx(a, abs=0.001) == [50.5, 50.5, 51.1111, 51.4444]
+    a, = centroid_multi_polygons([multi], has_z=True, has_m=True, use_xy_length=False)
+    assert approx(a, abs=0.001) == [50.5585, 50.4414, 51.4503, 51.4444]
 # End test_centroid_multi_polygons function
 
 

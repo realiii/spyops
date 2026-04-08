@@ -426,7 +426,7 @@ class TestAddXYCoordinates:
             add_xy_coordinates(source)
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
-            assert approx(cursor.fetchone(), abs=0.1) == (-12719899.44, 6615599.42)
+            assert approx(cursor.fetchone(), abs=0.1) == (-12719901.10, 6615598.68)
     # End test_geographic_input_projected_output method
 
     def test_centroid_polygon_with_holes(self, inputs, mem_gpkg):
@@ -439,7 +439,7 @@ class TestAddXYCoordinates:
         sql = f"""SELECT AVG(POINT_X) AS AVG_X, AVG(POINT_Y) AS AVG_Y FROM {source.escaped_name}"""
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
-            assert approx(cursor.fetchone(), abs=0.0001) == (-114.05345, 51.03441)
+            assert approx(cursor.fetchone(), abs=0.0001) == (-114.05273, 51.03474)
     # End test_centroid_polygon_with_holes method
 
     @mark.zm
@@ -534,14 +534,14 @@ class TestCalculateGeometryAttributes:
     # End test_point method
 
     @mark.parametrize('fc_name, attribute, average, average_dd', [
-        ('hydro_lcc_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
-        ('hydro_lcc_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_X, -1256943.21, -114.26),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_Y, 1437254.25, 51.17),
         ('hydro_lcc_a', GeometryAttribute.CENTROID_Z, None, None),
         ('hydro_lcc_a', GeometryAttribute.CENTROID_M, None, None),
-        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
-        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_X, -1256943.21, -114.26),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Y, 1437254.25, 51.17),
         ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Z, 1270.76, 1270.76),
-        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_M, 201075.39, 201075.39),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_M, 184285.48, 184285.48),
         ('transmission_lcc_l', GeometryAttribute.CENTROID_X, -1258272.89, -114.27),
         ('transmission_lcc_l', GeometryAttribute.CENTROID_Y, 1435163.99, 51.14),
         ('transmission_lcc_l', GeometryAttribute.CENTROID_Z, None, None),
