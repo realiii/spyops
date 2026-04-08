@@ -127,8 +127,8 @@ def make_none_mask(values: 'ndarray') -> 'ndarray':
 # End make_none_mask function
 
 
-def fan_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
-                          use_xy_length: bool) -> tuple[float, 'ndarray']:
+def ring_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
+                           use_xy_length: bool) -> tuple[float, 'ndarray']:
     """
     Use the fan approach to compute the area and centroid of a polygon ring.
     """
@@ -157,7 +157,7 @@ def fan_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
         coords = get_coordinates(ring, include_z=True)
         centroid[-2] = _get_weighted_dimension(coords, areas=areas, area=area)
     return area, centroid[[True, True, has_z, has_m]]
-# End fan_area_and_centroid function
+# End ring_area_and_centroid function
 
 
 def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray', area: float) -> float:

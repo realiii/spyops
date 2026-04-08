@@ -14,7 +14,7 @@ from shapely.coordinates import get_coordinates
 from shapely.measurement import area, length
 
 from spyops.geometry.util import (
-    fan_area_and_centroid, find_slice_indexes, get_geoms)
+    ring_area_and_centroid, find_slice_indexes, get_geoms)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -155,7 +155,7 @@ def _area_weighted_centroids(geoms: 'ndarray', has_z: bool, has_m: bool,
         rings = get_rings(geom)
         if not len(rings):
             continue
-        areas, centers = zip(*[fan_area_and_centroid(
+        areas, centers = zip(*[ring_area_and_centroid(
             ring, has_z=has_z, has_m=has_m, use_xy_length=use_xy_length)
             for ring in rings])
         areas = array(areas, dtype=float)

@@ -19,7 +19,7 @@ from shapely.geometry.polygon import LinearRing
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
-    fan_area_and_centroid, find_slice_indexes, get_geoms, get_geoms_iter,
+    ring_area_and_centroid, find_slice_indexes, get_geoms, get_geoms_iter,
     nada, to_shapely)
 from spyops.geometry.wa import (
     USE_WORKAROUNDS, make_valid_structure, set_precision)
@@ -193,20 +193,20 @@ def test_set_precision_nan(wkt, cls, expected):
 # End test_set_precision_nan function
 
 
-def test_fan_area_and_centroid():
+def test_ring_area_and_centroid():
     """
-    Test fan_area_and_centroid
+    Test ring_area_and_centroid
     """
     coords = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
     ring = LinearRing(coords)
-    area, centroid = fan_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
+    area, centroid = ring_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
     assert area == 1
     assert centroid.tolist() == [0.5, 0.5]
     ring = LinearRing(list(reversed(coords)))
-    area, centroid = fan_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
+    area, centroid = ring_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
     assert area == -1
     assert centroid.tolist() == [0.5, 0.5]
-# End test_fan_area_and_centroid function
+# End test_ring_area_and_centroid function
 
 
 @mark.parametrize('use_xy_length, coords, expected_area, expected_centroid', [
@@ -219,16 +219,16 @@ def test_fan_area_and_centroid():
     (True, [[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0], [0, 0, 0]], 0, [0.5, 0, 0.5]),
     (False, [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1], [0, 0, 0]], -1, [0.5, 0, 0.5]),
 ])
-def test_fan_area_centroid_3d(use_xy_length, coords, expected_area, expected_centroid):
+def test_ring_area_and_centroid_length_options(use_xy_length, coords, expected_area, expected_centroid):
     """
-    Test fan area and centroid calculation
+    Test ring_area_and_centroid with different options for length calculation
     """
     ring = LinearRing(coords)
-    area, centroid = fan_area_and_centroid(
+    area, centroid = ring_area_and_centroid(
         ring, has_z=True, has_m=False, use_xy_length=use_xy_length)
     assert approx(area, abs=0.001) == expected_area
     assert approx(centroid.tolist(), abs=0.001) == expected_centroid
-# End test_fan_area_centroid_3d function
+# End test_ring_area_and_centroid_length_options function
 
 
 if __name__ == '__main__':  # pragma: no cover
