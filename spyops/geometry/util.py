@@ -130,10 +130,11 @@ def make_none_mask(values: 'ndarray') -> 'ndarray':
 def ring_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
                            use_xy_length: bool) -> tuple[float, 'ndarray']:
     """
-    Use the fan approach to compute the area and centroid of a polygon ring.
+    Area and centroid of a polygon ring using the fan approach.
     """
     coords = get_coordinates(ring, include_z=True)
-    if use_xy_length or (has_z and not isfinite(coords[:, 2]).all()):
+    if use_xy_length or not has_z or (
+            has_z and not isfinite(coords[:, 2]).all()):
         coords[:, 2] = 0
     if not ring.is_closed:
         coords = array([*coords, coords[0]], dtype=float)
