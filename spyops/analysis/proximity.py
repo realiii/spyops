@@ -10,7 +10,7 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from spyops.crs.enumeration import DistanceUnit
-from spyops.query.management.proximity import (
+from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
     QueryMultipleBuffer)
 from spyops.shared.enumeration import (

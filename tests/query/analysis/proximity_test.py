@@ -10,7 +10,7 @@ from pytest import mark
 
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Meters, Miles
-from spyops.query.management.proximity import (
+from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
     QueryMultipleBuffer)
 from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
