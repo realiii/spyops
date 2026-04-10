@@ -73,7 +73,7 @@ def get_grid_size(source: 'FeatureClass', xy_tolerance: XY_TOL,
         return xy_tolerance
     crs_unit_name = get_unit_name(crs)
     source_crs_unit_name = get_unit_name(source_crs)
-    if crs_unit_name == source_crs_unit_name:
+    if crs_unit_name == source_crs_unit_name or source_crs_unit_name is None:
         return xy_tolerance
     if crs_unit_name == DEGREE:
         crs_unit_name = METRE
