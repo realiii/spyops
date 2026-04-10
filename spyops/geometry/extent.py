@@ -5,17 +5,23 @@ Extent functions
 
 
 from math import nan
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
+from bottleneck import nanmax, nanmin
 from fudgeo.util import get_extent
 from numpy import isfinite
+from shapely import MultiPolygon, get_coordinates
+from shapely.creation import box
 
+from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 from spyops.shared.exception import BadExtentError
 from spyops.shared.hint import EXTENT
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
+    from shapely import Polygon
 
 
 def set_extent(feature_class: 'FeatureClass') -> None:
@@ -80,6 +86,80 @@ def extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
     else:  # pragma: no cover
         return get_extent(feature_class)
 # End extent_from_index_or_geometry function
+
+
+def extent_minimum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
+    """
+    Extent Minimums for Non-Point Geometries
+    """
+    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmin)
+# End extent_minimum function
+
+
+def extent_maximum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
+    """
+    Extent Maximums for Non-Point Geometries
+    """
+    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmax)
+# End extent_maximum function
+
+
+def _get_partial_extent(geoms: 'ndarray', *, has_z: bool, has_m: bool,
+                        func: Callable) -> list:
+    """
+    Get Partial Extent
+    """
+    coords, indexes = get_coordinates(
+        geoms, include_z=has_z, include_m=has_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    return _apply_axis_summary(func, coords=coords, ids=ids)
+# End _get_partial_extent function
+
+
+def _apply_axis_summary(func: Callable, coords: 'ndarray',
+                        ids: tuple[int, ...]) -> list:
+    """
+    Apply Axis Summary
+    """
+    return [func(coords[b:e], axis=0) for b, e in zip(ids[:-1], ids[1:])]
+# End _apply_axis_summary function
+
+
+def extent_from_geometry(geoms: 'ndarray') -> list['Polygon']:
+    """
+    Get the Extents from the Geometries (one polygon per feature,
+    including all parts).  Intended for all but Point geometries.
+    """
+    coords, indexes = get_coordinates(geoms, return_index=True)
+    ids = find_slice_indexes(indexes)
+    mins = _apply_axis_summary(nanmin, coords=coords, ids=ids)
+    maxes = _apply_axis_summary(nanmax, coords=coords, ids=ids)
+    # noinspection PyTypeChecker
+    return [box(xmin=min_x, ymin=min_y, xmax=max_x, ymax=max_y)
+            for (min_x, min_y), (max_x, max_y) in zip(mins, maxes)]
+# End extent_from_geometry function
+
+
+def extent_from_parts(geoms: 'ndarray') -> list[MultiPolygon]:
+    """
+    Get the Extents from Multipart Geometries (extent per part, stored as
+    MultiPolygon).  Intended for MultiPolygon and MultiLineString geometries
+    but will work on Polygon and LineString as well.
+    """
+    extents = []
+    for geom in geoms:
+        # noinspection PyTypeChecker
+        coords, indexes = get_coordinates(
+            get_geoms_iter(geom), return_index=True)
+        ids = find_slice_indexes(indexes)
+        mins = _apply_axis_summary(nanmin, coords=coords, ids=ids)
+        maxes = _apply_axis_summary(nanmax, coords=coords, ids=ids)
+        # noinspection PyTypeChecker
+        extents.append(MultiPolygon([box(
+            xmin=min_x, ymin=min_y, xmax=max_x, ymax=max_y)
+            for (min_x, min_y), (max_x, max_y) in zip(mins, maxes)]))
+    return extents
+# End extent_from_parts function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -20,7 +20,8 @@ from spyops.environment.core import zm_config
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
-    delete_features, multipart_to_singlepart, xy_to_line)
+    delete_features, feature_envelope_to_polygon, multipart_to_singlepart,
+    xy_to_line)
 from spyops.management.features import (
     check_geometry, repair_geometry,
     xy_table_to_point)
@@ -152,7 +153,7 @@ class TestMultiPartToSinglePart:
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.2, 51.05, -114.05, 51.15, crs)):
             result = multipart_to_singlepart(source=source, target=target)
             assert len(result) == post_count
-    # End test_output_crs method
+    # End test_extent method
 # End TestMultiPartToSinglePart class
 
 
@@ -426,8 +427,21 @@ class TestAddXYCoordinates:
             add_xy_coordinates(source)
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
-            assert approx(cursor.fetchone(), abs=0.1) == (-12719924.87, 6615617.49)
+            assert approx(cursor.fetchone(), abs=0.1) == (-12719901.10, 6615598.68)
     # End test_geographic_input_projected_output method
+
+    def test_centroid_polygon_with_holes(self, inputs, mem_gpkg):
+        """
+        Test centroid polygon with holes
+        """
+        name = 'yyc_a'
+        source = inputs[name].copy(name, geopackage=mem_gpkg)
+        add_xy_coordinates(source)
+        sql = f"""SELECT AVG(POINT_X) AS AVG_X, AVG(POINT_Y) AS AVG_Y FROM {source.escaped_name}"""
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            assert approx(cursor.fetchone(), abs=0.0001) == (-114.05273, 51.03474)
+    # End test_centroid_polygon_with_holes method
 
     @mark.zm
     def test_missing_zm_values(self, ntdb_zm_meh_small, mem_gpkg):
@@ -521,14 +535,14 @@ class TestCalculateGeometryAttributes:
     # End test_point method
 
     @mark.parametrize('fc_name, attribute, average, average_dd', [
-        ('hydro_lcc_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
-        ('hydro_lcc_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_X, -1256943.21, -114.26),
+        ('hydro_lcc_a', GeometryAttribute.CENTROID_Y, 1437254.25, 51.17),
         ('hydro_lcc_a', GeometryAttribute.CENTROID_Z, None, None),
         ('hydro_lcc_a', GeometryAttribute.CENTROID_M, None, None),
-        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_X, -1256987.80, -114.26),
-        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Y, 1437304.81, 51.17),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_X, -1256943.21, -114.26),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Y, 1437254.25, 51.17),
         ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_Z, 1270.76, 1270.76),
-        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_M, 201075.39, 201075.39),
+        ('hydro_lcc_zm_a', GeometryAttribute.CENTROID_M, 184285.48, 184285.48),
         ('transmission_lcc_l', GeometryAttribute.CENTROID_X, -1258272.89, -114.27),
         ('transmission_lcc_l', GeometryAttribute.CENTROID_Y, 1435163.99, 51.14),
         ('transmission_lcc_l', GeometryAttribute.CENTROID_Z, None, None),
@@ -1291,6 +1305,162 @@ class TestXYTableToLine:
         assert len(result) == count
     # End test_geodesic method
 # End TestXYTableToLine class
+
+
+class TestFeatureEnvelopeToPolygon:
+    """
+    Test feature envelope to polygon
+    """
+    @mark.parametrize('name', [
+        'hydro_a',
+        'hydro_m_a',
+        'hydro_z_a',
+        'hydro_zm_a',
+        'structures_ma',
+        'structures_m_ma',
+        'structures_z_ma',
+        'structures_zm_ma',
+        'transmission_ml',
+        'transmission_m_ml',
+        'transmission_z_ml',
+        'transmission_zm_ml',
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+        'toponymy_m_mp',
+        'toponymy_mp',
+        'toponymy_z_mp',
+        'toponymy_zm_mp',
+    ])
+    @mark.parametrize('as_multi_part', [
+        True, False
+    ])
+    def test_geometry_types(self, ntdb_zm_small, mem_gpkg, name, as_multi_part):
+        """
+        Test geometry types
+        """
+        source = ntdb_zm_small[name]
+        assert not source.is_empty
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{name}_{as_multi_part}_env')
+        result = feature_envelope_to_polygon(
+            source=source, target=target, as_multi_part=as_multi_part)
+        assert len(result) == len(source)
+        if as_multi_part:
+            if name.endswith('_mp'):
+                assert not result.is_multi_part
+            else:
+                assert result.is_multi_part
+        else:
+            assert not result.is_multi_part
+        assert result.has_z is source.has_z
+        assert result.has_m is source.has_m
+    # End test_geometry_types method
+
+    def test_sans_attrs(self, world_features, mem_gpkg):
+        """
+        Test sans attributes
+        """
+        name = 'admin_sans_attr_a'
+        source = world_features[name].copy(name='copied', geopackage=mem_gpkg, where_clause='fid <= 10')
+        target = FeatureClass(geopackage=mem_gpkg, name=name)
+        assert not source.is_empty
+        result = feature_envelope_to_polygon(
+            source=source, target=target, as_multi_part=False)
+        assert len(result) == len(source)
+    # End test_sans_attrs method
+
+    @mark.zm
+    @mark.parametrize('name', [
+        'structures_a',
+        'structures_m_a',
+        'structures_z_a',
+        'structures_zm_a',
+        'structures_ma',
+        'structures_m_ma',
+        'structures_z_ma',
+        'structures_zm_ma',
+        'toponymy_mp',
+        'toponymy_m_mp',
+        'toponymy_z_mp',
+        'toponymy_zm_mp',
+        'transmission_l',
+        'transmission_m_l',
+        'transmission_z_l',
+        'transmission_zm_l',
+        'transmission_ml',
+        'transmission_m_ml',
+        'transmission_z_ml',
+        'transmission_zm_ml',
+    ])
+    @mark.parametrize('output_z', [
+        param(OutputZOption.SAME, marks=mark.large),
+        OutputZOption.ENABLED,
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        param(OutputMOption.SAME, marks=mark.large),
+        OutputMOption.ENABLED,
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_zm(self, ntdb_zm_small, mem_gpkg, name, output_z, output_m):
+        """
+        Test Output ZM
+        """
+        source = ntdb_zm_small[name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{name}_env')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            zm = zm_config(source)
+            exploded = feature_envelope_to_polygon(source=source, target=target)
+        assert exploded.shape_type in (
+            ShapeType.linestring, ShapeType.point, ShapeType.polygon)
+        assert exploded.has_z == zm.z_enabled
+        assert exploded.has_m == zm.m_enabled
+    # End test_output_zm method
+
+    @mark.transform
+    @mark.parametrize('name, extent', [
+        ('structures_6654_ma', (-114.4954, 51., -114., 51.2425)),
+        ('transmission_6654_m_ml', (-114.5, 51., -114, 51.25)),
+        ('toponymy_6654_m_mp', (-114.4926, 51., -114., 51.25)),
+        ('structures_10tm_zm_ma', (-114.4954, 51., -114., 51.2425)),
+        ('transmission_10tm_z_ml', (-114.5, 51., -114, 51.25)),
+        ('toponymy_10tm_z_mp', (-114.4926, 51., -114., 51.25)),
+    ])
+    def test_output_crs(self, ntdb_zm_small, mem_gpkg, name, extent):
+        """
+        Test output crs
+        """
+        source = ntdb_zm_small[name]
+        srs_id = 4326
+        crs = CRS(srs_id)
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{name}_crs')
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs), UseGrids(True):
+            result = feature_envelope_to_polygon(source=source, target=target)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert approx(result.extent, abs=0.001) == extent
+    # End test_output_crs method
+
+    @mark.parametrize('fc_name, pre_count, post_count', [
+        ('structures_6654_a', 1453, 371),
+        ('transmission_6654_z_l', 66, 14),
+        ('toponymy_6654_z_mp', 1, 1),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, fc_name, pre_count, post_count):
+        """
+        Test extent
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        crs = CRS(4326)
+        assert len(source) == pre_count
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.2, 51.05, -114.05, 51.15, crs)):
+            result = feature_envelope_to_polygon(source=source, target=target)
+            assert len(result) == post_count
+    # End test_extent method
+# End TestFeatureEnvelopeToPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -6,13 +6,13 @@ Tests for Centroid
 
 from pytest import mark, approx
 from shapely import Point, MultiPoint, MultiLineString
+from shapely.geometry.multipolygon import MultiPolygon
 from shapely.io import from_wkt
 from shapely.lib import centroid
 
 from spyops.geometry.centroid import (
     centroid_linestrings, centroid_multi_linestrings, centroid_multi_points,
     centroid_multi_polygons, centroid_points, centroid_polygons)
-from spyops.geometry.wa import make_valid_structure
 
 
 pytestmark = [mark.geometry]
@@ -103,44 +103,37 @@ def test_centroid_multi_linestrings(use_xy_length, expected_a, expected_b):
 # End test_centroid_multi_linestrings function
 
 
-@mark.parametrize('use_xy_length, expected_a, expected_b', [
-    (True, [0.5, 0.5, 1.75, 2.25], [100.5, 100.5, 101.75, 102.25]),
-    (False, [0.5, 0.3606, 1.9119, 2.4488], [100.4999, 100.3606, 101.9119, 102.4488]),
-])
-def test_centroid_polygons(use_xy_length, expected_a, expected_b):
+def test_centroid_polygons():
     """
     Test centroid polygons
     """
-    poly_a = from_wkt('Polygon ((0 0 0 0, 1 1 1 1, 0 1 2 3, 1 0 4 5, 0 0 0 0))')
-    poly_b = from_wkt('Polygon ((100 100 100 100, 101 101 101 101, 100 101 102 103, 101 100 104 105, 100 100 100 100))')
+    poly_a = from_wkt('Polygon ((0 0 0 0, 1 0 4 5, 1 1 1 1, 0 1 2 3, 0 0 0 0))')
+    poly_b = from_wkt('Polygon ((100 100 100 100, 101 100 104 105, 101 101 101 101, 100 101 102 103, 100 100 100 100))')
     a, b = centroid(poly_a), centroid(poly_b)
     assert approx((a.x, a.y), abs=0.01) == (0.5, 0.5)
     assert approx((b.x, b.y), abs=0.01) == (100.5, 100.5)
-    a, b = centroid_polygons([poly_a, poly_b], has_z=True, has_m=True, use_xy_length=use_xy_length)
-    assert approx(a.tolist(), abs=0.001) == expected_a
-    assert approx(b.tolist(), abs=0.001) == expected_b
+    a, b = centroid_polygons([poly_a, poly_b], has_z=True, has_m=True, use_xy_length=True)
+    assert approx(a.tolist(), abs=0.001) == [0.5, 0.5, 1.1111, 1.4444]
+    assert approx(b.tolist(), abs=0.001) == [100.5, 100.5, 101.1111, 101.4444]
+    a, b = centroid_polygons([poly_a, poly_b], has_z=True, has_m=True, use_xy_length=False)
+    assert approx(a.tolist(), abs=0.001) == [0.5585, 0.4414, 1.4503, 1.4444]
+    assert approx(b.tolist(), abs=0.001) == [100.5585, 100.4414, 101.4503, 101.4444]
 # End test_centroid_polygons function
 
 
-@mark.parametrize('use_xy_length, expected_a, expected_b', [
-    (True, [50.5, 50.5, 1.75, 2.25], [100.5, 100.5, 101.75, 102.25]),
-    (False, [50.518, 50.4937, 1.7702, 2.276], [100.518, 100.4937, 101.7702, 102.276]),
-])
-def test_centroid_multi_polygons(use_xy_length, expected_a, expected_b):
+def test_centroid_multi_polygons():
     """
     Test centroid multi polygons
     """
-    # NOTE these are bowtie shaped polygons, need to make them valid,
-    #  which results in a multi-polygon, perfect for testing
-    poly_a = make_valid_structure(from_wkt('Polygon ((50 50 0 0, 51 51 1 1, 50 51 2 3, 51 50 4 5, 50 50 0 0))'))
-    poly_b = make_valid_structure(from_wkt('Polygon ((100 100 100 100, 101 101 101 101, 100 101 102 103, 101 100 104 105, 100 100 100 100))'))
-    polys = [poly_a, poly_b]
-    a, b = centroid(polys)
+    poly_a = from_wkt('Polygon ((0 0 0 0, 1 0 4 5, 1 1 1 1, 0 1 2 3, 0 0 0 0))')
+    poly_b = from_wkt('Polygon ((100 100 100 100, 101 100 104 105, 101 101 101 101, 100 101 102 103, 100 100 100 100))')
+    multi = MultiPolygon([poly_a, poly_b])
+    a = centroid(multi)
     assert approx((a.x, a.y), abs=0.001) == (50.5, 50.5)
-    assert approx((b.x, b.y), abs=0.001) == (100.5, 100.5)
-    a, b = centroid_multi_polygons(polys, has_z=True, has_m=True, use_xy_length=use_xy_length)
-    assert approx(a.tolist(), abs=0.001) == expected_a
-    assert approx(b.tolist(), abs=0.001) == expected_b
+    a, = centroid_multi_polygons([multi], has_z=True, has_m=True, use_xy_length=True)
+    assert approx(a, abs=0.001) == [50.5, 50.5, 51.1111, 51.4444]
+    a, = centroid_multi_polygons([multi], has_z=True, has_m=True, use_xy_length=False)
+    assert approx(a, abs=0.001) == [50.5585, 50.4414, 51.4503, 51.4444]
 # End test_centroid_multi_polygons function
 
 

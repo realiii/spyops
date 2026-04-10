@@ -4,10 +4,14 @@ Utility Functions
 """
 
 
+from math import nan
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from numpy import diff, ndarray, nonzero, ones
+from bottleneck import nanmean, nansum
+from numpy import array, copysign, cross, diff, isfinite, ndarray, nonzero, ones
+from numpy.linalg import norm
 from shapely import force_2d, force_3d
+from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid
 
@@ -16,7 +20,7 @@ from spyops.shared.keywords import GEOMS_ATTR
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from shapely import Polygon
+    from shapely import LinearRing, Polygon
     from shapely.geometry.base import (
         BaseMultipartGeometry, BaseGeometry, GeometrySequence)
 
@@ -83,11 +87,11 @@ def to_shapely(features: list[tuple], transformer: Callable | None,
     prior to transformation.
     """
     # noinspection PyTypeChecker
-    geometries = from_wkb([g.wkb for g, *_ in features], on_invalid=on_invalid)
+    geometries: 'ndarray' = from_wkb(
+        [g.wkb for g, *_ in features], on_invalid=on_invalid)
     if extent:
         mask = extent.intersects(geometries)
         geometries = geometries[mask]
-        # noinspection PyTypeChecker
         features = [feature for feature, v in zip(features, mask) if v]
     if transformer:
         geometries = transformer(geometries)
@@ -121,6 +125,53 @@ def make_none_mask(values: 'ndarray') -> 'ndarray':
     # NOTE this is the way
     return values == None
 # End make_none_mask function
+
+
+def ring_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
+                           use_xy_length: bool) -> tuple[float, 'ndarray']:
+    """
+    Area and centroid of a polygon ring using the fan approach.
+    """
+    coords = get_coordinates(ring, include_z=True)
+    if use_xy_length or not has_z or (
+            has_z and not isfinite(coords[:, 2]).all()):
+        coords[:, 2] = 0
+    if not ring.is_closed:
+        coords = array([*coords, coords[0]], dtype=float)
+    origin = coords[0]
+    firsts = coords[1:-1]
+    seconds = coords[2:]
+    crosses = cross(firsts - origin, seconds - origin, axis=1)
+    areas = copysign(norm(crosses, axis=1) / 2, nansum(crosses, axis=1))
+    areas = areas.reshape(-1, 1)
+    if not (area := nansum(areas)):
+        coords = get_coordinates(ring, include_z=has_z, include_m=has_m)
+        return area, nanmean(coords[:-1], axis=0)
+    centroid = nansum(areas * ((origin + firsts + seconds) / 3), axis=0) / area
+    centroid = array([*centroid, nan], dtype=float)
+    if not has_z and not has_m:
+        return area, centroid[:2]
+    if has_m:
+        coords = get_coordinates(ring, include_m=True)
+        centroid[-1] = _get_weighted_dimension(coords, areas=areas, area=area)
+    if has_z and use_xy_length:
+        coords = get_coordinates(ring, include_z=True)
+        centroid[-2] = _get_weighted_dimension(coords, areas=areas, area=area)
+    return area, centroid[[True, True, has_z, has_m]]
+# End ring_area_and_centroid function
+
+
+def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray', area: float) -> float:
+    """
+    Get Weighted Dimension
+    """
+    values = coords[:, 2]
+    origin = values[0]
+    firsts = values[1:-1]
+    seconds = values[2:]
+    return nanmean(nansum(
+        areas * ((origin + firsts + seconds) / 3), axis=0) / area)
+# End _get_weighted_dimension function
 
 
 if __name__ == '__main__':  # pragma: no cover

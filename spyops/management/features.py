@@ -10,19 +10,22 @@ from fudgeo import Field, SpatialReferenceSystem
 from fudgeo import Table
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from fudgeo.enumeration import ShapeType
 from fudgeo.util import get_extent
 from pyproj import CRS
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.util import get_crs_from_source
 from spyops.geometry.check import check_feature_class_geometry
+from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.repair import repair_feature_class_geometry
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
-    QueryCopyFeatures, QueryMultiPartToSinglePart, QueryRepairGeometry,
-    QueryXYTableLine, QueryXYTablePoint)
+    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon,
+    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
     FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
@@ -33,7 +36,8 @@ from spyops.shared.enumeration import (
     WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import ELEMENT, XY_TOL
-from spyops.shared.records import insert_many, select_and_transform_features
+from spyops.shared.records import (
+    extend_records, insert_many, select_and_transform_features)
 from spyops.validation import (
     validate_coordinate_system, validate_element, validate_int_flag_enumeration,
     validate_range, validate_source_element, validate_source_numeric_field,
@@ -50,7 +54,8 @@ if TYPE_CHECKING:  # pragma: no cover
 __all__ = [
     'add_xy_coordinates', 'calculate_geometry_attributes', 'check_geometry',
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
-    'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line']
+    'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
+    'feature_envelope_to_polygon']
 
 
 @validate_result()
@@ -496,6 +501,51 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
                         records=records)
     return query.target
 # End xy_to_line function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=(
+        ShapeType.multi_point, ShapeType.linestring, ShapeType.multi_linestring,
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_overwrite_source()
+def feature_envelope_to_polygon(source: 'FeatureClass', target: 'FeatureClass',
+                                as_multi_part: bool = False) -> 'FeatureClass':
+    """
+    Feature Envelope to Polygon
+
+    Create a polygon feature class where each polygon represents the extent of
+    the feature (or the parts) in the source feature class coordinate reference
+    system or in the Output Coordinate System via Settings.
+
+    Use as_multi_part=True to create a MultiPolygon feature class where each
+    polygon represents the extent of the Parts of the input geometries.
+    """
+    records = []
+    query = QueryFeatureEnvelopeToPolygon(
+        source, target=target, as_multi_part=as_multi_part)
+    insert_sql = query.insert
+    config = query.geometry_config
+    extent_getter = query.extent_getter
+    transformer = query.source_transformer
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            features, geometries = to_shapely(
+                features, transformer=transformer,
+                option=DimensionOption.TWO_D)
+            geometries = extent_getter(geometries)
+            results = [(g, attrs) for g, (_, *attrs) in
+                       zip(geometries, features)]
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End feature_envelope_to_polygon function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

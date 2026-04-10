@@ -4,9 +4,8 @@ Attribute Functions
 """
 
 
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from bottleneck import nanmax, nanmin
 from numpy import array
 from shapely import (
     MultiPolygon, Polygon, get_coordinates, get_num_interior_rings, get_point,
@@ -20,7 +19,7 @@ from spyops.crs.unit import (
     AREA_UNIT_LUT, LENGTH_UNIT_LUT, get_conv_factor, get_unit_conversion,
     get_unit_name)
 from spyops.crs.util import equals, make_geodetic_transformer
-from spyops.geometry.util import find_slice_indexes, get_geoms_iter
+from spyops.geometry.util import get_geoms_iter
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -158,34 +157,6 @@ def _get_points(geoms: 'ndarray', index: int) -> 'ndarray':
     return get_point(
         [get_geoms_iter(geom)[index] for geom in geoms], index=index)
 # End _get_points function
-
-
-def extent_minimum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
-    """
-    Extent Minimums for Non-Point Geometries
-    """
-    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmin)
-# End extent_minimum function
-
-
-def extent_maximum(geoms: 'ndarray', *, has_z: bool, has_m: bool) -> list:
-    """
-    Extent Maximums for Non-Point Geometries
-    """
-    return _get_partial_extent(geoms, has_z=has_z, has_m=has_m, func=nanmax)
-# End extent_maximum function
-
-
-def _get_partial_extent(geoms: 'ndarray', *, has_z: bool, has_m: bool,
-                        func: Callable) -> list:
-    """
-    Get Partial Extent
-    """
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
-    return [func(coords[b:e], axis=0) for b, e in zip(ids[:-1], ids[1:])]
-# End _get_partial_extent function
 
 
 if __name__ == '__main__':  # pragma: no cover

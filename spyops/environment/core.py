@@ -192,17 +192,18 @@ class ZMConfig(NamedTuple):
 # End ZMConfig class
 
 
-def zm_config(*feature_classes: FeatureClass | HasZM | None) -> ZMConfig:
+def zm_config(*items: FeatureClass | HasZM | None) -> ZMConfig:
     """
     Get ZM Configuration
     """
-    has_z = any(fc.has_z for fc in feature_classes if fc is not None)
-    has_m = any(fc.has_m for fc in feature_classes if fc is not None)
+    has_z = any(fc.has_z for fc in items if fc is not None)
+    has_m = any(fc.has_m for fc in items if fc is not None)
     z_enabled = _z_enabled(has_z)
     m_enabled = _m_enabled(has_m)
-    diff_z = any(fc.has_z != z_enabled for fc in feature_classes if fc is not None)
-    diff_m = any(fc.has_m != m_enabled for fc in feature_classes if fc is not None)
-    return ZMConfig(is_different=diff_z or diff_m, z_enabled=z_enabled, m_enabled=m_enabled)
+    diff_z = any(fc.has_z != z_enabled for fc in items if fc is not None)
+    diff_m = any(fc.has_m != m_enabled for fc in items if fc is not None)
+    return ZMConfig(
+        is_different=diff_z or diff_m, z_enabled=z_enabled, m_enabled=m_enabled)
 # End zm_config function
 
 

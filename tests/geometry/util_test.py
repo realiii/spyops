@@ -10,15 +10,16 @@ from fudgeo.constant import WGS84
 from fudgeo.geometry.point import Point, PointZ, PointZM
 from numpy import array, isnan, ndarray
 from warnings import simplefilter, catch_warnings
-from pytest import mark
+from pytest import mark, approx
 from shapely import (
     Point as ShapelyPoint, LineString, MultiPoint, MultiLineString,
     MultiPolygon, get_coordinates, from_wkt)
 from shapely.geometry.base import GeometrySequence
+from shapely.geometry.polygon import LinearRing
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
-    find_slice_indexes, get_geoms, get_geoms_iter,
+    ring_area_and_centroid, find_slice_indexes, get_geoms, get_geoms_iter,
     nada, to_shapely)
 from spyops.geometry.wa import (
     USE_WORKAROUNDS, make_valid_structure, set_precision)
@@ -190,6 +191,44 @@ def test_set_precision_nan(wkt, cls, expected):
     coords = get_coordinates(result, include_m=True)
     assert bool(isnan(coords[:, 2]).any()) is expected
 # End test_set_precision_nan function
+
+
+def test_ring_area_and_centroid():
+    """
+    Test ring_area_and_centroid
+    """
+    coords = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
+    ring = LinearRing(coords)
+    area, centroid = ring_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
+    assert area == 1
+    assert centroid.tolist() == [0.5, 0.5]
+    ring = LinearRing(list(reversed(coords)))
+    area, centroid = ring_area_and_centroid(ring, has_z=False, has_m=False, use_xy_length=True)
+    assert area == -1
+    assert centroid.tolist() == [0.5, 0.5]
+# End test_ring_area_and_centroid function
+
+
+@mark.parametrize('use_xy_length, coords, expected_area, expected_centroid', [
+    (True, [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 0]], 1, [0.5, 0.5, 0]),
+    (False, [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 0]], 1, [0.5, 0.5, 0]),
+    (True, [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]], 1, [0.5, 0.5, 1]),
+    (False, [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]], 1, [0.5, 0.5, 1]),
+    (True, [[0, 0, 0], [1, 0, 0], [1, 1, 1], [0, 1, 1], [0, 0, 0]], 1, [0.5, 0.5, 0.4444]),
+    (False, [[0, 0, 0], [1, 0, 0], [1, 1, 1], [0, 1, 1], [0, 0, 0]], 1.4142, [0.5, 0.5, 0.5]),
+    (True, [[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0], [0, 0, 0]], 0, [0.5, 0, 0.5]),
+    (False, [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1], [0, 0, 0]], -1, [0.5, 0, 0.5]),
+])
+def test_ring_area_and_centroid_length_options(use_xy_length, coords, expected_area, expected_centroid):
+    """
+    Test ring_area_and_centroid with different options for length calculation
+    """
+    ring = LinearRing(coords)
+    area, centroid = ring_area_and_centroid(
+        ring, has_z=True, has_m=False, use_xy_length=use_xy_length)
+    assert approx(area, abs=0.001) == expected_area
+    assert approx(centroid.tolist(), abs=0.001) == expected_centroid
+# End test_ring_area_and_centroid_length_options function
 
 
 if __name__ == '__main__':  # pragma: no cover
