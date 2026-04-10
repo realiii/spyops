@@ -760,10 +760,12 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         transformer = self._get_transformer_or_guess(
             from_crs=self.operator_crs, to_crs=self.source_crs)
-        operator_box = box(*self.operator_extent, ccw=False)
+        # noinspection PyTypeChecker
+        operator_box: 'Polygon' = box(*self.operator_extent)
         if transformer:
             operator_box = transform(transformer.transform, operator_box)
-        return operator_box.intersects(box(*self.source_extent, ccw=False))
+        # noinspection PyTypeChecker
+        return operator_box.intersects(box(*self.source_extent))
     # End has_intersection property
 
     @cached_property
