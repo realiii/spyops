@@ -371,7 +371,9 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         if not (extent := ANALYSIS_SETTINGS.extent):
             return self.source_extent
         polygon = self._get_extent_polygon(extent, crs=self.source_crs)
-        return polygon.intersection(box(*self.source_extent, ccw=False)).bounds
+        # noinspection PyTypeChecker
+        polygon: 'Polygon' = polygon.intersection(box(*self.source_extent))
+        return polygon.bounds
     # End _shared_extent method
 
     def _make_disjoint_select(self, element: FeatureClass) -> str:
