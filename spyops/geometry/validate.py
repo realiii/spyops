@@ -31,6 +31,7 @@ def check_polygon(polygon: Polygon | MultiPolygon) \
     """
     Check Polygon
     """
+    # noinspection PyTypeChecker
     return _check_geometry(polygon, cls=Polygon, multi_cls=MultiPolygon)
 # End check_polygon function
 
@@ -40,6 +41,7 @@ def check_linestring(geom: LineString | MultiLineString) \
     """
     Check LineString
     """
+    # noinspection PyTypeChecker
     return _check_geometry(geom, cls=LineString, multi_cls=MultiLineString)
 # End check_linestring function
 
@@ -161,8 +163,9 @@ def get_validated_geometries(feature_class: 'FeatureClass', select_sql: str,
 # End get_validated_geometries function
 
 
-def _get_validated_geoms(feature_class: 'FeatureClass', select_sql: str | None,
-                         checker: Callable, transformer: Callable | None) -> 'ndarray':
+def _get_validated_geoms(feature_class: 'FeatureClass',
+                         select_sql: str | None, checker: Callable,
+                         transformer: Callable | None) -> 'ndarray':
     """
     Get Shapely Geometries from Feature Class, forcing to 2D.
     """

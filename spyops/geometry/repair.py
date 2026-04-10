@@ -343,6 +343,7 @@ def _correct_polygon(geom: Polygon) -> Polygon | None:
     if get_num_points(exterior) < required:
         return None
     holes = geom.interiors
+    # noinspection PyTypeChecker
     holes = [hole for hole, count in zip(holes, get_num_points(holes))
              if count >= required]
     return Polygon(exterior, holes=holes)

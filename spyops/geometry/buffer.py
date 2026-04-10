@@ -121,8 +121,9 @@ def _dissolve_polygons(polygons: 'ndarray', xy_tolerance: XY_TOL) -> 'ndarray':
     """
     Dissolve Polygons and Enforce MultiPolygon
     """
-    return _to_multi(union_all(
-        normalize(polygons).reshape(-1, 1), grid_size=xy_tolerance, axis=1))
+    # noinspection PyTypeChecker
+    return _to_multi(union_all(normalize(polygons).reshape(-1, 1),
+                               grid_size=xy_tolerance, axis=1))
 # End _dissolve_polygons function
 
 
@@ -162,6 +163,7 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
     from_equidistant = make_transformer_function(
         shape_type=ShapeType.multi_polygon, has_z=False, has_m=False,
         transformer=from_equidistant_transformer)
+    # noinspection PyTypeChecker
     return to_equidistant, from_equidistant
 # End _equidistant_transformers function
 
