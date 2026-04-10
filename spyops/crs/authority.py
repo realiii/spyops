@@ -143,7 +143,7 @@ class Authority:
         auth_name, auth_code = self.pretty_name_and_code()
         has_bad_name = CUSTOM_UPPER in self.names or NONE in self.names
         has_bad_code = ZERO_STR in self.codes or NONE in self.codes
-        if has_bad_name and has_bad_code:
+        if has_bad_name and has_bad_code and self._crs is not None:
             name = self._crs.name
             if name.casefold() == UNKNOWN.casefold():
                 auth_name = CUSTOM_UPPER
@@ -198,8 +198,9 @@ class Authority:
         Build the Authority from a CRS object internals
         """
         if not crs.srs:
-            return Authority(names=NONE, codes=NONE, crs=crs)
+            return cls(names=NONE, codes=NONE, crs=crs)
         if authority := _from_json(crs):
+            # noinspection PyTypeChecker
             return authority
         if crs.is_compound:
             crs_list = crs.sub_crs_list
@@ -222,8 +223,9 @@ class Authority:
 
 def _from_json(crs: CRS) -> Authority | None:
     """
-    From JSON dictionary of the CRS object
+    From JSON-dictionary of the CRS object
     """
+    auth_info: dict[str, str]
     if not (auth_info := crs.to_json_dict().get(ID_KEY, {})):
         return None
     auth_name = auth_info.get(AUTHORITY_KEY)

@@ -37,7 +37,7 @@ from spyops.shared.util import safe_int
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
-    from shapely import Point
+    from shapely import Polygon, Point
 
 
 def configure_grids(data_path: Path | str | None = None,
@@ -233,7 +233,8 @@ def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
     and will be transformed to latitude / longitude if CRS is projected.
     """
     projections = []
-    geodetic_crs = crs.geodetic_crs
+    # noinspection PyTypeChecker
+    geodetic_crs: CRS = crs.geodetic_crs
     coordinates = xy_to_dd(crs, coordinates=coordinates).round(-1)
     for lon, lat in coordinates:
         if not isfinite(lon) or not isfinite(lat):
@@ -258,15 +259,19 @@ def get_equidistant_from_extent(source: 'FeatureClass') -> ProjectedCRS | None:
     digits = -1
     pt = get_geographic_extent_centroid(crs, extent=extent)
     lat, lon = round(pt.y, digits), round(pt.x, digits)
-    return _equidistant_projection(crs.geodetic_crs, lat=lat, lon=lon)
+    # noinspection PyTypeChecker
+    geodetic_crs: CRS = crs.geodetic_crs
+    return _equidistant_projection(geodetic_crs, lat=lat, lon=lon)
 # End get_equidistant_from_extent function
 
 
-def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> Point:
+def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> 'Point':
     """
     Get Geographic Centroid from an Extent
     """
-    pt = box(*extent).centroid
+    # noinspection PyTypeChecker
+    poly: 'Polygon' = box(*extent)
+    pt = poly.centroid
     if not crs.is_projected:
         return pt
     transformer = make_geodetic_transformer(crs)

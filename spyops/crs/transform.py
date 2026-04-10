@@ -61,8 +61,8 @@ def get_transforms(source_crs: Union[CRS, 'FeatureClass', 'SpatialReferenceSyste
     list of all transformers (including the best).  If no transformer is
     required, the best will be None and options will be empty.
     """
-    source_crs = get_crs_from_source(source_crs)
-    target_crs = get_crs_from_source(target_crs)
+    source_crs: CRS = get_crs_from_source(source_crs)
+    target_crs: CRS = get_crs_from_source(target_crs)
     _validate_crs_for_transform(source_crs, target_crs)
     source_crs, target_crs = change_crs_dimension(source_crs, target_crs)
     if equals(source_crs, target_crs):
@@ -131,9 +131,12 @@ def make_transformer_function(shape_type: str, has_z: bool, has_m: bool,
     """
     if transformer is None:
         return None
-    include_vertical = (has_z and
-                        transformer.source_crs.is_compound and
-                        transformer.target_crs.is_compound)
+    source_crs = transformer.source_crs
+    target_crs = transformer.target_crs
+    if source_crs is None or target_crs is None:
+        return None
+    include_vertical = (
+        has_z and source_crs.is_compound and target_crs.is_compound)
     kwargs = {TRANSFORMER_KEY: transformer,
               INCLUDE_VERTICAL_KEY: include_vertical,
               HAS_Z_KEY: has_z, HAS_M_KEY: has_m}
@@ -163,12 +166,12 @@ def _validate_aoi_for_crs(aoi: Optional['AreaOfInterest'], crs: CRS) -> None:
     """
     if aoi is None:
         return
-    if crs.area_of_use is None:
+    if (aou := crs.area_of_use) is None:
         return
     aoi_boxes = _make_boxes(
         left=aoi.west_lon_degree, bottom=aoi.south_lat_degree,
         right=aoi.east_lon_degree, top=aoi.north_lat_degree)
-    crs_boxes = _make_boxes(*crs.area_of_use.bounds)
+    crs_boxes = _make_boxes(*aou.bounds)
     results = []
     for aoi_box in aoi_boxes:
         results.extend(aoi_box.intersects(crs_boxes))
