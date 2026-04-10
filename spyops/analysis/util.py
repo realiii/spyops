@@ -16,8 +16,7 @@ from shapely import STRtree, difference
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
-from spyops.environment.enumeration import (
-    OutputMOption, OutputZOption, Setting)
+from spyops.environment.enumeration import OutputMOption, OutputZOption, Setting
 from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_multi
 from spyops.geometry.util import filter_features, to_shapely
@@ -26,12 +25,10 @@ from spyops.geometry.wa import set_precision
 from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
 from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
-from spyops.shared.hint import (
-    ELEMENT, FIELDS, FIELD_NAMES, GPKG, GRID_SIZE, XY_TOL)
+from spyops.shared.hint import ELEMENT, FIELDS, GPKG, GRID_SIZE, XY_TOL
 from spyops.shared.records import bulk_insert, extend_records
 from spyops.shared.sql import SQL_NO_ID
-from spyops.shared.util import (
-    element_names, make_unique_name, make_valid_name)
+from spyops.shared.util import element_names, make_unique_name, make_valid_name
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -84,7 +81,7 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
 # End _clip function
 
 
-def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
+def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS,
                          geopackage: GPKG, ignore_zm_settings: bool) \
         -> dict[tuple, ELEMENT]:
     """
@@ -109,6 +106,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
           Swap(Setting.OUTPUT_Z_OPTION, z_option),
           Swap(Setting.OUTPUT_M_OPTION, m_option)):
         if is_feature_class:
+            source: FeatureClass
             is_different = zm_config(source).is_different
             transformer = query.source_transformer
         else:
@@ -120,6 +118,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             name = UNDERSCORE.join([str(g).strip() for g in group])
             name = make_valid_name(name, prefix=source_name)
             name = make_unique_name(name, names=target_names)
+            # noinspection PyArgumentList,PyTypeChecker,PyNoneFunctionAssignment
             element = copy_element(
                 source=source, where_clause=SQL_NO_ID,
                 target=cls(geopackage=geopackage, name=name))
@@ -128,6 +127,7 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
             insert_sql = query_insert.format(element.escaped_name)
             with ExecuteMany(connection=cout, table=element) as executor:
                 if is_feature_class:
+                    element: FeatureClass
                     config = geometry_config(element, cast_geom=is_different)
                     bulk_insert(cursor, config=config, executor=executor,
                                 transformer=transformer, insert_sql=insert_sql)
@@ -210,10 +210,10 @@ def _symmetrical_difference(query: QUERY_SYM) -> None:
         transformer=query.source_transformer)
     _difference(
         source=query.operator, source_transformer=query.operator_transformer,
-        select_sql=query.select_operator, insert_sql=query.operator_config.insert,
-        overlay_geoms=geoms, overlay_transformer=query.source_transformer,
-        target=query.target, config=query.geometry_config,
-        grid_size=query.grid_size)
+        select_sql=query.select_operator,
+        insert_sql=query.operator_config.insert, overlay_geoms=geoms,
+        overlay_transformer=query.source_transformer, target=query.target,
+        config=query.geometry_config, grid_size=query.grid_size)
 # End _symmetrical_difference function
 
 
@@ -268,6 +268,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
                 op_attr = op_features[op_idx][1:]
                 op_geom = op_geoms[op_idx]
                 src_attrs = [features[idx][1:] for idx in indexes]
+                # noinspection PyUnresolvedReferences
                 intersections = op_geom.intersection(
                     geometries[indexes], grid_size=grid_size)
                 results.extend([

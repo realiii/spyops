@@ -24,8 +24,8 @@ from spyops.validation import (
     validate_dissolve_option, validate_distance, validate_field,
     validate_overwrite_source, validate_range, validate_result,
     validate_side_option, validate_source_feature_class,
-    validate_str_enumeration, validate_target_feature_class,
-    validate_values, validate_xy_tolerance)
+    validate_str_enumeration, validate_target_feature_class, validate_values,
+    validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
