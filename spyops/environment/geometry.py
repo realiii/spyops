@@ -74,6 +74,7 @@ class _GeometryDimensions:
 
     @z_value.setter
     def z_value(self, value: float) -> None:
+        # noinspection PyTypeChecker
         if (value := safe_float(value)) is None:
             value = nan
         self._z_value = value

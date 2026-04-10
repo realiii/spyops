@@ -108,7 +108,8 @@ class Extent:
         extent = extent_from_feature_class(feature_class)
         if not isfinite(extent).all():
             return cls(None, crs=crs)
-        return cls(box(*extent, ccw=False), crs=crs)
+        # noinspection PyTypeChecker
+        return cls(box(*extent), crs=crs)
     # End from_feature_class method
 # End Extent class
 
