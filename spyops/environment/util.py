@@ -94,8 +94,12 @@ def get_geographic_transformation(source_crs: 'CRS', target_crs: 'CRS',
     if not transformations or equals(source_crs, target_crs):
         return None
     for transformer in transformations:
-        if (equals(transformer.source_crs, source_crs) and
-                equals(transformer.target_crs, target_crs)):
+        transformer_source_crs = transformer.source_crs
+        transformer_target_crs = transformer.target_crs
+        if transformer_source_crs is None or transformer_target_crs is None:
+            continue
+        if (equals(transformer_source_crs, source_crs) and
+                equals(transformer_target_crs, target_crs)):
             return transformer
     return None
 # End get_geographic_transformation function
