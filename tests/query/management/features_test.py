@@ -7,7 +7,7 @@ Test for Features Query classes
 from sqlite3 import OperationalError
 
 from fudgeo import FeatureClass, Field, Table
-from fudgeo.enumeration import FieldType
+from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.geometry import Point, PointM, PointZ, PointZM
 from pyproj import CRS
 from pytest import approx, mark, raises
@@ -17,7 +17,8 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry, QueryMultiPartToSinglePart, QueryRepairGeometry,
+    QueryCheckGeometry, QueryFeatureEnvelopeToPolygon,
+    QueryMultiPartToSinglePart, QueryRepairGeometry,
     QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
@@ -608,6 +609,46 @@ class TestQueryXYTableLine:
         assert query.filter_extent is None
     # End test_filter_extent method
 # End TestQueryXYTableLine class
+
+
+class TestQueryFeatureEnvelopeToPolygon:
+    """
+    Test QueryFeatureEnvelopeToPolygon
+    """
+    @mark.parametrize('fc_name, as_multi_part, shape_type', [
+        ('hydro_a', True, ShapeType.multi_polygon),
+        ('hydro_a', False, ShapeType.polygon),
+        ('transmission_ml', True, ShapeType.multi_polygon),
+        ('transmission_ml', False, ShapeType.polygon),
+        ('transmission_mp', True, ShapeType.polygon),
+        ('transmission_mp', False, ShapeType.polygon),
+    ])
+    def test_get_target_shape_type(self, ntdb_zm_small, fc_name, as_multi_part, shape_type):
+        """
+        Test get_target_shape_type
+        """
+        source = ntdb_zm_small[fc_name]
+        query = QueryFeatureEnvelopeToPolygon(
+            source, None, as_multi_part=as_multi_part)
+        assert query._get_target_shape_type() == shape_type
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_a', (False, False, False)),
+        ('hydro_m_a', (True, False, True)),
+        ('hydro_z_a', (True, True, False)),
+        ('hydro_zm_a', (True, True, True)),
+    ])
+    def test_zm_config(self, ntdb_zm_small, fc_name, expected):
+        """
+        Test zm_config
+        """
+        source = ntdb_zm_small[fc_name]
+        query = QueryFeatureEnvelopeToPolygon(
+            source, None, as_multi_part=True)
+        assert query.zm_config == expected
+    # End test_zm_config method
+# End TestQueryFeatureEnvelopeToPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover

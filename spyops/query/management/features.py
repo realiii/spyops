@@ -18,18 +18,19 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.util import get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.environment.core import HasZM, ZMConfig
+from spyops.environment.core import HasZM, ZMConfig, zm_config
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
     length_planar, line_azimuth, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
-from spyops.geometry.extent import extent_maximum, extent_minimum
+from spyops.geometry.extent import (
+    extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
 from spyops.query.base import (
     AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
 from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
-    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE,
-    add_orig_fid, get_geometry_column_name, make_field_names, validate_fields)
+    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_orig_fid,
+    get_geometry_column_name, make_field_names)
 from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
 from spyops.shared.sql import SQL_ALL_ID
 
@@ -73,17 +74,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         """
         Select from Source including FID
         """
-        fields = validate_fields(self.source, fields=self.source.fields)
-        fields = [self.source.primary_key_field, *fields]
-        select_names = make_field_names(fields)
-        geom_type = get_geometry_column_name(
-            self.source, include_geom_type=True)
-        select_names = self._concatenate(geom_type, select_names)
-        if ANALYSIS_SETTINGS.extent:
-            return self._make_intersection_query(
-                self.source, field_names=select_names)
-        return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+        return self.select_with_fid
     # End select property
 
     @property
@@ -203,7 +194,7 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         """
         Get Field Names
         """
-        orig_id, geom = self._intermediate_fields
+        _, geom = self._intermediate_fields
         return [geom.escaped_name]
     # End _get_field_names method
 
@@ -213,11 +204,11 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         Drop Empty Features from Source Feature Class
         """
         name = self._intermediate_table
-        orig_id, _ = self._intermediate_fields
+        orig_fid, _ = self._intermediate_fields
         key_name = self.source.primary_key_field.escaped_name
         return f"""
             DELETE FROM {self.source.escaped_name} 
-            WHERE {key_name} IN (SELECT {orig_id.name} FROM {name})
+            WHERE {key_name} IN (SELECT {orig_fid.name} FROM {name})
         """
     # End drop_empty property
 
@@ -236,8 +227,8 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         """
         Insert Query for Identifiers
         """
-        orig_id, _ = self._intermediate_fields
-        fields = [orig_id]
+        orig_fid, _ = self._intermediate_fields
+        fields = [orig_fid]
         return self._make_insert(
             self._intermediate_table,
             field_names=make_field_names(fields), field_count=len(fields))
@@ -734,6 +725,84 @@ class QueryXYTableLine(QueryXYTablePoint):
         return self._coord_sys
     # End spatial_reference_system property
 # End QueryXYTableLine class
+
+
+class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
+    """
+    Query Feature Envelope to Polygon
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 as_multi_part: bool) -> None:
+        """
+        Initialize the QueryFeatureEnvelopeToPolygon class
+        """
+        super().__init__(source, target=target)
+        self._as_multi_part: bool = as_multi_part
+    # End init built-in
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and Rename Primary Key Columns if included
+        """
+        return add_orig_fid(self.source)
+    # End _get_unique_fields method
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        if self.as_multi_part:
+            return ShapeType.multi_polygon
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    @property
+    def as_multi_part(self) -> bool:
+        """
+        As Multi Part, check the input Shape Type to see if the output should
+        be multipart or not.
+        """
+        shape_type = self.source.shape_type
+        if ShapeType.point in shape_type:
+            return False
+        return self._as_multi_part
+    # End as_multi_part property
+
+    @property
+    def extent_getter(self) -> Callable:
+        """
+        Extent Getter
+        """
+        if self.as_multi_part:
+            return extent_from_parts
+        return extent_from_geometry
+    # End extent_getter property
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source including FID
+        """
+        return self.select_with_fid
+    # End select property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+
+        Only generating a 2D extent regardless of the input feature class
+        dimensions, which means that the presence of Z or M on the source
+        (or from the settings) handled as is_different=True to ensure that
+        geometry casting occurs.
+        """
+        zm = zm_config(self.source)
+        is_different = zm.z_enabled or zm.m_enabled
+        return ZMConfig(
+            is_different=is_different, z_enabled=zm.z_enabled,
+            m_enabled=zm.m_enabled)
+    # End zm_config property
+# End QueryFeatureEnvelopeToPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover
