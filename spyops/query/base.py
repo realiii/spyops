@@ -432,7 +432,7 @@ class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
         if not (extent := ANALYSIS_SETTINGS.extent):
             return True
         polygon = self._get_extent_polygon(extent, crs=self.source_crs)
-        return polygon.intersects(box(*self.source_extent, ccw=False))
+        return polygon.intersects(box(*self.source_extent))
     # End has_intersection property
 
     @cached_property
@@ -723,8 +723,8 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Shared Extent between source and operator
         """
-        source_box = box(*self.source_extent, ccw=False)
-        operator_box = box(*self.operator_extent, ccw=False)
+        source_box = box(*self.source_extent)
+        operator_box = box(*self.operator_extent)
         if element is self.source:
             transformer = self._get_transformer_or_guess(
                 from_crs=self.operator_crs, to_crs=self.source_crs)

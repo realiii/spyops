@@ -186,9 +186,9 @@ def _make_boxes(left: float, bottom: float,
     Make Boxes, accounting for 180/-180
     """
     if left > right:
-        return [box(xmin=left, ymin=bottom, xmax=180, ymax=top, ccw=False),
-                box(xmin=-180, ymin=bottom, xmax=right, ymax=top, ccw=False)]
-    return [box(xmin=left, ymin=bottom, xmax=right, ymax=top, ccw=False)]
+        return [box(xmin=left, ymin=bottom, xmax=180, ymax=top),
+                box(xmin=-180, ymin=bottom, xmax=right, ymax=top)]
+    return [box(xmin=left, ymin=bottom, xmax=right, ymax=top)]
 # End _make_boxes function
 
 

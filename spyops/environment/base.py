@@ -96,8 +96,7 @@ class Extent:
             return cls(None, crs=crs)
         x_min, x_max = min(x_min, x_max), max(x_min, x_max)
         y_min, y_max = min(y_min, y_max), max(y_min, y_max)
-        return cls(box(xmin=x_min, ymin=y_min, xmax=x_max,
-                       ymax=y_max, ccw=False), crs=crs)
+        return cls(box(xmin=x_min, ymin=y_min, xmax=x_max, ymax=y_max), crs=crs)
     # End from_bounds method
 
     @classmethod
