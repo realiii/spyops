@@ -260,6 +260,7 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     POINT_COUNT -- number of points
     HOLE_COUNT -- number of holes
     """
+    field: Field
     with QueryCalculateGeometryAttributes(
             source, field=field, geometry_attribute=geometry_attribute,
             weight_option=weight_option, length_unit=length_unit,
@@ -477,6 +478,8 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
     along the line in addition to the start and end points.
     """
     records = []
+    fields: tuple[Field, Field, Field, Field]
+    # noinspection PyTypeChecker
     fields = start_x_field, start_y_field, end_x_field, end_y_field
     query = QueryXYTableLine(source, target=target, fields=fields,
                              coordinate_system=coordinate_system)

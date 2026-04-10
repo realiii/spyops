@@ -31,7 +31,7 @@ from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_orig_fid,
     get_geometry_column_name, make_field_names)
-from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.hint import ELEMENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
 from spyops.shared.sql import SQL_ALL_ID
 
 
@@ -534,7 +534,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
     """
     Query for XY Table to Point Feature Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: 'FeatureClass',
                  fields: tuple[Field | None, ...],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
@@ -672,7 +672,7 @@ class QueryXYTableLine(QueryXYTablePoint):
     """
     Query for XY to Line Feature Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: 'FeatureClass',
                  fields: tuple[Field, Field, Field, Field],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
