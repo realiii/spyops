@@ -15,7 +15,8 @@ from spyops.shared.keywords import (
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
-    validate_element, validate_elements, validate_str_enumeration, validate_field)
+    validate_element, validate_elements, validate_str_enumeration,
+    validate_field)
 
 
 __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field']
@@ -47,6 +48,7 @@ def add_field(source: ELEMENT, *, fields: FIELDS = (),
     """
     if not fields and not elements:
         return source
+    fields: list[Field]
     fields = list(fields)
     for element in elements:
         # noinspection PyProtectedMember
@@ -76,6 +78,7 @@ def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
         where_clause = EMPTY
     else:
         where_clause = f'WHERE {where_clause}'
+    field: Field
     with source.geopackage.connection as conn:
         # noinspection SqlWithoutWhere
         conn.execute(f"""
@@ -107,11 +110,13 @@ def alter_field(source: ELEMENT, field: Field | str, *,
             raise ValueError('Value must be specified for field name.')
         source.rename_field(field, name=value)
     elif field_property in lut:
+        field: Field
         prop_name = lut[field_property]
         source.geopackage.enable_schema_extension()
-        source.geopackage.schema.set_field_property(
-            table_name=source.name, column_name=field.name,
-            prop_name=prop_name, value=value)
+        if schema := source.geopackage.schema:
+            schema.set_field_property(
+                table_name=source.name, column_name=field.name,
+                prop_name=prop_name, value=value)
     return source
 # End alter_field function
 

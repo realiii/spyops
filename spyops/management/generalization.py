@@ -42,6 +42,8 @@ def dissolve(source: 'FeatureClass', target: 'FeatureClass',
     whether the output is a single-part or multipart feature class.
     """
     records = []
+    group_fields: FIELDS
+    statistics: STATS_FIELDS
     with QueryDissolve(source, target=target, fields=group_fields,
                        statistics=statistics, as_multi_part=as_multi_part,
                        xy_tolerance=xy_tolerance) as query:
