@@ -47,8 +47,9 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     if not isfinite(extent).all():
         return 1.
     crs = get_crs_from_source(feature_class)
+    if not (geod := crs.get_geod()):
+        return 1.
     pt = get_geographic_extent_centroid(crs, extent=extent)
-    geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
     # NOTE use 45 degrees to approximate movement in 0 and 90 degrees
     x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=45, dist=1)
