@@ -11,7 +11,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from shapely import Polygon
     from spyops.geometry.config import GeometryConfig
-    from spyops.query.base import AbstractQuery, AbstractSpatialQuery
+    from spyops.query.base import AbstractElementQuery, AbstractSpatialQuery
 
 
 class AnalysisComponents(NamedTuple):
@@ -19,7 +19,7 @@ class AnalysisComponents(NamedTuple):
     Spatial Analysis Components
     """
     has_intersection: bool
-    query: Union['AbstractQuery', 'AbstractSpatialQuery']
+    query: Union['AbstractElementQuery', 'AbstractSpatialQuery']
     target: 'FeatureClass'
 # End AnalysisComponents class
 

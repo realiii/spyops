@@ -47,8 +47,9 @@ def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     if not isfinite(extent).all():
         return 1.
     crs = get_crs_from_source(feature_class)
+    if not (geod := crs.get_geod()):
+        return 1.
     pt = get_geographic_extent_centroid(crs, extent=extent)
-    geod = crs.get_geod()
     center_x, center_y = pt.x, pt.y
     # NOTE use 45 degrees to approximate movement in 0 and 90 degrees
     x, y, _ = geod.fwd(lons=center_x, lats=center_y, az=45, dist=1)
@@ -72,7 +73,7 @@ def get_grid_size(source: 'FeatureClass', xy_tolerance: XY_TOL,
         return xy_tolerance
     crs_unit_name = get_unit_name(crs)
     source_crs_unit_name = get_unit_name(source_crs)
-    if crs_unit_name == source_crs_unit_name:
+    if crs_unit_name == source_crs_unit_name or source_crs_unit_name is None:
         return xy_tolerance
     if crs_unit_name == DEGREE:
         crs_unit_name = METRE
@@ -94,8 +95,12 @@ def get_geographic_transformation(source_crs: 'CRS', target_crs: 'CRS',
     if not transformations or equals(source_crs, target_crs):
         return None
     for transformer in transformations:
-        if (equals(transformer.source_crs, source_crs) and
-                equals(transformer.target_crs, target_crs)):
+        transformer_source_crs = transformer.source_crs
+        transformer_target_crs = transformer.target_crs
+        if transformer_source_crs is None or transformer_target_crs is None:
+            continue
+        if (equals(transformer_source_crs, source_crs) and
+                equals(transformer_target_crs, target_crs)):
             return transformer
     return None
 # End get_geographic_transformation function

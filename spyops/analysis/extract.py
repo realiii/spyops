@@ -80,6 +80,7 @@ def split_by_attributes(source: ELEMENT, group_fields: FIELDS | FIELD_NAMES,
 
     Split an input table or feature class by groups of attributes.
     """
+    # noinspection PyTypeChecker
     results = _split_by_attributes(
         source=source, group_fields=group_fields, geopackage=geopackage,
         ignore_zm_settings=False)

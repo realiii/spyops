@@ -41,7 +41,8 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
     """
     Polygonize Workaround -- ensures measures are present
     """
-    collections = _polygonize(geometries, **kwargs)
+    # noinspection PyTypeChecker
+    collections: GeometryCollection = _polygonize(geometries, **kwargs)
     if not USE_WORKAROUNDS.polygonize:
         return collections
     if collections.is_empty:
@@ -57,9 +58,11 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                     geom, include_z=has_z, include_m=True):
                 lookup[tuple(key)].append(m)
     if isinstance(collections, GeometryCollection):
+        # noinspection PyTypeChecker
         collections = [collections]
     wkb = []
     slicer = _get_slicer(has_z=has_z, has_m=has_m)
+    # noinspection PyTypeChecker
     for collections in collections:
         for geom in get_geoms_iter(collections):
             coords = _build_coordinates(
@@ -103,7 +106,7 @@ def make_valid(geometry, *, method='linework', keep_collapsed=True, **kwargs):
     Make Valid Workaround
     """
     # noinspection PyTypeChecker
-    result = _make_valid(
+    result: 'BaseGeometry' = _make_valid(
         geometry, method=method, keep_collapsed=keep_collapsed, **kwargs)
     has_m = geometry.has_m
     if not (USE_WORKAROUNDS.make_valid and has_m):
@@ -147,6 +150,7 @@ def _reapply_measures(geometry: 'BaseGeometry',
     coords = _build_coordinates(
         result, has_z=has_z, slicer=slicer, lookup=lookup)
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
+    # noinspection PyTypeChecker
     return from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
 # End _reapply_measures function
 
@@ -171,6 +175,7 @@ def _build_coordinates(result: Union['BaseGeometry', 'BaseMultipartGeometry'],
     else:
         coords = []
         getter = get_rings
+        # noinspection PyTypeChecker
         for part in get_geoms(result):
             coords.append(_build_linear_coordinates(
                 part, getter=getter, has_z=has_z, slicer=slicer, lookup=lookup))
@@ -266,7 +271,7 @@ class _UseWorkarounds:
         """
         a = from_wkt('Polygon ((0 0 0 0, 0 1 1 1, 1 1 2 3, 1 0 4 5, 0 0 6 7))')
         # noinspection PyTypeChecker
-        result = coverage_simplify(a, tolerance=0.001)
+        result: BaseGeometry = coverage_simplify(a, tolerance=0.001)
         return not result.has_m
     # End coverage_simplify property
 

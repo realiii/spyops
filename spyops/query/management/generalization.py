@@ -20,7 +20,7 @@ from spyops.shared.database import (
     add_aggregates, remove_aggregates)
 from spyops.shared.field import (
     get_geometry_column_name, make_field_names, make_unique_fields)
-from spyops.shared.hint import ELEMENT, FIELDS, STATS_FIELDS, XY_TOL
+from spyops.shared.hint import FIELDS, STATS_FIELDS, XY_TOL
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -61,7 +61,8 @@ class QueryDissolve(AbstractQueryDissolve):
     # End exit built-in
 
     @cache
-    def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
+    def _field_names_and_count(self, element: 'FeatureClass') \
+            -> tuple[int, str, str]:
         """
         Field Names for Select and Insert + Derive Field Count
         """
@@ -115,6 +116,7 @@ class QueryDissolve(AbstractQueryDissolve):
         elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
         dr_select_names = make_field_names(self._fields)
+        # noinspection PyTypeChecker
         dr_select_stats = make_field_names([s.field for s in self.statistics])
         dr_select_names = self._concatenate(dr_select_names, dr_select_stats)
         # NOTE this extent not used, simply filling a required argument

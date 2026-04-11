@@ -265,7 +265,8 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
     # End _make_planar_feature_class method
 
     @cache
-    def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
+    def _field_names_and_count(self, element: 'FeatureClass') \
+            -> tuple[int, str, str]:
         """
         Override field names for Selection -- ignore insert names and count
         """
@@ -273,6 +274,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         alias = self.temporary_fid_field.escaped_name
+        # noinspection PyUnresolvedReferences
         primary = f'{element.primary_key_field.escaped_name} AS {alias}'
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
@@ -443,6 +445,7 @@ class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
         """
         Make Planarized Geometry
         """
+        # noinspection PyTypeChecker
         return list(get_geoms_iter(union_all(geoms)))
     # End _make_planarized_geometry method
 # End AbstractPlanarizeLineString class
@@ -503,7 +506,8 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
         """
         Make Class Callable
         """
-        fid = self.source.primary_key_field
+        # noinspection PyTypeChecker
+        fid: 'Field' = self.source.primary_key_field
         return self._planarize(self.source, sql=self.select), fid
     # End call built-in
 
@@ -533,7 +537,8 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
         """
         Make Class Callable
         """
-        fid = self.operator.primary_key_field
+        # noinspection PyTypeChecker
+        fid: 'Field' = self.operator.primary_key_field
         return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in
 

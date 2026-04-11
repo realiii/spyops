@@ -31,7 +31,7 @@ from spyops.shared.enumeration import GeometryAttribute, WeightOption
 from spyops.shared.field import (
     ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_orig_fid,
     get_geometry_column_name, make_field_names)
-from spyops.shared.hint import FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.hint import ELEMENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
 from spyops.shared.sql import SQL_ALL_ID
 
 
@@ -205,6 +205,7 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         """
         name = self._intermediate_table
         orig_fid, _ = self._intermediate_fields
+        # noinspection PyUnresolvedReferences
         key_name = self.source.primary_key_field.escaped_name
         return f"""
             DELETE FROM {self.source.escaped_name} 
@@ -242,12 +243,12 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         field_names = self._get_field_names()
         key_name, *from_field_names = [
             f.escaped_name for f in self._intermediate_fields]
+        # noinspection PyUnresolvedReferences
+        target_key_name = self.target.primary_key_field.escaped_name
         return self._make_update_from(
-            element_name=self.target.escaped_name,
-            key_name=self.target.primary_key_field.escaped_name,
-            field_names=field_names,
-            from_name=self._intermediate_table, from_key_name=key_name,
-            from_field_names=from_field_names)
+            element_name=self.target.escaped_name, key_name=target_key_name,
+            field_names=field_names, from_name=self._intermediate_table,
+            from_key_name=key_name, from_field_names=from_field_names)
     # End update property
 # End QueryRepairGeometry class
 
@@ -256,7 +257,8 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
     """
-    def __init__(self, source: 'FeatureClass', weight_option: WeightOption) -> None:
+    def __init__(self, source: 'FeatureClass',
+                 weight_option: WeightOption) -> None:
         """
         Initialize the QueryAddXYCoordinates class
         """
@@ -534,12 +536,13 @@ class QueryXYTablePoint(AbstractSourceQuery):
     """
     Query for XY Table to Point Feature Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: 'FeatureClass',
                  fields: tuple[Field | None, ...],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
         Initialize the QueryXYTablePoint class
         """
+        # noinspection PyTypeChecker
         super().__init__(source, target=target, xy_tolerance=None)
         self._fields: tuple[Field | None, ...] = fields
         self._coord_sys: CRS | SpatialReferenceSystem = coordinate_system
@@ -672,7 +675,7 @@ class QueryXYTableLine(QueryXYTablePoint):
     """
     Query for XY to Line Feature Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: 'FeatureClass',
                  fields: tuple[Field, Field, Field, Field],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """

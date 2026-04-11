@@ -31,6 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover
         MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon, MultiPolygonM,
         MultiPolygonZ, MultiPolygonZM, PointM, PointZ, PointZM, Polygon,
         PolygonM, PolygonZ, PolygonZM)
+    from numpy import ndarray
 
 
 RECORDS: TypeAlias = list[tuple[int, str]]
@@ -110,10 +111,12 @@ def _check_empty_part(features: FEATURES, *, options: GeometryCheck,
     ids = []
     if shape_type == ShapeType.multi_linestring:
         mls: 'MultiLineString'
+        # noinspection PyTypeChecker
         ids = [fid for mls, fid in features
                if any(line.is_empty for line in mls)]
     elif shape_type == ShapeType.multi_polygon:
         mup: 'MultiPolygon'
+        # noinspection PyTypeChecker
         ids = [fid for mup, fid in features
                if any(poly.is_empty for poly in mup)]
     name = _get_name(check)
@@ -133,10 +136,12 @@ def _check_empty_ring(features: FEATURES, *, options: GeometryCheck,
     ids = []
     if shape_type == ShapeType.polygon:
         poly: 'Polygon'
+        # noinspection PyTypeChecker
         ids = [fid for poly, fid in features
                if any(ring.is_empty for ring in poly)]
     elif shape_type == ShapeType.multi_polygon:
         mup: 'MultiPolygon'
+        # noinspection PyTypeChecker
         ids = [fid for mup, fid in features
                if any(any(ring.is_empty for ring in poly) for poly in mup)]
     name = _get_name(check)
@@ -156,16 +161,19 @@ def _check_empty_point(features: FEATURES, *, options: GeometryCheck,
     ids = []
     if shape_type in (ShapeType.multi_point, ShapeType.linestring):
         mpl: Union['MultiPoint', 'LineString']
+        # noinspection PyUnresolvedReferences
         ids = [fid for mpl, fid in features
                if allnan(mpl.coordinates, axis=1).any()]
     elif shape_type == ShapeType.polygon:
         poly: 'Polygon'
+        # noinspection PyTypeChecker,PyUnresolvedReferences
         ids = [fid for poly, fid in features
                if any(allnan(ring.coordinates, axis=1).any() for ring in poly)]
     elif shape_type == ShapeType.multi_linestring:
         mls: 'MultiLineString'
         for mls, fid in features:
             for line in mls:
+                # noinspection PyUnresolvedReferences
                 if allnan(line.coordinates, axis=1).any():
                     ids.append(fid)
                     break
@@ -173,6 +181,7 @@ def _check_empty_point(features: FEATURES, *, options: GeometryCheck,
         mup: 'MultiPolygon'
         for mup, fid in features:
             for poly in mup:
+                # noinspection PyUnresolvedReferences
                 if any(allnan(ring.coordinates, axis=1).any() for ring in poly):
                     ids.append(fid)
                     break
@@ -312,23 +321,28 @@ def _check_nan_z(features: FEATURES, *, options: GeometryCheck, shape_type: str,
     idx = 2
     if shape_type == ShapeType.point:
         pt: PointZ | PointZM
+        # noinspection PyUnresolvedReferences
         ids, zs = zip(*[(fid, pt.z) for pt, fid in features])
         ids = array(ids, dtype=int)
         ids = ids[isnan(zs)]
     elif shape_type in (ShapeType.multi_point, ShapeType.linestring):
         mpl: Union['MultiPointZ', 'MultiPointZM', 'LineStringZ', 'LineStringZM']
+        # noinspection PyUnresolvedReferences
         ids = [fid for mpl, fid in features
                if anynan(mpl.coordinates[:, idx])]
     elif shape_type == ShapeType.multi_linestring:
         mls: Union['MultiLineStringZ', 'MultiLineStringZM']
+        # noinspection PyTypeChecker
         ids = [fid for mls, fid in features
                if any(anynan(line.coordinates[:, idx]) for line in mls)]
     elif shape_type == ShapeType.polygon:
         poly: Union['PolygonZ', 'PolygonZM']
+        # noinspection PyTypeChecker
         ids = [fid for poly, fid in features
                if any(anynan(ring.coordinates[:, idx]) for ring in poly)]
     elif shape_type == ShapeType.multi_polygon:
         mup: Union['MultiPolygonZ', 'MultiPolygonZM']
+        # noinspection PyTypeChecker
         ids = [fid for mup, fid in features
                if any(any(anynan(ring.coordinates[:, idx])
                           for ring in poly) for poly in mup)]
@@ -349,22 +363,27 @@ def _check_nan_m(features: FEATURES, *, options: GeometryCheck, shape_type: str,
     idx = 1 + has_z + has_m
     if shape_type == ShapeType.point:
         pt: Union['PointM', 'PointZM']
+        # noinspection PyUnresolvedReferences
         ids, zs = zip(*[(fid, pt.m) for pt, fid in features])
         ids = ids[isnan(zs)]
     elif shape_type in (ShapeType.multi_point, ShapeType.linestring):
         mpl: Union['MultiPointM', 'MultiPointZM', 'LineStringM', 'LineStringZM']
+        # noinspection PyUnresolvedReferences
         ids = [fid for mpl, fid in features
                if anynan(mpl.coordinates[:, idx])]
     elif shape_type == ShapeType.multi_linestring:
         mls: Union['MultiLineStringM', 'MultiLineStringZM']
+        # noinspection PyTypeChecker
         ids = [fid for mls, fid in features
                if any(anynan(line.coordinates[:, idx]) for line in mls)]
     elif shape_type == ShapeType.polygon:
         poly: Union['PolygonM', 'PolygonZM']
+        # noinspection PyTypeChecker
         ids = [fid for poly, fid in features
                if any(anynan(ring.coordinates[:, idx]) for ring in poly)]
     elif shape_type == ShapeType.multi_polygon:
         mup: Union['MultiPolygonM', 'MultiPolygonZM']
+        # noinspection PyTypeChecker
         ids = [fid for mup, fid in features
                if any(any(anynan(ring.coordinates[:, idx])
                           for ring in poly) for poly in mup)]
@@ -390,7 +409,8 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     check_mismatch_z = GeometryCheck.MISMATCH_Z in options and has_z
     check_mismatch_m = GeometryCheck.MISMATCH_M in options and has_m
     wkb, fids = zip(*[(geom.wkb, fid) for geom, fid in features])
-    geoms = from_wkb(wkb, on_invalid='ignore')
+    # noinspection PyTypeChecker
+    geoms: 'ndarray' = from_wkb(wkb, on_invalid='ignore')
     mask_keep = ~make_none_mask(geoms)
     if not mask_keep.any():
         return
@@ -401,8 +421,8 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
         geoms, include_z=has_z, include_m=has_m, return_index=True)
     if not grid_size:
         grid_size = 1e-8
-    coords = (coords / grid_size).round() * grid_size
-    coords = coords.round(8)
+    # noinspection PyUnresolvedReferences
+    coords = ((coords / grid_size).round() * grid_size).round(8)
     validations = {}
     index = 1 + has_z + has_m
     ids = find_slice_indexes(indexes)

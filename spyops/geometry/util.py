@@ -161,7 +161,8 @@ def ring_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
 # End ring_area_and_centroid function
 
 
-def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray', area: float) -> float:
+def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray',
+                            area: float) -> float:
     """
     Get Weighted Dimension
     """

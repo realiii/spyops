@@ -91,6 +91,7 @@ def safe_int(value: Any) -> int | None:
     Simple Conversion to int, None if fails
     """
     try:
+        # noinspection PyTypeChecker
         return int(safe_float(value))
     except (AttributeError, ValueError, TypeError):
         return None

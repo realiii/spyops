@@ -29,11 +29,12 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
     Build MultiPoint, MultiLineString, or MultiPolygon from a Feature Class or
     collection of geometries.
     """
-    if not len(features):
+    if features is None or not len(features):
         return None
     if isinstance(features, FeatureClass):
         shape_type = features.shape_type
     else:
+        features: ndarray
         shape_type = features[0].geom_type.upper()
         features = force_2d(features)
         if transformer:
@@ -102,6 +103,7 @@ def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
         # noinspection PyTypeChecker
         multi = MultiPolygon([multi])
     prepare(multi)
+    # noinspection PyTypeChecker
     return multi
 # End _multi_polygon function
 

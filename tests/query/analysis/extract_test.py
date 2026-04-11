@@ -13,7 +13,8 @@ from pytest import approx, mark, raises
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.analysis.extract import (
-    QueryClip, QuerySelect, QuerySplit, QuerySplitByAttributes)
+    QueryClip, QuerySelect, QuerySplit, QuerySplitByAttributesTable,
+    QuerySplitByAttributesFeatureClass)
 from spyops.geometry.config import GeometryConfig
 
 
@@ -70,11 +71,11 @@ class TestQuerySplitByAttributes:
     """
     Test Query Split By Attributes
     """
-    @mark.parametrize('name, fix_name, group_names', [
-        ('cities', 'world_tables', ('FIPS_CNTRY', 'CNTRY_NAME', 'STATUS')),
-        ('lakes_a', 'world_features', ('FEATURE_ID', 'PART_ID', 'NAME')),
+    @mark.parametrize('query_cls, name, fix_name, group_names', [
+        (QuerySplitByAttributesTable, 'cities', 'world_tables', ('FIPS_CNTRY', 'CNTRY_NAME', 'STATUS')),
+        (QuerySplitByAttributesFeatureClass, 'lakes_a', 'world_features', ('FEATURE_ID', 'PART_ID', 'NAME')),
     ])
-    def test_select_and_insert(self, request, name, fix_name, group_names):
+    def test_select_and_insert(self, request, query_cls, name, fix_name, group_names):
         """
         Test select and insert statements
         """
@@ -82,7 +83,7 @@ class TestQuerySplitByAttributes:
         element = gpkg[name]
         fields = [Field(n, data_type=FieldType.text) for n in group_names]
         group_names = COMMA_SPACE.join(group_names)
-        query = QuerySplitByAttributes(element, fields)
+        query = query_cls(element, fields)
         assert f'FROM {element.name}' in query.groups
         assert 'INTO {}(' in query.insert.strip()
         assert f'dense_rank() OVER (ORDER BY {group_names}' in query.select
@@ -95,7 +96,7 @@ class TestQuerySplitByAttributes:
         element = world_features['lakes_a']
         group_names = ('FEATURE_ID', 'PART_ID', 'NAME')
         fields = [Field(n, data_type=FieldType.text) for n in group_names]
-        query = QuerySplitByAttributes(element, fields)
+        query = QuerySplitByAttributesFeatureClass(element, fields)
         assert query.grid_size is None
     # End test_grid_size method
 
@@ -106,7 +107,7 @@ class TestQuerySplitByAttributes:
         source = world_features['admin_a']
         fields = (Field('ISO_CC', data_type=FieldType.text),
                   Field('LAND_TYPE', data_type=FieldType.text))
-        query = QuerySplitByAttributes(source, fields=fields)
+        query = QuerySplitByAttributesFeatureClass(source, fields=fields)
         with Swap(Setting.EXTENT, Extent.from_bounds(20, 10, 30, 20, crs=CRS(4326))):
             assert '20' in query.select
             assert '30' in query.groups

@@ -33,7 +33,8 @@ class ValidateField(AbstractValidateType):
     def __init__(self, name: str, *, data_types: NAMES = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
-                 exclude_primary: bool = True, is_optional: bool = False) -> None:
+                 exclude_primary: bool = True,
+                 is_optional: bool = False) -> None:
         """
         Initialize the ValidateField class
 
@@ -43,7 +44,7 @@ class ValidateField(AbstractValidateType):
         :param exists: Ensure that the specified field exists
         :param single: Expect only a single field
         :param exclude_geometry: Exclude geometry column
-        :param exclude_primary: Exclude primary key attributes should be excluded
+        :param exclude_primary: Exclude primary key attribute
         :param is_optional: Field argument is not required
         """
         super().__init__(name=name)
@@ -115,6 +116,7 @@ class ValidateField(AbstractValidateType):
         obj = self._make_iterable(obj)
         if len(fields) != len(obj):
             found = {f.name.casefold() for f in fields}
+            # noinspection PyUnresolvedReferences
             names = [getattr(i, NAME_ATTR, i) for i in obj
                      if getattr(i, NAME_ATTR, i).casefold() not in found]
             raise ValueError(f'{names} not found in {element.name}')
@@ -217,7 +219,8 @@ class ValidateDistance(ValidateField):
             self._validate_type(obj)
             element = self._get_element(kwargs)
             if isinstance(obj, (float, int)):
-                unit_name = get_unit_name(get_crs_from_source(element))
+                # noinspection PyTypeChecker
+                unit_name: str = get_unit_name(get_crs_from_source(element))
                 if cls := UNIT_CLASS_MAP.get(unit_name.casefold()):
                     obj = cls(obj)
                 else:
@@ -296,11 +299,13 @@ class ValidateStatisticField(ValidateField):
             field = stat.field
             if not isinstance(field, (Field, str)):
                 continue
+            # noinspection PyUnresolvedReferences
             fields[getattr(field, NAME_ATTR, field).casefold()] = field
         fields = super()._find_field(list(fields.values()), element=element)
         fields = {field.name.casefold(): field for field in fields}
         for stat in obj:
             field = stat.field
+            # noinspection PyUnresolvedReferences
             stat.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
         return [stat for stat in obj if stat.field]
     # End _find_field method
@@ -327,7 +332,8 @@ class ValidateGeometryDimension(AbstractValidate):
     """
     Validate Geometry Dimension
     """
-    def __init__(self, *names, same: bool = False, strict: bool = False) -> None:
+    def __init__(self, *names, same: bool = False,
+                 strict: bool = False) -> None:
         """
         Initialize the ValidateGeometryDimension class
         """

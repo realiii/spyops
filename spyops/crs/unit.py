@@ -38,7 +38,8 @@ def degrees_to_meters(crs: 'CRS', coordinates: 'ndarray',
     coordinates = xy_to_dd(crs, coordinates=coordinates)
     lon = coordinates[:, 0]
     lat = coordinates[:, 1]
-    geod = crs.get_geod()
+    if not (geod := crs.get_geod()):
+        raise ValueError('Cannot convert degrees to meters without a Geod')
     *_, east = geod.inv(lons1=lon, lats1=lat, lats2=lat, lons2=lon + value)
     *_, west = geod.inv(lons1=lon, lats1=lat, lats2=lat, lons2=lon - value)
     *_, north = geod.inv(lons1=lon, lats1=lat, lons2=lon, lats2=lat + value)
@@ -59,6 +60,7 @@ def get_linear_unit_conversion_factor(from_name: str, to_name: str) -> float:
     to_unit = _get_unit_by_name(to_name)
     if None in (from_unit, to_unit):
         return 1.
+    # noinspection PyUnresolvedReferences
     return from_unit.conv_factor / to_unit.conv_factor
 # End get_linear_unit_conversion_factor function
 
@@ -88,12 +90,16 @@ def get_unit_conversion(from_unit: LengthUnit | AreaUnit,
     if from_unit == to_unit:
         return 1.
     if is_length:
+        # noinspection PyTypeChecker
         from_factor = get_conv_factor(LENGTH_UNIT_LUT[from_unit])
+        # noinspection PyTypeChecker
         to_factor = get_conv_factor(LENGTH_UNIT_LUT[to_unit])
         return from_factor / to_factor
     else:
+        # noinspection PyTypeChecker
         from_value, from_factor = AREA_UNIT_LUT[from_unit]
         from_factor *= get_conv_factor(from_value) ** 2
+        # noinspection PyTypeChecker
         to_value, to_factor = AREA_UNIT_LUT[to_unit]
         to_factor *= get_conv_factor(to_value) ** 2
         return from_factor / to_factor
@@ -105,7 +111,10 @@ def get_conv_factor(value: str | float):
     Get Conversion Factor
     """
     if isinstance(value, str):
-        return _get_unit_by_name(value).conv_factor
+        unit = _get_unit_by_name(value)
+        if unit is None:
+            raise ValueError(f'Unknown unit: {value}')
+        return unit.conv_factor
     return value
 # End get_conv_factor function
 
@@ -120,6 +129,7 @@ def unit_factory(value: str) -> Optional[Union['LinearUnit', 'DecimalDegrees']]:
     if len(parts) != 2:
         return None
     value, name = parts
+    # noinspection PyTypeChecker
     if (value := safe_float(value)) is None:
         return None
     if (unit_class := UNIT_CLASS_MAP.get(name.strip().casefold())) is None:
@@ -210,6 +220,7 @@ class LinearUnit:
         """
         if self.value is None:
             return None
+        # noinspection PyUnresolvedReferences
         return self.value * get_unit_conversion(
             from_unit=self.unit, to_unit=LengthUnit.METERS)
     # End meters property

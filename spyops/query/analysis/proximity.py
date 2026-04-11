@@ -80,6 +80,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         super().__init__(
             source, target=target, fields=fields or [], as_multi_part=True,
             xy_tolerance=xy_tolerance)
+        # noinspection PyArgumentList
         self._config: BufferConfig = BufferConfig(
             distance=distance, buffer_type=buffer_type, side_option=side_option,
             end_option=end_option, resolution=resolution)
@@ -127,6 +128,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             is_projected = self.source_crs.is_projected
             return is_projected, not is_projected
         # NOTE this extent is not used, simply filling a required argument
+        distance: Field
         null_clause = f'{distance.escaped_name} IS NOT NULL'
         # noinspection PyUnresolvedReferences
         if index_where := self._spatial_index_where(elm, extent=(0, 0, 0, 0)):
@@ -270,7 +272,8 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     # End _convert_unit method
 
     def _convert_units(self, geometries: 'ndarray',
-                       units: list[LinearUnit | DecimalDegrees]) -> 'ndarray':
+                       units: list[LinearUnit | DecimalDegrees | None]) \
+            -> 'ndarray':
         """
         Convert Units
         """
@@ -307,8 +310,8 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Get Conversion Factor
         """
-        # noinspection PyUnresolvedReferences
-        unit_name = get_unit_name(self.source_crs)
+        if not (unit_name := get_unit_name(self.source_crs)):
+            return 1.
         return get_linear_unit_conversion_factor(
             from_name=METRE, to_name=unit_name)
     # End _get_conversion_factor method
@@ -334,7 +337,8 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         warn(msg, category=category, skip_file_prefixes=SKIP_FILE_PREFIXES)
     # End show_warning method
 
-    def dissolved_geometries(self) -> Generator[dict[int, MultiPolygon], None, None]:
+    def dissolved_geometries(self) -> Generator[
+            dict[int, MultiPolygon], None, None]:
         """
         Dissolved Geometries stored as a dictionary of Dense Range IDs
         and Multi-Part Geometries.  Page over the number of groups to
@@ -401,7 +405,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         unique_ids = unique(ids)
         parts = [geometries[ids == i] for i in unique_ids]
         with PoolExecutor() as executor:
-            geometries = list(executor.map(builder, parts))
+            geometries: list = list(executor.map(builder, parts))
         return geometries, unique_ids
     # End _dissolve_polygons method
 
@@ -534,6 +538,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
                     cin, sql=sql, size=size, step=step)
                 if not features:
                     continue
+                # noinspection PyTypeChecker
                 distances, valid = self._get_distances_broadcast(
                     geometries, unit=unit)
                 if not valid.any():
@@ -637,6 +642,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
                     continue
                 _, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
+                # noinspection PyTypeChecker
                 distances = self._convert_unit(geometries, unit=unit)
                 # NOTE distance validity
                 valid = isfinite(distances)
@@ -664,8 +670,9 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         else:
             geometries = array(list(dissolved.values()))
             # NOTE grid size is used here since we are dealing with
-            #  geometry post transformation
-            result = build_dissolved(
+            #  geometry post-transformation
+            # noinspection PyTypeChecker
+            result: MultiPolygon = build_dissolved(
                 geometries, shape_type=ShapeType.multi_polygon,
                 grid_size=self.grid_size)
             yield {key: result}
@@ -690,6 +697,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         Selection Query
         """
         elm = self.source
+        # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
         field_names = make_field_names(self._get_unique_fields()[1:])
         # NOTE double up on the key name, first value is used for lookup in
@@ -714,6 +722,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
         distance = self._build_distance_field()
+        # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
         geom_and_fid = self._concatenate(geom, name)
         return f"""
@@ -776,6 +785,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
                     continue
                 features, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
+                # noinspection PyTypeChecker
                 distances, valid = self._get_distances_broadcast(
                     geometries, unit=unit)
                 if not valid.any():
@@ -998,6 +1008,8 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         fc = memory.create_feature_class(
             name=f'memory_{shape_type}_dissolved', overwrite=True,
             shape_type=shape_type, srs=self.source.spatial_reference_system)
+        if geom is None:
+            return fc
         cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][False, False]
         with fc.geopackage.connection as cout:
             srs_id = fc.spatial_reference_system.srs_id
@@ -1069,6 +1081,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         Selection Query
         """
         elm = self.source
+        # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
         fields = self._get_unique_fields()[1:]
         if self._distance_field:

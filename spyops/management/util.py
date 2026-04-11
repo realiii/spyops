@@ -55,7 +55,8 @@ def _build_geodesic_lines(coordinates: 'ndarray', *, srs_id: int, crs: 'CRS',
     Build Geodesic Lines
     """
     lines = []
-    geod = crs.get_geod()
+    if not (geod := crs.get_geod()):
+        raise ValueError('Cannot build geodesic lines without a Geod')
     npts = point_count + 2
     coordinates = _prepare_coordinates(coordinates, crs=crs)
     for values in coordinates:

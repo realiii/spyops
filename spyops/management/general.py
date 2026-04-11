@@ -20,7 +20,8 @@ __all__ = ['copy', 'delete', 'rename']
 @validate_element(SOURCE, has_content=False)
 @validate_target_element()
 @validate_overwrite_source()
-def copy(source: ELEMENT, target: ELEMENT, *, where_clause: str = '') -> ELEMENT:
+def copy(source: ELEMENT, target: ELEMENT, *,
+         where_clause: str = '') -> ELEMENT:
     """
     Copy Table or Feature Class
 
@@ -45,6 +46,7 @@ def delete(source: ELEMENT | ELEMENTS) -> bool:
     """
     if not source:
         return False
+    # noinspection PyTypeChecker
     for element in source:
         element.drop()
     return True

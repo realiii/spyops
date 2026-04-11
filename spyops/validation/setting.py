@@ -88,6 +88,7 @@ class ValidateXYTolerance(AbstractValidate):
                 tolerance = function_xy
             else:
                 tolerance = settings_xy
+        # noinspection PyTypeChecker
         return max(0, tolerance)
     # End _validate_value method
 # End ValidateXYTolerance class

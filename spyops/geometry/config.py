@@ -73,6 +73,7 @@ def _combine_lines(geom: Union[LineString, MultiLineString]) \
     Combine Lines using Directed Line Merge
     """
     if hasattr(geom, GEOMS_ATTR):
+        # noinspection PyTypeChecker
         return line_merge(geom, directed=True)
     return geom
 # End _combine_lines function
@@ -108,8 +109,10 @@ def _combine_lines_workaround(geom: Union[LineString, MultiLineString]) \
 # End _combine_lines_workaround function
 
 
-def _make_measured_line(geom: LineString, has_z: bool, cls: Type[LineStringZM | LineStringM],
-                        measures: defaultdict[tuple[float, ...], list[float]]) -> bytes:
+def _make_measured_line(geom: LineString, has_z: bool,
+                        cls: Type[LineStringZM | LineStringM],
+                        measures: defaultdict[
+                            tuple[float, ...], list[float]]) -> bytes:
     """
     Make a Measured Line from a Shapely LineString, looking up measures
     based on the coordinates.

@@ -20,7 +20,7 @@ GEOM_TYPE_MULTI: NAMES = (ShapeType.multi_point,
                           ShapeType.multi_polygon)
 
 
-ALIAS_TYPE_LUT: dict[NAMES, str] = {
+ALIAS_TYPE_LUT: dict[tuple[str, ...], str] = {
     (FieldType.boolean.casefold(),): FieldType.boolean,
     (FieldType.blob.casefold(),): FieldType.blob,
     (FieldType.tinyint.casefold(),): FieldType.tinyint,
@@ -78,10 +78,12 @@ def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,
     visited = set()
     field_lookup = {f.name.casefold(): f for f in element.fields}
     if not isinstance(fields, (list, tuple)):
+        # noinspection PyTypeChecker
         fields = fields,
     for f in fields:
         if not isinstance(f, (Field, str)):
             continue
+        # noinspection PyUnresolvedReferences
         name = getattr(f, 'name', f).casefold()
         if name in visited:
             continue
@@ -127,7 +129,7 @@ def add_orig_fid(feature_class: FeatureClass) -> FIELDS:
     Add Original FID
     """
     key = ORIG_FID.name.casefold()
-    fields = validate_fields(feature_class, fields=feature_class.fields)
+    fields = list(validate_fields(feature_class, fields=feature_class.fields))
     names = [f.name.casefold() for f in fields]
     if key not in names:
         return ORIG_FID, *fields

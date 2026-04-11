@@ -75,8 +75,8 @@ class _Coordinates:
         if isinstance(value, Transformer):
             self._transformations.append(value)
         elif isinstance(value, (list, tuple)):
-            value = [v for v in value if isinstance(v, Transformer)]
-            self._transformations.extend(value)
+            values = [v for v in value if isinstance(v, Transformer)]
+            self._transformations.extend(values)
     # End transformations property
 # End _Coordinates class
 
