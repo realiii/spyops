@@ -205,6 +205,7 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         """
         name = self._intermediate_table
         orig_fid, _ = self._intermediate_fields
+        # noinspection PyUnresolvedReferences
         key_name = self.source.primary_key_field.escaped_name
         return f"""
             DELETE FROM {self.source.escaped_name} 
@@ -242,12 +243,12 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         field_names = self._get_field_names()
         key_name, *from_field_names = [
             f.escaped_name for f in self._intermediate_fields]
+        # noinspection PyUnresolvedReferences
+        target_key_name = self.target.primary_key_field.escaped_name
         return self._make_update_from(
-            element_name=self.target.escaped_name,
-            key_name=self.target.primary_key_field.escaped_name,
-            field_names=field_names,
-            from_name=self._intermediate_table, from_key_name=key_name,
-            from_field_names=from_field_names)
+            element_name=self.target.escaped_name, key_name=target_key_name,
+            field_names=field_names, from_name=self._intermediate_table,
+            from_key_name=key_name, from_field_names=from_field_names)
     # End update property
 # End QueryRepairGeometry class
 
@@ -256,7 +257,8 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
     """
-    def __init__(self, source: 'FeatureClass', weight_option: WeightOption) -> None:
+    def __init__(self, source: 'FeatureClass',
+                 weight_option: WeightOption) -> None:
         """
         Initialize the QueryAddXYCoordinates class
         """
@@ -540,6 +542,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
         """
         Initialize the QueryXYTablePoint class
         """
+        # noinspection PyTypeChecker
         super().__init__(source, target=target, xy_tolerance=None)
         self._fields: tuple[Field | None, ...] = fields
         self._coord_sys: CRS | SpatialReferenceSystem = coordinate_system

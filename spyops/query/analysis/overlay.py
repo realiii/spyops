@@ -74,6 +74,7 @@ class ClassicMixin:
         """
         fields = self._get_fields(element)[1:]
         select_names = make_field_names(fields)
+        element: 'FeatureClass'
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
@@ -92,6 +93,7 @@ class ClassicMixin:
                 fields = [self.output_fid_operator]
         if self._attr_option in (AttributeOption.ALL, AttributeOption.ONLY_FID):
             fields = [element.primary_key_field, *fields]
+        # noinspection PyTypeChecker
         return fields
     # End _get_fields method
 
@@ -120,8 +122,7 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
     Queries for Intersect (Pairwise)
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 operator: 'FeatureClass', *,
-                 attribute_option: AttributeOption,
+                 operator: 'FeatureClass', *, attribute_option: AttributeOption,
                  output_type_option: OutputTypeOption,
                  xy_tolerance: XY_TOL) -> None:
         """

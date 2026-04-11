@@ -3,6 +3,7 @@
 Type stubs for query.analysis.overlay module
 """
 
+
 from typing import Any
 
 from fudgeo import FeatureClass, Field
@@ -31,45 +32,29 @@ class ClassicMixin:
 
 
 class QueryIntersectPairwise(AbstractSpatialAttribute):
-    def __init__(
-        self,
-        source: FeatureClass,
-        target: FeatureClass,
-        operator: FeatureClass,
-        *,
-        attribute_option: AttributeOption,
-        output_type_option: OutputTypeOption,
-        xy_tolerance: XY_TOL,
-    ) -> None: ...
 
+    _output_type_option: OutputTypeOption
+
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass, *, attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
+                 xy_tolerance: XY_TOL, ) -> None: ...
     def _get_target_shape_type(self) -> str: ...
+    @property
+    def source(self) -> FeatureClass: ...
 
 
 class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
-    def __init__(
-        self,
-        source: FeatureClass,
-        target: FeatureClass,
-        operator: FeatureClass,
-        *,
-        attribute_option: AttributeOption,
-        output_type_option: OutputTypeOption,
-        xy_tolerance: XY_TOL,
-    ) -> None: ...
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass, *, attribute_option: AttributeOption,
+                 output_type_option: OutputTypeOption,
+                 xy_tolerance: XY_TOL, ) -> None: ...
 
 
 class QueryUnionPairwise(QueryIntersectPairwise):
-    def __init__(
-        self,
-        source: FeatureClass,
-        operator: FeatureClass,
-        target: FeatureClass,
-        *,
-        attribute_option: AttributeOption,
-        xy_tolerance: XY_TOL,
-        **kwargs: Any,
-    ) -> None: ...
-
+    def __init__(self, source: FeatureClass, operator: FeatureClass,
+                 target: FeatureClass, *, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL, **kwargs: Any, ) -> None: ...
     @property
     def target(self) -> FeatureClass: ...
     @property
@@ -79,17 +64,10 @@ class QueryUnionPairwise(QueryIntersectPairwise):
 
 
 class QueryUnionClassic(ClassicMixin, QueryUnionPairwise):
-    def __init__(
-        self,
-        source: FeatureClass,
-        source_fid: Field,
-        operator: FeatureClass,
-        operator_fid: Field,
-        target: FeatureClass,
-        *,
-        attribute_option: AttributeOption,
-        xy_tolerance: XY_TOL,
-    ) -> None: ...
+    def __init__(self, source: FeatureClass, source_fid: Field,
+                 operator: FeatureClass, operator_fid: Field,
+                 target: FeatureClass, *, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL, ) -> None: ...
 
 
 class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
@@ -110,6 +88,8 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
     def source_config(self) -> QueryConfig: ...
     @property
     def operator_config(self) -> QueryConfig: ...
+    @property
+    def source(self) -> FeatureClass: ...
 
 
 class QuerySymmetricalDifferencePairwise(BaseQuerySymmetricalDifference):
@@ -118,16 +98,9 @@ class QuerySymmetricalDifferencePairwise(BaseQuerySymmetricalDifference):
 
 
 class QuerySymmetricalDifferenceClassic(ClassicMixin, BaseQuerySymmetricalDifference):
-    def __init__(
-        self,
-        source: FeatureClass,
-        target: FeatureClass,
-        operator: FeatureClass,
-        *,
-        attribute_option: AttributeOption,
-        xy_tolerance: XY_TOL,
-    ) -> None: ...
-
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass, *, attribute_option: AttributeOption,
+                 xy_tolerance: XY_TOL, ) -> None: ...
     def _get_insert_fields(self, element: FeatureClass) -> FIELDS: ...
     @property
     def source(self) -> FeatureClass: ...

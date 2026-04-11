@@ -30,6 +30,8 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
     def insert(self) -> str: ...
     @cached_property
     def source_transformer(self) -> Callable | None: ...
+    @property
+    def source(self) -> FeatureClass: ...
 
 
 class QueryCopyFeatures(BaseQuerySelect):
@@ -70,6 +72,9 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
 
 
 class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
+
+    _option: WeightOption
+
     def __init__(self, source: FeatureClass, weight_option: WeightOption) -> None: ...
     def _get_field_names(self) -> NAMES: ...
     @property
@@ -79,19 +84,22 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     def _intermediate_fields(self) -> FIELDS: ...
     @property
     def centroid_getter(self) -> Callable: ...
+    @property
+    def source(self) -> FeatureClass: ...
 
 
 class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
-    def __init__(
-        self,
-        source: FeatureClass,
-        field: Field,
-        geometry_attribute: GeometryAttribute,
-        *,
-        weight_option: WeightOption,
-        length_unit: LengthUnit,
-        area_unit: AreaUnit,
-    ) -> None: ...
+
+    _field: Field
+    _attribute: GeometryAttribute
+    _option: WeightOption
+    _length_unit: LengthUnit
+    _area_unit: AreaUnit
+
+    def __init__(self, source: FeatureClass, field: Field,
+                 geometry_attribute: GeometryAttribute, *,
+                 weight_option: WeightOption, length_unit: LengthUnit,
+                 area_unit: AreaUnit, ) -> None: ...
     def _get_field_names(self) -> NAMES: ...
     @property
     def _point_attributes(self) -> tuple[GeometryAttribute, ...]: ...
@@ -120,16 +128,18 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     def item_getter(self) -> Callable: ...
     @property
     def attribute_getter(self) -> Callable: ...
+    @property
+    def source(self) -> FeatureClass: ...
 
 
 class QueryXYTablePoint(AbstractSourceQuery):
-    def __init__(
-        self,
-        source: ELEMENT,
-        target: FeatureClass,
-        fields: tuple[Field | None, ...],
-        coordinate_system: CRS | SpatialReferenceSystem,
-    ) -> None: ...
+
+    _fields: tuple[Field | None, ...]
+    _coord_sys: CRS | SpatialReferenceSystem
+
+    def __init__(self, source: ELEMENT, target: FeatureClass,
+                 fields: tuple[Field | None, ...],
+                 coordinate_system: CRS | SpatialReferenceSystem, ) -> None: ...
     def _get_target_shape_type(self) -> str: ...
     @property
     def point_class(self) -> Type[Point | PointZ | PointM | PointZM]: ...
@@ -152,13 +162,9 @@ class QueryXYTablePoint(AbstractSourceQuery):
 
 
 class QueryXYTableLine(QueryXYTablePoint):
-    def __init__(
-        self,
-        source: ELEMENT,
-        target: FeatureClass,
-        fields: tuple[Field, Field, Field, Field],
-        coordinate_system: CRS | SpatialReferenceSystem,
-    ) -> None: ...
+    def __init__(self, source: ELEMENT, target: FeatureClass,
+                 fields: tuple[Field, Field, Field, Field],
+                 coordinate_system: CRS | SpatialReferenceSystem, ) -> None: ...
     def _get_target_shape_type(self) -> str: ...
     @cached_property
     def source_transformer(self) -> Callable | None: ...
@@ -171,6 +177,9 @@ class QueryXYTableLine(QueryXYTablePoint):
 
 
 class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
+
+    _as_multi_part: bool
+
     def __init__(self, source: FeatureClass, target: FeatureClass, as_multi_part: bool) -> None: ...
     def _get_unique_fields(self) -> FIELDS: ...
     def _get_target_shape_type(self) -> str: ...
@@ -182,3 +191,5 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
     def select(self) -> str: ...
     @cached_property
     def zm_config(self) -> ZMConfig: ...
+    @property
+    def source(self) -> FeatureClass: ...

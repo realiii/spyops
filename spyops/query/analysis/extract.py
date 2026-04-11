@@ -5,7 +5,7 @@ Query Classes for analysis.extract module
 
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Union
+from typing import Optional, TYPE_CHECKING, Union
 
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
@@ -42,6 +42,7 @@ class QuerySplitByAttributes(AbstractGroupQuery):
         Insert Query
         """
         elm = self.source
+        # noinspection PyArgumentList
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert('{}', insert_field_names, field_count)
     # End insert property
@@ -52,6 +53,7 @@ class QuerySplitByAttributes(AbstractGroupQuery):
         Selection Query
         """
         elm = self.source
+        # noinspection PyArgumentList
         *_, select_field_names = self._field_names_and_count(elm)
         where_clause = self._build_spatial_rank(elm)
         return self._make_select(
@@ -81,7 +83,8 @@ class QueryClip(AbstractSpatialQuery):
     Queries for Clip
     """
     @cached_property
-    def geometry(self) -> Union['MultiPolygon', 'MultiLineString', 'MultiPoint']:
+    def geometry(self) -> Optional[Union[
+            'MultiPolygon', 'MultiLineString', 'MultiPoint']]:
         """
         Multi-Part Geometry of the Operator Feature Class
         """
@@ -96,6 +99,7 @@ class QueryClip(AbstractSpatialQuery):
         Insert Query
         """
         elm = self.target
+        # noinspection PyArgumentList
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert(
             elm.escaped_name, field_names=insert_field_names,
