@@ -7,7 +7,7 @@ from pytest import mark
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
 
-from spyops.query.analysis.extract import QuerySplitByAttributes
+from spyops.query.analysis.extract import QuerySplitByAttributesTable
 
 
 pytestmark = [mark.query]
@@ -28,7 +28,7 @@ def test_field_names_and_count(request, name, fix_name, count, inserts, selects)
     geo = request.getfixturevalue(fix_name)
     element = geo[name]
     fields = [Field('a', data_type=FieldType.text)]
-    result = QuerySplitByAttributes(element, fields)._field_names_and_count(element)
+    result = QuerySplitByAttributesTable(element, fields)._field_names_and_count(element)
     field_count, insert_field_names, select_field_names = result
     assert field_count == count
     assert insert_field_names == inserts

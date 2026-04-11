@@ -50,17 +50,16 @@ if TYPE_CHECKING:  # pragma: no cover
     from spyops.geometry.config import GeometryConfig
 
 
-class AbstractQuery(metaclass=ABCMeta):
+class AbstractElementQuery(metaclass=ABCMeta):
     """
-    Base Query Support
+    Abstract Query Support
     """
-    def __init__(self, element: ELEMENT, *, xy_tolerance: XY_TOL) -> None:
+    def __init__(self, element: ELEMENT) -> None:
         """
-        Initialize the AbstractQuery class
+        Initialize the AbstractElementQuery class
         """
         super().__init__()
         self._element: ELEMENT = element
-        self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
     @staticmethod
@@ -105,6 +104,56 @@ class AbstractQuery(metaclass=ABCMeta):
             field_count += 1
         return field_count, insert_names, select_names
     # End _field_names_and_count method
+
+    @staticmethod
+    def _concatenate(left: str, right: str) -> str:
+        """
+        Conditionally Concatenate field names
+        """
+        if not right:
+            return left
+        return f'{left}{COMMA_SPACE}{right}'
+    # End _concatenate method
+
+    @property
+    def source(self) -> ELEMENT:
+        """
+        Source
+        """
+        return self._element
+    # End source property
+
+    @property
+    @abstractmethod
+    def select(self) -> str:  # pragma: no cover
+        """
+        Selection Query
+        """
+        pass
+    # End select property
+
+    @property
+    @abstractmethod
+    def insert(self) -> str:  # pragma: no cover
+        """
+        Insert Query
+        """
+        pass
+    # End insert property
+# End AbstractElementQuery class
+
+
+class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
+    """
+    Abstract Feature Class Query
+    """
+    def __init__(self, element: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractFeatureClassQuery class
+        """
+        super().__init__(element)
+        self._xy_tolerance: XY_TOL = xy_tolerance
+    # End init built-in
 
     def _get_transformer(self, feature_class: FeatureClass) \
             -> Optional['Transformer']:
@@ -165,24 +214,6 @@ class AbstractQuery(metaclass=ABCMeta):
         """
     # End _spatial_index_where function
 
-    @staticmethod
-    def _concatenate(left: str, right: str) -> str:
-        """
-        Conditionally Concatenate field names
-        """
-        if not right:
-            return left
-        return f'{left}{COMMA_SPACE}{right}'
-    # End _concatenate method
-
-    @property
-    def source(self) -> ELEMENT:
-        """
-        Source
-        """
-        return self._element
-    # End source property
-
     @cached_property
     def source_crs(self) -> CRS:
         """
@@ -227,25 +258,7 @@ class AbstractQuery(metaclass=ABCMeta):
             source=self.source, xy_tolerance=self._xy_tolerance,
             target_srs=self.spatial_reference_system)
     # End grid_size property
-
-    @property
-    @abstractmethod
-    def select(self) -> str:  # pragma: no cover
-        """
-        Selection Query
-        """
-        pass
-    # End select property
-
-    @property
-    @abstractmethod
-    def insert(self) -> str:  # pragma: no cover
-        """
-        Insert Query
-        """
-        pass
-    # End insert property
-# End AbstractQuery class
+# End AbstractFeatureClassQuery class
 
 
 class GroupQueryMixin:
@@ -260,6 +273,7 @@ class GroupQueryMixin:
         """
         if not isinstance(element, FeatureClass):
             return EMPTY
+        # noinspection PyTypeChecker
         if not (extent := ANALYSIS_SETTINGS.extent):
             return EMPTY
         # noinspection PyUnresolvedReferences
@@ -271,27 +285,12 @@ class GroupQueryMixin:
             index_where = f'WHERE ({index_where.format(IN)})'
         return index_where
     # End _spatial_index_where function
-# End GroupQueryMixin class
-
-
-class AbstractGroupQuery(GroupQueryMixin, AbstractQuery, metaclass=ABCMeta):
-    """
-    Abstract Group Query
-    """
-    def __init__(self, element: ELEMENT, fields: FIELDS, *,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the AbstractGroupQuery class
-        """
-        super().__init__(element, xy_tolerance=xy_tolerance)
-        self._fields: FIELDS = fields
-        self._group_names: str = make_field_names(fields)
-    # End init built-in
 
     def _build_spatial_rank(self, element: ELEMENT) -> str:
         """
         Build Spatial Rank
         """
+        # noinspection PyUnresolvedReferences
         primary = element.primary_key_field.escaped_name
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(element, extent=(0, 0, 0, 0))
@@ -304,10 +303,43 @@ class AbstractGroupQuery(GroupQueryMixin, AbstractQuery, metaclass=ABCMeta):
             WHERE {DRID} = ?) 
         """
     # End _build_spatial_rank method
-# End AbstractGroupQuery class
+# End GroupQueryMixin class
 
 
-class AbstractSourceQuery(AbstractQuery, metaclass=ABCMeta):
+class AbstractElementGroupQuery(GroupQueryMixin, AbstractElementQuery,
+                                metaclass=ABCMeta):
+    """
+    Abstract Group Query
+    """
+    def __init__(self, element: ELEMENT, fields: FIELDS) -> None:
+        """
+        Initialize the AbstractElementGroupQuery class
+        """
+        super().__init__(element)
+        self._fields: FIELDS = fields
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
+# End AbstractElementGroupQuery class
+
+
+class AbstractFeatureClassGroupQuery(GroupQueryMixin, AbstractFeatureClassQuery,
+                                     metaclass=ABCMeta):
+    """
+    Abstract Feature Class Group Query
+    """
+    def __init__(self, element: FeatureClass, fields: FIELDS, *,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractFeatureClassGroupQuery class
+        """
+        super().__init__(element, xy_tolerance=xy_tolerance)
+        self._fields: FIELDS = fields
+        self._group_names: str = make_field_names(fields)
+    # End init built-in
+# End AbstractFeatureClassGroupQuery class
+
+
+class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
     """
     Abstract Source Query
     """
