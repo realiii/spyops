@@ -84,9 +84,11 @@ def _calculate_stat(func: Callable, values: list | float | None) -> float | None
     """
     Calculate Statistic, ignoring Null values and non-finite values.
     """
+    # noinspection PyTypeChecker
     if not (values := _filter_none(values)):
         return None
     try:
+        # noinspection PyTypeChecker
         if not (values := [v for v in values if isfinite(v)]):
             return None
     except TypeError:
@@ -282,6 +284,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Output Field
         """
+        # noinspection PyUnresolvedReferences
         return Field(name=self.output_name, data_type=self.data_type,
                      size=self.field.size)
     # End output_field property
@@ -306,6 +309,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Get Data Type
         """
+        # noinspection PyUnresolvedReferences
         data_type = self.field.data_type.casefold()
         return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
                      if data_type.startswith(aliases)), data_type)
@@ -340,6 +344,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Output Name
         """
+        # noinspection PyUnresolvedReferences
         return f'{self.prefix}{UNDERSCORE}{self.field.name}'
     # End output_name property
 
@@ -364,6 +369,7 @@ class _NumericStatisticField(AbstractStatisticField):
         super().validate()
         if (data_type := self._get_data_type()) in NUMBERS:
             return
+        # noinspection PyUnresolvedReferences
         raise ValueError(
             f'Expected {self.field.name} field to be numeric, got {data_type}')
     # End validate method
@@ -373,6 +379,7 @@ class _NumericStatisticField(AbstractStatisticField):
         """
         Function Stub
         """
+        # noinspection PyUnresolvedReferences
         return f'{self.prefix}({self.field.escaped_name})'
     # End aggregate property
 # End _NumericStatisticField class
@@ -409,6 +416,7 @@ class _FunctionNumericStatisticField(_NumericStatisticField):
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
+        # noinspection PyUnresolvedReferences
         return f'{name}({self.field.escaped_name})'
     # End aggregate property
 # End _FunctionNumericStatisticField class
@@ -485,6 +493,7 @@ class Range(_NumericStatisticField):
         """
         Function Stub
         """
+        # noinspection PyUnresolvedReferences
         name = self.field.escaped_name
         return f'(MAX({name}) - MIN({name}))'
     # End aggregate property
@@ -570,6 +579,7 @@ class Count(AbstractStatisticField):
         """
         Function Stub
         """
+        # noinspection PyUnresolvedReferences
         return f'{self.prefix}({self.field.escaped_name})'
     # End aggregate property
 
@@ -599,6 +609,7 @@ class Unique(AbstractStatisticField):
         """
         Function Stub
         """
+        # noinspection PyUnresolvedReferences
         return f'COUNT(DISTINCT {self.field.escaped_name})'
     # End aggregate property
 
@@ -622,6 +633,7 @@ class _FunctionStatisticField(AbstractStatisticField):
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
+        # noinspection PyUnresolvedReferences
         return f'{name}({self.field.escaped_name})'
     # End aggregate property
 # End _FunctionStatisticField class
@@ -683,6 +695,7 @@ class Concatenate(AbstractStatisticField):
         """
         Function Stub
         """
+        # noinspection PyUnresolvedReferences
         return f"group_concat({self.field.escaped_name}, '{self._delimiter}')"
     # End aggregate property
 

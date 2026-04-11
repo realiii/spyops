@@ -18,11 +18,11 @@ BASE_TABLES: set[str] = {'gpkg_spatial_ref_sys', 'gpkg_contents',
 
 def is_geopackage(path: Path | str) -> bool:
     """
-    Is Geopackage?
+    Is GeoPackage?
     """
     if not path:
         return False
-    path = Path(path)
+    path: Path = Path(path)
     if not path.is_file():
         return False
     try:
@@ -71,6 +71,7 @@ def get_table_names(connection: 'Connection') -> list[str]:
     """
     Get Tables Names
     """
+    # noinspection SqlResolve
     sql = """
         SELECT NAME FROM sqlite_master 
         WHERE TYPE = 'table'
@@ -116,6 +117,7 @@ def remove_aggregates(connection: 'Connection') -> None:
     Remove Aggregate Classes
     """
     for name in STATS_FUNCS:
+        # noinspection PyTypeChecker
         connection.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
 # End remove_aggregates function
 
