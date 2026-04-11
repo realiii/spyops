@@ -10,7 +10,7 @@ from functools import cache, cached_property
 from typing import Callable, Generator, Optional, Self, TYPE_CHECKING
 from warnings import warn
 
-from fudgeo import FeatureClass, Table
+from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from fudgeo.util import escape_name
 from numpy import isfinite
@@ -371,6 +371,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Create Feature Class
         """
+        # noinspection PyTypeChecker
         return create_feature_class(
             geopackage=self._target.geopackage, name=self._target.name,
             shape_type=shape_type, fields=self._get_unique_fields(),
@@ -466,7 +467,8 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         if not (extent := ANALYSIS_SETTINGS.extent):
             return True
         polygon = self._get_extent_polygon(extent, crs=self.source_crs)
-        return polygon.intersects(box(*self.source_extent))
+        # noinspection PyTypeChecker
+        return bool(polygon.intersects(box(*self.source_extent)))
     # End has_intersection property
 
     @cached_property
@@ -511,6 +513,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         fields = validate_fields(self.source, fields=self.source.fields)
         fields = [self.source.primary_key_field, *fields]
+        # noinspection PyTypeChecker
         select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(
             self.source, include_geom_type=True)
@@ -692,8 +695,9 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         """
         geom_type = get_geometry_column_name(
             self.source, include_geom_type=True)
-        select_names = self._concatenate(
-            geom_type, self.source.primary_key_field.escaped_name)
+        # noinspection PyUnresolvedReferences
+        key_name = self.source.primary_key_field.escaped_name
+        select_names = self._concatenate(geom_type, key_name)
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 self.source, field_names=select_names)
@@ -720,9 +724,11 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         field_names = self._get_field_names()
         key_name, *from_field_names = [
             f.escaped_name for f in self._intermediate_fields]
+        # noinspection PyUnresolvedReferences
+        target_key_name = self.target.primary_key_field.escaped_name
         return self._make_update_from(
             element_name=self.target.escaped_name,
-            key_name=self.target.primary_key_field.escaped_name,
+            key_name=target_key_name,
             field_names=field_names,
             from_name=self._intermediate_table, from_key_name=key_name,
             from_field_names=from_field_names)
@@ -739,6 +745,7 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Initialize the AbstractSpatialQuery class
         """
+        # noinspection PyTypeChecker
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._operator: FeatureClass = operator
     # End init built-in
@@ -757,8 +764,10 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
         """
         Shared Extent between source and operator
         """
-        source_box = box(*self.source_extent)
-        operator_box = box(*self.operator_extent)
+        # noinspection PyTypeChecker
+        source_box: 'Polygon' = box(*self.source_extent)
+        # noinspection PyTypeChecker
+        operator_box: 'Polygon' = box(*self.operator_extent)
         if element is self.source:
             transformer = self._get_transformer_or_guess(
                 from_crs=self.operator_crs, to_crs=self.source_crs)
@@ -882,7 +891,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     # End init built-in
 
     @cache
-    def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
         """
         Override field names for Selection -- ignore insert names and count
         """
@@ -902,6 +911,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             fields = []
         if self._attr_option in (AttributeOption.ALL, AttributeOption.ONLY_FID):
             fields = [element.primary_key_field, *fields]
+        # noinspection PyTypeChecker
         return fields
     # End _get_fields method
 
@@ -964,6 +974,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Input FID for Source
         """
+        # noinspection PyTypeChecker
         return self.source.primary_key_field
     # End input_fid_source property
 
@@ -972,6 +983,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Input FID for Operator
         """
+        # noinspection PyTypeChecker
         return self.operator.primary_key_field
     # End input_fid_operator property
 
@@ -1010,12 +1022,13 @@ class BaseQuerySelect(AbstractSourceQuery):
     """
     Base Query for Simple Selection that honors Analysis Extent
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass | Table,
+    def __init__(self, source: FeatureClass, target: ELEMENT,
                  where_clause: str = EMPTY,
                  xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the BaseQuerySelect class
         """
+        # noinspection PyTypeChecker
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._where_clause: str = where_clause
     # End init built-in
