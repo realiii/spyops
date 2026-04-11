@@ -258,7 +258,6 @@ class ValidateOverwriteInput(AbstractValidate):
             return True
         else:
             return target.geopackage.path.samefile(other.geopackage.path)
-        return False
     # End _check_same_geopackage method
 # End ValidateOverwriteInput class
 
