@@ -117,7 +117,6 @@ class QueryClip(AbstractSpatialQuery):
         Insert Query
         """
         elm = self.target
-        # noinspection PyArgumentList
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert(
             elm.escaped_name, field_names=insert_field_names,
