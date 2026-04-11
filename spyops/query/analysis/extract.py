@@ -9,12 +9,14 @@ from typing import Optional, TYPE_CHECKING, Union
 
 from spyops.geometry.multi import build_multi
 from spyops.query.base import (
-    AbstractGroupQuery, AbstractSpatialQuery, BaseQuerySelect)
+    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery,
+    AbstractSpatialQuery, BaseQuerySelect)
 from spyops.shared.constant import DRID, EMPTY
-from spyops.shared.hint import ELEMENT, FIELDS
+from spyops.shared.hint import FIELDS
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
     from shapely import MultiLineString, MultiPoint, MultiPolygon
 
 
@@ -25,17 +27,11 @@ class QuerySelect(BaseQuerySelect):
 # End QuerySelect class
 
 
-class QuerySplitByAttributes(AbstractGroupQuery):
+# noinspection PyUnresolvedReferences
+class SplitByAttributesMixin:
     """
-    Queries for Split by Attributes
+    Split By Attributes Mixin
     """
-    def __init__(self, element: ELEMENT, fields: FIELDS) -> None:
-        """
-        Initialize the QuerySplitByAttributes class
-        """
-        super().__init__(element, fields=fields, xy_tolerance=None)
-    # End init built-in
-
     @property
     def insert(self) -> str:
         """
@@ -75,7 +71,29 @@ class QuerySplitByAttributes(AbstractGroupQuery):
             FROM {elm.escaped_name} {index_where})
         """
     # End groups property
-# End QuerySplitByAttributes class
+# End SplitByAttributesMixin class
+
+
+class QuerySplitByAttributesTable(SplitByAttributesMixin,
+                                  AbstractElementGroupQuery):
+    """
+    Queries for Split by Attributes for Tables
+    """
+# End QuerySplitByAttributesTable class
+
+
+class QuerySplitByAttributesFeatureClass(SplitByAttributesMixin,
+                                         AbstractFeatureClassGroupQuery):
+    """
+    Queries for Split by Attributes for FeatureClasses
+    """
+    def __init__(self, element: 'FeatureClass', fields: FIELDS) -> None:
+        """
+        Initialize the QuerySplitByAttributesFeatureClass class
+        """
+        super().__init__(element, fields=fields, xy_tolerance=None)
+    # End init built-in
+# End QuerySplitByAttributesFeatureClass class
 
 
 class QueryClip(AbstractSpatialQuery):

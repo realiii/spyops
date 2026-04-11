@@ -7,7 +7,7 @@ Internal functions for analysis package
 from collections import defaultdict
 from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Table
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from numpy import concatenate
@@ -22,7 +22,8 @@ from spyops.geometry.multi import build_multi
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa import set_precision
-from spyops.query.analysis.extract import QueryClip, QuerySplitByAttributes
+from spyops.query.analysis.extract import (
+    QueryClip, QuerySplitByAttributesFeatureClass, QuerySplitByAttributesTable)
 from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG, GRID_SIZE, XY_TOL
@@ -88,10 +89,14 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS,
     Internal Split by Attributes
     """
     elements = {}
-    is_feature_class = isinstance(source, FeatureClass)
-    cls = source.__class__
+    if is_feature_class := isinstance(source, FeatureClass):
+        cls = FeatureClass
+        query_cls = QuerySplitByAttributesFeatureClass
+    else:
+        cls = Table
+        query_cls = QuerySplitByAttributesTable
+    query = query_cls(element=source, fields=group_fields)
     target_names = element_names(geopackage)
-    query = QuerySplitByAttributes(element=source, fields=group_fields)
     query_select = query.select
     query_insert = query.insert
     source_name = query.source.name
@@ -108,17 +113,15 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS,
         if is_feature_class:
             source: FeatureClass
             is_different = zm_config(source).is_different
-            transformer = query.source_transformer
         else:
             is_different = False
-            transformer = None
+        transformer = getattr(query, 'source_transformer', None)
         cursor = cin.execute(query.groups)
         groups = cursor.fetchall()
         for i, *group in groups:
             name = UNDERSCORE.join([str(g).strip() for g in group])
             name = make_valid_name(name, prefix=source_name)
             name = make_unique_name(name, names=target_names)
-            # noinspection PyArgumentList,PyTypeChecker,PyNoneFunctionAssignment
             element = copy_element(
                 source=source, where_clause=SQL_NO_ID,
                 target=cls(geopackage=geopackage, name=name))
