@@ -206,6 +206,20 @@ class ValidateDissolveOption(AbstractValidateEnumDependency):
 # End ValidateDissolveOption class
 
 
+class ValidateGroupOption(ValidateDissolveOption):
+    """
+    Validate Group Option
+    """
+    @property
+    def _list_enum(self) -> GroupOption:
+        """
+        List Enum
+        """
+        return GroupOption.LIST
+    # End _list_enum property
+# End ValidateGroupOption class
+
+
 class ValidateGeometryAttribute(AbstractValidateType):
     """
     Validate Geometry Attribute is valid with the Feature Class
