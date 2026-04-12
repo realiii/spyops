@@ -13,7 +13,8 @@ from fudgeo.enumeration import ShapeType
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.keywords import GEOMETRY_ATTRIBUTE, SOURCE
 from spyops.shared.enumeration import (
-    DissolveOption, GeometryAttribute, OutputTypeOption, SideOption)
+    DissolveOption, GeometryAttribute, GroupOption, OutputTypeOption,
+    SideOption)
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_int_flag_enum, check_str_enum
 from spyops.validation.base import (
@@ -184,7 +185,7 @@ class ValidateDissolveOption(AbstractValidateEnumDependency):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            if kwargs[self._enum_name] != DissolveOption.LIST:
+            if kwargs[self._enum_name] != self._list_enum:
                 kwargs[self._name] = None
                 return func(**kwargs)
             if not kwargs[self._name]:
@@ -194,6 +195,14 @@ class ValidateDissolveOption(AbstractValidateEnumDependency):
         # End wrapper function
         return wrapper
     # End call built-in
+
+    @property
+    def _list_enum(self) -> DissolveOption:
+        """
+        List Enum
+        """
+        return DissolveOption.LIST
+    # End _list_enum property
 # End ValidateDissolveOption class
 
 
