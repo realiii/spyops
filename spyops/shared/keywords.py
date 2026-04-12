@@ -63,6 +63,8 @@ BUFFER_TYPE: str = 'buffer_type'
 RESOLUTION: str = 'resolution'
 DISTANCE_ARG: str = 'distance'
 DISTANCES: str = 'distances'
+GEOMETRY_TYPE: str = 'geometry_type'
+GROUP_OPTION: str = 'group_option'
 
 
 if __name__ == '__main__':  # pragma: no cover
