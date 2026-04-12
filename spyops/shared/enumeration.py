@@ -56,6 +56,28 @@ class DissolveOption(StrEnum):
 # End DissolveOption class
 
 
+class GroupOption(StrEnum):
+    """
+    Group Options
+    """
+    ALL = auto()
+    LIST = auto()
+    NONE = auto()
+# End GroupOption class
+
+
+class MinimumGeometryOption(StrEnum):
+    """
+    Minimum Geometry Options
+    """
+    RECTANGLE_BY_AREA = auto()
+    RECTANGLE_BY_WIDTH = auto()
+    CONVEX_HULL = auto()
+    CIRCLE = auto()
+    ENVELOPE = auto()
+# End MinimumGeometryOption class
+
+
 class AttributeOption(StrEnum):
     """
     Attribute Options
