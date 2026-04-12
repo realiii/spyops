@@ -163,10 +163,10 @@ class ValidateSideOption(AbstractValidateEnumDependency):
                     dim == 2 and option in (SideOption.LEFT, SideOption.RIGHT)):
                 kwargs[self._enum_name] = SideOption.FULL
             return func(**kwargs)
-        # Side wrapper function
+        # End wrapper function
         return wrapper
-    # Side call built-in
-# Side ValidateSideOption class
+    # End call built-in
+# End ValidateSideOption class
 
 
 class ValidateDissolveOption(AbstractValidateEnumDependency):
@@ -191,10 +191,10 @@ class ValidateDissolveOption(AbstractValidateEnumDependency):
                 raise ValueError(
                     f'{self._name} must be a non-empty list of fields')
             return func(**kwargs)
-        # Dissolve wrapper function
+        # End wrapper function
         return wrapper
-    # Dissolve call built-in
-# Dissolve ValidateDissolveOption class
+    # End call built-in
+# End ValidateDissolveOption class
 
 
 class ValidateGeometryAttribute(AbstractValidateType):
