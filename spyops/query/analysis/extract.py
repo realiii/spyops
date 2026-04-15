@@ -38,7 +38,6 @@ class SplitByAttributesMixin:
         Insert Query
         """
         elm = self.source
-        # noinspection PyArgumentList
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert('{}', insert_field_names, field_count)
     # End insert property
@@ -49,7 +48,6 @@ class SplitByAttributesMixin:
         Selection Query
         """
         elm = self.source
-        # noinspection PyArgumentList
         *_, select_field_names = self._field_names_and_count(elm)
         where_clause = self._build_spatial_rank(elm)
         return self._make_select(

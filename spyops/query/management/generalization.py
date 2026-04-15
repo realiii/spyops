@@ -121,7 +121,6 @@ class QueryDissolve(AbstractQueryDissolve):
         dr_select_names = self._concatenate(dr_select_names, dr_select_stats)
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        # noinspection PyUnresolvedReferences
         return f"""
             SELECT {select_field_names}
             FROM (SELECT dense_rank() OVER (

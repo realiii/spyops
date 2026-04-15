@@ -92,7 +92,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Is Distance from Field?
         """
-        # noinspection PyUnresolvedReferences
         return isinstance(self._config.distance, Field)
     # End _is_distance_from_field property
 
@@ -116,21 +115,17 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Check for Linear and Angular Units, return tuple of truth
         """
-        # noinspection PyUnresolvedReferences
         elm = self.source
-        # noinspection PyUnresolvedReferences
         distance = self._config.distance
         if not self._is_distance_from_field:
             is_linear = isinstance(distance, LinearUnit)
             return is_linear, not is_linear
         if self._is_numeric_field:
-            # noinspection PyUnresolvedReferences
             is_projected = self.source_crs.is_projected
             return is_projected, not is_projected
         # NOTE this extent is not used, simply filling a required argument
         distance: Field
         null_clause = f'{distance.escaped_name} IS NOT NULL'
-        # noinspection PyUnresolvedReferences
         if index_where := self._spatial_index_where(elm, extent=(0, 0, 0, 0)):
             where_clause = f'{index_where} AND {null_clause}'
         else:
@@ -158,14 +153,12 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Buffer Type
         """
-        # noinspection PyUnresolvedReferences
         type_ = self._config.buffer_type
         if type_ == BufferTypeOption.GEODESIC:
             return type_
         has_linear, has_angular = self._unit_types
         if has_linear and has_angular:
             return BufferTypeOption.GEODESIC
-        # noinspection PyUnresolvedReferences
         is_projected = self.source_crs.is_projected
         if (is_projected and has_angular) or (not is_projected and has_linear):
             return BufferTypeOption.GEODESIC
@@ -177,7 +170,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Buffer Function
         """
-        # noinspection PyUnresolvedReferences
         kwargs = {
             CRS_KEY: self.source_crs,
             SHAPE_TYPE_KEY: self.source.shape_type,
@@ -204,7 +196,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         distance = f'{COMMA_SPACE}{name}'
         if not self._is_numeric_field:
             return distance
-        # noinspection PyUnresolvedReferences
         unit = get_unit_name(self.source_crs)
         return f"{distance} || ' {unit}' AS {name}"
     # End _build_distance_field method
@@ -222,9 +213,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         Source Transformer, overloaded since we treat the geometry source
         as being the buffers which will always be MultiPolygons
         """
-        # noinspection PyUnresolvedReferences
         elm = self.source
-        # noinspection PyUnresolvedReferences
         transformer = self._get_transformer(elm)
         return make_transformer_function(
             self._get_target_shape_type(), has_z=False, has_m=False,
@@ -257,7 +246,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             else:
                 value = getattr(unit, VALUE_ATTR, nan)
                 coordinates = get_coordinates(centroid(geometries))
-                # noinspection PyUnresolvedReferences
                 return degrees_to_meters(
                     self.source_crs, coordinates=coordinates, value=value)
         else:
@@ -287,7 +275,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             ids, values = zip(*degrees)
             ids = array(ids, dtype=int)
             coordinates = get_coordinates(centroid(geometries[ids]))
-            # noinspection PyUnresolvedReferences
             meters[ids] = degrees_to_meters(
                 self.source_crs, coordinates=coordinates,
                 value=array(values, dtype=float))
@@ -320,11 +307,9 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Show Warning
         """
-        # noinspection PyUnresolvedReferences
         counter = self._counter
         if not counter:
             return
-        # noinspection PyUnresolvedReferences
         distance = self._config.distance
         if self._is_distance_from_field:
             category = UnitParseWarning
@@ -465,7 +450,6 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
         elm = self.source
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        # noinspection PyUnresolvedReferences
         return f"""
             SELECT {DRID}, {self._group_names}
             FROM (SELECT dense_rank() OVER (
