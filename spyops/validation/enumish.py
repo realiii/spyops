@@ -127,17 +127,33 @@ class ValidateOutputType(AbstractValidateEnumDependency):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            if kwargs[self._enum_name] != OutputTypeOption.LINE:
+            if kwargs[self._enum_name] != self._enumeration:
                 return func(**kwargs)
             if not get_geometry_dimension(kwargs[self._name]):
                 raise GeometryDimensionError(
                     f'{self._name} features class must be a '
                     f'{ShapeType.linestring} or {ShapeType.polygon} '
-                    f'shape type for Output Type "{OutputTypeOption.LINE}"')
+                    f'shape type for {self._label} "{self._enumeration}"')
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    @property
+    def _enumeration(self) -> OutputTypeOption:
+        """
+        Enumeration
+        """
+        return OutputTypeOption.LINE
+    # End _enumeration property
+
+    @property
+    def _label(self) -> str:
+        """
+        Label
+        """
+        return 'Output Type'
+    # End _label property
 # End ValidateOutputType class
 
 
