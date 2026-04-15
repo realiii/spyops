@@ -56,6 +56,15 @@ VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+MBG_WIDTH: Field = Field(
+    'MBG_WIDTH', data_type=FieldType.real,
+    alias='Width of Minimum Bounding Geometry')
+MBG_LENGTH: Field = Field(
+    'MBG_LENGTH', data_type=FieldType.real,
+    alias='Length of Minimum Bounding Geometry')
+MBG_ORIENTATION: Field = Field(
+    'MBG_ORIENTATION', data_type=FieldType.real,
+    alias='Orientation of Minimum Bounding Geometry')
 REASON: Field = Field(
     'REASON', data_type=FieldType.text, alias='Geometry Check Reason')
 POINT_X: Field = Field(
