@@ -157,6 +157,28 @@ class ValidateOutputType(AbstractValidateEnumDependency):
 # End ValidateOutputType class
 
 
+class ValidateGeometryGroupOption(ValidateOutputType):
+    """
+    Validate Geometry and Group Option
+    """
+    @property
+    def _enumeration(self) -> GroupOption:
+        """
+        Enumeration
+        """
+        return GroupOption.NONE
+    # End _enumeration property
+
+    @property
+    def _label(self) -> str:
+        """
+        Label
+        """
+        return 'Group Option'
+    # End _label property
+# End ValidateGeometryGroupOption class
+
+
 class ValidateSideOption(AbstractValidateEnumDependency):
     """
     Validate Side Option

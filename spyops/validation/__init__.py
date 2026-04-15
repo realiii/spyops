@@ -14,7 +14,8 @@ from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateOverwriteInput, ValidateTable)
 from spyops.validation.enumish import (
-    ValidateDissolveOption, ValidateGroupOption, ValidateIntFlagEnumeration,
+    ValidateDissolveOption, ValidateGeometryGroupOption, ValidateGroupOption,
+    ValidateIntFlagEnumeration,
     ValidateSideOption, ValidateStrEnumeration, ValidateGeometryAttribute,
     ValidateOutputType)
 from spyops.validation.field import (
@@ -28,7 +29,6 @@ from spyops.validation.setting import ValidateXYTolerance
 # NOTE aliases, decorators look better as snake case
 validate_coordinate_system = ValidateCoordinateSystem
 validate_dissolve_option = ValidateDissolveOption
-validate_group_option = ValidateGroupOption
 validate_distance = ValidateDistance
 validate_element = ValidateElement
 validate_elements = ValidateElements
@@ -36,7 +36,9 @@ validate_feature_class = ValidateFeatureClass
 validate_field = ValidateField
 validate_geometry_attribute = ValidateGeometryAttribute
 validate_geometry_dimension = ValidateGeometryDimension
+validate_geometry_group_option = ValidateGeometryGroupOption
 validate_geopackage = ValidateGeopackage
+validate_group_option = ValidateGroupOption
 validate_int_flag_enumeration = ValidateIntFlagEnumeration
 validate_output_type = ValidateOutputType
 validate_overwrite_input = ValidateOverwriteInput
