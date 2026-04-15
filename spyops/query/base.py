@@ -1062,20 +1062,18 @@ class BaseQuerySelect(AbstractSourceQuery):
 # End BaseQuerySelect class
 
 
-class AbstractQueryDissolve(GroupQueryMixin, AbstractSourceQuery,
-                            metaclass=ABCMeta):
+class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
+                         metaclass=ABCMeta):
     """
-    Abstract Query Dissolve
+    Abstract Query Group
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
-                 fields: FIELDS, as_multi_part: bool,
-                 xy_tolerance: XY_TOL) -> None:
+                 fields: FIELDS, xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QueryDissolve class
+        Initialize the AbstractQueryGroup class
         """
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._fields: FIELDS = fields
-        self._as_multi_part: bool = as_multi_part
         self._group_names: str = make_field_names(fields)
     # End init built-in
 
@@ -1116,6 +1114,23 @@ class AbstractQueryDissolve(GroupQueryMixin, AbstractSourceQuery,
         """
         pass
     # End select_geometry property
+# End AbstractQueryGroup class
+
+
+class AbstractQueryDissolve(AbstractQueryGroup):
+    """
+    Abstract Query Dissolve
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+                 fields: FIELDS, as_multi_part: bool,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractQueryDissolve class
+        """
+        super().__init__(source, target=target, fields=fields,
+                         xy_tolerance=xy_tolerance)
+        self._as_multi_part: bool = as_multi_part
+    # End init built-in
 
     @abstractmethod
     def dissolved_geometries(self) \
