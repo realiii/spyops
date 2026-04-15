@@ -146,13 +146,13 @@ def _angle_continuous(x_coord: float, y_coord: float) -> float:
 # End _angle_continuous function
 
 
-def _antipodal_pairs(coords: 'ndarray') -> list[tuple[int, int]]:
+def _antipodal_pairs(coords: 'ndarray') -> set[tuple[int, int]]:
     """
     Find all antipodal pairs of vertices on a convex polygon.
 
     Algorithm from Preparata and Shamos (1985), p. 174.
     """
-    pairs = []
+    pairs = set()
     if (count := len(coords)) < 3:
         return pairs
     ys = coords[:, 1]
@@ -164,7 +164,7 @@ def _antipodal_pairs(coords: 'ndarray') -> list[tuple[int, int]]:
     while counter <= 2 * count:
         counter += 1
         if p != q:
-            pairs.append((p, q))
+            pairs.add((p, q))
         p_next = (p + 1) % count
         q_next = (q + 1) % count
         px, py = coords[p]
@@ -181,14 +181,14 @@ def _antipodal_pairs(coords: 'ndarray') -> list[tuple[int, int]]:
             p = p_next
             q = q_next
             if p != q:
-                pairs.append((p, q))
+                pairs.add((p, q))
         if (p, q) == (p0, q0):
             break
     return pairs
 # End _antipodal_pairs function
 
 
-def _distance_and_points(coords: 'ndarray', pairs: list[tuple[int, int]]) \
+def _distance_and_points(coords: 'ndarray', pairs: set[tuple[int, int]]) \
         -> dict[float, tuple[tuple[float, float], tuple[float, float]]]:
     """
     Distance and Points
