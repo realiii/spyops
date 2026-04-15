@@ -325,7 +325,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     def dissolved_geometries(self) -> Generator[
             dict[int, MultiPolygon], None, None]:
         """
-        Dissolved Geometries stored as a dictionary of Dense Range IDs
+        Dissolved Geometries stored as a dictionary of Dense Rank IDs
         and Multi-Part Geometries.  Page over the number of groups to
         avoid loading all geometries into memory at once.
 
@@ -440,7 +440,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
         Get Unique Fields
         """
         return self._fields
-    # End _get_unique_fields meth
+    # End _get_unique_fields method
 
     @property
     def select(self) -> str:
@@ -547,7 +547,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         Get Unique Fields
         """
         return []
-    # End _get_unique_fields meth
+    # End _get_unique_fields method
 
     @property
     def select(self) -> str:
@@ -673,7 +673,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         Get Unique Fields
         """
         return add_orig_fid(self.source)
-    # End _get_unique_fields meth
+    # End _get_unique_fields method
 
     @property
     def select(self) -> str:
@@ -1161,7 +1161,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
             return fields
         distance_field = make_unique_fields(fields, [distance_field])
         return [*fields, *distance_field]
-    # End _get_unique_fields meth
+    # End _get_unique_fields method
 # End QueryMultipleBuffer class
 
 
