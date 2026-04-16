@@ -22,8 +22,8 @@ from spyops.management.indexes import (
 from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
-    FieldProperty, GeometryAttribute, GeometryCheck, LineTypeOption,
-    WeightOption)
+    FieldProperty, GeometryAttribute, GeometryCheck, GroupOption,
+    LineTypeOption, MinimumGeometryOption, WeightOption)
 from spyops.shared.stats import (
     Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
     Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
@@ -66,8 +66,10 @@ __all__ = [
     'FieldProperty',
     'GeometryAttribute',
     'GeometryCheck',
+    'GroupOption',
     'LengthUnit',
     'LineTypeOption',
+    'MinimumGeometryOption',
     'WeightOption',
 
     'Average',
