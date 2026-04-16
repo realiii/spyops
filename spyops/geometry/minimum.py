@@ -73,7 +73,11 @@ def _rectangle_attributes(geoms: 'ndarray') -> list[tuple[float, float, float]]:
     coords, indexes = get_coordinates(geoms, return_index=True)
     ids = find_slice_indexes(indexes)
     for begin, end in zip(ids[:-1], ids[1:]):
-        pt1, pt2, pt3, *_ = coords[begin:end]
+        try:
+            pt1, pt2, pt3, *_ = coords[begin:end]
+        except ValueError:
+            wlo.append((0., 0., 0.))
+            continue
         (x1, y1), (x2, y2), (x3, y3) = pt1, pt2, pt3
         width = hypot(x2 - x1, y2 - y1)
         length = hypot(x3 - x2, y3 - y2)
