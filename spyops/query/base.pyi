@@ -209,19 +209,26 @@ class BaseQuerySelect(AbstractSourceQuery):
     def insert(self) -> str: ...
 
 
-class AbstractQueryDissolve(GroupQueryMixin, AbstractSourceQuery, metaclass=ABCMeta):
-
+class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
+                         metaclass=ABCMeta):
     _fields: FIELDS
-    _as_multi_part: bool
     _group_names: str
 
-    def __init__(self, source: FeatureClass, target: FeatureClass, *,
-                 fields: FIELDS, as_multi_part: bool,
-                 xy_tolerance: XY_TOL) -> None: ...
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+                 fields: FIELDS, xy_tolerance: XY_TOL) -> None: ...
     @property
     def insert(self) -> str: ...
     @cached_property
     def group_count(self) -> int: ...
     @property
     def select_geometry(self) -> str: ...
+
+
+class AbstractQueryDissolve(AbstractQueryGroup):
+
+    _as_multi_part: bool
+
+    def __init__(self, source: FeatureClass, target: FeatureClass, *,
+                 fields: FIELDS, as_multi_part: bool,
+                 xy_tolerance: XY_TOL) -> None: ...
     def dissolved_geometries(self) -> Generator[dict[int, BaseMultipartGeometry], None, None]: ...

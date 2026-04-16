@@ -145,10 +145,7 @@ class TestBuffer:
         """
         Test Dissolve List for line
         """
-        if 'mp' in fc_name:
-            fields = 'ISO_CC'
-        else:
-            fields = 'ISO_CC', 'RANK'
+        fields = 'ISO_CC', 'RANK'
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
         with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):

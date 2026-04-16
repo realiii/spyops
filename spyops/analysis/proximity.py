@@ -40,6 +40,7 @@ __all__ = ['buffer', 'multiple_buffer']
 @validate_target_feature_class()
 @validate_distance(DISTANCE_ARG, element_name=SOURCE)
 @validate_str_enumeration(BUFFER_TYPE, BufferTypeOption)
+@validate_str_enumeration(DISSOLVE_OPTION, DissolveOption)
 @validate_field(GROUP_FIELDS, element_name=SOURCE, is_optional=True)
 @validate_dissolve_option(DISSOLVE_OPTION, GROUP_FIELDS)
 @validate_side_option(SIDE_OPTION, SOURCE)

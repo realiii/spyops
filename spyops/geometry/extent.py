@@ -11,7 +11,7 @@ from bottleneck import nanmax, nanmin
 from fudgeo.util import get_extent
 from numpy import isfinite
 from shapely import MultiPolygon, get_coordinates
-from shapely.creation import box
+from shapely.constructive import envelope
 
 from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 from spyops.shared.exception import BadExtentError
@@ -21,7 +21,6 @@ from spyops.shared.hint import EXTENT
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
-    from shapely import Polygon
 
 
 def set_extent(feature_class: 'FeatureClass') -> None:
@@ -125,18 +124,12 @@ def _apply_axis_summary(func: Callable, coords: 'ndarray',
 # End _apply_axis_summary function
 
 
-def extent_from_geometry(geoms: 'ndarray') -> list['Polygon']:
+def extent_from_geometry(geoms: 'ndarray') -> 'ndarray':
     """
     Get the Extents from the Geometries (one polygon per feature,
     including all parts).  Intended for all but Point geometries.
     """
-    coords, indexes = get_coordinates(geoms, return_index=True)
-    ids = find_slice_indexes(indexes)
-    mins = _apply_axis_summary(nanmin, coords=coords, ids=ids)
-    maxes = _apply_axis_summary(nanmax, coords=coords, ids=ids)
-    # noinspection PyTypeChecker
-    return [box(xmin=min_x, ymin=min_y, xmax=max_x, ymax=max_y)
-            for (min_x, min_y), (max_x, max_y) in zip(mins, maxes)]
+    return envelope(geoms)
 # End extent_from_geometry function
 
 
@@ -149,15 +142,7 @@ def extent_from_parts(geoms: 'ndarray') -> list[MultiPolygon]:
     extents = []
     for geom in geoms:
         # noinspection PyTypeChecker
-        coords, indexes = get_coordinates(
-            get_geoms_iter(geom), return_index=True)
-        ids = find_slice_indexes(indexes)
-        mins = _apply_axis_summary(nanmin, coords=coords, ids=ids)
-        maxes = _apply_axis_summary(nanmax, coords=coords, ids=ids)
-        # noinspection PyTypeChecker
-        extents.append(MultiPolygon([box(
-            xmin=min_x, ymin=min_y, xmax=max_x, ymax=max_y)
-            for (min_x, min_y), (max_x, max_y) in zip(mins, maxes)]))
+        extents.append(MultiPolygon(envelope(get_geoms_iter(geom))))
     return extents
 # End extent_from_parts function
 

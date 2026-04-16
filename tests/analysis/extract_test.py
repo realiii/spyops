@@ -979,7 +979,7 @@ class TestSplit:
         ('roads_l', 4, 2194),
         ('admin_mp_a', 4, 60),
         ('airports_mp_p', 4, 8),
-        ('roads_mp_l', 4, 14),
+        param('roads_mp_l', 4, 14, marks=mark.slow),
     ])
     def test_extent(self, inputs, world_features, mem_gpkg, fc_name, element_count, record_count):
         """

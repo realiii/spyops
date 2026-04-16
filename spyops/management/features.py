@@ -24,27 +24,29 @@ from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
     QueryCopyFeatures, QueryFeatureEnvelopeToPolygon,
-    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
-    QueryXYTablePoint)
+    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
+    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
+    QueryRepairGeometry, QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
-    FIELD, GEOMETRY_ATTRIBUTE, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
-    SOURCE, START_X_FIELD, START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD,
-    Z_FIELD)
+    FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
+    LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT, SOURCE, START_X_FIELD,
+    START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
-    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, LineTypeOption,
-    WeightOption)
+    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, GroupOption,
+    LineTypeOption, MinimumGeometryOption, WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
-from spyops.shared.hint import ELEMENT, XY_TOL
+from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, XY_TOL
 from spyops.shared.records import (
     extend_records, insert_many, select_and_transform_features)
 from spyops.validation import (
-    validate_coordinate_system, validate_element, validate_int_flag_enumeration,
-    validate_range, validate_source_element, validate_source_numeric_field,
-    validate_str_enumeration, validate_feature_class,
-    validate_geometry_attribute, validate_overwrite_source, validate_result,
-    validate_source_feature_class, validate_target_feature_class,
-    validate_target_table, validate_xy_tolerance)
+    validate_coordinate_system, validate_element, validate_field,
+    validate_geometry_group_option, validate_group_option,
+    validate_int_flag_enumeration, validate_range, validate_source_element,
+    validate_source_numeric_field, validate_str_enumeration,
+    validate_feature_class, validate_geometry_attribute,
+    validate_overwrite_source, validate_result, validate_source_feature_class,
+    validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -55,7 +57,7 @@ __all__ = [
     'add_xy_coordinates', 'calculate_geometry_attributes', 'check_geometry',
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
-    'feature_envelope_to_polygon']
+    'feature_envelope_to_polygon', 'minimum_bounding_geometry']
 
 
 @validate_result()
@@ -544,6 +546,72 @@ def feature_envelope_to_polygon(source: 'FeatureClass', target: 'FeatureClass',
             geometries = extent_getter(geometries)
             results = [(g, attrs) for g, (_, *attrs) in
                        zip(geometries, features)]
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End feature_envelope_to_polygon function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_target_feature_class()
+@validate_str_enumeration(GEOMETRY_TYPE, MinimumGeometryOption)
+@validate_str_enumeration(GROUP_OPTION, GroupOption)
+@validate_field(GROUP_FIELDS, element_name=SOURCE, is_optional=True)
+@validate_group_option(GROUP_OPTION, GROUP_FIELDS)
+@validate_geometry_group_option(GROUP_OPTION, SOURCE)
+@validate_overwrite_source()
+def minimum_bounding_geometry(source: 'FeatureClass', target: 'FeatureClass',
+                              geometry_type: MinimumGeometryOption = (
+                                      MinimumGeometryOption.RECTANGLE_BY_AREA),
+                              *, add_geometric_attributes: bool = False,
+                              group_option: GroupOption = GroupOption.NONE,
+                              group_fields: FIELDS | FIELD_NAMES = ()) \
+        -> 'FeatureClass':
+    """
+    Minimum Bounding Geometry
+
+    Create a feature class containing polygons which represent the specified
+    minimum bounding geometry type around each input feature, all input
+    features, or for a group of input features based on group option and
+    optional group fields.
+    """
+    kwargs = dict(source=source, target=target, geometry_type=geometry_type,
+                  add_geometric_attributes=add_geometric_attributes,
+                  fields=group_fields)
+    if group_option == GroupOption.NONE:
+        query = QueryMinimumBoundingGeometryNone(**kwargs)
+    elif group_option == GroupOption.LIST:
+        query = QueryMinimumBoundingGeometryList(**kwargs)
+    else:
+        query = QueryMinimumBoundingGeometryAll(**kwargs)
+    records = []
+    insert_sql = query.insert
+    config = query.geometry_config
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        if group_option in (GroupOption.NONE, GroupOption.LIST):
+            results = []
+            cursor = cin.execute(query.select)
+            while rows := cursor.fetchmany(FETCH_SIZE):
+                geoms = next(query.grouped_geometries(), {})
+                if group_option == GroupOption.NONE:
+                    for i, orig_id, *attrs in rows:
+                        geom, mbg_attrs = geoms.pop(i, (None, ()))
+                        results.append((geom, (orig_id, *mbg_attrs, *attrs)))
+                else:
+                    for i, *attrs in rows:
+                        geom, mbg_attrs = geoms.pop(i, (None, ()))
+                        results.append((geom, (*mbg_attrs, *attrs)))
+                extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
+                results.clear()
+        else:
+            geoms = next(query.grouped_geometries(), {})
+            results = list(geoms.values())
             extend_records(results, records=records, config=config)
             executor(sql=insert_sql, data=records)
             records.clear()

@@ -106,7 +106,7 @@ class QueryDissolve(AbstractQueryDissolve):
         stat_fields = [stat.output_field for stat in self.statistics]
         stat_fields = make_unique_fields(self._fields, stat_fields)
         return [*self._fields, *stat_fields]
-    # End _get_unique_fields meth
+    # End _get_unique_fields method
 
     @property
     def select(self) -> str:
@@ -121,7 +121,6 @@ class QueryDissolve(AbstractQueryDissolve):
         dr_select_names = self._concatenate(dr_select_names, dr_select_stats)
         # NOTE this extent not used, simply filling a required argument
         index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
-        # noinspection PyUnresolvedReferences
         return f"""
             SELECT {select_field_names}
             FROM (SELECT dense_rank() OVER (
@@ -152,7 +151,7 @@ class QueryDissolve(AbstractQueryDissolve):
     def dissolved_geometries(self) -> Generator[
             dict[int, 'BaseMultipartGeometry'], None, None]:
         """
-        Dissolved Geometries stored as a dictionary of Dense Range IDs
+        Dissolved Geometries stored as a dictionary of Dense Rank IDs
         and Multi-Part Geometries.  Page over the number of groups to
         avoid loading all geometries into memory at once.
 

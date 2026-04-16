@@ -13,7 +13,8 @@ from fudgeo.enumeration import ShapeType
 from spyops.geometry.validate import get_geometry_dimension
 from spyops.shared.keywords import GEOMETRY_ATTRIBUTE, SOURCE
 from spyops.shared.enumeration import (
-    DissolveOption, GeometryAttribute, OutputTypeOption, SideOption)
+    DissolveOption, GeometryAttribute, GroupOption, OutputTypeOption,
+    SideOption)
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.util import check_int_flag_enum, check_str_enum
 from spyops.validation.base import (
@@ -126,18 +127,56 @@ class ValidateOutputType(AbstractValidateEnumDependency):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            if kwargs[self._enum_name] != OutputTypeOption.LINE:
+            if kwargs[self._enum_name] != self._enumeration:
                 return func(**kwargs)
             if not get_geometry_dimension(kwargs[self._name]):
                 raise GeometryDimensionError(
                     f'{self._name} features class must be a '
                     f'{ShapeType.linestring} or {ShapeType.polygon} '
-                    f'shape type for Output Type "{OutputTypeOption.LINE}"')
+                    f'shape type for {self._label} "{self._enumeration}"')
             return func(**kwargs)
         # End wrapper function
         return wrapper
     # End call built-in
+
+    @property
+    def _enumeration(self) -> OutputTypeOption:
+        """
+        Enumeration
+        """
+        return OutputTypeOption.LINE
+    # End _enumeration property
+
+    @property
+    def _label(self) -> str:
+        """
+        Label
+        """
+        return 'Output Type'
+    # End _label property
 # End ValidateOutputType class
+
+
+class ValidateGeometryGroupOption(ValidateOutputType):
+    """
+    Validate Geometry and Group Option
+    """
+    @property
+    def _enumeration(self) -> GroupOption:
+        """
+        Enumeration
+        """
+        return GroupOption.NONE
+    # End _enumeration property
+
+    @property
+    def _label(self) -> str:
+        """
+        Label
+        """
+        return 'Group Option'
+    # End _label property
+# End ValidateGeometryGroupOption class
 
 
 class ValidateSideOption(AbstractValidateEnumDependency):
@@ -163,10 +202,10 @@ class ValidateSideOption(AbstractValidateEnumDependency):
                     dim == 2 and option in (SideOption.LEFT, SideOption.RIGHT)):
                 kwargs[self._enum_name] = SideOption.FULL
             return func(**kwargs)
-        # Side wrapper function
+        # End wrapper function
         return wrapper
-    # Side call built-in
-# Side ValidateSideOption class
+    # End call built-in
+# End ValidateSideOption class
 
 
 class ValidateDissolveOption(AbstractValidateEnumDependency):
@@ -184,17 +223,39 @@ class ValidateDissolveOption(AbstractValidateEnumDependency):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            if kwargs[self._enum_name] != DissolveOption.LIST:
+            if kwargs[self._enum_name] != self._list_enum:
                 kwargs[self._name] = None
                 return func(**kwargs)
             if not kwargs[self._name]:
                 raise ValueError(
                     f'{self._name} must be a non-empty list of fields')
             return func(**kwargs)
-        # Dissolve wrapper function
+        # End wrapper function
         return wrapper
-    # Dissolve call built-in
-# Dissolve ValidateDissolveOption class
+    # End call built-in
+
+    @property
+    def _list_enum(self) -> DissolveOption:
+        """
+        List Enum
+        """
+        return DissolveOption.LIST
+    # End _list_enum property
+# End ValidateDissolveOption class
+
+
+class ValidateGroupOption(ValidateDissolveOption):
+    """
+    Validate Group Option
+    """
+    @property
+    def _list_enum(self) -> GroupOption:
+        """
+        List Enum
+        """
+        return GroupOption.LIST
+    # End _list_enum property
+# End ValidateGroupOption class
 
 
 class ValidateGeometryAttribute(AbstractValidateType):

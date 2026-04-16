@@ -23,11 +23,12 @@ from spyops.management import (
     delete_features, feature_envelope_to_polygon, multipart_to_singlepart,
     xy_to_line)
 from spyops.management.features import (
-    check_geometry, repair_geometry,
+    check_geometry, minimum_bounding_geometry, repair_geometry,
     xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
-    GeometryAttribute, GeometryCheck, LineTypeOption, WeightOption)
+    GeometryAttribute, GeometryCheck, GroupOption, LineTypeOption,
+    MinimumGeometryOption, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 
 from tests.util import UseGrids
@@ -1461,6 +1462,303 @@ class TestFeatureEnvelopeToPolygon:
             assert len(result) == post_count
     # End test_extent method
 # End TestFeatureEnvelopeToPolygon class
+
+
+class TestMinimumBoundingGeometry:
+    """
+    Test Minimum Bounding Geometry
+    """
+    @mark.parametrize('fc_name, expected', [
+        ('admin_a', 6),
+        ('admin_mp_a', 6),
+        ('admin_lcc_na_a', 6),
+        ('admin_lcc_na_mp_a', 6),
+    ])
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_list_polygon(self, mem_gpkg, buffering, fc_name, expected, geometry_type, add_attributes):
+        """
+        Test Dissolve List for Polygon
+        """
+        fields = 'COUNTRY', 'ADMINTYPE', 'LAND_RANK'
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, geometry_type=geometry_type,
+                add_geometric_attributes=add_attributes,
+                group_option=GroupOption.LIST, group_fields=fields)
+            assert len(result) == expected
+    # End test_list_polygon method
+
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_sans_attr(self, mem_gpkg, buffering, add_attributes):
+        """
+        Test Polygon with no Attributes
+        """
+        source = buffering['admin_sans_attr_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='sans_all_mbg')
+        additional = 3 if add_attributes else 0
+        extent = Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))
+        with Swap(Setting.EXTENT, extent):
+            result = minimum_bounding_geometry(
+                source, target=target, group_option=GroupOption.ALL,
+                add_geometric_attributes=add_attributes,
+                geometry_type=MinimumGeometryOption.RECTANGLE_BY_AREA)
+            assert len(result) == 1
+            assert len(target.fields) == len(source.fields) + additional
+
+        # NOTE include orig fid
+        additional += 1
+        target = FeatureClass(geopackage=mem_gpkg, name='sans_none_mbg')
+        with Swap(Setting.EXTENT, extent):
+            result = minimum_bounding_geometry(
+                source, target=target, group_option=GroupOption.NONE,
+                add_geometric_attributes=add_attributes,
+                geometry_type=MinimumGeometryOption.RECTANGLE_BY_AREA)
+            assert len(result) == 11
+            assert len(target.fields) == len(source.fields) + additional
+    # End test_sans_attr method
+
+    @mark.zm
+    @mark.parametrize('fc_name, group_option, extent, count', [
+        ('admin_a', GroupOption.NONE, (-2306408.75, 1019980.4375, -778207.0625, 2711139.0), 2),
+        ('roads_l', GroupOption.NONE, (-1388068.375, 1022292.6875, -891346.5625, 1617412.625), 967),
+        ('airports_p', GroupOption.ALL, (-1358503.75, 1003277.9375, -998982.9375, 1540229.25), 1),
+    ])
+    def test_output_settings(self, mem_gpkg, buffering, fc_name, group_option, extent, count):
+        """
+        Test minimum bounding geometry with Z output and M output + reprojecting features
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = minimum_bounding_geometry(
+                source, target=target, group_option=group_option,
+                geometry_type=MinimumGeometryOption.ENVELOPE)
+            assert result.has_z
+            assert result.has_m
+            assert result.spatial_reference_system.srs_id == 102009
+            assert approx(result.extent, abs=1) == extent
+            assert len(result) == count
+    # End test_output_settings method
+
+    @mark.parametrize('geometry_type, count', [
+        (MinimumGeometryOption.RECTANGLE_BY_AREA, 2),
+        (MinimumGeometryOption.RECTANGLE_BY_WIDTH, 2),
+        (MinimumGeometryOption.CONVEX_HULL, 2),
+        (MinimumGeometryOption.CIRCLE, 4),
+        (MinimumGeometryOption.ENVELOPE, 4),
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_list_line(self, mem_gpkg, buffering, geometry_type, count, add_attributes):
+        """
+        Test List for line
+        """
+        fields = 'ISO_CC', 'RANK'
+        source = buffering['roads_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='roads_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, geometry_type=geometry_type,
+                add_geometric_attributes=add_attributes,
+                group_option=GroupOption.LIST, group_fields=fields)
+        assert len(result) == count
+    # End test_list_line method
+
+    @mark.parametrize('fc_name', [
+        'airports_p',
+        'airports_mp_p',
+        'airports_lcc_na_p',
+        'airports_lcc_na_mp_p',
+    ])
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_list_point(self, mem_gpkg, buffering, fc_name, geometry_type, add_attributes):
+        """
+        Test List Point
+        """
+        if 'mp' in fc_name:
+            fields = 'ISO_CC'
+        else:
+            fields = 'ISO_CC', 'IATA'
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, geometry_type=geometry_type,
+                add_geometric_attributes=add_attributes,
+                group_option=GroupOption.LIST, group_fields=fields)
+            assert len(result) and len(result) < len(source)
+    # End test_list_point method
+
+    @mark.parametrize('fc_name', [
+        'admin_a',
+        'admin_mp_a',
+        'admin_lcc_na_a',
+        'admin_lcc_na_mp_a',
+    ])
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_all_polygon(self, mem_gpkg, buffering, fc_name, geometry_type, add_attributes):
+        """
+        Test All for Polygon
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, geometry_type=geometry_type,
+                add_geometric_attributes=add_attributes,
+                group_option=GroupOption.ALL)
+            assert len(result) == 1
+    # End test_all_polygon method
+
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_all_line(self, mem_gpkg, buffering, geometry_type, add_attributes):
+        """
+        Test All for line
+        """
+        source = buffering['roads_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='roads_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, add_geometric_attributes=add_attributes,
+                geometry_type=geometry_type, group_option=GroupOption.ALL)
+            assert len(result) == 1
+    # End test_all_line method
+
+    @mark.parametrize('fc_name', [
+        'airports_p',
+        'airports_mp_p',
+        'airports_lcc_na_p',
+        'airports_lcc_na_mp_p',
+    ])
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_all_point(self, mem_gpkg, buffering, fc_name, geometry_type, add_attributes):
+        """
+        Test All Point
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, add_geometric_attributes=add_attributes,
+                geometry_type=geometry_type, group_option=GroupOption.ALL)
+            assert len(result) == 1
+    # End test_all_point method
+
+    @mark.parametrize('fc_name, expected', [
+        ('admin_a', 488),
+        ('admin_mp_a', 11),
+        ('admin_lcc_na_a', 474),
+        ('admin_lcc_na_mp_a', 11),
+    ])
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        param(False, marks=mark.large),
+    ])
+    def test_none_polygon(self, mem_gpkg, buffering, fc_name, expected, geometry_type, add_attributes):
+        """
+        Test None for Polygon
+        """
+        source = buffering[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, add_geometric_attributes=add_attributes,
+                geometry_type=geometry_type, group_option=GroupOption.NONE)
+            assert len(result) == expected
+    # End test_none_polygon method
+
+    @mark.parametrize('geometry_type', [
+        MinimumGeometryOption.RECTANGLE_BY_AREA,
+        MinimumGeometryOption.RECTANGLE_BY_WIDTH,
+        MinimumGeometryOption.CONVEX_HULL,
+        MinimumGeometryOption.CIRCLE,
+        MinimumGeometryOption.ENVELOPE,
+    ])
+    @mark.parametrize('add_attributes', [
+        True,
+        False,
+    ])
+    def test_none_line(self, mem_gpkg, buffering, geometry_type, add_attributes):
+        """
+        Test None for line
+        """
+        source = buffering['roads_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='roads_mbg')
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+            result = minimum_bounding_geometry(
+                source, target=target, add_geometric_attributes=add_attributes,
+                geometry_type=geometry_type, group_option=GroupOption.NONE)
+            assert len(result)
+    # End test_none_line method
+# End TestMinimumBoundingGeometry class
 
 
 if __name__ == '__main__':  # pragma: no cover
