@@ -4,15 +4,20 @@ Query Classes for management.features module
 """
 
 
+from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from functools import cached_property, partial
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING, Type
+from typing import Callable, Generator, TYPE_CHECKING, Type, Union
 
 from fudgeo import Field, SpatialReferenceSystem
+from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from fudgeo.geometry import Point, PointZ, PointM, PointZM
+from numpy import array
 from pyproj import CRS
-from shapely import get_num_coordinates, get_num_geometries, Polygon
+from shapely import (
+    GeometryCollection, Polygon, get_num_coordinates, get_num_geometries)
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
@@ -23,20 +28,29 @@ from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
     length_planar, line_azimuth, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
+from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
+from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
+from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.base import (
-    AbstractSourceQuery, AbstractSourceUpdateQuery, BaseQuerySelect)
-from spyops.shared.enumeration import GeometryAttribute, WeightOption
+    AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
+    BaseQuerySelect)
+from spyops.shared.constant import DRID, EMPTY
+from spyops.shared.enumeration import (
+    GeometryAttribute, MinimumGeometryOption, WeightOption)
 from spyops.shared.field import (
-    ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_orig_fid,
-    get_geometry_column_name, make_field_names)
+    MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, POINT_M, POINT_X, POINT_Y,
+    POINT_Z, REASON, VALUE, add_orig_fid, get_geometry_column_name,
+    make_field_names, make_unique_fields, validate_fields)
 from spyops.shared.hint import ELEMENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
 from spyops.shared.sql import SQL_ALL_ID
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from sqlite3 import Connection
     from fudgeo import FeatureClass, Table
+    from numpy import ndarray
 
 
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
@@ -806,6 +820,436 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
             m_enabled=zm.m_enabled)
     # End zm_config property
 # End QueryFeatureEnvelopeToPolygon class
+
+
+class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup, metaclass=ABCMeta):
+    """
+    Abstract Query Minimum Bounding Geometry Class
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 geometry_type: MinimumGeometryOption, *,
+                 add_geometric_attributes: bool, fields: FIELDS) -> None:
+        """
+        Initialize the AbstractQueryMinimumBoundingGeometry class
+        """
+        super().__init__(
+            source, target=target, fields=fields or [], xy_tolerance=None)
+        self._geometry_type: MinimumGeometryOption = geometry_type
+        self._add_attrs: bool = add_geometric_attributes
+    # End init built-in
+
+    @property
+    def add_attributes(self) -> bool:
+        """
+        Add Geometric Attributes
+        """
+        return self._add_attrs
+    # End add_attributes property
+
+    @cached_property
+    def _bounding_function(self) -> Callable:
+        """
+        Bounding Function
+        """
+        return GEOMETRY_MINIMUM[self._geometry_type]
+    # End _bounding_function property
+
+    @cached_property
+    def _attribute_function(self) -> Callable:
+        """
+        Attribute Function
+        """
+        if not self.add_attributes:
+            return lambda _: ()
+        return GEOMETRY_MINIMUM_ATTRS[self._geometry_type]
+    # End _attribute_function property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Source Transformer, overloaded since we want to ignore Z and M
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=False, has_m=False,
+            transformer=transformer)
+    # End source_transformer property
+
+    @abstractmethod
+    def grouped_geometries(self) -> Generator[dict[int, tuple], None, None]:
+        """
+        Grouped Geometries stored as a dictionary of Dense Rank IDs as the key
+        and a tuple of Bounding Geometry + Optional Attributes as the value.
+        Page over the number of groups to avoid loading all geometries into
+        memory at once.
+
+        This method builds up a dictionary of geometries and yields it when it
+        reaches (or exceeds) fetch size.  There is an expectation that when a
+        geometry is stitched together with its aggregate row that the geometry
+        will be popped from the dictionary.
+        """
+        pass
+    # End grouped_geometries method
+
+    def _process_geometries(self, ids: 'ndarray',
+                            geometries: Union['ndarray', list]) \
+            -> dict[int, tuple]:
+        """
+        Process Geometries
+        """
+        bounder = self._bounding_function
+        attributer = self._attribute_function
+        polygons = bounder(geometries)
+        if self.add_attributes:
+            attributes = attributer(polygons)
+            return {id_: (geom, attrs) for id_, geom, attrs in
+                    zip(ids, polygons, attributes)}
+        else:
+            return {id_: (geom, ()) for id_, geom in zip(ids, polygons)}
+    # End _process_geometries method
+
+    def _build_fields(self, fields: list[Field]) -> FIELDS:
+        """
+        Build Fields
+        """
+        key_fields = self._get_key_fields()
+        keys = [f.name.casefold() for f in key_fields]
+        names = [f.name.casefold() for f in fields]
+        if not any(key in names for key in keys):
+            return *key_fields, *fields
+        for key, fld in zip(keys, key_fields):
+            if key not in names:
+                continue
+            index = names.index(key)
+            fld, = make_unique_fields([fld, *fields], others=[fields[index]])
+            fields[index] = fld
+        return *key_fields, *fields
+    # End _build_fields method
+
+    @abstractmethod
+    def _get_key_fields(self) -> tuple[Field, ...]:
+        """
+        Get Key Fields
+        """
+        pass
+    # End _get_key_fields method
+# End AbstractQueryMinimumBoundingGeometry class
+
+
+class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
+    """
+    Queries for Minimum Bounding Geometry (List)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        if self.add_attributes:
+            return self._build_fields(list(self._fields))
+        return self._fields
+    # End _get_unique_fields method
+
+    def _get_key_fields(self) -> tuple[Field, ...]:
+        """
+        Get Key Fields
+        """
+        return MBG_WIDTH, MBG_LENGTH, MBG_ORIENTATION
+    # End _get_key_fields method
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT {DRID}, {self._group_names}
+            FROM (SELECT dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
+                  FROM {elm.escaped_name} {index_where})
+            GROUP BY {DRID} 
+        """
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT * 
+            FROM (SELECT {geom}, dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}
+                  FROM {elm.escaped_name} {index_where})
+            WHERE {DRID} BETWEEN ? AND ?
+        """
+    # End select_geometry property
+
+    def grouped_geometries(self) -> Generator[dict[int, tuple], None, None]:
+        """
+        Grouped Geometries stored as a dictionary of Dense Rank IDs as the key
+        and a tuple of Bounding Geometry + Optional Attributes as the value.
+        Page over the number of groups to avoid loading all geometries into
+        memory at once.
+
+        This method builds up a dictionary of geometries and yields it when it
+        reaches (or exceeds) fetch size.  There is an expectation that when a
+        geometry is stitched together with its aggregate row that the geometry
+        will be popped from the dictionary.
+        """
+        grouped = {}
+        size = FETCH_SIZE // 5
+        steps, remainder = divmod(self.group_count, size)
+        steps += bool(remainder)
+        sql = self.select_geometry
+        bounder = self._bounding_function
+        attributer = self._attribute_function
+        with self.source.geopackage.connection as cin:
+            for step in range(steps):
+                features, geometries = self._fetch_features(
+                    cin, sql=sql, size=size, step=step)
+                if not features:
+                    continue
+                ids = array([i for _, i in features], dtype=int)
+                ranks = defaultdict(list)
+                for id_, geom in zip(ids, geometries):
+                    ranks[id_].append(geom)
+                ids, geometries = zip(*ranks.items())
+                geometries = [GeometryCollection(geoms) for geoms in geometries]
+                grouped.update(self._process_geometries(ids, geometries))
+                if len(grouped) >= FETCH_SIZE:
+                    yield grouped
+        yield grouped
+    # End grouped_geometries method
+
+    def _fetch_features(self, connection: 'Connection', sql: str, size: int,
+                        step: int) -> tuple[list[tuple], 'ndarray']:
+        """
+        Fetch Features
+        """
+        start = 1 + (step * size)
+        end = (step + 1) * size
+        cursor = connection.execute(sql, (start, end))
+        features = filter_features(cursor.fetchall())
+        return to_shapely(
+            features, transformer=self.source_transformer,
+            option=DimensionOption.TWO_D)
+    # End _fetch_features method
+# End QueryMinimumBoundingGeometryList class
+
+
+class QueryMinimumBoundingGeometryAll(AbstractQueryMinimumBoundingGeometry):
+    """
+    Queries for Minimum Bounding Geometry (All)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        if self.add_attributes:
+            return self._get_key_fields()
+        return []
+    # End _get_unique_fields method
+
+    def _get_key_fields(self) -> tuple[Field, ...]:
+        """
+        Get Key Fields
+        """
+        return MBG_WIDTH, MBG_LENGTH, MBG_ORIENTATION
+    # End _get_key_fields method
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        return EMPTY
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT {geom} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select_geometry property
+
+    @cached_property
+    def group_count(self) -> int:
+        """
+        Group Count
+        """
+        return len(self.source)
+    # End group_count property
+
+    def grouped_geometries(self) -> Generator[dict[int, tuple], None, None]:
+        """
+        Grouped Geometries stored as a dictionary of Dense Rank IDs as the key
+        and a tuple of Bounding Geometry + Optional Attributes as the value.
+
+        This method builds up a dictionary of geometries and yields it when it
+        reaches (or exceeds) fetch size.  There is an expectation that when a
+        geometry is stitched together with its aggregate row that the geometry
+        will be popped from the dictionary.
+        """
+        key = 1
+        size = FETCH_SIZE // 5
+        steps, remainder = divmod(self.group_count, size)
+        steps += bool(remainder)
+        sql = self.select_geometry
+        collections = []
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(size):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=self.source_transformer,
+                    option=DimensionOption.TWO_D)
+                if not features:
+                    continue
+                collections.append(GeometryCollection(geometries))
+        if not collections:
+            yield {key: (Polygon(), ())}
+        else:
+            geom = self._bounding_function(GeometryCollection(collections))
+            if geom is None or geom.is_empty:
+                yield {key: (Polygon(), ())}
+            else:
+                if self.add_attributes:
+                    attrs, = self._attribute_function([geom])
+                else:
+                    attrs = ()
+                yield {key: (geom, attrs)}
+    # End grouped_geometries method
+# End QueryMinimumBoundingGeometryAll class
+
+
+class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
+    """
+    Queries for Minimum Bounding Geometry (None)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        if self.add_attributes:
+            return self._build_fields(list(validate_fields(
+                self.source, fields=self.source.fields)))
+        return add_orig_fid(self.source)
+    # End _get_unique_fields method
+
+    def _get_key_fields(self) -> tuple[Field, ...]:
+        """
+        Get Key Fields
+        """
+        return ORIG_FID, MBG_WIDTH, MBG_LENGTH, MBG_ORIENTATION
+    # End _get_key_fields method
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        elm = self.source
+        # noinspection PyUnresolvedReferences
+        name = self.source.primary_key_field.escaped_name
+        if self.add_attributes:
+            index = 4
+        else:
+            index = 1
+        field_names = make_field_names(self._get_unique_fields()[index:])
+        # NOTE double up on the key name, first value is used for lookup in
+        #  the geometry dictionary, the second is used to store in ORIG_FID
+        key_names = self._concatenate(name, name)
+        field_names = self._concatenate(key_names, field_names)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        return f"""
+            SELECT {field_names} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select property
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        # NOTE this extent not used, simply filling a required argument
+        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        # noinspection PyUnresolvedReferences
+        name = self.source.primary_key_field.escaped_name
+        geom_and_fid = self._concatenate(geom, name)
+        return f"""
+            SELECT {geom_and_fid} 
+            FROM {elm.escaped_name} {index_where}
+        """
+    # End select_geometry property
+
+    @cached_property
+    def group_count(self) -> int:
+        """
+        Group Count
+        """
+        return len(self.source)
+    # End group_count property
+
+    def grouped_geometries(self) -> Generator[dict[int, tuple], None, None]:
+        """
+        Grouped Geometries stored as a dictionary of Dense Rank IDs as the key
+        and a tuple of Bounding Geometry + Optional Attributes as the value.
+        Page over the number of groups to avoid loading all geometries into
+        memory at once.
+
+        This method builds up a dictionary of geometries and yields it when it
+        reaches (or exceeds) fetch size.  There is an expectation that when a
+        geometry is stitched together with its aggregate row that the geometry
+        will be popped from the dictionary.
+        """
+        grouped = {}
+        size = FETCH_SIZE // 5
+        sql = self.select_geometry
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            while features := cursor.fetchmany(size):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(
+                    features, transformer=self.source_transformer,
+                    option=DimensionOption.TWO_D)
+                if not features:
+                    continue
+                ids = array([i for _, i in features], dtype=int)
+                grouped.update(self._process_geometries(ids, geometries))
+                if len(grouped) >= FETCH_SIZE:
+                    yield grouped
+        yield grouped
+    # End grouped_geometries method
+# End QueryMinimumBoundingGeometryNone class
 
 
 if __name__ == '__main__':  # pragma: no cover

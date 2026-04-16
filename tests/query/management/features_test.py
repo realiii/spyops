@@ -18,9 +18,14 @@ from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryFeatureEnvelopeToPolygon,
-    QueryMultiPartToSinglePart, QueryRepairGeometry,
+    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
+    QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart,
+    QueryRepairGeometry,
     QueryXYTableLine, QueryXYTablePoint)
-from spyops.shared.enumeration import GeometryAttribute, WeightOption
+from spyops.shared.enumeration import (
+    GeometryAttribute, MinimumGeometryOption,
+    WeightOption)
 from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
 
 
@@ -649,6 +654,162 @@ class TestQueryFeatureEnvelopeToPolygon:
         assert query.zm_config == expected
     # End test_zm_config method
 # End TestQueryFeatureEnvelopeToPolygon class
+
+
+class TestQueryMinimumBoundingGeometryList:
+    """
+    Test QueryMinimumBoundingGeometryList
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test _get_target_shape_type
+        """
+        query = QueryMinimumBoundingGeometryList(
+            None, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=())
+        assert query._get_target_shape_type() == ShapeType.polygon
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('add_attributes, expected', [
+        (True, ['MBG_WIDTH', 'MBG_LENGTH', 'MBG_ORIENTATION', 'COUNTRY']),
+        (False, ['COUNTRY'])
+    ])
+    def test_get_unique_fields(self, add_attributes, expected):
+        """
+        Test _get_unique_fields
+        """
+        fields = [Field('COUNTRY', data_type=FieldType.text)]
+        query = QueryMinimumBoundingGeometryList(
+            None, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=add_attributes, fields=fields)
+        assert [f.name for f in query._get_unique_fields()] == expected
+    # End test_get_unique_fields method
+
+    def test_select(self, buffering):
+        """
+        Test select
+        """
+        source = buffering['admin_a']
+        fields = [Field('COUNTRY', data_type=FieldType.text)]
+        query = QueryMinimumBoundingGeometryList(
+            source, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=fields
+        )
+        sql = query.select
+        assert 'ORDER BY COUNTRY) AS __DRID__, COUNTRY' in sql
+        assert 'MBG' not in sql
+    # End test_select method
+
+    def test_select_geometry(self, buffering):
+        """
+        Test select geometry
+        """
+        fields = [Field('COUNTRY', data_type=FieldType.text)]
+        source = buffering['admin_a']
+        query = QueryMinimumBoundingGeometryList(
+            source, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=fields)
+        sql = query.select_geometry
+        assert 'FROM (SELECT geom "[Polygon]", dense_rank() OVER (' in sql
+        assert 'MBG' not in sql
+    # End test_select_geometry method
+# End TestQueryMinimumBoundingGeometryList class
+
+
+class TestQueryMinimumBoundingGeometryAll:
+    """
+    Test QueryMinimumBoundingGeometryAll
+    """
+    @mark.parametrize('add_attributes, expected', [
+        (True, ['MBG_WIDTH', 'MBG_LENGTH', 'MBG_ORIENTATION']),
+        (False, [])
+    ])
+    def test_get_unique_fields(self, add_attributes, expected):
+        """
+        Test _get_unique_fields
+        """
+        query = QueryMinimumBoundingGeometryAll(
+            None, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=add_attributes, fields=[])
+        assert [f.name for f in query._get_unique_fields()] == expected
+    # End test_get_unique_fields method
+
+    def test_select(self):
+        """
+        Test select
+        """
+        query = QueryMinimumBoundingGeometryAll(
+            None, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=[])
+        sql = query.select
+        assert not sql
+        assert 'MBG' not in sql
+    # End test_select method
+
+    def test_select_geometry(self, buffering):
+        """
+        Test select geometry
+        """
+        source = buffering['admin_a']
+        query = QueryMinimumBoundingGeometryAll(
+            source, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=[])
+        sql = query.select_geometry
+        assert 'SELECT geom "[Polygon]"' in sql
+        assert 'MBG' not in sql
+    # End test_select_geometry method
+# End TestQueryMinimumBoundingGeometryAll class
+
+
+class TestQueryMinimumBoundingGeometryNone:
+    """
+    Test QueryMinimumBoundingGeometryNone
+    """
+    @mark.parametrize('add_attributes, expected', [
+        (True, ['ORIG_FID', 'MBG_WIDTH', 'MBG_LENGTH', 'MBG_ORIENTATION',
+                'FEATURE_ID', 'PART_ID', 'COUNTRY', 'ISO_CODE',
+                'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'CONTINENT', 'LAND_TYPE',
+                'LAND_RANK', 'NUM_DIST', 'LIN_UNIT', 'ANG_UNIT', 'MIX_UNIT']),
+        (False, ['ORIG_FID', 'FEATURE_ID', 'PART_ID', 'COUNTRY', 'ISO_CODE',
+                 'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'CONTINENT', 'LAND_TYPE',
+                 'LAND_RANK', 'NUM_DIST', 'LIN_UNIT', 'ANG_UNIT', 'MIX_UNIT'])
+    ])
+    def test_get_unique_fields(self, buffering, add_attributes, expected):
+        """
+        Test _get_unique_fields
+        """
+        source = buffering['admin_a']
+        query = QueryMinimumBoundingGeometryNone(
+            source, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=add_attributes, fields=[])
+        assert [f.name for f in query._get_unique_fields()] == expected
+    # End test_get_unique_fields method
+
+    def test_select(self, buffering):
+        """
+        Test select
+        """
+        source = buffering['admin_a']
+        query = QueryMinimumBoundingGeometryNone(
+            source, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=[])
+        sql = query.select
+        assert 'SELECT fid, fid, FEATURE_ID, PART_ID, COUNTRY, ISO_CODE, ' in sql
+    # End test_select method
+
+    def test_select_geometry(self, buffering):
+        """
+        Test select geometry
+        """
+        fields = [Field('COUNTRY', data_type=FieldType.text)]
+        source = buffering['admin_a']
+        query = QueryMinimumBoundingGeometryNone(
+            source, None, geometry_type=MinimumGeometryOption.CONVEX_HULL,
+            add_geometric_attributes=True, fields=fields)
+        sql = query.select_geometry
+        assert 'SELECT geom "[Polygon]", fid' in sql
+    # End test_select_geometry method
+# End TestQueryMinimumBoundingGeometryNone class
 
 
 if __name__ == '__main__':  # pragma: no cover
