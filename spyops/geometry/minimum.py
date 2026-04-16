@@ -115,7 +115,13 @@ def _convex_hull_attributes(geoms: 'ndarray') \
     for begin, end in zip(ids[:-1], ids[1:]):
         subset = coords[begin:end]
         pairs = _antipodal_pairs(subset)
+        if not pairs:
+            wlo.append((0., 0., 0.))
+            continue
         distances = _distance_and_points(subset, pairs)
+        if not distances:
+            wlo.append((0., 0., 0.))
+            continue
         width = min(distances)
         length = max(distances)
         points = distances[length]
