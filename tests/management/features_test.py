@@ -20,11 +20,9 @@ from spyops.environment.core import zm_config
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
-    delete_features, feature_envelope_to_polygon, multipart_to_singlepart,
-    xy_to_line)
-from spyops.management.features import (
-    check_geometry, minimum_bounding_geometry, repair_geometry,
-    xy_table_to_point)
+    delete_features, feature_envelope_to_polygon, feature_to_point,
+    multipart_to_singlepart, xy_to_line, check_geometry,
+    minimum_bounding_geometry, repair_geometry, xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
     GeometryAttribute, GeometryCheck, GroupOption, LineTypeOption,
@@ -1759,6 +1757,101 @@ class TestMinimumBoundingGeometry:
             assert len(result)
     # End test_none_line method
 # End TestMinimumBoundingGeometry class
+
+
+class TestFeatureToPoint:
+    """
+    Test Feature to Point
+    """
+    @mark.parametrize('fc_name, inside, extent', [
+        ('hydro_lcc_a', True, (-1262742.5, 1432286.75, -1254244.125, 1440948.0)),
+        ('hydro_lcc_zm_a', True, (-1262742.5, 1432286.75, -1254244.125, 1440948.0)),
+        ('transmission_lcc_l', True, (-1266570.75, 1429049.25, -1247572.0, 1443888.75)),
+        ('transmission_lcc_zm_l', True, (-1266570.75, 1429049.25, -1247572.0, 1443888.75)),
+        ('structures_lcc_p', True, (-1261904.375, 1432092.625, -1254012.375, 1440962.0)),
+        ('structures_lcc_zm_p', True, (-1261904.375, 1432092.625, -1254012.375, 1440962.0)),
+        ('hydro_lcc_a', False, (-1263865.625, 1432290.5, -1254240.5, 1440953.875)),
+        ('hydro_lcc_zm_a', False, (-1263865.625, 1432290.5, -1254240.5, 1440953.875)),
+        ('transmission_lcc_l', False, (-1266626.0, 1429088.625, -1247375.75, 1443808.125 )),
+        ('transmission_lcc_zm_l', False, (-1266626.0, 1429088.625, -1247375.75, 1443808.125 )),
+        ('structures_lcc_p', False, (-1261904.375, 1432092.625, -1254012.375, 1440962.0)),
+        ('structures_lcc_zm_p', False, (-1261904.375, 1432092.625, -1254012.375, 1440962.0)),
+    ])
+    def test_inside(self, ntdb_zm_small, mem_gpkg, fc_name, inside, extent):
+        """
+        Test inside
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            fc = feature_to_point(source=source, target=target, inside=inside)
+            assert approx(fc.extent, abs=1) == extent
+    # End test_inside method
+
+    @mark.parametrize('fc_name, inside, extent', [
+        ('structures_z_ma', True, (-114.23700, 51.01245, -114.04486, 51.10412)),
+        ('structures_z_ma', False, (-114.23711, 51.05315, -114.07152, 51.12862)),
+        ('transmission_zm_ml', True, (-114.40416, 51.00797, -114.24082, 51.13189)),
+        ('transmission_zm_ml', False, (-114.28192, 51.10780, -114.24576, 51.14050)),
+        ('toponymy_zm_mp', True, (-114.12472, 51.06336, -114.12470, 51.06337)),
+        ('toponymy_zm_mp', False, (-114.12835, 51.06743, -114.12833, 51.06744)),
+    ])
+    def test_inside_multi(self, ntdb_zm_small, mem_gpkg, fc_name, inside, extent):
+        """
+        Test inside on multipart features
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            fc = feature_to_point(source=source, target=target, inside=inside)
+            assert approx(fc.extent, abs=0.001) == extent
+    # End test_inside_multi method
+
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_lcc_a', (-1263865.625, 1432290.5, -1254240.5, 1440953.875)),
+        ('hydro_lcc_zm_a', (-1263868.75, 1432290.5, -1254240.5, 1440953.875)),
+        ('transmission_lcc_l', (-1266626.0, 1429088.625, -1247375.75, 1443808.125)),
+        ('transmission_lcc_zm_l', (-1266626.0, 1429088.625, -1247375.625, 1443808.0)),
+    ])
+    def test_weight_centroid(self, ntdb_zm_small, mem_gpkg, fc_name, extent):
+        """
+        Test weight centroid
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        with Swap(Setting.EXTENT, Extent.from_bounds(
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+            fc = feature_to_point(source=source, target=target, inside=False,
+                                  weight_option=WeightOption.THREE_D)
+            assert approx(fc.extent, abs=1) == extent
+    # End test_weight_centroid method
+
+    @mark.zm
+    @mark.parametrize('fc_name, extent', [
+        ('hydro_lcc_a', (-114.35185, 51.13192, -114.20665, 51.20709)),
+        ('transmission_lcc_l', (-114.39023, 51.07611, -114.10503, 51.21610)),
+        ('structures_lcc_p', (-114.33502, 51.11847, -114.20977, 51.20746)),
+    ])
+    def test_weight_centroid(self, ntdb_zm_small, mem_gpkg, fc_name, extent):
+        """
+        Test weight centroid
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        crs = CRS(4326)
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-114.3169, 51.1955, -114.2277, 51.1282, crs=crs)),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456)):
+            fc = feature_to_point(source=source, target=target)
+            assert fc.has_m
+            assert fc.has_z
+            assert approx(fc.extent, abs=0.001) == extent
+    # End test_weight_centroid method
+# End TestFeatureToPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover

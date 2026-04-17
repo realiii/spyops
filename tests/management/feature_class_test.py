@@ -9,7 +9,7 @@ from fudgeo.constant import FID, SHAPE
 from numpy import isfinite
 from pytest import approx, mark
 
-from spyops.management.feature_class import (
+from spyops.management import (
     create_feature_class, recalculate_feature_class_extent)
 
 

@@ -13,7 +13,7 @@ from numpy import array, isnan
 from pyproj import CRS
 from pytest import approx, mark, param, raises
 
-from spyops.analysis.extract import (
+from spyops.analysis import (
     clip, select, split, split_by_attributes, table_select)
 from spyops.environment import Extent
 from spyops.environment.core import zm_config

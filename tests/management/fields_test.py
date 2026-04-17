@@ -7,8 +7,7 @@ Tests for Fields
 from fudgeo import Field, Table
 from pytest import mark
 
-from spyops.management import add_field, calculate_field, delete_field
-from spyops.management.fields import alter_field
+from spyops.management import add_field, calculate_field, delete_field, alter_field
 from spyops.shared.enumeration import FieldProperty
 
 pytestmark = [mark.management, mark.field]

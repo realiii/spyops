@@ -23,7 +23,7 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
-    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon,
+    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
     QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
     QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
     QueryRepairGeometry, QueryXYTableLine, QueryXYTablePoint)
@@ -57,7 +57,8 @@ __all__ = [
     'add_xy_coordinates', 'calculate_geometry_attributes', 'check_geometry',
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
-    'feature_envelope_to_polygon', 'minimum_bounding_geometry']
+    'feature_envelope_to_polygon', 'minimum_bounding_geometry',
+    'feature_to_point']
 
 
 @validate_result()
@@ -616,7 +617,51 @@ def minimum_bounding_geometry(source: 'FeatureClass', target: 'FeatureClass',
             executor(sql=insert_sql, data=records)
             records.clear()
     return query.target
-# End feature_envelope_to_polygon function
+# End minimum_bounding_geometry function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_target_feature_class()
+@validate_str_enumeration(WEIGHT_OPTION, WeightOption)
+@validate_overwrite_source()
+def feature_to_point(source: 'FeatureClass', target: 'FeatureClass',
+                     inside: bool = False, *,
+                     weight_option: WeightOption = WeightOption.TWO_D) \
+        -> 'FeatureClass':
+    """
+    Feature to Point
+
+    Create a feature class containing points which represent the centroid of
+    each input feature or a point located inside each input feature.
+    """
+    records = []
+    query = QueryFeatureToPoint(
+        source, target=target, inside=inside, weight_option=weight_option)
+    cls = query.point_class
+    insert_sql = query.insert
+    config = query.geometry_config
+    getter = query.coordinate_getter
+    transformer = query.source_transformer
+    srs_id = query.target.spatial_reference_system.srs_id
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            features, geometries = to_shapely(features, transformer=transformer)
+            if not features:
+                continue
+            coordinates = getter(geometries)
+            features = [(cls.from_tuple(coords, srs_id=srs_id), *attrs)
+                        for coords, (_, *attrs) in zip(coordinates, features)]
+            insert_many(config, executor=executor, transformer=None,
+                        insert_sql=insert_sql, features=features,
+                        records=records)
+    return query.target
+# End feature_to_point function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

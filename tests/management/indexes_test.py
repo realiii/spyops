@@ -11,8 +11,7 @@ from pytest import mark, raises
 
 from spyops.management import (
     add_spatial_index, remove_attribute_index,
-    remove_spatial_index)
-from spyops.management.indexes import add_attribute_index
+    remove_spatial_index, add_attribute_index)
 
 
 pytestmark = [mark.management, mark.indexes]

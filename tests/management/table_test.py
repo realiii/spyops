@@ -8,11 +8,9 @@ from fudgeo import GeoPackage, Table
 from fudgeo.constant import FID
 from pytest import mark, raises
 
-from conftest import fresh_gpkg
 from spyops.environment import Setting
 from spyops.environment.context import Swap
-from spyops.management import delete_rows, get_count, create_table
-from spyops.management.table import copy_rows
+from spyops.management import delete_rows, get_count, create_table, copy_rows
 from spyops.shared.exception import OperationsError
 
 
