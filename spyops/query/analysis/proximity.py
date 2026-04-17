@@ -312,8 +312,9 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         distance = self._config.distance
         if self._is_distance_from_field:
             category = UnitParseWarning
+            # noinspection PyUnresolvedReferences
             msg = (f'Unable to parse {counter} distance(s) '
-                   f'from {distance}')
+                   f'from {distance.name}')
         else:
             category = DistanceCalculationWarning
             msg = (f'Unable to calculate {counter} distance(s) '
