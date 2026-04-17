@@ -307,8 +307,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Show Warning
         """
-        counter = self._counter
-        if not counter:
+        if not (counter := self._counter):
             return
         distance = self._config.distance
         if self._is_distance_from_field:
