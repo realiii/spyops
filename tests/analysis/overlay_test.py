@@ -9,7 +9,7 @@ from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark, param, raises, approx
 
-from spyops.analysis.overlay import (
+from spyops.analysis import (
     erase, intersect, symmetrical_difference, union)
 from spyops.environment import Extent
 from spyops.environment.core import zm_config

@@ -12,7 +12,7 @@ from spyops.crs.constant import EPSG, ESRI
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
-from spyops.management.generalization import dissolve
+from spyops.management import dissolve
 from spyops.shared.stats import Average, Concatenate, First, Last, Mode
 from tests.util import UseGrids
 
