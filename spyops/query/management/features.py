@@ -1248,5 +1248,82 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
 # End QueryMinimumBoundingGeometryNone class
 
 
+class QueryFeatureToPoint(BaseQuerySelect):
+    """
+    Query Feature to Point
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 inside: bool, weight_option: WeightOption) -> None:
+        """
+        Initialize the QueryFeatureToPoint class
+        """
+        super().__init__(source, target=target)
+        self._inside: bool = inside
+        self._option: WeightOption = weight_option
+    # End init built-in
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and Rename Primary Key Columns if included
+        """
+        return add_orig_fid(self.source)
+    # End _get_unique_fields method
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.point
+    # End _get_target_shape_type method
+
+    @property
+    def coordinate_getter(self) -> Callable:
+        """
+        Coordinate Getter
+        """
+        if self._inside:
+            return get_inside_xy
+        has_z = self.source.has_z
+        has_m = self.source.has_m
+        return partial(
+            GEOMETRY_CENTROID[self.source.shape_type], has_z=has_z,
+            has_m=has_m, use_xy_length=self._option == WeightOption.TWO_D)
+    # End coordinate_getter property
+
+    @property
+    def point_class(self) -> Type[Point | PointZ | PointM | PointZM]:
+        """
+        Point Class
+        """
+        if self._inside:
+            return Point
+        has_z, has_m = self._has_zm
+        return FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
+    # End point_class property
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source including FID
+        """
+        return self.select_with_fid
+    # End select property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration, only generating a 2D point for inside.
+        """
+        zm = zm_config(self.source)
+        if not self._inside:
+            return zm
+        is_different = zm.z_enabled or zm.m_enabled
+        return ZMConfig(
+            is_different=is_different, z_enabled=zm.z_enabled,
+            m_enabled=zm.m_enabled)
+    # End zm_config property
+# End QueryFeatureToPoint class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

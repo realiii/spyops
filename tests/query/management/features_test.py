@@ -5,6 +5,7 @@ Test for Features Query classes
 
 
 from sqlite3 import OperationalError
+from typing import Callable
 
 from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType, ShapeType
@@ -18,7 +19,8 @@ from spyops.environment.context import Swap
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryFeatureEnvelopeToPolygon,
-    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
+    QueryFeatureToPoint, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList,
     QueryMinimumBoundingGeometryNone,
     QueryMultiPartToSinglePart,
     QueryRepairGeometry,
@@ -26,7 +28,7 @@ from spyops.query.management.features import (
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption,
     WeightOption)
-from spyops.shared.field import POINT_M, POINT_X, POINT_Y, POINT_Z
+from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 
 
 pytestmark = [mark.features, mark.query, mark.management]
@@ -810,6 +812,61 @@ class TestQueryMinimumBoundingGeometryNone:
         assert 'SELECT geom "[Polygon]", fid' in sql
     # End test_select_geometry method
 # End TestQueryMinimumBoundingGeometryNone class
+
+
+class TestQueryFeatureToPoint:
+    """
+    Test QueryFeatureToPoint
+    """
+    def test_get_unique_fields(self, world_features):
+        """
+        Test get unique fields
+        """
+        source = world_features['admin_sans_attr_a']
+        query = QueryFeatureToPoint(
+            source, None, inside=False, weight_option=WeightOption.TWO_D)
+        assert [f.name for f in query._get_unique_fields()] == [ORIG_FID.name]
+    # End test_get_unique_fields method
+
+    def test_get_target_shape_type(self, world_features):
+        """
+        Test get target shape type
+        """
+        source = world_features['admin_a']
+        query = QueryFeatureToPoint(
+            source, None, inside=False, weight_option=WeightOption.TWO_D)
+        assert query._get_target_shape_type()
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('inside', [
+        True,
+        False,
+    ])
+    def test_coordinate_getter(self, world_features, inside):
+        """
+        Test Coordinate Getter
+        """
+        source = world_features['admin_a']
+        query = QueryFeatureToPoint(
+            source, None, inside=inside, weight_option=WeightOption.TWO_D)
+        assert isinstance(query.coordinate_getter, Callable)
+    # End test_coordinate_getter method
+
+    @mark.parametrize('inside', [
+        True,
+        False,
+    ])
+    def test_zm_config(self, world_features, inside):
+        """
+        Test ZM Config
+        """
+        source = world_features['admin_a']
+        query = QueryFeatureToPoint(
+            source, None, inside=inside, weight_option=WeightOption.TWO_D)
+        assert not query.zm_config.is_different
+    # End test_zm_config method
+# End TestQueryFeatureToPoint class
+
 
 
 if __name__ == '__main__':  # pragma: no cover
