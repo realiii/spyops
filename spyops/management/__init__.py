@@ -10,8 +10,8 @@ from spyops.management.feature_class import (
 from spyops.management.features import (
     add_xy_coordinates, calculate_geometry_attributes, check_geometry,
     copy_features, delete_features, explode, feature_envelope_to_polygon,
-    minimum_bounding_geometry, multipart_to_singlepart, repair_geometry,
-    xy_table_to_line, xy_table_to_point, xy_to_line)
+    feature_to_point, minimum_bounding_geometry, multipart_to_singlepart,
+    repair_geometry, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete, rename
@@ -50,6 +50,8 @@ __all__ = [
     'delete_rows',
     'dissolve',
     'explode',
+    'feature_envelope_to_polygon',
+    'feature_to_point',
     'get_count',
     'minimum_bounding_geometry',
     'multipart_to_singlepart',
