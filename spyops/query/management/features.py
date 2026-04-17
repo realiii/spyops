@@ -31,6 +31,7 @@ from spyops.geometry.centroid import GEOMETRY_CENTROID
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.base import (
@@ -575,13 +576,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
         Point Class
         """
         has_z, has_m = self._has_zm
-        if has_z and has_m:
-            return PointZM
-        elif has_z:
-            return PointZ
-        elif has_m:
-            return PointM
-        return Point
+        return FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
     # End point_class property
 
     @property
