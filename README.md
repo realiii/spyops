@@ -61,6 +61,7 @@ MIT
 - added `delete_features` (Management - Features)
 - added `feature_envelope_to_polygon` (Management - Features)
 - added `feature_to_point` (Management - Features)
+- added `feature_vertices_to_points` (Management - Features)
 - added `minimum_bounding_geometry` (Management - Features)
 - added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
 - added `repair_geometry` (Management - Features)
