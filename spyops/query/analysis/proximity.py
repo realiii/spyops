@@ -401,7 +401,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         units = [unit_factory(feature[-1]) for feature in features]
         valid = array([unit is not None for unit in units], dtype=bool)
-        self._counter += ~valid.sum()
+        self._counter += (~valid).sum()
         return units, valid
     # End _get_units method
 
@@ -413,7 +413,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         distances = self._convert_units(geometries, units=units)
         valid = isfinite(distances)
-        self._counter += ~valid.sum()
+        self._counter += (~valid).sum()
         return distances, valid
     # End _get_distances method
 
@@ -425,7 +425,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         distances = self._convert_unit(geometries, unit=unit)
         valid = isfinite(distances)
-        self._counter += ~valid.sum()
+        self._counter += (~valid).sum()
         return distances, valid
     # End _get_distances_broadcast method
 # End AbstractQueryBufferDissolve class
@@ -630,7 +630,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
                 distances = self._convert_unit(geometries, unit=unit)
                 # NOTE distance validity
                 valid = isfinite(distances)
-                self._counter += ~valid.sum()
+                self._counter += (~valid).sum()
                 if not valid.any():
                     continue
                 polygons = bufferer(geometries[valid], distances[valid])
