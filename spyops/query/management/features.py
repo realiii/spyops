@@ -743,7 +743,7 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
     """
     Query Feature Envelope to Polygon
     """
-    def __init__(self, source: FeatureClass, target: FeatureClass,
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
                  as_multi_part: bool) -> None:
         """
         Initialize the QueryFeatureEnvelopeToPolygon class
