@@ -52,17 +52,20 @@ MIT
 - added `union` (Analysis - Overlay)
 - added `buffer` (Analysis - Proximity)
 - added `multiple_buffer` (Analysis - Proximity)
+- added `create_feature_class` (Management - Feature Class)
+- added `recalculate_feature_class_extent` (Management - Feature Class)
 - added `add_xy_coordinates` (Management - Features)
 - added `calculate_geometry_attributes` (Management - Features)
-- added `copy_features` (Management - Features)
 - added `check_geometry` (Management - Features)
+- added `copy_features` (Management - Features)
 - added `delete_features` (Management - Features)
+- added `feature_envelope_to_polygon` (Management - Features)
+- added `feature_to_point` (Management - Features)
+- added `minimum_bounding_geometry` (Management - Features)
 - added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
 - added `repair_geometry` (Management - Features)
 - added `xy_table_to_point` (Management - Features)
 - added `xy_to_line` (Management - Features) and aliased as `xy_table_to_line`
-- added `create_feature_class` (Management - Feature Class)
-- added `recalculate_feature_class_extent` (Management - Feature Class)
 - added `add_field` (Management - Fields) with support for multiple
 - added `alter_field` (Management - Fields)
 - added `calculate_field` (Management - Fields)
