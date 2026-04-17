@@ -78,6 +78,18 @@ class MinimumGeometryOption(StrEnum):
 # End MinimumGeometryOption class
 
 
+class PointTypeOption(StrEnum):
+    """
+    Point Type Options
+    """
+    ALL = auto()
+    MID = auto()
+    START = auto()
+    END = auto()
+    BOTH_ENDS = auto()
+# End PointTypeOption class
+
+
 class AttributeOption(StrEnum):
     """
     Attribute Options
