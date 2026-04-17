@@ -817,7 +817,8 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
 # End QueryFeatureEnvelopeToPolygon class
 
 
-class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup, metaclass=ABCMeta):
+class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
+                                           metaclass=ABCMeta):
     """
     Abstract Query Minimum Bounding Geometry Class
     """
