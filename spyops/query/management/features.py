@@ -45,8 +45,8 @@ from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, POINT_M, POINT_X, POINT_Y,
-    POINT_Z, REASON, VALUE, add_orig_fid, get_geometry_column_name,
-    make_field_names, make_unique_fields, validate_fields)
+    POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
+    get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FIELDS, GRID_SIZE, NAMES, POINT_TYPE, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
@@ -917,24 +917,6 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
             return {id_: (geom, ()) for id_, geom in zip(ids, polygons)}
     # End _process_geometries method
 
-    def _build_fields(self, fields: list[Field]) -> FIELDS:
-        """
-        Build Fields
-        """
-        key_fields = self._get_key_fields()
-        keys = [f.name.casefold() for f in key_fields]
-        names = [f.name.casefold() for f in fields]
-        if not any(key in names for key in keys):
-            return *key_fields, *fields
-        for key, fld in zip(keys, key_fields):
-            if key not in names:
-                continue
-            index = names.index(key)
-            fld, = make_unique_fields([fld, *fields], others=[fields[index]])
-            fields[index] = fld
-        return *key_fields, *fields
-    # End _build_fields method
-
     @abstractmethod
     def _get_key_fields(self) -> tuple[Field, ...]:
         """
@@ -954,7 +936,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         Get Unique Fields
         """
         if self.add_attributes:
-            return self._build_fields(list(self._fields))
+            return add_key_fields(list(self._fields), self._get_key_fields())
         return self._fields
     # End _get_unique_fields method
 
@@ -1156,8 +1138,8 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         Get Unique Fields
         """
         if self.add_attributes:
-            return self._build_fields(list(validate_fields(
-                self.source, fields=self.source.fields)))
+            fields = validate_fields(self.source, fields=self.source.fields)
+            return add_key_fields(list(fields), self._get_key_fields())
         return add_orig_fid(self.source)
     # End _get_unique_fields method
 
