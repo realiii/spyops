@@ -8,10 +8,9 @@ from abc import ABCMeta
 from functools import cached_property
 from operator import itemgetter
 from sqlite3 import Connection
-from typing import Callable, Generator, Type, Union
+from typing import Callable, Generator, Union
 
 from fudgeo import FeatureClass, Field, SpatialReferenceSystem, Table
-from fudgeo.geometry import Point, PointM, PointZ, PointZM
 from numpy import ndarray
 from pyproj import CRS
 from shapely import Polygon
@@ -22,8 +21,9 @@ from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
     BaseQuerySelect)
 from spyops.shared.enumeration import (
-    GeometryAttribute, MinimumGeometryOption, WeightOption)
-from spyops.shared.hint import ELEMENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
+    GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
+from spyops.shared.hint import (
+    ELEMENT, FIELDS, GRID_SIZE, NAMES, POINT_TYPE, XY_TOL)
 
 
 
@@ -149,7 +149,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
                  coordinate_system: CRS | SpatialReferenceSystem, ) -> None: ...
     def _get_target_shape_type(self) -> str: ...
     @property
-    def point_class(self) -> Type[Point | PointZ | PointM | PointZM]: ...
+    def point_class(self) -> POINT_TYPE: ...
     @property
     def item_getter(self) -> itemgetter: ...
     @property
@@ -272,8 +272,22 @@ class QueryFeatureToPoint(BaseQuerySelect):
     @property
     def coordinate_getter(self) -> Callable: ...
     @property
-    def point_class(self) -> Type[Point | PointZ | PointM | PointZM]: ...
+    def point_class(self) -> POINT_TYPE: ...
     @property
     def select(self) -> str: ...
     @cached_property
     def zm_config(self) -> 'ZMConfig': ...
+
+
+class QueryFeatureVerticesToPoints(BaseQuerySelect):
+
+    _point_type: PointTypeOption
+
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 point_type: PointTypeOption) -> None: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+    def _get_target_shape_type(self) -> str: ...
+    @property
+    def vertex_getter(self) -> Callable: ...
+    @property
+    def select(self) -> str: ...

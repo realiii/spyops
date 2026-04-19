@@ -8,12 +8,12 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cached_property, partial
 from operator import itemgetter
-from typing import Callable, Generator, TYPE_CHECKING, Type, Union
+from typing import Callable, Generator, TYPE_CHECKING, Union
 
 from fudgeo import Field, SpatialReferenceSystem
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
-from fudgeo.geometry import Point, PointZ, PointM, PointZM
+from fudgeo.geometry import Point
 from numpy import array
 from pyproj import CRS
 from shapely import (
@@ -34,17 +34,22 @@ from spyops.geometry.extent import (
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
 from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.vertex import (
+    GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
+    GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
 from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
     BaseQuerySelect)
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
-    GeometryAttribute, MinimumGeometryOption, WeightOption)
+    GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, POINT_M, POINT_X, POINT_Y,
     POINT_Z, REASON, VALUE, add_orig_fid, get_geometry_column_name,
     make_field_names, make_unique_fields, validate_fields)
-from spyops.shared.hint import ELEMENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, FIELDS, GRID_SIZE, NAMES, POINT_TYPE, XY_TOL)
+from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
 from spyops.shared.sql import SQL_ALL_ID
 
 
@@ -571,7 +576,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
     # End _get_target_shape_type method
 
     @property
-    def point_class(self) -> Type[Point | PointZ | PointM | PointZM]:
+    def point_class(self) -> POINT_TYPE:
         """
         Point Class
         """
@@ -1291,7 +1296,7 @@ class QueryFeatureToPoint(BaseQuerySelect):
     # End coordinate_getter property
 
     @property
-    def point_class(self) -> Type[Point | PointZ | PointM | PointZM]:
+    def point_class(self) -> POINT_TYPE:
         """
         Point Class
         """
@@ -1323,6 +1328,66 @@ class QueryFeatureToPoint(BaseQuerySelect):
             m_enabled=zm.m_enabled)
     # End zm_config property
 # End QueryFeatureToPoint class
+
+
+class QueryFeatureVerticesToPoints(BaseQuerySelect):
+    """
+    Query Feature Vertices to Points
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 point_type: PointTypeOption) -> None:
+        """
+        Initialize the QueryFeatureVerticesToPoints class
+        """
+        super().__init__(source, target=target)
+        self._point_type: PointTypeOption = point_type
+    # End init built-in
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and Rename Primary Key Columns if included
+        """
+        return add_orig_fid(self.source)
+    # End _get_unique_fields method
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.point
+    # End _get_target_shape_type method
+
+    @property
+    def vertex_getter(self) -> Callable:
+        """
+        Vertex Getter
+        """
+        source = self.source
+        shape_type = source.shape_type
+        if self._point_type == PointTypeOption.MID:
+            func = GEOMETRY_VERTICES_MIDDLE[shape_type]
+            kwargs = {HAS_Z_KEY: source.has_z,
+                      HAS_M_KEY: source.has_m,
+                      SRS_ID_KEY: source.spatial_reference_system.srs_id}
+            return partial(func, **kwargs)
+        elif self._point_type == PointTypeOption.START:
+            return GEOMETRY_VERTICES_START[shape_type]
+        elif self._point_type == PointTypeOption.END:
+            return GEOMETRY_VERTICES_END[shape_type]
+        elif self._point_type == PointTypeOption.BOTH_ENDS:
+            return GEOMETRY_VERTICES_BOTH_ENDS[shape_type]
+        else:
+            return GEOMETRY_VERTICES_ALL[shape_type]
+    # End vertex_getter property
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source including FID
+        """
+        return self.select_with_fid
+    # End select property
+# End QueryFeatureVerticesToPoints class
 
 
 if __name__ == '__main__':  # pragma: no cover
