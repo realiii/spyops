@@ -1887,7 +1887,7 @@ class TestFeatureVerticesToPoints:
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.ALL)
         assert len(result) == expected
-    # Mid test_all_vertices function
+    # End test_all_vertices function
 
     @mark.zm
     @mark.parametrize('fc_name, expected', [
@@ -1917,7 +1917,7 @@ class TestFeatureVerticesToPoints:
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.START)
         assert len(result) == expected
-    # Mid test_start_vertices function
+    # End test_start_vertices function
 
     @mark.zm
     @mark.parametrize('fc_name, expected', [
@@ -1947,7 +1947,7 @@ class TestFeatureVerticesToPoints:
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.END)
         assert len(result) == expected
-    # Mid test_end_vertices function
+    # End test_end_vertices function
     
     @mark.zm
     @mark.parametrize('fc_name, expected', [
@@ -1977,7 +1977,7 @@ class TestFeatureVerticesToPoints:
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.MID)
         assert len(result) == expected
-    # Mid test_mid_vertices function
+    # End test_mid_vertices function
     
     @mark.zm
     @mark.parametrize('fc_name, expected', [

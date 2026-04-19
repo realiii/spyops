@@ -116,7 +116,7 @@ def test_mid_vertices(world_features, fc_name, expected):
                   srs_id=source.spatial_reference_system.srs_id)
     counts = {k: len(v) for k, v in result.items()}
     assert counts == expected
-# Mid test_mid_vertices function
+# End test_mid_vertices function
 
 
 @mark.zm
@@ -157,7 +157,7 @@ def test_mid_vertices_zm(ntdb_zm_small, fc_name, expected):
                   srs_id=source.spatial_reference_system.srs_id)
     counts = {k: len(v) for k, v in result.items()}
     assert counts == expected
-# Mid test_mid_vertices_zm function
+# End test_mid_vertices_zm function
 
 
 if __name__ == '__main__':  # pragma: no cover
