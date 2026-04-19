@@ -56,6 +56,9 @@ VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+ORIG_SEQ: Field = Field(
+    'ORIG_SEQ', data_type=FieldType.integer,
+    alias='Original Sequence Number')
 MBG_WIDTH: Field = Field(
     'MBG_WIDTH', data_type=FieldType.real,
     alias='Width of Minimum Bounding Geometry')
