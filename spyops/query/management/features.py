@@ -84,7 +84,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -759,7 +759,7 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -1251,7 +1251,7 @@ class QueryFeatureToPoint(BaseQuerySelect):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -1327,7 +1327,7 @@ class QueryFeatureVerticesToPoints(BaseQuerySelect):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
