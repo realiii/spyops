@@ -143,8 +143,10 @@ def _middle_multi_linear(features: list[tuple], *, has_z: bool, has_m: bool,
         if geom.is_empty:
             continue
         data = [(line, fid) for line in geom if not line.is_empty]
-        middles.update(_middle_linear(
-            data, has_z=has_z, has_m=has_m, srs_id=srs_id, is_ring=is_ring))
+        results = _middle_linear(
+            data, has_z=has_z, has_m=has_m, srs_id=srs_id, is_ring=is_ring)
+        for i, pts in results.items():
+            middles[i].extend(pts)
     return middles
 # End _middle_multi_linear function
 
