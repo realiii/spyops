@@ -1387,6 +1387,18 @@ class QueryFeatureVerticesToPoints(BaseQuerySelect):
         """
         return self.select_with_fid
     # End select property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End source_transformer property
 # End QueryFeatureVerticesToPoints class
 
 
