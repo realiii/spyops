@@ -21,12 +21,13 @@ from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, feature_envelope_to_polygon, feature_to_point,
-    multipart_to_singlepart, xy_to_line, check_geometry,
-    minimum_bounding_geometry, repair_geometry, xy_table_to_point)
+    feature_vertices_to_points, multipart_to_singlepart, xy_to_line,
+    check_geometry, minimum_bounding_geometry, repair_geometry,
+    xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
     GeometryAttribute, GeometryCheck, GroupOption, LineTypeOption,
-    MinimumGeometryOption, WeightOption)
+    MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 
 from tests.util import UseGrids
@@ -1852,6 +1853,162 @@ class TestFeatureToPoint:
             assert approx(fc.extent, abs=0.001) == extent
     # End test_weight_centroid method
 # End TestFeatureToPoint class
+
+
+class TestFeatureVerticesToPoints:
+    """
+    Test Feature Vertices to Points
+    """
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 11397),
+        ('hydro_6654_z_a', 11397),
+        ('hydro_6654_m_a', 11397),
+        ('hydro_6654_zm_a', 11397),
+        ('structures_10tm_ma', 15503),
+        ('structures_10tm_z_ma', 15503),
+        ('structures_10tm_m_ma', 15503),
+        ('structures_10tm_zm_ma', 15503),
+        ('transmission_10tm_l', 451),
+        ('transmission_10tm_z_l', 451),
+        ('transmission_10tm_m_l', 451),
+        ('transmission_10tm_zm_l', 451),
+        ('transmission_10tm_ml', 436),
+        ('transmission_10tm_z_ml', 436),
+        ('transmission_10tm_m_ml', 436),
+        ('transmission_10tm_zm_ml', 436),
+    ])
+    def test_all_vertices(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test all vertices
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        result = feature_vertices_to_points(
+            source, target, point_type=PointTypeOption.ALL)
+        assert len(result) == expected
+    # Mid test_all_vertices function
+
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 429),
+        ('hydro_6654_z_a', 429),
+        ('hydro_6654_m_a', 429),
+        ('hydro_6654_zm_a', 429),
+        ('structures_10tm_ma', 1585),
+        ('structures_10tm_z_ma', 1585),
+        ('structures_10tm_m_ma', 1585),
+        ('structures_10tm_zm_ma', 1585),
+        ('transmission_10tm_l', 66),
+        ('transmission_10tm_z_l', 66),
+        ('transmission_10tm_m_l', 66),
+        ('transmission_10tm_zm_l', 66),
+        ('transmission_10tm_ml', 51),
+        ('transmission_10tm_z_ml', 51),
+        ('transmission_10tm_m_ml', 51),
+        ('transmission_10tm_zm_ml', 51),
+    ])
+    def test_start_vertices(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test start vertices
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        result = feature_vertices_to_points(
+            source, target, point_type=PointTypeOption.START)
+        assert len(result) == expected
+    # Mid test_start_vertices function
+
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 429),
+        ('hydro_6654_z_a', 429),
+        ('hydro_6654_m_a', 429),
+        ('hydro_6654_zm_a', 429),
+        ('structures_10tm_ma', 1585),
+        ('structures_10tm_z_ma', 1585),
+        ('structures_10tm_m_ma', 1585),
+        ('structures_10tm_zm_ma', 1585),
+        ('transmission_10tm_l', 66),
+        ('transmission_10tm_z_l', 66),
+        ('transmission_10tm_m_l', 66),
+        ('transmission_10tm_zm_l', 66),
+        ('transmission_10tm_ml', 51),
+        ('transmission_10tm_z_ml', 51),
+        ('transmission_10tm_m_ml', 51),
+        ('transmission_10tm_zm_ml', 51),
+    ])
+    def test_end_vertices(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test end vertices
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        result = feature_vertices_to_points(
+            source, target, point_type=PointTypeOption.END)
+        assert len(result) == expected
+    # Mid test_end_vertices function
+    
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 429),
+        ('hydro_6654_z_a', 429),
+        ('hydro_6654_m_a', 429),
+        ('hydro_6654_zm_a', 429),
+        ('structures_10tm_ma', 1585),
+        ('structures_10tm_z_ma', 1585),
+        ('structures_10tm_m_ma', 1585),
+        ('structures_10tm_zm_ma', 1585),
+        ('transmission_10tm_l', 66),
+        ('transmission_10tm_z_l', 66),
+        ('transmission_10tm_m_l', 66),
+        ('transmission_10tm_zm_l', 66),
+        ('transmission_10tm_ml', 51),
+        ('transmission_10tm_z_ml', 51),
+        ('transmission_10tm_m_ml', 51),
+        ('transmission_10tm_zm_ml', 51),
+    ])
+    def test_mid_vertices(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test mid vertices
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        result = feature_vertices_to_points(
+            source, target, point_type=PointTypeOption.MID)
+        assert len(result) == expected
+    # Mid test_mid_vertices function
+    
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 858),
+        ('hydro_6654_z_a', 858),
+        ('hydro_6654_m_a', 858),
+        ('hydro_6654_zm_a', 858),
+        ('structures_10tm_ma', 3170),
+        ('structures_10tm_z_ma', 3170),
+        ('structures_10tm_m_ma', 3170),
+        ('structures_10tm_zm_ma', 3170),
+        ('transmission_10tm_l', 132),
+        ('transmission_10tm_z_l', 132),
+        ('transmission_10tm_m_l', 132),
+        ('transmission_10tm_zm_l', 132),
+        ('transmission_10tm_ml', 102),
+        ('transmission_10tm_z_ml', 102),
+        ('transmission_10tm_m_ml', 102),
+        ('transmission_10tm_zm_ml', 102),
+    ])
+    def test_both_ends_vertices(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test both ends vertices
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        result = feature_vertices_to_points(
+            source, target, point_type=PointTypeOption.BOTH_ENDS)
+        assert len(result) == expected
+    # Mid test_both_ends_vertices function
+# End TestFeatureVerticesToPoints class
 
 
 if __name__ == '__main__':  # pragma: no cover

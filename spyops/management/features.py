@@ -24,9 +24,10 @@ from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
     QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
-    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
-    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryRepairGeometry, QueryXYTableLine, QueryXYTablePoint)
+    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
     FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
@@ -680,7 +681,29 @@ def feature_vertices_to_points(source: 'FeatureClass', target: 'FeatureClass',
     Create a feature class from the vertices of a feature class based on the
     specified point type.
     """
-    pass
+    parts = []
+    records = []
+    query = QueryFeatureVerticesToPoints(
+        source, target=target, point_type=point_type)
+    insert_sql = query.insert
+    getter = query.vertex_getter
+    config = query.geometry_config
+    transformer = query.source_transformer
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            points = getter([(geom, fid) for geom, fid, *_ in features])
+            for _, *attrs in features:
+                fid, *_ = attrs
+                parts.extend([(point, *attrs) for point in points[fid]])
+            insert_many(config, executor=executor, transformer=transformer,
+                        insert_sql=insert_sql, features=parts, records=records)
+            parts.clear()
+    return query.target
 # End feature_vertices_to_points function
 
 
