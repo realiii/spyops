@@ -2007,7 +2007,45 @@ class TestFeatureVerticesToPoints:
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.BOTH_ENDS)
         assert len(result) == expected
-    # Mid test_both_ends_vertices function
+    # End test_both_ends_vertices function
+
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 858),
+        ('hydro_6654_z_a', 858),
+        ('hydro_6654_m_a', 858),
+        ('hydro_6654_zm_a', 858),
+        ('structures_10tm_ma', 3170),
+        ('structures_10tm_z_ma', 3170),
+        ('structures_10tm_m_ma', 3170),
+        ('structures_10tm_zm_ma', 3170),
+        ('transmission_10tm_l', 132),
+        ('transmission_10tm_z_l', 132),
+        ('transmission_10tm_m_l', 132),
+        ('transmission_10tm_zm_l', 132),
+        ('transmission_10tm_ml', 102),
+        ('transmission_10tm_z_ml', 102),
+        ('transmission_10tm_m_ml', 102),
+        ('transmission_10tm_zm_ml', 102),
+    ])
+    def test_settings(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test both ends vertices and using settings
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = feature_vertices_to_points(
+                source, target, point_type=PointTypeOption.BOTH_ENDS)
+            assert len(result) == expected
+            assert result.spatial_reference_system.srs_id == 102009
+            assert result.has_m
+            assert result.has_z
+    # End test_settings function
 # End TestFeatureVerticesToPoints class
 
 
