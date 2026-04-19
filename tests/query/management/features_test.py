@@ -17,17 +17,14 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry, QueryFeatureEnvelopeToPolygon,
-    QueryFeatureToPoint, QueryMinimumBoundingGeometryAll,
-    QueryMinimumBoundingGeometryList,
-    QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart,
-    QueryRepairGeometry,
-    QueryXYTableLine, QueryXYTablePoint)
+    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
+    QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
+    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.enumeration import (
-    GeometryAttribute, MinimumGeometryOption,
-    WeightOption)
+    GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 
 
@@ -867,6 +864,48 @@ class TestQueryFeatureToPoint:
     # End test_zm_config method
 # End TestQueryFeatureToPoint class
 
+
+class TestQueryFeatureVerticesToPoints:
+    """
+    Test QueryFeatureVerticesToPoints
+    """
+    def test_get_unique_fields(self, world_features):
+        """
+        Test get unique fields
+        """
+        source = world_features['admin_sans_attr_a']
+        query = QueryFeatureVerticesToPoints(
+            source, None, point_type=PointTypeOption.MID)
+        assert [f.name for f in query._get_unique_fields()] == [ORIG_FID.name]
+    # End test_get_unique_fields method
+
+    def test_get_target_shape_type(self, world_features):
+        """
+        Test get target shape type
+        """
+        source = world_features['admin_a']
+        query = QueryFeatureVerticesToPoints(
+            source, None, point_type=PointTypeOption.MID)
+        assert query._get_target_shape_type()
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('point_type', [
+        PointTypeOption.ALL,
+        PointTypeOption.MID,
+        PointTypeOption.START,
+        PointTypeOption.END,
+        PointTypeOption.BOTH_ENDS
+    ])
+    def test_coordinate_getter(self, world_features, point_type):
+        """
+        Test Coordinate Getter
+        """
+        source = world_features['admin_a']
+        query = QueryFeatureVerticesToPoints(
+            source, None, point_type=point_type)
+        assert isinstance(query.vertex_getter, Callable)
+    # End test_coordinate_getter method
+# End TestQueryFeatureVerticesToPoints class
 
 
 if __name__ == '__main__':  # pragma: no cover

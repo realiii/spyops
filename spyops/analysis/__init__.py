@@ -23,19 +23,21 @@ from spyops.shared.enumeration import (
 
 
 __all__ = [
-    'buffer',
     'clip',
-    'erase',
     'extract_features',
     'extract_rows',
-    'intersect',
-    'multiple_buffer',
     'select',
     'split',
     'split_by_attributes',
-    'symmetrical_difference',
     'table_select',
+
+    'erase',
+    'intersect',
+    'symmetrical_difference',
     'union',
+
+    'buffer',
+    'multiple_buffer',
 
     'AlgorithmOption',
     'AttributeOption',

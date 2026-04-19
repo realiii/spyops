@@ -24,17 +24,18 @@ from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
     QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
-    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
-    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryRepairGeometry, QueryXYTableLine, QueryXYTablePoint)
+    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
     FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
-    LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT, SOURCE, START_X_FIELD,
-    START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
+    LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT, POINT_TYPE, SOURCE,
+    START_X_FIELD, START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
     DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, WeightOption)
+    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, XY_TOL
 from spyops.shared.records import (
@@ -58,7 +59,7 @@ __all__ = [
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
-    'feature_to_point']
+    'feature_to_point', 'feature_vertices_to_points']
 
 
 @validate_result()
@@ -662,6 +663,48 @@ def feature_to_point(source: 'FeatureClass', target: 'FeatureClass',
                         records=records)
     return query.target
 # End feature_to_point function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=(
+        ShapeType.linestring, ShapeType.multi_linestring,
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_str_enumeration(POINT_TYPE, PointTypeOption)
+@validate_overwrite_source()
+def feature_vertices_to_points(source: 'FeatureClass', target: 'FeatureClass',
+                               point_type: PointTypeOption = PointTypeOption.ALL) \
+        -> 'FeatureClass':
+    """
+    Feature Vertices to Points
+
+    Create a feature class from the vertices of a feature class based on the
+    specified point type.
+    """
+    parts = []
+    records = []
+    query = QueryFeatureVerticesToPoints(
+        source, target=target, point_type=point_type)
+    insert_sql = query.insert
+    getter = query.vertex_getter
+    config = query.geometry_config
+    transformer = query.source_transformer
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            points = getter([(geom, fid) for geom, fid, *_ in features])
+            for _, *attrs in features:
+                fid, *_ = attrs
+                parts.extend([(point, *attrs) for point in points[fid]])
+            insert_many(config, executor=executor, transformer=transformer,
+                        insert_sql=insert_sql, features=parts, records=records)
+            parts.clear()
+    return query.target
+# End feature_vertices_to_points function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

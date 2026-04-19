@@ -307,14 +307,14 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Show Warning
         """
-        counter = self._counter
-        if not counter:
+        if not (counter := self._counter):
             return
         distance = self._config.distance
         if self._is_distance_from_field:
             category = UnitParseWarning
+            # noinspection PyUnresolvedReferences
             msg = (f'Unable to parse {counter} distance(s) '
-                   f'from {distance}')
+                   f'from {distance.name}')
         else:
             category = DistanceCalculationWarning
             msg = (f'Unable to calculate {counter} distance(s) '
@@ -401,7 +401,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         units = [unit_factory(feature[-1]) for feature in features]
         valid = array([unit is not None for unit in units], dtype=bool)
-        self._counter += ~valid.sum()
+        self._counter += (~valid).sum()
         return units, valid
     # End _get_units method
 
@@ -413,7 +413,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         distances = self._convert_units(geometries, units=units)
         valid = isfinite(distances)
-        self._counter += ~valid.sum()
+        self._counter += (~valid).sum()
         return distances, valid
     # End _get_distances method
 
@@ -425,7 +425,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         distances = self._convert_unit(geometries, unit=unit)
         valid = isfinite(distances)
-        self._counter += ~valid.sum()
+        self._counter += (~valid).sum()
         return distances, valid
     # End _get_distances_broadcast method
 # End AbstractQueryBufferDissolve class
@@ -630,7 +630,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
                 distances = self._convert_unit(geometries, unit=unit)
                 # NOTE distance validity
                 valid = isfinite(distances)
-                self._counter += ~valid.sum()
+                self._counter += (~valid).sum()
                 if not valid.any():
                     continue
                 polygons = bufferer(geometries[valid], distances[valid])

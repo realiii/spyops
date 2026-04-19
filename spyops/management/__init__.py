@@ -10,8 +10,9 @@ from spyops.management.feature_class import (
 from spyops.management.features import (
     add_xy_coordinates, calculate_geometry_attributes, check_geometry,
     copy_features, delete_features, explode, feature_envelope_to_polygon,
-    feature_to_point, minimum_bounding_geometry, multipart_to_singlepart,
-    repair_geometry, xy_table_to_line, xy_table_to_point, xy_to_line)
+    feature_to_point, feature_vertices_to_points, minimum_bounding_geometry,
+    multipart_to_singlepart, repair_geometry, xy_table_to_line,
+    xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, alter_field, calculate_field, delete_field)
 from spyops.management.general import copy, delete, rename
@@ -23,7 +24,7 @@ from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
     FieldProperty, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, WeightOption)
+    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.stats import (
     Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
     Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
@@ -31,39 +32,46 @@ from spyops.shared.stats import (
 
 
 __all__ = [
-    'add_attribute_index',
-    'add_field',
-    'add_spatial_index',
+    'create_feature_class',
+    'recalculate_feature_class_extent',
+
     'add_xy_coordinates',
-    'alter_field',
-    'calculate_field',
     'calculate_geometry_attributes',
     'check_geometry',
-    'copy',
     'copy_features',
-    'copy_rows',
-    'create_feature_class',
-    'create_table',
-    'delete',
     'delete_features',
-    'delete_field',
-    'delete_rows',
-    'dissolve',
     'explode',
     'feature_envelope_to_polygon',
     'feature_to_point',
-    'get_count',
+    'feature_vertices_to_points',
     'minimum_bounding_geometry',
     'multipart_to_singlepart',
-    'recalculate_feature_class_extent',
-    'remove_attribute_index',
-    'remove_spatial_index',
-    'rename',
     'repair_geometry',
-    'truncate_table',
     'xy_table_to_point',
     'xy_table_to_line',
     'xy_to_line',
+
+    'add_field',
+    'alter_field',
+    'calculate_field',
+    'delete_field',
+
+    'copy',
+    'delete',
+    'rename',
+
+    'dissolve',
+
+    'add_attribute_index',
+    'add_spatial_index',
+    'remove_attribute_index',
+    'remove_spatial_index',
+
+    'copy_rows',
+    'create_table',
+    'delete_rows',
+    'get_count',
+    'truncate_table',
 
     'AreaUnit',
     'FieldProperty',
@@ -73,6 +81,7 @@ __all__ = [
     'LengthUnit',
     'LineTypeOption',
     'MinimumGeometryOption',
+    'PointTypeOption',
     'WeightOption',
 
     'Average',
