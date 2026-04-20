@@ -13,11 +13,12 @@ from pyproj.transformer import Transformer
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.projections import QueryProject
-from spyops.shared.keywords import COORDINATE_SYSTEM
+from spyops.shared.keywords import COORDINATE_SYSTEM, TRANSFORM
 from spyops.shared.records import select_and_transform_features
 from spyops.validation import (
     validate_coordinate_system, validate_overwrite_source, validate_result,
-    validate_source_feature_class, validate_target_feature_class)
+    validate_source_feature_class, validate_target_feature_class,
+    validate_transform)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -31,6 +32,7 @@ __all__ = ['project']
 @validate_source_feature_class()
 @validate_target_feature_class()
 @validate_coordinate_system(COORDINATE_SYSTEM)
+@validate_transform(TRANSFORM)
 @validate_overwrite_source()
 def project(source: 'FeatureClass', target: 'FeatureClass', *,
             coordinate_system: CRS | SpatialReferenceSystem,

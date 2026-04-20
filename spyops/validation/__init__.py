@@ -9,7 +9,9 @@ from functools import partial
 from spyops.shared.keywords import OPERATOR, SOURCE, TARGET
 from spyops.shared.field import NUMBERS
 from spyops.validation.container import ValidateGeopackage, ValidateValues
-from spyops.validation.crs import ValidateSupportedCRS, ValidateCoordinateSystem
+from spyops.validation.crs import (
+    ValidateSupportedCRS,
+    ValidateCoordinateSystem, ValidateTransform)
 from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateOverwriteInput, ValidateTable)
@@ -49,6 +51,7 @@ validate_statistic_field = ValidateStatisticField
 validate_str_enumeration = ValidateStrEnumeration
 validate_supported_crs = ValidateSupportedCRS
 validate_table = ValidateTable
+validate_transform = ValidateTransform
 validate_values = ValidateValues
 validate_xy_tolerance = ValidateXYTolerance
 
