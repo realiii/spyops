@@ -82,6 +82,7 @@ MIT
 - added `add_spatial_index` (Management - Indexes)
 - added `remove_attribute_index` (Management - Indexes)
 - added `remove_spatial_index` (Management - Indexes)
+- added `define_projection` (Management - Projections and Transformations)
 - added `project` (Management - Projections and Transformations)
 - added `copy_rows` (Management - Table)
 - added `create_table` (Management - Table)
