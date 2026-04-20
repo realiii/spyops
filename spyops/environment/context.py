@@ -25,6 +25,23 @@ class Swap:
         self._value: Any = value
     # End init built-in
 
+    def __enter__(self) -> Self:
+        """
+        Context Manager Enter
+        """
+        setattr(ANALYSIS_SETTINGS, self._setting, self._value)
+        self._value = getattr(ANALYSIS_SETTINGS, self._setting)
+        return self
+    # End enter built-in
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        """
+        Context Manager Exit
+        """
+        setattr(ANALYSIS_SETTINGS, self._setting, self._cached)
+        return False
+    # End exit built-in
+
     @staticmethod
     def _get_cached_value(setting: Setting) -> Any:
         """
@@ -64,23 +81,6 @@ class Swap:
             raise TypeError(f'Invalid setting: {setting!r}')
         return Setting(setting.casefold())
     # End _check_setting method
-
-    def __enter__(self) -> Self:
-        """
-        Context Manager Enter
-        """
-        setattr(ANALYSIS_SETTINGS, self._setting, self._value)
-        self._value = getattr(ANALYSIS_SETTINGS, self._setting)
-        return self
-    # End enter built-in
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        """
-        Context Manager Exit
-        """
-        setattr(ANALYSIS_SETTINGS, self._setting, self._cached)
-        return False
-    # End exit built-in
 # End Swap class
 
 
