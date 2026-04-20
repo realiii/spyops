@@ -21,8 +21,8 @@ from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, feature_envelope_to_polygon, feature_to_point,
-    feature_vertices_to_points, multipart_to_singlepart, xy_to_line,
-    check_geometry, minimum_bounding_geometry, repair_geometry,
+    feature_vertices_to_points, multipart_to_singlepart, split_line_at_vertices,
+    xy_to_line, check_geometry, minimum_bounding_geometry, repair_geometry,
     xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
@@ -1783,7 +1783,7 @@ class TestFeatureToPoint:
         Test inside
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with Swap(Setting.EXTENT, Extent.from_bounds(
                 -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
             fc = feature_to_point(source=source, target=target, inside=inside)
@@ -1803,7 +1803,7 @@ class TestFeatureToPoint:
         Test inside on multipart features
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with Swap(Setting.EXTENT, Extent.from_bounds(
                 -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
             fc = feature_to_point(source=source, target=target, inside=inside)
@@ -1821,7 +1821,7 @@ class TestFeatureToPoint:
         Test weight centroid
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with Swap(Setting.EXTENT, Extent.from_bounds(
                 -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
             fc = feature_to_point(source=source, target=target, inside=False,
@@ -1840,7 +1840,7 @@ class TestFeatureToPoint:
         Test weight centroid
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         crs = CRS(4326)
         with (Swap(Setting.EXTENT, Extent.from_bounds(-114.3169, 51.1955, -114.2277, 51.1282, crs=crs)),
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
@@ -1883,7 +1883,7 @@ class TestFeatureVerticesToPoints:
         Test all vertices
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.ALL)
         assert len(result) == expected
@@ -1913,7 +1913,7 @@ class TestFeatureVerticesToPoints:
         Test start vertices
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.START)
         assert len(result) == expected
@@ -1943,7 +1943,7 @@ class TestFeatureVerticesToPoints:
         Test end vertices
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.END)
         assert len(result) == expected
@@ -1973,7 +1973,7 @@ class TestFeatureVerticesToPoints:
         Test mid vertices
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.MID)
         assert len(result) == expected
@@ -2003,7 +2003,7 @@ class TestFeatureVerticesToPoints:
         Test both ends vertices
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         result = feature_vertices_to_points(
             source, target, point_type=PointTypeOption.BOTH_ENDS)
         assert len(result) == expected
@@ -2033,7 +2033,7 @@ class TestFeatureVerticesToPoints:
         Test both ends vertices and using settings
         """
         source = ntdb_zm_small[fc_name]
-        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_pt')
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
@@ -2047,6 +2047,49 @@ class TestFeatureVerticesToPoints:
             assert result.has_z
     # End test_settings function
 # End TestFeatureVerticesToPoints class
+
+
+class TestSplitLineAtVertices:
+    """
+    Test Split Line At Vertices
+    """
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 10968),
+        ('hydro_6654_z_a', 10968),
+        ('hydro_6654_m_a', 10968),
+        ('hydro_6654_zm_a', 10968),
+        ('structures_10tm_ma', 13918),
+        ('structures_10tm_z_ma', 13918),
+        ('structures_10tm_m_ma', 13918),
+        ('structures_10tm_zm_ma', 13918),
+        ('transmission_10tm_l', 385),
+        ('transmission_10tm_z_l', 385),
+        ('transmission_10tm_m_l', 385),
+        ('transmission_10tm_zm_l', 385),
+        ('transmission_10tm_ml', 385),
+        ('transmission_10tm_z_ml', 385),
+        ('transmission_10tm_m_ml', 385),
+        ('transmission_10tm_zm_ml', 385),
+    ])
+    def test_settings(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test split line at vertices and using settings
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_l')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = split_line_at_vertices(source, target)
+            assert result.spatial_reference_system.srs_id == 102009
+            assert result.has_m
+            assert result.has_z
+            assert len(result) == expected
+    # End test_settings function
+# End TestSplitLineAtVertices class
 
 
 if __name__ == '__main__':  # pragma: no cover
