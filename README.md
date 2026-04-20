@@ -34,6 +34,7 @@ MIT
 - [Management - General](https://github.com/realiii/spyops/wiki/Data-Management#general)
 - [Management - Generalization](https://github.com/realiii/spyops/wiki/Data-Management#generalization)
 - [Management - Indexes](https://github.com/realiii/spyops/wiki/Data-Management#indexes)
+- [Management - Projections and Transformations](https://github.com/realiii/spyops/wiki/Data-Management#projections-and-transformations)
 - [Management - Table](https://github.com/realiii/spyops/wiki/Data-Management#table)
 - [Settings](https://github.com/realiii/spyops/wiki/Settings)
 
@@ -81,6 +82,7 @@ MIT
 - added `add_spatial_index` (Management - Indexes)
 - added `remove_attribute_index` (Management - Indexes)
 - added `remove_spatial_index` (Management - Indexes)
+- added `project` (Management - Projections and Transformations)
 - added `copy_rows` (Management - Table)
 - added `create_table` (Management - Table)
 - added `delete_rows` (Management - Table) and aliased as `truncate_table`
