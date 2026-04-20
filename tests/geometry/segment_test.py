@@ -14,6 +14,10 @@ pytestmark = [mark.geometry]
 
 
 @mark.parametrize('shape_type, geom, count', [
+    (ShapeType.linestring, LineString([], srs_id=4326), 0),
+    (ShapeType.multi_linestring, MultiLineString([], srs_id=4326), 0),
+    (ShapeType.polygon, Polygon([], srs_id=4326), 0),
+    (ShapeType.multi_polygon, MultiPolygon([], srs_id=4326), 0),
     (ShapeType.linestring, LineString([(0, 0), (1, 0), (1, 1), (0, 1)], srs_id=4326), 3),
     (ShapeType.multi_linestring, MultiLineString([[(0, 0), (1, 0), (1, 1), (0, 1)]], srs_id=4326), 3),
     (ShapeType.polygon, Polygon([[(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)], [(1, 1), (2, 1), (2, 2), (1, 2), (1, 1)]], srs_id=4326), 8),
