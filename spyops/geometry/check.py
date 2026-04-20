@@ -5,7 +5,7 @@ Geometry Checks
 
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, TypeAlias, Union
+from typing import Any, TYPE_CHECKING, TypeAlias, Union
 
 from bottleneck import allnan, anynan
 from fudgeo.constant import FETCH_SIZE
@@ -35,6 +35,14 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 RECORDS: TypeAlias = list[tuple[int, str]]
+
+
+def _is_empty(geom: Any) -> bool:
+    """
+    Is Empty
+    """
+    return geom is None or geom.is_empty
+# End _is_empty function
 
 
 def check_feature_class_geometry(source: 'FeatureClass', options: GeometryCheck,
@@ -91,7 +99,7 @@ def _check_empty_feature(features: FEATURES, *, options: GeometryCheck,
     Check Empty Features and filter out empty geometries
     """
     check = GeometryCheck.EMPTY
-    validity = [geom.is_empty for geom, _ in features]
+    validity = [_is_empty(geom) for geom, _ in features]
     if check in options:
         name = _get_name(check)
         records.extend([(fid, name) for (_, fid), is_empty in
@@ -113,12 +121,12 @@ def _check_empty_part(features: FEATURES, *, options: GeometryCheck,
         mls: 'MultiLineString'
         # noinspection PyTypeChecker
         ids = [fid for mls, fid in features
-               if any(line.is_empty for line in mls)]
+               if any(_is_empty(line) for line in mls)]
     elif shape_type == ShapeType.multi_polygon:
         mup: 'MultiPolygon'
         # noinspection PyTypeChecker
         ids = [fid for mup, fid in features
-               if any(poly.is_empty for poly in mup)]
+               if any(_is_empty(poly) for poly in mup)]
     name = _get_name(check)
     records.extend([(fid, name) for fid in ids])
 # End _check_empty_part function
@@ -138,12 +146,13 @@ def _check_empty_ring(features: FEATURES, *, options: GeometryCheck,
         poly: 'Polygon'
         # noinspection PyTypeChecker
         ids = [fid for poly, fid in features
-               if any(ring.is_empty for ring in poly)]
+               if any(_is_empty(ring) for ring in poly)]
     elif shape_type == ShapeType.multi_polygon:
         mup: 'MultiPolygon'
         # noinspection PyTypeChecker
         ids = [fid for mup, fid in features
-               if any(any(ring.is_empty for ring in poly) for poly in mup)]
+               if any(any(_is_empty(ring) for ring in poly)
+                      for poly in mup)]
     name = _get_name(check)
     records.extend([(fid, name) for fid in ids])
 # End _check_empty_ring function
