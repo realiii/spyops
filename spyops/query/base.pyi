@@ -8,7 +8,7 @@ from collections.abc import Generator
 from functools import cache, cached_property
 from typing import Callable, Optional, Self
 
-from fudgeo import FeatureClass, Table
+from fudgeo import FeatureClass, SpatialReferenceSystem, Table
 from pyproj import CRS, Transformer
 from shapely import Polygon
 from shapely.geometry.base import BaseMultipartGeometry
@@ -55,7 +55,7 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
     @cached_property
     def source_transformer(self) -> Callable | None: ...
     @cached_property
-    def spatial_reference_system(self): ...
+    def spatial_reference_system(self) -> SpatialReferenceSystem | None: ...
     @cached_property
     def grid_size(self) -> GRID_SIZE: ...
     @property

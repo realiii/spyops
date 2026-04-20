@@ -20,7 +20,7 @@ from spyops.management.generalization import dissolve
 from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
     remove_spatial_index)
-from spyops.management.projections import project
+from spyops.management.projections import define_projection, project
 from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.shared.enumeration import (
@@ -70,6 +70,7 @@ __all__ = [
     'remove_attribute_index',
     'remove_spatial_index',
 
+    'define_projection',
     'project',
 
     'copy_rows',
