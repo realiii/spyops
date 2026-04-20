@@ -21,11 +21,14 @@ from spyops.query.management.features import (
     QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
     QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
+    QueryMultiPartToSinglePart, QueryRepairGeometry, QuerySplitLineAtVertices,
+    QueryXYTableLine,
     QueryXYTablePoint)
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
-from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
+from spyops.shared.field import (
+    ORIG_FID, ORIG_SEQ, POINT_M, POINT_X, POINT_Y,
+    POINT_Z)
 
 
 pytestmark = [mark.features, mark.query, mark.management]
@@ -832,7 +835,7 @@ class TestQueryFeatureToPoint:
         source = world_features['admin_a']
         query = QueryFeatureToPoint(
             source, None, inside=False, weight_option=WeightOption.TWO_D)
-        assert query._get_target_shape_type()
+        assert query._get_target_shape_type() == ShapeType.point
     # End test_get_target_shape_type method
 
     @mark.parametrize('inside', [
@@ -886,7 +889,7 @@ class TestQueryFeatureVerticesToPoints:
         source = world_features['admin_a']
         query = QueryFeatureVerticesToPoints(
             source, None, point_type=PointTypeOption.MID)
-        assert query._get_target_shape_type()
+        assert query._get_target_shape_type() == ShapeType.point
     # End test_get_target_shape_type method
 
     @mark.parametrize('point_type', [
@@ -906,6 +909,45 @@ class TestQueryFeatureVerticesToPoints:
         assert isinstance(query.vertex_getter, Callable)
     # End test_coordinate_getter method
 # End TestQueryFeatureVerticesToPoints class
+
+
+class TestQuerySplitLineAtVertices:
+    """
+    Test QuerySplitLineAtVertices
+    """
+    def test_get_unique_fields(self, world_features):
+        """
+        Test get unique fields
+        """
+        source = world_features['admin_sans_attr_a']
+        query = QuerySplitLineAtVertices(source, None)
+        assert [f.name for f in query._get_unique_fields()] == [ORIG_FID.name, ORIG_SEQ.name]
+    # End test_get_unique_fields method
+
+    def test_get_target_shape_type(self, world_features):
+        """
+        Test get target shape type
+        """
+        source = world_features['admin_a']
+        query = QuerySplitLineAtVertices(source, None)
+        assert query._get_target_shape_type()
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('fc_name', [
+        'admin_a',
+        'admin_mp_a',
+        'roads_l',
+        'roads_ml',
+    ])
+    def test_coordinate_getter(self, world_features, fc_name):
+        """
+        Test Coordinate Getter
+        """
+        source = world_features[fc_name]
+        query = QuerySplitLineAtVertices(source, None)
+        assert isinstance(query.segment_getter, Callable)
+    # End test_coordinate_getter method
+# End TestQuerySplitLineAtVertices class
 
 
 if __name__ == '__main__':  # pragma: no cover
