@@ -2,11 +2,30 @@
 """
 Line Segment
 """
-from typing import Callable
+
+
+from typing import Any, Callable
 
 from fudgeo.enumeration import ShapeType
 
 from spyops.shared.hint import LINE, LINE_TYPE
+
+
+def _build_line_segments(geom: Any, *, fid: int, counter: int,
+                         geom_cls: LINE_TYPE, srs_id: int) \
+        -> list[tuple[LINE, int, int]]:
+    """
+    Build Line Segments
+    """
+    if geom.is_empty:
+        return []
+    coords = geom.coordinates
+    if len(coords) < 2:
+        return []
+    return [(geom_cls([begin, end], srs_id=srs_id), fid, i)
+            for i, (begin, end) in
+            enumerate(zip(coords[:-1], coords[1:]), counter)]
+# End _build_line_segments function
 
 
 def segment_linestrings(features: list[tuple], *, geom_cls: LINE_TYPE,
@@ -17,13 +36,12 @@ def segment_linestrings(features: list[tuple], *, geom_cls: LINE_TYPE,
     segments = []
     if not features:
         return segments
+    counter = 1
     for line, fid in features:
-        if line.is_empty:
-            continue
-        coords = line.coordinates
-        segments.extend(
-            [(geom_cls([(begin, end)], srs_id=srs_id), fid, i)
-             for i, (begin, end) in enumerate(zip(coords[:-1], coords[1:]), 1)])
+        lines = _build_line_segments(
+            line, fid=fid, counter=counter, geom_cls=geom_cls, srs_id=srs_id)
+        counter += len(lines)
+        segments.extend(lines)
     return segments
 # End segment_linestrings function
 
@@ -41,12 +59,9 @@ def segment_multi_linestrings(features: list[tuple], *, geom_cls: LINE_TYPE,
             continue
         counter = 1
         for line in multi:
-            if line.is_empty:
-                continue
-            coords = line.coordinates
-            lines = [(geom_cls([(begin, end)], srs_id=srs_id), fid, i)
-                     for i, (begin, end) in enumerate(
-                    zip(coords[:-1], coords[1:]), counter)]
+            lines = _build_line_segments(
+                line, fid=fid, counter=counter, geom_cls=geom_cls,
+                srs_id=srs_id)
             counter += len(lines)
             segments.extend(lines)
     return segments
@@ -78,12 +93,9 @@ def segment_multi_polygons(features: list[tuple], *, geom_cls: LINE_TYPE,
             if poly.is_empty:
                 continue
             for ring in poly:
-                if ring.is_empty:
-                    continue
-                coords = ring.coordinates
-                lines = [(geom_cls([(begin, end)], srs_id=srs_id), fid, i)
-                         for i, (begin, end) in enumerate(
-                        zip(coords[:-1], coords[1:]), counter)]
+                lines = _build_line_segments(
+                    ring, fid=fid, counter=counter, geom_cls=geom_cls,
+                    srs_id=srs_id)
                 counter += len(lines)
                 segments.extend(lines)
     return segments
