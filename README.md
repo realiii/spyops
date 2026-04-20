@@ -64,6 +64,7 @@ MIT
 - added `feature_vertices_to_points` (Management - Features)
 - added `minimum_bounding_geometry` (Management - Features)
 - added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
+- added `polygon_to_line` (Management - Features)
 - added `repair_geometry` (Management - Features)
 - added `split_line_at_vertices` (Management - Features)
 - added `xy_table_to_point` (Management - Features)
