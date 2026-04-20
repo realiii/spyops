@@ -164,7 +164,7 @@ def _transform_coords(coords: 'ndarray', transformer: 'Transformer',
                       include_vertical: bool) -> 'ndarray':
     """
     Transforms Coordinates and puts them back into the coordinate array.
-    Return value is an array of coordinate validity based on XY
+    Return value is an array of coordinate validity based on XY.
     """
     if include_vertical:
         xs, ys, zs = transformer.transform(
