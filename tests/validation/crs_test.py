@@ -8,9 +8,11 @@ from pytest import raises, mark
 from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 
+from spyops.crs.transform import get_transform_best_guess
 from spyops.shared.exception import OperationsError
-from spyops.validation import validate_coordinate_system, validate_supported_crs
-
+from spyops.validation import (
+    validate_coordinate_system,
+    validate_supported_crs, validate_transform)
 
 pytestmark = [mark.validation]
 
@@ -77,6 +79,32 @@ def test_validate_coordinate_system_invalid(mem_gpkg):
     with raises(OperationsError):
         crs_function(srs)
 # End test_validate_coordinate_system_invalid function
+
+
+def test_validate_transform(mem_gpkg):
+    """
+    Test validate transform -- same
+    """
+    @validate_transform('xform')
+    def crs_function(xform):
+        return xform
+    t = get_transform_best_guess(CRS(4326), CRS(4267))
+    assert crs_function(t) is t
+    assert crs_function(None) is None
+# End test_validate_transform function
+
+
+def test_validate_transform_invalid(mem_gpkg):
+    """
+    Test validate transform
+    """
+    @validate_transform('xform')
+    def crs_function(xform):
+        return xform
+    t = Ellipsis
+    with raises(TypeError):
+        crs_function(t)
+# End test_validate_transform_invalid function
 
 
 if __name__ == '__main__':  # pragma: no cover
