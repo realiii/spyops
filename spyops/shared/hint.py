@@ -13,7 +13,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geometry import Point, PointM, PointZM, PointZ
     from spyops.crs.unit import DecimalDegrees, LinearUnit
     from shapely.geometry import (
-        LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
+        LineString as ShapelyLineString, MultiLineString, MultiPoint,
+        MultiPolygon, Point as ShapelyPoint, Polygon)
     from spyops.shared.stats import AbstractStatisticField
 
 
@@ -34,8 +35,8 @@ GPKG: TypeAlias = Union['GeoPackage', 'MemoryGeoPackage']
 
 
 POLYGONS: TypeAlias = list['Polygon'] | list['MultiPolygon']
-LINES: TypeAlias = list['LineString'] | list['MultiLineString']
-POINTS: TypeAlias = list['Point'] | list['MultiPoint']
+LINES: TypeAlias = list['ShapelyLineString'] | list['MultiLineString']
+POINTS: TypeAlias = list['ShapelyPoint'] | list['MultiPoint']
 
 
 FEATURES: TypeAlias = list[tuple['AbstractGeometry', int]]
