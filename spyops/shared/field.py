@@ -56,6 +56,9 @@ VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+ORIG_SEQ: Field = Field(
+    'ORIG_SEQ', data_type=FieldType.integer,
+    alias='Original Sequence Number')
 MBG_WIDTH: Field = Field(
     'MBG_WIDTH', data_type=FieldType.real,
     alias='Width of Minimum Bounding Geometry')
@@ -147,6 +150,24 @@ def add_orig_fid(feature_class: FeatureClass) -> FIELDS:
     fields[index] = field
     return ORIG_FID, *fields
 # End add_orig_fid function
+
+
+def add_key_fields(fields: list[Field], key_fields: FIELDS) -> FIELDS:
+    """
+    Add Key Fields
+    """
+    keys = [f.name.casefold() for f in key_fields]
+    names = [f.name.casefold() for f in fields]
+    if not any(key in names for key in keys):
+        return *key_fields, *fields
+    for key, fld in zip(keys, key_fields):
+        if key not in names:
+            continue
+        index = names.index(key)
+        fld, = make_unique_fields([fld, *fields], others=[fields[index]])
+        fields[index] = fld
+    return *key_fields, *fields
+# End add_key_fields function
 
 
 def get_geometry_column_name(feature_class: FeatureClass,

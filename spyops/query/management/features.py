@@ -33,6 +33,7 @@ from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
+from spyops.geometry.segment import GEOMETRY_SEGMENT
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
@@ -44,9 +45,10 @@ from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
-    MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, POINT_M, POINT_X, POINT_Y,
-    POINT_Z, REASON, VALUE, add_orig_fid, get_geometry_column_name,
-    make_field_names, make_unique_fields, validate_fields)
+    MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, ORIG_SEQ, POINT_M,
+    POINT_X, POINT_Y,
+    POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
+    get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FIELDS, GRID_SIZE, NAMES, POINT_TYPE, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
@@ -84,7 +86,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -759,7 +761,7 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -917,24 +919,6 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
             return {id_: (geom, ()) for id_, geom in zip(ids, polygons)}
     # End _process_geometries method
 
-    def _build_fields(self, fields: list[Field]) -> FIELDS:
-        """
-        Build Fields
-        """
-        key_fields = self._get_key_fields()
-        keys = [f.name.casefold() for f in key_fields]
-        names = [f.name.casefold() for f in fields]
-        if not any(key in names for key in keys):
-            return *key_fields, *fields
-        for key, fld in zip(keys, key_fields):
-            if key not in names:
-                continue
-            index = names.index(key)
-            fld, = make_unique_fields([fld, *fields], others=[fields[index]])
-            fields[index] = fld
-        return *key_fields, *fields
-    # End _build_fields method
-
     @abstractmethod
     def _get_key_fields(self) -> tuple[Field, ...]:
         """
@@ -954,7 +938,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         Get Unique Fields
         """
         if self.add_attributes:
-            return self._build_fields(list(self._fields))
+            return add_key_fields(list(self._fields), self._get_key_fields())
         return self._fields
     # End _get_unique_fields method
 
@@ -1156,8 +1140,8 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         Get Unique Fields
         """
         if self.add_attributes:
-            return self._build_fields(list(validate_fields(
-                self.source, fields=self.source.fields)))
+            fields = validate_fields(self.source, fields=self.source.fields)
+            return add_key_fields(list(fields), self._get_key_fields())
         return add_orig_fid(self.source)
     # End _get_unique_fields method
 
@@ -1269,7 +1253,7 @@ class QueryFeatureToPoint(BaseQuerySelect):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -1345,7 +1329,7 @@ class QueryFeatureVerticesToPoints(BaseQuerySelect):
 
     def _get_unique_fields(self) -> FIELDS:
         """
-        Get Unique Fields and Rename Primary Key Columns if included
+        Get Unique Fields and add ORIG_FID
         """
         return add_orig_fid(self.source)
     # End _get_unique_fields method
@@ -1400,6 +1384,59 @@ class QueryFeatureVerticesToPoints(BaseQuerySelect):
             transformer=transformer)
     # End source_transformer property
 # End QueryFeatureVerticesToPoints class
+
+
+class QuerySplitLineAtVertices(BaseQuerySelect):
+    """
+    Query Split Line at Vertices
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and add ORIG_FID and ORIG_SEQ
+        """
+        fields = validate_fields(self.source, fields=self.source.fields)
+        return add_key_fields(list(fields), [ORIG_FID, ORIG_SEQ])
+    # End _get_unique_fields method
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source including FID
+        """
+        return self.select_with_fid
+    # End select property
+
+    @property
+    def segment_getter(self) -> Callable:
+        """
+        Segment Getter
+        """
+        elm = self.source
+        srs_id = elm.spatial_reference_system.srs_id
+        cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][elm.has_z, elm.has_m]
+        return partial(GEOMETRY_SEGMENT[elm.shape_type],
+                       **{SRS_ID_KEY: srs_id, 'geom_cls': cls})
+    # End segment_getter property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End source_transformer property
+# End QuerySplitLineAtVertices class
 
 
 if __name__ == '__main__':  # pragma: no cover

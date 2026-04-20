@@ -26,7 +26,8 @@ from spyops.query.management.features import (
     QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
     QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryRepairGeometry, QueryXYTableLine,
+    QueryMultiPartToSinglePart, QueryRepairGeometry, QuerySplitLineAtVertices,
+    QueryXYTableLine,
     QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
@@ -59,7 +60,7 @@ __all__ = [
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
-    'feature_to_point', 'feature_vertices_to_points']
+    'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices']
 
 
 @validate_result()
@@ -705,6 +706,43 @@ def feature_vertices_to_points(source: 'FeatureClass', target: 'FeatureClass',
             parts.clear()
     return query.target
 # End feature_vertices_to_points function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=(
+        ShapeType.linestring, ShapeType.multi_linestring,
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_overwrite_source()
+def split_line_at_vertices(source: 'FeatureClass', target: 'FeatureClass') \
+        -> 'FeatureClass':
+    """
+    Split Line at Vertices
+
+    Create a feature class by splitting line or polygon features into line
+    segments at each vertice.
+    """
+    lines = []
+    records = []
+    query = QuerySplitLineAtVertices(source, target=target)
+    insert_sql = query.insert
+    getter = query.segment_getter
+    config = query.geometry_config
+    transformer = query.source_transformer
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            for geom, fid, *attrs in features:
+                lines.extend([(*rec, *attrs) for rec in getter([(geom, fid)])])
+            insert_many(config, executor=executor, transformer=transformer,
+                        insert_sql=insert_sql, features=lines, records=records)
+            lines.clear()
+    return query.target
+# End split_line_at_vertices function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

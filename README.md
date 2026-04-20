@@ -65,6 +65,7 @@ MIT
 - added `minimum_bounding_geometry` (Management - Features)
 - added `multipart_to_singlepart` (Management - Features) and aliased as `explode`
 - added `repair_geometry` (Management - Features)
+- added `split_line_at_vertices` (Management - Features)
 - added `xy_table_to_point` (Management - Features)
 - added `xy_to_line` (Management - Features) and aliased as `xy_table_to_line`
 - added `add_field` (Management - Fields) with support for multiple
