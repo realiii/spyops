@@ -23,6 +23,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
+__all__ = ['dissolve']
+
+
 @validate_result()
 @validate_source_feature_class()
 @validate_target_feature_class()
