@@ -10,7 +10,8 @@ For a short introduction to the way in which GeoPackages are handled in `spyops`
 
 ## Installation
 
-`spyops` is available from the [Python Package Index](https://pypi.org/project/spyops/).
+A placeholder for `spyops` is available from the [Python Package Index](https://pypi.org/project/spyops/).
+The first release will be v0.1.0 sometime first half of 2026.
 
 
 ## Python Compatibility
@@ -41,7 +42,6 @@ MIT
 
 ## Release History
 ### v0.0.1
-- internal release
 - added `clip` (Analysis - Extract)
 - added `select` (Analysis - Extract) and aliased as `extract_features`
 - added `split` (Analysis - Extract)
