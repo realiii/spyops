@@ -50,7 +50,7 @@ from spyops.shared.field import (
     POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
     get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
-    ELEMENT, FIELDS, GRID_SIZE, NAMES, POINT_TYPE, XY_TOL)
+    ELEMENT, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
 from spyops.shared.sql import SQL_ALL_ID
 
@@ -1437,6 +1437,66 @@ class QuerySplitLineAtVertices(BaseQuerySelect):
             transformer=transformer)
     # End source_transformer property
 # End QuerySplitLineAtVertices class
+
+
+class QueryPolygonToLine(BaseQuerySelect):
+    """
+    Query Polygon to Line
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and add ORIG_FID and ORIG_SEQ
+        """
+        return add_orig_fid(self.source)
+    # End _get_unique_fields method
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source including FID
+        """
+        return self.select_with_fid
+    # End select property
+
+    @property
+    def polygon_getter(self) -> Callable:
+        """
+        Polygon Getter
+        """
+        if self.source.is_multi_part:
+            return lambda x: x
+        return lambda x: [x]
+    # End polygon_getter property
+
+    @property
+    def line_class(self) -> LINE_TYPE:
+        """
+        Line Class
+        """
+        has_z = self.source.has_z
+        has_m = self.source.has_m
+        return FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
+    # End line_class property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Transformer
+        """
+        elm = self.source
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End source_transformer property
+# End QueryPolygonToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

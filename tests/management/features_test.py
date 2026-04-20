@@ -21,9 +21,9 @@ from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, feature_envelope_to_polygon, feature_to_point,
-    feature_vertices_to_points, multipart_to_singlepart, split_line_at_vertices,
-    xy_to_line, check_geometry, minimum_bounding_geometry, repair_geometry,
-    xy_table_to_point)
+    feature_vertices_to_points, multipart_to_singlepart, polygon_to_line,
+    split_line_at_vertices, xy_to_line, check_geometry,
+    minimum_bounding_geometry, repair_geometry, xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.shared.enumeration import (
     GeometryAttribute, GeometryCheck, GroupOption, LineTypeOption,
@@ -1948,7 +1948,7 @@ class TestFeatureVerticesToPoints:
             source, target, point_type=PointTypeOption.END)
         assert len(result) == expected
     # End test_end_vertices function
-    
+
     @mark.zm
     @mark.parametrize('fc_name, expected', [
         ('hydro_6654_a', 429),
@@ -1978,7 +1978,7 @@ class TestFeatureVerticesToPoints:
             source, target, point_type=PointTypeOption.MID)
         assert len(result) == expected
     # End test_mid_vertices function
-    
+
     @mark.zm
     @mark.parametrize('fc_name, expected', [
         ('hydro_6654_a', 858),
@@ -2074,7 +2074,7 @@ class TestSplitLineAtVertices:
     ])
     def test_settings(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
         """
-        Test split line at vertices and using settings
+        Test split line at vertices using settings
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_l')
@@ -2090,6 +2090,41 @@ class TestSplitLineAtVertices:
             assert len(result) == expected
     # End test_settings function
 # End TestSplitLineAtVertices class
+
+
+class TestPolygonToLine:
+    """
+    Test Polygon To Line
+    """
+    @mark.zm
+    @mark.parametrize('fc_name, expected', [
+        ('hydro_6654_a', 429),
+        ('hydro_6654_z_a', 429),
+        ('hydro_6654_m_a', 429),
+        ('hydro_6654_zm_a', 429),
+        ('structures_10tm_ma', 1585),
+        ('structures_10tm_z_ma', 1585),
+        ('structures_10tm_m_ma', 1585),
+        ('structures_10tm_zm_ma', 1585),
+    ])
+    def test_settings(self, ntdb_zm_small, mem_gpkg, fc_name, expected):
+        """
+        Test polygon to line using settings
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_l')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = polygon_to_line(source, target)
+            assert result.spatial_reference_system.srs_id == 102009
+            assert result.has_m
+            assert result.has_z
+            assert len(result) == expected
+    # End test_settings function
+# End TestPolygonToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -26,9 +26,8 @@ from spyops.query.management.features import (
     QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
     QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryRepairGeometry, QuerySplitLineAtVertices,
-    QueryXYTableLine,
-    QueryXYTablePoint)
+    QueryMultiPartToSinglePart, QueryPolygonToLine, QueryRepairGeometry,
+    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
     FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
@@ -60,7 +59,8 @@ __all__ = [
     'copy_features', 'delete_features', 'explode', 'multipart_to_singlepart',
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
-    'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices']
+    'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
+    'polygon_to_line']
 
 
 @validate_result()
@@ -422,7 +422,7 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
     added to the output feature class.
 
     The output feature class will be in the specified coordinate reference
-    system or will be transformed to from the specified coordinate reference
+    system or will be transformed from the specified coordinate reference
     into the analysis settings output coordinate reference system.
     """
     records = []
@@ -743,6 +743,46 @@ def split_line_at_vertices(source: 'FeatureClass', target: 'FeatureClass') \
             lines.clear()
     return query.target
 # End split_line_at_vertices function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=(
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_overwrite_source()
+def polygon_to_line(source: 'FeatureClass', target: 'FeatureClass') \
+        -> 'FeatureClass':
+    """
+    Polygon to Line
+
+    Create a line feature class from the rings of polygon features.
+    """
+    lines = []
+    records = []
+    query = QueryPolygonToLine(source, target=target)
+    cls = query.line_class
+    insert_sql = query.insert
+    getter = query.polygon_getter
+    config = query.geometry_config
+    transformer = query.source_transformer
+    srs_id = query.source.spatial_reference_system.srs_id
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            for geom, *attrs in features:
+                for poly in getter(geom):
+                    lines.extend([
+                        (cls(ring.coordinates, srs_id=srs_id), *attrs)
+                        for ring in poly if len(ring.coordinates) >= 2])
+            insert_many(config, executor=executor, transformer=transformer,
+                        insert_sql=insert_sql, features=lines, records=records)
+            lines.clear()
+    return query.target
+# End polygon_to_line function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
