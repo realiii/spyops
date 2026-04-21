@@ -37,6 +37,7 @@ MIT
 - [Management - Indexes](https://github.com/realiii/spyops/wiki/Data-Management#indexes)
 - [Management - Projections and Transformations](https://github.com/realiii/spyops/wiki/Data-Management#projections-and-transformations)
 - [Management - Table](https://github.com/realiii/spyops/wiki/Data-Management#table)
+- [Management - Workspace](https://github.com/realiii/spyops/wiki/Data-Management#workspace)
 - [Settings](https://github.com/realiii/spyops/wiki/Settings)
 
 
@@ -88,6 +89,7 @@ MIT
 - added `create_table` (Management - Table)
 - added `delete_rows` (Management - Table) and aliased as `truncate_table`
 - added `get_count` (Management - Table)
+- added `create_sqlite_database` (Management - Workspace) and aliased as `create_geopackage`
 - Settings support for `overwrite`
 - Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 - Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
