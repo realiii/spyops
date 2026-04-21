@@ -5,9 +5,11 @@ Tests for Workspace Module
 
 
 from fudgeo import GeoPackage
-from pytest import mark
+from pytest import mark, raises
 
-from spyops.management import create_sqlite_database
+from spyops.environment import Setting
+from spyops.environment.context import Swap
+from spyops.management import create_folder, create_sqlite_database
 
 
 pytestmark = [mark.management, mark.workspace]
@@ -23,6 +25,23 @@ def test_create_sqlite_database(tmp_path):
     assert isinstance(gpkg, GeoPackage)
     path.unlink(missing_ok=True)
 # End test_create_sqlite_database function
+
+
+def test_create_folder(tmp_path):
+    """
+    Test Create Folder
+    """
+    path = tmp_path
+    name = 'test_folder'
+    output = create_folder(path, name)
+    assert output.is_dir()
+    with Swap(Setting.OVERWRITE, False):
+        with raises(FileExistsError):
+            create_folder(path, name)
+    with Swap(Setting.OVERWRITE, True):
+        output = create_folder(path, name)
+        assert output.is_dir()
+# End test_create_folder function
 
 
 if __name__ == '__main__':  # pragma: no cover
