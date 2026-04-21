@@ -89,6 +89,7 @@ MIT
 - added `create_table` (Management - Table)
 - added `delete_rows` (Management - Table) and aliased as `truncate_table`
 - added `get_count` (Management - Table)
+- added `create_folder` (Management - Workspace)
 - added `create_sqlite_database` (Management - Workspace) and aliased as `create_geopackage`
 - Settings support for `overwrite`
 - Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
