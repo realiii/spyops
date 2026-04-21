@@ -23,6 +23,7 @@ from spyops.management.indexes import (
 from spyops.management.projections import define_projection, project
 from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
+from spyops.management.workspace import create_sqlite_database
 from spyops.shared.enumeration import (
     FieldProperty, GeometryAttribute, GeometryCheck, GroupOption,
     LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -78,6 +79,8 @@ __all__ = [
     'delete_rows',
     'get_count',
     'truncate_table',
+
+    'create_sqlite_database',
 
     'AreaUnit',
     'FieldProperty',
