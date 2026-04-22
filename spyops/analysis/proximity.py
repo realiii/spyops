@@ -66,6 +66,7 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
     The output will not have Z or M values unless the OUTPUT_Z_OPTION or
     OUTPUT_M_OPTION environment variables are set.
     """
+    records = []
     kwargs = dict(source=source, target=target, distance=distance,
                   buffer_type=buffer_type, fields=group_fields,
                   side_option=side_option, end_option=end_option,
@@ -76,7 +77,6 @@ def buffer(source: 'FeatureClass', target: 'FeatureClass', distance: DISTANCE,
         query = QueryBufferDissolveList(**kwargs)
     else:
         query = QueryBufferDissolveAll(**kwargs)
-    records = []
     insert_sql = query.insert
     config = query.geometry_config
     with (query.source.geopackage.connection as cin,
@@ -129,12 +129,12 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
     The output will not have Z or M values unless the OUTPUT_Z_OPTION or
     OUTPUT_M_OPTION environment variables are set.
     """
+    records = []
     query = QueryMultipleBuffer(
         source=source, target=target, distance_unit=distance_unit,
         distances=distances, buffer_type=buffer_type, overlapping=overlapping,
         only_outside=only_outside, field_name=field_name, resolution=resolution,
         xy_tolerance=xy_tolerance)
-    records = []
     insert_sql = query.insert
     select_sql = query.select
     config = query.geometry_config
