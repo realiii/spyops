@@ -1,0 +1,51 @@
+# -*- coding: utf-8 -*-
+"""
+Types
+"""
+
+
+from typing import Callable, NamedTuple, TYPE_CHECKING, Union
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from shapely import Polygon
+    from spyops.geometry.config import GeometryConfig
+    from spyops.query.base import AbstractElementQuery, AbstractSpatialQuery
+
+
+class AnalysisComponents(NamedTuple):
+    """
+    Spatial Analysis Components
+    """
+    has_intersection: bool
+    query: Union['AbstractElementQuery', 'AbstractSpatialQuery']
+    target: 'FeatureClass'
+# End AnalysisComponents class
+
+
+class PlanarizeResults(NamedTuple):
+    """
+    Planarize Results
+    """
+    planarized: list['Polygon']
+    polygons: list['Polygon']
+    ids: list[int]
+# End PlanarizeResults class
+
+
+class QueryConfig(NamedTuple):
+    """
+    Query Config
+    """
+    source: 'FeatureClass'
+    target: 'FeatureClass'
+    disjoint: str
+    insert: str
+    config: 'GeometryConfig'
+    transformer: Callable | None
+# End QueryConfig class
+
+
+if __name__ == '__main__':  # pragma: no cover
+    pass
