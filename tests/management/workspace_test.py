@@ -23,7 +23,10 @@ def test_create_sqlite_database(tmp_path):
     gpkg = create_sqlite_database(
         path, enable_metadata=True, enable_schema=True, ogr_contents=True)
     assert isinstance(gpkg, GeoPackage)
-    path.unlink(missing_ok=True)
+    try:
+        path.unlink(missing_ok=True)
+    except PermissionError:
+        pass
 # End test_create_sqlite_database function
 
 
