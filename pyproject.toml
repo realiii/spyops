@@ -1,6 +1,6 @@
 [project]
 name = "spyops"
-version = "0.0.1"
+version = "0.1.0"
 description = """\
     Spatial Python Operations (SPyOps) -- an evolving collection of GIS Analysis, \
     Spatial Statistics, Spatial Operations, and Spatial Data Management capabilities.\
@@ -33,3 +33,10 @@ dev = [
     "pytest>=9.0.3",
     "pytest-xdist>=3.8.0",
 ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["spyops*"]
+exclude = ["tests*", "compare*", "data*", "grids*"]
