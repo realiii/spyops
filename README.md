@@ -10,8 +10,7 @@ For a short introduction to the way in which GeoPackages are handled in `spyops`
 
 ## Installation
 
-A placeholder for `spyops` is available from the [Python Package Index](https://pypi.org/project/spyops/).
-The first release will be v0.1.0 sometime first half of 2026.
+`spyops` is available from the [Python Package Index](https://pypi.org/project/spyops/).
 
 
 ## Python Compatibility
@@ -42,7 +41,7 @@ MIT
 
 
 ## Release History
-### v0.0.1
+### v0.1.0
 - added `clip` (Analysis - Extract)
 - added `select` (Analysis - Extract) and aliased as `extract_features`
 - added `split` (Analysis - Extract)
@@ -95,3 +94,6 @@ MIT
 - Settings support for dimensions `xy_tolerance`, `output_m_option`, `output_z_option`, and `z_value`  
 - Settings support for workspace `current_workspace`, `scratch_workspace`, and `scratch_folder`
 - Settings support for coordinates `output_coordinate_system`,  `geographic_transformations`, and `extent`
+
+### v0.0.1
+- land grab
