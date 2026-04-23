@@ -459,6 +459,22 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
             element, field_names=field_names, where_clause=where)
     # End _make_intersection_query method
 
+    def _build_select(self, fields: FIELDS) -> str:
+        """
+        Build Select from a list of fields
+        """
+        # noinspection PyTypeChecker
+        select_names = make_field_names(fields)
+        geom_type = get_geometry_column_name(
+            self.source, include_geom_type=True)
+        select_names = self._concatenate(geom_type, select_names)
+        if ANALYSIS_SETTINGS.extent:
+            return self._make_intersection_query(
+                self.source, field_names=select_names)
+        return self._make_select(
+            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+    # End _build_select method
+
     @cached_property
     def has_intersection(self) -> bool:
         """
@@ -512,18 +528,18 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         Select from Source including FID
         """
         fields = validate_fields(self.source, fields=self.source.fields)
-        fields = [self.source.primary_key_field, *fields]
         # noinspection PyTypeChecker
-        select_names = make_field_names(fields)
-        geom_type = get_geometry_column_name(
-            self.source, include_geom_type=True)
-        select_names = self._concatenate(geom_type, select_names)
-        if ANALYSIS_SETTINGS.extent:
-            return self._make_intersection_query(
-                self.source, field_names=select_names)
-        return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+        return self._build_select([self.source.primary_key_field, *fields])
     # End select_with_fid property
+
+    @property
+    def select_only_fid(self) -> str:
+        """
+        Select from Source using only the FID for attributes
+        """
+        # noinspection PyTypeChecker
+        return self._build_select([self.source.primary_key_field])
+    # End select_only_fid property
 
     @property
     def select_source(self) -> str:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tests for Buffering
+Tests for Proximity
 """
 
 
@@ -14,9 +14,10 @@ from shapely import LineString, Polygon, Point, MultiPolygon, MultiPoint
 from shapely.constructive import buffer
 from shapely.geometry.multilinestring import MultiLineString
 
-from spyops.geometry.buffer import (
+from spyops.geometry.proximity import (
     _get_side_settings, _equidistant_transformers, _to_multi,
-    _dissolve_polygons, _outside_only, geodesic_buffer, planar_buffer)
+    _dissolve_polygons, _outside_only, build_voronoi, geodesic_buffer,
+    planar_buffer)
 from spyops.shared.enumeration import EndOption, SideOption
 
 pytestmark = [mark.geometry]
@@ -371,6 +372,44 @@ class TestGeodesicBuffer:
         assert all(isinstance(r, MultiPolygon) for r in results)
     # End test_polygons_utm_z12_blm method
 # End TestGeodesicBuffer class
+
+
+class TestBuildVoronoi:
+    """
+    Test Build Voronoi
+    """
+    def test_points(self):
+        """
+        Test Points
+        """
+        pts1 = Point(2, 0), Point(2, 1), Point(3, 5), Point(2, 0), Point(4, 1), Point(2, 0.0001)
+        pts2 = Point(2, 11), Point(2, 12), Point(5, 3), Point(2, 10), Point(4, 11)
+        points = [*pts1, *pts2]
+        ids = list(range(100, 100 + len(points)))
+        polygons, xref = build_voronoi(points, ids, extent=None, grid_size=None)
+        assert len(polygons) == 10
+        assert all(isinstance(p, Polygon) for p in polygons)
+        assert len(xref) == 10
+        assert list(xref.keys()) == [100, 101, 102, 104, 105, 106, 107, 108, 109, 110]
+        assert sum(xref.values(), []) == [2, 3, 8, 0, 1, 6, 9, 7, 5, 4]
+    # End test_points method
+
+    def test_multi_points(self):
+        """
+        Test Multi Points
+        """
+        pts1 = Point(2, 0), Point(2, 1), Point(3, 5), Point(2, 0), Point(4, 1), Point(2, 0.0001)
+        pts2 = Point(2, 11), Point(2, 12), Point(5, 3), Point(2, 10), Point(4, 11)
+        points = [MultiPoint(pts1), MultiPoint(pts2)]
+        ids = list(range(100, 100 + len(points)))
+        polygons, xref = build_voronoi(points, ids, extent=None, grid_size=None)
+        assert len(polygons) == 10
+        assert all(isinstance(p, Polygon) for p in polygons)
+        assert len(ids) == 2
+        assert xref[100] == [2, 0, 1, 3, 8]
+        assert xref[101] == [7, 5, 6, 4, 9]
+    # End test_multi_points method
+# End TestBuildVoronoi class
 
 
 if __name__ == '__main__':  # pragma: no cover

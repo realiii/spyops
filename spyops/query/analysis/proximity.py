@@ -26,20 +26,22 @@ from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
     DISTANCE_UNIT_LUT, DecimalDegrees, LinearUnit, Meters, degrees_to_meters,
     get_linear_unit_conversion_factor, get_unit_name, unit_factory)
-from spyops.environment import Setting
-from spyops.geometry.buffer import geodesic_buffer, planar_buffer
+from spyops.crs.util import crs_from_srs
+from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
+from spyops.environment.core import ZMConfig, zm_config
+from spyops.geometry.proximity import geodesic_buffer, planar_buffer
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
-from spyops.query.base import AbstractQueryDissolve
+from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
 from spyops.shared.constant import DRID, EMPTY, METRE, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    NUMBERS, TYPE_ALIAS_LUT, add_orig_fid, get_geometry_column_name,
+    NUMBERS, ORIG_FID, TYPE_ALIAS_LUT, add_orig_fid, get_geometry_column_name,
     make_field_names, make_unique_fields, validate_fields)
 from spyops.shared.hint import FIELDS, XY_TOL
 from spyops.shared.keywords import (
@@ -51,6 +53,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
     from fudgeo import FeatureClass
     from numpy import ndarray
+    from shapely import Polygon
 
 
 class BufferConfig(NamedTuple):
@@ -1163,6 +1166,83 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         return [*fields, *distance_field]
     # End _get_unique_fields method
 # End QueryMultipleBuffer class
+
+
+class QueryCreateThiessenPolygons(BaseQuerySelect):
+    """
+    Query Create Thiessen Polygons
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 include_attributes: bool, xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryCreateThiessenPolygons class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        self._include_attributes: bool = include_attributes
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type reducing from multi to single
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and add ORIG_FID
+        """
+        if self._include_attributes:
+            return add_orig_fid(self.source)
+        return [ORIG_FID]
+    # End _get_unique_fields method
+
+    @cached_property
+    def extent(self) -> 'Polygon':
+        """
+        Extent for Edge of Polygons, if the extent is set then use it as-is,
+        if it is not set then use the extent of the source feature class
+        and expand by 10% total.
+        """
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            min_x, min_y, max_x, max_y = self.source_extent
+            dx = (max_x - min_x) / 20.
+            dy = (max_y - min_y) / 20.
+            extent = Extent.from_bounds(
+                x_min=min_x - dx, y_min=min_y - dy,
+                x_max=max_x + dx, y_max=max_y + dy, crs=self.source_crs)
+        # noinspection PyTypeChecker
+        crs = crs_from_srs(self.spatial_reference_system)
+        return self._get_extent_polygon(extent, crs=crs).envelope
+    # End extent property
+
+    @property
+    def select(self) -> str:
+        """
+        Select from Source including FID with or without attributes
+        """
+        if self._include_attributes:
+            return self.select_with_fid
+        return self.select_only_fid
+    # End select property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+
+        Only generating a 2D polygon regardless of the input feature class
+        dimensions, which means that the presence of Z or M on the source
+        (or from the settings) handled as is_different=True to ensure that
+        geometry casting occurs.
+        """
+        zm = zm_config(self.source)
+        is_different = zm.z_enabled or zm.m_enabled
+        return ZMConfig(
+            is_different=is_different, z_enabled=zm.z_enabled,
+            m_enabled=zm.m_enabled)
+    # End zm_config property
+# End QueryCreateThiessenPolygons class
 
 
 if __name__ == '__main__':  # pragma: no cover

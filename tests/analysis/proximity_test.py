@@ -7,7 +7,7 @@ from fudgeo import FeatureClass
 from pyproj import CRS
 from pytest import mark, param, approx
 
-from spyops.analysis import buffer, multiple_buffer
+from spyops.analysis import buffer, create_thiessen_polygons, multiple_buffer
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
@@ -609,6 +609,144 @@ class TestMultipleBuffer:
             assert approx(result.extent, abs=1) == extent
     # End test_output_settings method
 # End TestMultipleBuffer class
+
+
+class TestCreateThiessenPolygons:
+    """
+    Test Create Thiessen Polygons
+    """
+    @mark.parametrize('fc_name, tol, include, count, field_count', [
+        ('structures_p', None, False, 3912, 3),
+        ('structures_utm11_p', None, False, 3912, 3),
+        ('structures_4617_p', None, False, 3912, 3),
+        ('structures_6654_p', None, False, 3912, 3),
+        ('structures_zm_p', None, False, 3912, 3),
+        ('structures_utm11_zm_p', None, False, 3912, 3),
+        ('structures_4617_zm_p', None, False, 3912, 3),
+        ('structures_6654_zm_p', None, False, 3912, 3),
+        ('structures_p', None, True, 3912, 11),
+        ('structures_utm11_p', None, True, 3912, 11),
+        ('structures_4617_p', None, True, 3912, 12),
+        ('structures_6654_p', None, True, 3912, 11),
+        ('structures_zm_p', None, True, 3912, 11),
+        ('structures_utm11_zm_p', None, True, 3912, 11),
+        ('structures_4617_zm_p', None, True, 3912, 11),
+        ('structures_6654_zm_p', None, True, 3912, 11),
+        ('structures_p', 0.001, True, 3566, 11),
+        ('structures_utm11_p', 50, True, 3813, 11),
+        ('structures_4617_p', 0.001, True, 3566, 12),
+        ('structures_6654_p', 30, True, 3907, 11),
+        ('structures_zm_p', 0.001, True, 3566, 11),
+        ('structures_utm11_zm_p', 50, True, 3813, 11),
+        ('structures_4617_zm_p', 0.001, True, 3566, 11),
+        ('structures_6654_zm_p', 30, True, 3907, 11),
+    ])
+    def test_points(self, ntdb_zm_small, mem_gpkg, fc_name, tol, include, count, field_count):
+        """
+        Test points
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_a')
+        result = create_thiessen_polygons(
+            source, target=target, include_attributes=include, xy_tolerance=tol)
+        assert result.has_z == source.has_z
+        assert result.has_m == target.has_m
+        assert len(result) == count
+        assert len(result.fields) == field_count
+    # End test_points method
+
+    @mark.parametrize('fc_name, tol, include, count, field_count', [
+        ('toponymy_10tm_mp', None, False, 142, 3),
+        ('toponymy_10tm_m_mp', None, False, 142, 3),
+        ('toponymy_10tm_z_mp', None, False, 142, 3),
+        ('toponymy_10tm_zm_mp', None, False, 142, 3),
+        ('toponymy_6654_mp', None, False, 142, 3),
+        ('toponymy_6654_m_mp', None, False, 142, 3),
+        ('toponymy_6654_z_mp', None, False, 142, 3),
+        ('toponymy_6654_zm_mp', None, False, 142, 3),
+        ('toponymy_mp', None, False, 142, 3),
+        ('toponymy_m_mp', None, False, 142, 3),
+        ('toponymy_z_mp', None, False, 142, 3),
+        ('toponymy_zm_mp', None, False, 142, 3),
+        ('transmission_m_mp', None, False, 11, 3),
+        ('transmission_mp', None, False, 11, 3),
+        ('transmission_z_mp', None, False, 11, 3),
+        ('transmission_zm_mp', None, False, 11, 3),
+        ('toponymy_10tm_mp', None, True, 142, 11),
+        ('toponymy_10tm_m_mp', None, True, 142, 11),
+        ('toponymy_10tm_z_mp', None, True, 142, 11),
+        ('toponymy_10tm_zm_mp', None, True, 142, 11),
+        ('toponymy_6654_mp', None, True, 142, 11),
+        ('toponymy_6654_m_mp', None, True, 142, 11),
+        ('toponymy_6654_z_mp', None, True, 142, 11),
+        ('toponymy_6654_zm_mp', None, True, 142, 11),
+        ('toponymy_mp', None, True, 142, 12),
+        ('toponymy_m_mp', None, True, 142, 12),
+        ('toponymy_z_mp', None, True, 142, 12),
+        ('toponymy_zm_mp', None, True, 142, 12),
+        ('transmission_m_mp', None, True, 11, 10),
+        ('transmission_mp', None, True, 11, 10),
+        ('transmission_z_mp', None, True, 11, 10),
+        ('transmission_zm_mp', None, True, 11, 10),
+        ('toponymy_10tm_mp', 50, True, 140, 11),
+        ('toponymy_10tm_m_mp', 50, True, 140, 11),
+        ('toponymy_10tm_z_mp', 50, True, 140, 11),
+        ('toponymy_10tm_zm_mp', 50, True, 140, 11),
+        ('toponymy_6654_mp', 30, True, 141, 11),
+        ('toponymy_6654_m_mp', 30, True, 141, 11),
+        ('toponymy_6654_z_mp', 30, True, 141, 11),
+        ('toponymy_6654_zm_mp', 30, True, 141, 11),
+        ('toponymy_mp', 0.001, True, 140, 12),
+        ('toponymy_m_mp', 0.001, True, 140, 12),
+        ('toponymy_z_mp', 0.001, True, 140, 12),
+        ('toponymy_zm_mp', 0.001, True, 140, 12),
+        ('transmission_m_mp', 0.001, True, 11, 10),
+        ('transmission_mp', 0.001, True, 11, 10),
+        ('transmission_z_mp', 0.001, True, 11, 10),
+        ('transmission_zm_mp', 0.001, True, 11, 10),
+    ])
+    def test_multi_points(self, ntdb_zm_small, mem_gpkg, fc_name, tol, include, count, field_count):
+        """
+        Test multi points
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_a')
+        result = create_thiessen_polygons(
+            source, target=target, include_attributes=include, xy_tolerance=tol)
+        assert result.has_z == source.has_z
+        assert result.has_m == target.has_m
+        assert len(result) == count
+        assert len(result.fields) == field_count
+    # End test_multi_points method
+
+    @mark.zm
+    @mark.parametrize('fc_name', [
+        'toponymy_10tm_mp',
+        'toponymy_10tm_m_mp',
+        'toponymy_10tm_z_mp',
+        'toponymy_10tm_zm_mp',
+        'structures_p',
+        'structures_m_p',
+        'structures_z_p',
+        'structures_zm_p',
+    ])
+    def test_settings(self, ntdb_zm_small, mem_gpkg, fc_name):
+        """
+        Test settings
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_a')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.Z_VALUE, 123.456),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS.from_authority('ESRI', 102009))):
+            result = create_thiessen_polygons(source, target=target)
+            assert result.has_z
+            assert result.has_m
+            assert result.extent != source.extent
+    # End test_settings method
+# End TestCreateThiessenPolygons class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -6,13 +6,16 @@ Test for Proximity Query classes
 
 from fudgeo import FeatureClass, Field
 from fudgeo.enumeration import FieldType, ShapeType
-from pytest import mark
+from pyproj import CRS
+from pytest import mark, approx
 
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Meters, Miles
+from spyops.environment import Extent, Setting
+from spyops.environment.context import Swap
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryMultipleBuffer)
+    QueryCreateThiessenPolygons, QueryMultipleBuffer)
 from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
 
 pytestmark = [mark.proximity, mark.query, mark.analysis]
@@ -638,6 +641,86 @@ class TestQueryMultipleBuffer:
         assert [f.name for f in fields] == expected
     # End test_get_unique_fields method
 # End TestQueryMultipleBuffer class
+
+
+class TestQueryCreateThiessenPolygons:
+    """
+    Test QueryCreateThiessenPolygons
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test get target shape type
+        """
+        query = QueryCreateThiessenPolygons(
+            None, target=None, include_attributes=True, xy_tolerance=None)
+        assert query._get_target_shape_type() == ShapeType.polygon
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('include, names', [
+        (True, ['ORIG_FID', 'FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY', 'ISO_CODE', 'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES', 'AUTONOMOUS', 'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK']),
+        (False, ['ORIG_FID']),
+    ])
+    def test_unique_fields(self, world_features, include, names):
+        """
+        Test get target shape type
+        """
+        source = world_features['admin_a']
+        query = QueryCreateThiessenPolygons(
+            source, target=None, include_attributes=include, xy_tolerance=None)
+        fields = query._get_unique_fields()
+        assert [f.name for f in fields] == names
+    # End test_unique_fields method
+
+    def test_extent_analysis(self, world_features):
+        """
+        Test extent from analysis setting
+        """
+        source = world_features['admin_a']
+        extent = Extent.from_bounds(-115, 50, -110, 55, crs=CRS(4326))
+        with Swap(Setting.EXTENT, extent):
+            query = QueryCreateThiessenPolygons(
+                source, target=None, include_attributes=False,
+                xy_tolerance=None)
+            assert query.extent.bounds == (-115.0, 50.0, -110.0, 55.0)
+    # End test_extent_analysis method
+
+    def test_extent_source(self, world_features):
+        """
+        Test extent from analysis setting
+        """
+        source = world_features['admin_a']
+        query = QueryCreateThiessenPolygons(
+            source, target=None, include_attributes=False,
+            xy_tolerance=None)
+        assert approx(query.extent.bounds, abs=0.001) == (
+            -197.9999, -98.6832, 197.9999, 92.3487)
+    # End test_extent_source method
+
+    @mark.parametrize('include, content', [
+        (True, 'SELECT SHAPE "[Polygon]", fid, FEATURE_ID, PART_ID, NAME'),
+        (False, 'SELECT SHAPE "[Polygon]", fid\n'),
+    ])
+    def test_select(self, world_features, include, content):
+        """
+        Test select
+        """
+        source = world_features['admin_a']
+        query = QueryCreateThiessenPolygons(
+            source, target=None, include_attributes=include, xy_tolerance=None)
+        assert content in query.select
+    # End test_select method
+
+    def test_zm_config(self, world_features):
+        """
+        Test ZM Config
+        """
+        source = world_features['admin_a']
+        query = QueryCreateThiessenPolygons(
+            source, target=None, include_attributes=False,
+            xy_tolerance=None)
+        assert query.zm_config == (False, False, False)
+    # End test_zm_config method
+# End TestQueryCreateThiessenPolygons class
 
 
 if __name__ == '__main__':  # pragma: no cover

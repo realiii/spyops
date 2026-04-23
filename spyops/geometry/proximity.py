@@ -1,30 +1,56 @@
 # -*- coding: utf-8 -*-
 """
-Buffers
+Proximity
 """
 
 
 from collections import defaultdict
 from functools import lru_cache
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo.enumeration import ShapeType
 from numpy import array, full_like
 from shapely import GeometryCollection, MultiPolygon, Polygon
-from shapely.constructive import buffer, centroid, normalize
+from shapely.constructive import buffer, centroid, normalize, voronoi_polygons
 from shapely.coordinates import get_coordinates
 from shapely.set_operations import difference, union_all
+from shapely.strtree import STRtree
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
 from spyops.crs.util import get_equidistant_projections
+from spyops.geometry.util import get_geoms_iter
 from spyops.shared.enumeration import EndOption, SideOption
-from spyops.shared.hint import XY_TOL
+from spyops.shared.hint import GRID_SIZE, XY_TOL
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from pyproj import CRS
+
+
+def build_voronoi(geometries: 'ndarray', ids: Union['ndarray', list[int]], *,
+                  extent: Polygon | None, grid_size: GRID_SIZE) \
+        -> tuple[list, defaultdict[int, list[int]]]:
+    """
+    Build Voronoi Polygons from points or multi points.  Build cross-reference
+    for feature identifiers, from feature id to polygon index.
+    """
+    collection = voronoi_polygons(
+        GeometryCollection(geometries), tolerance=grid_size or 0,
+        extend_to=extent)
+    polygons = list(get_geoms_iter(collection))
+    tree = STRtree(polygons)
+    geom_indexes, poly_indexes = tree.query(geometries, predicate='intersects')
+    visited = set()
+    xref = defaultdict(list)
+    for geom_idx, poly_idx in zip(geom_indexes, poly_indexes):
+        if poly_idx in visited:
+            continue
+        visited.add(poly_idx)
+        xref[ids[geom_idx]].append(poly_idx)
+    return polygons, xref
+# End build_voronoi function
 
 
 def planar_buffer(geometries: 'ndarray', distances: 'ndarray', *,
