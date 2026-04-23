@@ -8,11 +8,14 @@ from typing import TYPE_CHECKING
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from fudgeo.enumeration import ShapeType
 
 from spyops.crs.enumeration import DistanceUnit
+from spyops.geometry.proximity import build_voronoi
+from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryMultipleBuffer)
+    QueryCreateThiessenPolygons, QueryMultipleBuffer)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
@@ -21,8 +24,8 @@ from spyops.shared.keywords import (
     END_OPTION, GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
 from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_dissolve_option, validate_distance, validate_field,
-    validate_overwrite_source, validate_range, validate_result,
+    validate_dissolve_option, validate_distance, validate_feature_class,
+    validate_field, validate_overwrite_source, validate_range, validate_result,
     validate_side_option, validate_source_feature_class,
     validate_str_enumeration, validate_target_feature_class, validate_values,
     validate_xy_tolerance)
@@ -32,7 +35,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['buffer', 'multiple_buffer']
+__all__ = ['buffer', 'multiple_buffer', 'create_thiessen_polygons']
 
 
 @validate_result()
@@ -159,6 +162,54 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
             records.clear()
     return query.target
 # End multiple_buffer function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=(
+        ShapeType.point, ShapeType.multi_point))
+@validate_target_feature_class()
+@validate_xy_tolerance()
+@validate_overwrite_source()
+def create_thiessen_polygons(source: 'FeatureClass', target: 'FeatureClass',
+                             include_attributes: bool = False, *,
+                             xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Create Thiessen Polygons
+
+    Create a feature class containing Thiessen polygons (aka Voronoi diagram)
+    based on a point feature class input.
+    """
+    records = []
+    query = QueryCreateThiessenPolygons(
+        source=source, target=target, include_attributes=include_attributes,
+        xy_tolerance=xy_tolerance)
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        features = cursor.fetchall()
+        if not (features := filter_features(features)):
+            return query.target
+        features, geometries = to_shapely(
+            features, transformer=query.source_transformer)
+        ids = [fid for _, fid, *_ in features]
+        polygons, xref = build_voronoi(
+            geometries, ids, grid_size=query.grid_size, extent=query.extent)
+        if query.source.is_multi_part:
+            results = []
+            for _, *attrs in features:
+                fid, *_ = attrs
+                results.extend([(polygons[i], attrs) for i in xref[fid]])
+        else:
+            polygon_ids = [xref.get(fid, [None])[0] for fid in ids]
+            results = [(polygons[i], attrs)
+                       for i, (_, *attrs) in zip(polygon_ids, features)
+                       if i is not None]
+        extend_records(results, records=records, config=query.geometry_config)
+        executor(sql=query.insert, data=records)
+        records.clear()
+    return query.target
+# End create_thiessen_polygons function
 
 
 if __name__ == '__main__':  # pragma: no cover
