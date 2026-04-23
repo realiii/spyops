@@ -33,3 +33,10 @@ dev = [
     "pytest>=9.0.3",
     "pytest-xdist>=3.8.0",
 ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["spyops*"]
+exclude = ["tests*", "compare*", "data*", "grids*"]
