@@ -21,7 +21,7 @@ keywords = ["geopackage", "geometry", "gis", "spatial", "operations", "analysis"
 requires-python = ">=3.12"
 dependencies = [
     "bottleneck>=1.6.0",
-    "fudgeo>=1.5.7",
+    "fudgeo>=1.5.8",
     "numpy>=2.4.4",
     "pyproj>=3.7.2",
     "shapely>=2.1.2",
@@ -30,6 +30,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "coverage>=7.13.5",
-    "pytest>=9.0.2",
+    "pytest>=9.0.3",
     "pytest-xdist>=3.8.0",
 ]
