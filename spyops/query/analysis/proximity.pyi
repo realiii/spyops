@@ -12,11 +12,12 @@ from typing import Callable, Generator, Iterator, NamedTuple, Type
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from numpy import ndarray
-from shapely import MultiPolygon
+from shapely import MultiPolygon, Polygon
 
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, LinearUnit
-from spyops.query.base import AbstractQueryDissolve
+from spyops.environment.core import ZMConfig
+from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
 from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
 from spyops.shared.hint import FIELDS, XY_TOL
 
@@ -149,3 +150,22 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
     @staticmethod
     def _get_side_option(source: FeatureClass, only_outside: bool) -> SideOption: ...
     def _get_unique_fields(self) -> FIELDS: ...
+
+
+class QueryCreateThiessenPolygons(BaseQuerySelect):
+    """
+    Query Create Thiessen Polygons
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 include_attributes: bool, xy_tolerance: XY_TOL) -> None: ...
+
+    _include_attributes: bool
+
+    def _get_target_shape_type(self) -> str: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+    @cached_property
+    def extent(self) -> 'Polygon': ...
+    @property
+    def select(self) -> str: ...
+    @cached_property
+    def zm_config(self) -> 'ZMConfig': ...
