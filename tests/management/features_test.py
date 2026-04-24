@@ -932,23 +932,34 @@ class TestCheckGeometry:
     """
     Test Check Geometry
     """
+    def test_polygon_repeat_xy(self, inputs, mem_gpkg):
+        """
+        Test Polygon geometry, avoid reporting repeated start end
+        """
+        source = inputs['repeat_xy_a']
+        target = Table(mem_gpkg, name='repeat_xy')
+        table = check_geometry(
+            source, target=target, check_options=GeometryCheck.REPEATED_XY)
+        assert len(table) == 3
+    # End test_polygon_repeat_xy method
+
     @mark.parametrize('fc_name, count', [
-        param('admin_a', 211_853, marks=mark.slow),
-        ('continent_a', 1958),
-        param('country_a', 208_318, marks=mark.slow),
+        param('admin_a', 372, marks=mark.slow),
+        ('continent_a', 1),
+        param('country_a', 261, marks=mark.slow),
         ('disputed_boundaries_l', 3),
         ('drainage_l', 0),
         ('geogrid_l', 1),
-        ('lakes_a', 40),
+        ('lakes_a', 5),
         param('latlong_l', 1, marks=mark.slow),
         ('railroads_l', 15),
-        ('region_a', 1979),
+        ('region_a', 1),
         ('rivers_l', 1),
         param('roads_l', 239, marks=mark.slow),
-        ('utmzone_a', 1202),
+        ('utmzone_a', 1),
         ('airports_p', 0),
         ('cities_p', 0),
-        param('admin_mp_a', 5824, marks=mark.slow),
+        param('admin_mp_a', 2329, marks=mark.slow),
         ('airports_mp_p', 0),
         param('roads_mp_l', 191, marks=mark.slow),
         ('roads_ml', 20),
@@ -995,17 +1006,17 @@ class TestCheckGeometry:
     # End test_check_extent function
 
     @mark.parametrize('fc_name, counts', [
-        ('hydro_m_a', (382, 1, 0, 0)),
-        ('hydro_zm_a', (382, 1, 0, 0)),
-        ('structures_m_a', (1453, 4, 0, 0)),
-        ('structures_m_ma', (18, 16, 0, 0)),
+        ('hydro_m_a', (5, 1, 0, 0)),
+        ('hydro_zm_a', (5, 1, 0, 0)),
+        ('structures_m_a', (13, 4, 0, 0)),
+        ('structures_m_ma', (16, 16, 0, 0)),
         ('structures_m_p', (0, 0, 0, 0)),
-        ('structures_ma', (18, 0, 0, 0)),
+        ('structures_ma', (16, 0, 0, 0)),
         ('structures_p', (0, 0, 0, 0)),
-        ('structures_z_ma', (18, 0, 18, 0)),
+        ('structures_z_ma', (16, 0, 18, 0)),
         ('structures_z_p', (0, 0, 0, 0)),
-        ('structures_zm_a', (1453, 4, 4, 0)),
-        ('structures_zm_ma', (18, 16, 1, 0)),
+        ('structures_zm_a', (13, 4, 4, 0)),
+        ('structures_zm_ma', (16, 16, 1, 0)),
         ('structures_zm_p', (0, 0, 0, 0)),
         ('topography_m_l', (485, 235, 0, 0)),
         ('topography_zm_l', (485, 235, 235, 0)),
@@ -1055,16 +1066,16 @@ class TestCheckGeometry:
     # End test_check_coordinates method
 
     @mark.parametrize('fc_name, counts', [
-        ('hydro_m_a', (382, 1, 0, 0)),
-        ('hydro_zm_a', (382, 1, 0, 0)),
-        ('structures_m_a', (1453, 4, 0, 0)),
+        ('hydro_m_a', (380, 1, 0, 0)),
+        ('hydro_zm_a', (380, 1, 0, 0)),
+        ('structures_m_a', (1253, 4, 0, 0)),
         ('structures_m_ma', (18, 16, 0, 0)),
         ('structures_m_p', (0, 0, 0, 0)),
         ('structures_ma', (18, 0, 0, 0)),
         ('structures_p', (0, 0, 0, 0)),
         ('structures_z_ma', (18, 0, 18, 0)),
         ('structures_z_p', (0, 0, 0, 0)),
-        ('structures_zm_a', (1453, 4, 4, 0)),
+        ('structures_zm_a', (1253, 4, 4, 0)),
         ('structures_zm_ma', (18, 16, 4, 0)),
         ('structures_zm_p', (0, 0, 0, 0)),
         ('topography_m_l', (627, 235, 0, 0)),

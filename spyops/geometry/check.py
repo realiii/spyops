@@ -435,6 +435,7 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     validations = {}
     index = 1 + has_z + has_m
     ids = find_slice_indexes(indexes)
+    is_polygon = ShapeType.polygon in shape_type
     for fid, begin, end in zip(fids, ids[:-1], ids[1:]):
         repeated_xy = repeated_m = mismatch_z = mismatch_m = False
         grouped = defaultdict(list)
@@ -443,7 +444,15 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
         repetitions = {key: values for key, values in grouped.items()
                        if len(values) > 1}
         if check_repeated_xy:
-            repeated_xy = bool(repetitions)
+            if is_polygon:
+                x, y, *_ = coords[begin]
+                begin_xy = x, y
+                repeated_xy = len(repetitions.get(begin_xy, [])) > 2
+                repeated_xy = repeated_xy or any(
+                    len(values) > 1 for key, values in grouped.items()
+                    if key != begin_xy)
+            else:
+                repeated_xy = bool(repetitions)
         if check_repeated_m:
             # NOTE use all coordinates, looking for any repeated m values
             #  within the feature independent of the xy grouping
