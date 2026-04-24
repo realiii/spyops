@@ -41,6 +41,9 @@ MIT
 
 
 ## Release History
+### v0.2.0 (in flight)
+- Avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
+
 ### v0.1.0
 - added `clip` (Analysis - Extract)
 - added `select` (Analysis - Extract) and aliased as `extract_features`
