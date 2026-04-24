@@ -7,8 +7,11 @@ Tests for Fields
 from fudgeo import Field, Table
 from pytest import mark
 
-from spyops.management import add_field, calculate_field, delete_field, alter_field
+from spyops.management import (
+    add_field, add_gps_metadata_fields,
+    calculate_field, delete_field, alter_field)
 from spyops.shared.enumeration import FieldProperty
+from spyops.shared.field import GNSS_COMMON_FIELDS
 
 pytestmark = [mark.management, mark.field]
 
@@ -159,6 +162,33 @@ class TestAlterField:
         assert field.comment is None
     # End test_comment method
 # End TestAlterField class
+
+
+class TestAddGPSMetadataFields:
+    """
+    Test Add GPS Metadata Fields
+    """
+    def test_point_and_line(self, buffering, mem_gpkg):
+        """
+        Test point and line
+        """
+        names = 'airports_p', 'roads_l'
+        for name in names:
+            source = buffering[name].copy(name=name, geopackage=mem_gpkg)
+            add_gps_metadata_fields(source)
+    # End test_point_and_line method
+
+    def test_existing_fields(self, buffering, mem_gpkg):
+        """
+        Test point and line, existing field
+        """
+        names = 'airports_p', 'roads_l'
+        for name in names:
+            source = buffering[name].copy(name=name, geopackage=mem_gpkg)
+            source.add_fields(GNSS_COMMON_FIELDS)
+            add_gps_metadata_fields(source)
+    # End test_existing_fields method
+# End TestAddGPSMetadataFields class
 
 
 if __name__ == '__main__':  # pragma: no cover
