@@ -79,6 +79,64 @@ POINT_Z: Field = Field(
 POINT_M: Field = Field(
     'POINT_M', data_type=FieldType.real, alias='M Coordinate')
 
+GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(
+    'GNSS_POSITIONSOURCETYPE', data_type=FieldType.text,
+    alias='Position Source Type')
+GNSS_FIX_TYPE_FIELD: Field = Field(
+    'GNSS_FIXTYPE', data_type=FieldType.text, alias='Fix Type')
+GNSS_NUM_SATS_FIELD: Field = Field(
+    'GNSS_NUMSATS', data_type=FieldType.integer, alias='Number of Satellites')
+GNSS_WORST_FIX_TYPE_FIELD: Field = Field(
+    'GNSS_WORST_FIXTYPE', data_type=FieldType.text, alias='Worst Fix Type')
+
+
+GNSS_COMMON_FIELDS: FIELDS = (
+    GNSS_POSITION_SOURCE_TYPE_FIELD,
+    Field('GNSS_RECEIVER', data_type=FieldType.text, alias='Receiver Name'),
+    Field('GNSS_LATITUDE', data_type=FieldType.real, alias='Latitude'),
+    Field('GNSS_LONGITUDE', data_type=FieldType.real, alias='Longitude'),
+    Field('GNSS_ALTITUDE', data_type=FieldType.real, alias='Altitude'),
+    Field('GNSS_H_RMS', data_type=FieldType.real,
+          alias='Horizontal Accuracy (m)'),
+    Field('GNSS_V_RMS', data_type=FieldType.real,
+          alias='Vertical Accuracy (m)'),
+    Field('GNSS_FIXDATETIME', data_type=FieldType.datetime, alias='Fix Time'),
+    GNSS_FIX_TYPE_FIELD,
+    Field('GNSS_CORRECTIONAGE', data_type=FieldType.real,
+          alias='Correction Age'),
+    Field('GNSS_STATIONID', data_type=FieldType.integer, alias='Station ID'),
+    GNSS_NUM_SATS_FIELD,
+    Field('GNSS_PDOP', data_type=FieldType.real, alias='PDOP'),
+    Field('GNSS_HDOP', data_type=FieldType.real, alias='HDOP'),
+    Field('GNSS_VDOP', data_type=FieldType.real, alias='VDOP'),
+    Field('GNSS_DIRECTION', data_type=FieldType.real,
+          alias='Direction of travel (°)'),
+    Field('GNSS_SPEED', data_type=FieldType.real, alias='Speed (km/h)'),
+    Field('SNSR_AZIMUTH', data_type=FieldType.real,
+          alias='Compass reading (°)'),
+    Field('GNSS_AVG_H_RMS', data_type=FieldType.real,
+          alias='Average Horizontal Accuracy (m)'),
+    Field('GNSS_AVG_V_RMS', data_type=FieldType.real,
+          alias='Average Vertical Accuracy (m)'),
+    Field('GNSS_AVG_POSITIONS', data_type=FieldType.integer,
+          alias='Averaged Positions'),
+    Field('GNSS_H_STDDEV', data_type=FieldType.real,
+          alias='Standard Deviation (m)'),
+)
+GNSS_POLY_LINE_FIELDS: FIELDS = (
+    Field('GNSS_AVG_H_RMS', data_type=FieldType.real,
+          alias='Average Horizontal Accuracy (m)'),
+    Field('GNSS_AVG_V_RMS', data_type=FieldType.real,
+          alias='Average Vertical Accuracy (m)'),
+    Field('GNSS_WORST_H_RMS', data_type=FieldType.real,
+          alias='Worst Horizontal Accuracy (m)'),
+    Field('GNSS_WORST_V_RMS', data_type=FieldType.real,
+          alias='Worst Vertical Accuracy (m)'),
+    GNSS_WORST_FIX_TYPE_FIELD,
+    Field('GNSS_MANUAL_LOCATIONS', data_type=FieldType.integer,
+          alias='Number of Manual Locations'),
+)
+
 
 def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,
                     exclude_geometry: bool = True,

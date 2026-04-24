@@ -5,21 +5,33 @@ Data Management for Fields
 
 
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from fudgeo import Field
-from fudgeo.enumeration import FieldPropertyType
+from fudgeo.enumeration import FieldPropertyType, ShapeType
+from fudgeo.extension.schema import EnumerationConstraint, RangeConstraint
 
 from spyops.shared.constant import EMPTY
+from spyops.shared.field import (
+    GNSS_COMMON_FIELDS, GNSS_FIX_TYPE_FIELD, GNSS_NUM_SATS_FIELD,
+    GNSS_POLY_LINE_FIELDS, GNSS_POSITION_SOURCE_TYPE_FIELD,
+    GNSS_WORST_FIX_TYPE_FIELD)
 from spyops.shared.keywords import (
     ELEMENTS_ARG, FIELD, FIELDS_ARG, FIELD_PROPERTY, SOURCE)
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
-    validate_element, validate_elements, validate_str_enumeration,
-    validate_field)
+    validate_element, validate_elements, validate_feature_class,
+    validate_str_enumeration, validate_field)
 
 
-__all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field']
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+    from fudgeo.extension.schema import Schema
+
+
+__all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field',
+           'add_gps_metadata_fields']
 
 
 @validate_element(SOURCE, has_content=False)
@@ -119,6 +131,58 @@ def alter_field(source: ELEMENT, field: Field | str, *,
                 prop_name=prop_name, value=value)
     return source
 # End alter_field function
+
+
+@validate_feature_class(SOURCE, has_content=False)
+def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
+    """
+    Add GPS Metadata Fields
+
+    Add GNSS GPS Metadata fields to a Feautre Class, if a field name already
+    exists in the Feature Class, it is not overwritten.  If not already
+    enabled, the Schema Extension is enabled in the GeoPackage.
+    """
+    fix_type = EnumerationConstraint(
+        name='fix_type_domain', values=[0, 1, 2, 4, 5],
+        descriptions=['Fix not valid', 'GPS', 'Differential GPS',
+                      'RTK Fixed', 'RTK Float'])
+    if source.add_fields(GNSS_COMMON_FIELDS):
+        if source.geopackage.enable_schema_extension():
+            source_type = EnumerationConstraint(
+                name='positionsourcetype_domain', values=[0, 1, 2, 3, 4],
+                descriptions=['Unknown', 'User Defined',
+                              'Integrated (System) Location Provider',
+                              'External GNSS Receiver',
+                              'Network Location Provider'])
+            satellite_range = RangeConstraint(
+                name='num_sats_domain', min_value=0, max_value=99,
+                description='Number of Satellites')
+            # noinspection PyTypeChecker
+            schema: Schema = source.geopackage.schema
+            schema.add_constraints([source_type, fix_type, satellite_range])
+            schema.add_column_definition(
+                table_name=source.name,
+                column_name=GNSS_POSITION_SOURCE_TYPE_FIELD.name,
+                constraint_name=source_type.name)
+            schema.add_column_definition(
+                table_name=source.name, column_name=GNSS_FIX_TYPE_FIELD.name,
+                constraint_name=fix_type.name)
+            schema.add_column_definition(
+                table_name=source.name, column_name=GNSS_NUM_SATS_FIELD.name,
+                constraint_name=satellite_range.name)
+    if ShapeType.point in source.shape_type:
+        return source
+    if source.add_fields(GNSS_POLY_LINE_FIELDS):
+        if source.geopackage.enable_schema_extension():
+            # noinspection PyTypeChecker
+            schema: Schema = source.geopackage.schema
+            schema.add_constraints([fix_type])
+            schema.add_column_definition(
+                table_name=source.name,
+                column_name=GNSS_WORST_FIX_TYPE_FIELD.name,
+                constraint_name=fix_type.name)
+    return source
+# End add_gps_metadata_fields function
 
 
 if __name__ == '__main__':  # pragma: no cover

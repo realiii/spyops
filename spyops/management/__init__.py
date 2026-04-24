@@ -14,7 +14,8 @@ from spyops.management.features import (
     multipart_to_singlepart, polygon_to_line, repair_geometry,
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
-    add_field, alter_field, calculate_field, delete_field)
+    add_field, add_gps_metadata_fields, alter_field, calculate_field,
+    delete_field)
 from spyops.management.general import copy, delete, rename
 from spyops.management.generalization import dissolve
 from spyops.management.indexes import (
@@ -58,6 +59,7 @@ __all__ = [
     'xy_to_line',
 
     'add_field',
+    'add_gps_metadata_fields',
     'alter_field',
     'calculate_field',
     'delete_field',
