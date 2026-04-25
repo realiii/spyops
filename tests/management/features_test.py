@@ -941,6 +941,8 @@ class TestCheckGeometry:
         table = check_geometry(
             source, target=target, check_options=GeometryCheck.REPEATED_XY)
         assert len(table) == 3
+        data = table.select(table.fields).fetchall()
+        assert data == [(6, 'REPEATED_XY'), (12, 'REPEATED_XY'), (19, 'REPEATED_XY')]
     # End test_polygon_repeat_xy method
 
     @mark.parametrize('fc_name, count', [
