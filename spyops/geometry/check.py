@@ -462,7 +462,7 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
         if check_repeated_m:
             # NOTE use all coordinates, looking for any repeated m values
             #  within the feature independent of the xy grouping
-            ms = coords[begin:end][:, index]
+            ms = coords[:, index]
             ms = ms[isfinite(ms)]
             repeated_m = len(set(ms)) != len(ms)
         if check_mismatch_z:
