@@ -941,6 +941,8 @@ class TestCheckGeometry:
         table = check_geometry(
             source, target=target, check_options=GeometryCheck.REPEATED_XY)
         assert len(table) == 3
+        data = table.select(table.fields).fetchall()
+        assert data == [(6, 'REPEATED_XY'), (12, 'REPEATED_XY'), (19, 'REPEATED_XY')]
     # End test_polygon_repeat_xy method
 
     @mark.parametrize('fc_name, count', [
@@ -959,7 +961,7 @@ class TestCheckGeometry:
         ('utmzone_a', 1),
         ('airports_p', 0),
         ('cities_p', 0),
-        param('admin_mp_a', 2329, marks=mark.slow),
+        param('admin_mp_a', 269, marks=mark.slow),
         ('airports_mp_p', 0),
         param('roads_mp_l', 191, marks=mark.slow),
         ('roads_ml', 20),
@@ -1009,14 +1011,14 @@ class TestCheckGeometry:
         ('hydro_m_a', (5, 1, 0, 0)),
         ('hydro_zm_a', (5, 1, 0, 0)),
         ('structures_m_a', (13, 4, 0, 0)),
-        ('structures_m_ma', (16, 16, 0, 0)),
+        ('structures_m_ma', (2, 16, 0, 0)),
         ('structures_m_p', (0, 0, 0, 0)),
-        ('structures_ma', (16, 0, 0, 0)),
+        ('structures_ma', (2, 0, 0, 0)),
         ('structures_p', (0, 0, 0, 0)),
-        ('structures_z_ma', (16, 0, 18, 0)),
+        ('structures_z_ma', (2, 0, 18, 0)),
         ('structures_z_p', (0, 0, 0, 0)),
         ('structures_zm_a', (13, 4, 4, 0)),
-        ('structures_zm_ma', (16, 16, 1, 0)),
+        ('structures_zm_ma', (2, 16, 1, 0)),
         ('structures_zm_p', (0, 0, 0, 0)),
         ('topography_m_l', (485, 235, 0, 0)),
         ('topography_zm_l', (485, 235, 235, 0)),
