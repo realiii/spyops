@@ -18,7 +18,8 @@ from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_ccw, is_closed, is_valid
 
-from spyops.geometry.util import find_slice_indexes, make_none_mask
+from spyops.geometry.util import (
+    find_slice_indexes, get_geoms_iter, make_none_mask)
 from spyops.shared.enumeration import GeometryCheck
 from spyops.shared.hint import FEATURES, GRID_SIZE
 
@@ -426,21 +427,27 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     fids = array(fids, dtype=int)
     fids = fids[mask_keep]
     geoms = geoms[mask_keep]
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
     if not grid_size:
         grid_size = 1e-8
-    # noinspection PyUnresolvedReferences
-    coords = ((coords / grid_size).round() * grid_size).round(8)
     validations = {}
     index = 1 + has_z + has_m
-    ids = find_slice_indexes(indexes)
     is_polygon = ShapeType.polygon in shape_type
-    for fid, begin, end in zip(fids, ids[:-1], ids[1:]):
+    for fid, geom in zip(fids, geoms):
         repeated_xy = repeated_m = mismatch_z = mismatch_m = False
+        # noinspection PyTypeChecker
+        coords, indexes = get_coordinates(
+            get_geoms_iter(geom), include_z=has_z, include_m=has_m,
+            return_index=True)
+        # noinspection PyUnresolvedReferences
+        coords = ((coords / grid_size).round() * grid_size).round(8)
+        ids = find_slice_indexes(indexes)
+        start_xy = set()
         grouped = defaultdict(list)
-        for x, y, *values in coords[begin:end]:
-            grouped[(x, y)].append(values)
+        for begin, end in zip(ids[:-1], ids[1:]):
+            x, y, *_ = coords[begin]
+            start_xy.add((x, y))
+            for x, y, *values in coords[begin:end]:
+                grouped[(x, y)].append(values)
         repetitions = {key: values for key, values in grouped.items()
                        if len(values) > 1}
         if check_repeated_xy:
