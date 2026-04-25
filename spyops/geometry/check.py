@@ -452,12 +452,11 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
                        if len(values) > 1}
         if check_repeated_xy:
             if is_polygon:
-                x, y, *_ = coords[begin]
-                begin_xy = x, y
-                repeated_xy = len(repetitions.get(begin_xy, [])) > 2
+                repeated_xy = any(len(repetitions.get(xy, [])) > 2
+                                  for xy in start_xy)
                 repeated_xy = repeated_xy or any(
-                    len(values) > 1 for key, values in grouped.items()
-                    if key != begin_xy)
+                    len(values) > 1 for xy, values in grouped.items()
+                    if xy not in start_xy)
             else:
                 repeated_xy = bool(repetitions)
         if check_repeated_m:
