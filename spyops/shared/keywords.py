@@ -67,6 +67,9 @@ DISTANCE_ARG: str = 'distance'
 DISTANCES: str = 'distances'
 GEOMETRY_TYPE: str = 'geometry_type'
 GROUP_OPTION: str = 'group_option'
+START_FIELD: str = 'start_field'
+END_FIELD: str = 'end_field'
+SORT_FIELDS: str = 'sort_fields'
 
 
 if __name__ == '__main__':  # pragma: no cover
