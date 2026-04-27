@@ -205,9 +205,9 @@ def calculate_end_time(source: ELEMENT, *,
     """
     Calculate End Time
 
-    Calculates an End Time for each row / feature in a Table / Feature Class.
-    The End Time values derived from the next Start Time row / feature as
-    defined by the underlying table order or based on supplied sort fields.
+    Calculates an End Value for each row / feature in a Table / Feature Class.
+    The End Values derived from the next value in the Start Field row / feature
+    as defined by the underlying table order or based on supplied sort fields.
     """
     # noinspection PyTypeChecker
     query = QueryCalculateEndTime(
