@@ -24,6 +24,7 @@ __all__ = ['get_count', 'create_table', 'delete_rows', 'truncate_table',
            'copy_rows']
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 def get_count(source: ELEMENT) -> int:
     """
