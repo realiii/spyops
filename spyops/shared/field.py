@@ -52,6 +52,23 @@ TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
+COMPATIBILITY_LUT: dict[str, list[str] | tuple[str, ...]] = {
+    FieldType.blob: (FieldType.blob,),
+    FieldType.boolean: TEXT_AND_NUMBERS,
+    FieldType.date: (*TEXTS, *DATES),
+    FieldType.datetime: (*TEXTS, *DATES),
+    FieldType.double: TEXT_AND_NUMBERS,
+    FieldType.float: TEXT_AND_NUMBERS,
+    FieldType.integer: TEXT_AND_NUMBERS,
+    FieldType.mediumint: TEXT_AND_NUMBERS,
+    FieldType.real: TEXT_AND_NUMBERS,
+    FieldType.smallint: TEXT_AND_NUMBERS,
+    FieldType.text: TEXTS,
+    FieldType.timestamp: (*TEXTS, *DATES),
+    FieldType.tinyint: TEXT_AND_NUMBERS,
+}
+
+
 VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
@@ -262,12 +279,19 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
     """
     lookup = {}
     for field in fields:
-        data_type = field.data_type.casefold()
-        data_type = next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
-                          if data_type.startswith(aliases)), data_type)
-        lookup[field.name.casefold(), data_type] = field
+        lookup[field.name.casefold(), get_data_type(field)] = field
     return lookup
 # End _field_name_type function
+
+
+def get_data_type(field: Field) -> str:
+    """
+    Get Data Type
+    """
+    data_type = field.data_type.casefold()
+    return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
+                 if data_type.startswith(aliases)), data_type)
+# End get_data_type function
 
 
 def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:

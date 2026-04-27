@@ -16,7 +16,7 @@ from fudgeo.enumeration import FieldType
 
 from spyops.shared.constant import COMMA, SPYOPS, UNDERSCORE
 from spyops.shared.enumeration import Statistic
-from spyops.shared.field import ALIAS_TYPE_LUT, NUMBERS
+from spyops.shared.field import NUMBERS, get_data_type
 
 
 def mode(values: list) -> Any:
@@ -309,10 +309,8 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Get Data Type
         """
-        # noinspection PyUnresolvedReferences
-        data_type = self.field.data_type.casefold()
-        return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
-                     if data_type.startswith(aliases)), data_type)
+        # noinspection PyTypeChecker
+        return get_data_type(self.field)
     # End _get_data_type method
 
     def validate(self) -> None:

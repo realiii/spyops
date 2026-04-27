@@ -11,18 +11,21 @@ from fudgeo import Field
 from fudgeo.enumeration import FieldPropertyType, ShapeType
 from fudgeo.extension.schema import EnumerationConstraint, RangeConstraint
 
+from spyops.query.management.fields import QueryCalculateEndTime
 from spyops.shared.constant import EMPTY
 from spyops.shared.field import (
     GNSS_COMMON_FIELDS, GNSS_FIX_TYPE_FIELD, GNSS_NUM_SATS_FIELD,
     GNSS_POLY_LINE_FIELDS, GNSS_POSITION_SOURCE_TYPE_FIELD,
     GNSS_WORST_FIX_TYPE_FIELD)
 from spyops.shared.keywords import (
-    ELEMENTS_ARG, FIELD, FIELDS_ARG, FIELD_PROPERTY, SOURCE)
+    ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, SORT_FIELDS,
+    SOURCE, START_FIELD)
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
-    validate_element, validate_elements, validate_feature_class,
-    validate_str_enumeration, validate_field)
+    validate_compatible_fields, validate_element, validate_elements,
+    validate_feature_class, validate_result, validate_str_enumeration,
+    validate_field)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -31,9 +34,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field',
-           'add_gps_metadata_fields']
+           'add_gps_metadata_fields', 'calculate_end_time']
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 @validate_field(FIELDS_ARG, element_name=SOURCE)
 def delete_field(source: ELEMENT, fields: FIELDS | FIELD_NAMES) -> ELEMENT:
@@ -47,6 +51,7 @@ def delete_field(source: ELEMENT, fields: FIELDS | FIELD_NAMES) -> ELEMENT:
 # End delete_field function
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 @validate_field(FIELDS_ARG, exists=False)
 @validate_elements(ELEMENTS_ARG, has_content=False)
@@ -75,6 +80,7 @@ def add_field(source: ELEMENT, *, fields: FIELDS = (),
 # End add_field function
 
 
+@validate_result()
 @validate_element(SOURCE)
 @validate_field(FIELD, single=True, element_name=SOURCE)
 def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
@@ -102,6 +108,7 @@ def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
 # End calculate_field function
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 @validate_field(FIELD, single=True, element_name=SOURCE)
 @validate_str_enumeration(FIELD_PROPERTY, FieldProperty)
@@ -133,6 +140,7 @@ def alter_field(source: ELEMENT, field: Field | str, *,
 # End alter_field function
 
 
+@validate_result()
 @validate_feature_class(SOURCE, has_content=False)
 def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
     """
@@ -183,6 +191,32 @@ def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
                 constraint_name=fix_type.name)
     return source
 # End add_gps_metadata_fields function
+
+
+@validate_result()
+@validate_element(SOURCE)
+@validate_field(START_FIELD, single=True, element_name=SOURCE)
+@validate_field(END_FIELD, single=True, element_name=SOURCE)
+@validate_compatible_fields(START_FIELD, END_FIELD)
+@validate_field(SORT_FIELDS, element_name=SOURCE, is_optional=True)
+def calculate_end_time(source: ELEMENT, *,
+                       start_field: Field | str, end_field: Field | str,
+                       sort_fields: FIELDS | FIELD_NAMES = ()) -> ELEMENT:
+    """
+    Calculate End Time
+
+    Calculates an End Value for each row / feature in a Table / Feature Class.
+    The End Values derived from the next value in the Start Field row / feature
+    as defined by the underlying table order or based on supplied sort fields.
+    """
+    # noinspection PyTypeChecker
+    query = QueryCalculateEndTime(
+        source, start_field=start_field, end_field=end_field,
+        sort_fields=sort_fields)
+    with query.source.geopackage.connection as cin:
+        cin.execute(query.update)
+    return query.source
+# End calculate_end_time function
 
 
 if __name__ == '__main__':  # pragma: no cover

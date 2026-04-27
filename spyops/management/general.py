@@ -11,12 +11,13 @@ from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, ELEMENTS
 from spyops.validation import (
     validate_element, validate_elements, validate_overwrite_source,
-    validate_target_element)
+    validate_result, validate_target_element)
 
 
 __all__ = ['copy', 'delete', 'rename']
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 @validate_target_element()
 @validate_overwrite_source()
@@ -53,6 +54,7 @@ def delete(source: ELEMENT | ELEMENTS) -> bool:
 # End delete function
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 def rename(source: ELEMENT, name: str) -> ELEMENT:
     """

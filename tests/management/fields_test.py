@@ -5,11 +5,12 @@ Tests for Fields
 
 
 from fudgeo import Field, Table
+from fudgeo.enumeration import FieldType
 from pytest import mark
 
 from spyops.management import (
     add_field, add_gps_metadata_fields,
-    calculate_field, delete_field, alter_field)
+    calculate_end_time, calculate_field, delete_field, alter_field)
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.field import GNSS_COMMON_FIELDS
 
@@ -189,6 +190,55 @@ class TestAddGPSMetadataFields:
             add_gps_metadata_fields(source)
     # End test_existing_fields method
 # End TestAddGPSMetadataFields class
+
+
+class TestCalculateEndTime:
+    """
+    Test Calculate End Time
+    """
+    def test_sans_sort(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test sans sort
+        """
+        source = ntdb_zm_small['hydro_a'].copy(
+            name='hydro_a', geopackage=mem_gpkg, where_clause='fid <= 50')
+        name = 'later'
+        source.add_fields([Field(name, data_type=FieldType.text)])
+        calculate_end_time(source, start_field='valdate', end_field=name)
+        cursor = source.select(name, include_geometry=False)
+        values = [v for v, in cursor.fetchall()]
+        assert values == [
+            '1977', '1977', '1977', '1977', '1977', '1977', '1972', '1977',
+            '1977', '1977', '1977', '1977', '1977', '1977', '1977', '1977',
+            '1977', '1977', '1977', '1977', '1977', '1977', '1977', '1977',
+            '1977', '1977', '1977', '1977', '1977', '1977', '1977', '1977',
+            '1977', '1977', '1977', '1977', '1977', '1977', '1977', '1977',
+            '1977', '1977', '1977', '1977', '1977', '1977', '1977', '1977',
+            '1977', None]
+    # End test_sans_sort method
+
+    def test_with_sort(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test with sort
+        """
+        source = ntdb_zm_small['hydro_a'].copy(
+            name='hydro_a', geopackage=mem_gpkg, where_clause='fid <= 50')
+        name = 'later_feature_id'
+        source.add_fields([Field(name, data_type=FieldType.integer)])
+        calculate_end_time(source, start_field='code', end_field=name,
+                           sort_fields=['code', 'valdate'])
+        cursor = source.select(name, include_geometry=False)
+        values = [v for v, in cursor.fetchall()]
+        assert values == [
+            1480052, 1480052, 1480272, 1480052, 1480052, 1480052, 1480052,
+            1480272, 1480052, 1480272, 1480052, 1480052, 1480052, 1480052,
+            1480052, 1480052, 1480052, 1480052, 1480272, 1480052, 1480052,
+            1480052, 1480052, 1480052, 1480052, 1480052, 1480052, 1480052,
+            1480052, 1480052, 1480272, 1480052, 1480052, 1480052, 1480052,
+            1480052, 1480052, 1480052, 1480052, 1480052, 1480052, 1480052,
+            1480052, 1480052, 1480052, 1480272, None, 1480052, 1480062, 1480192]
+    # End test_with_sort method
+# End TestCalculateEndTime class
 
 
 if __name__ == '__main__':  # pragma: no cover

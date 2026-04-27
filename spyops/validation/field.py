@@ -18,7 +18,8 @@ from spyops.shared.constant import PADDED_PIPE
 from spyops.shared.exception import CoordinateSystemNotSupportedError
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import (
-    TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, validate_fields)
+    COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, get_data_type,
+    validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
@@ -386,6 +387,57 @@ class ValidateGeometryDimension(AbstractValidate):
             check_zm(a=a, name_a=first, b=b, name_b=other)
     # End _validate_extended method
 # End ValidateGeometryDimension class
+
+
+class ValidateCompatibleFields(AbstractValidate):
+    """
+    Validate Compatible Fields
+    """
+    def __init__(self, from_name: str, to_name: str) -> None:
+        """
+        Initialize the ValidateCompatibleFields class
+        """
+        super().__init__()
+        self._from_name: str = from_name
+        self._to_name: str = to_name
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            self._validate_compatibility(kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _validate_compatibility(self, kwargs: dict[str, Any]) -> None:
+        """
+        Validate Compatibility
+        """
+        from_field = kwargs[self._from_name]
+        to_field = kwargs[self._to_name]
+        if from_field.name == to_field.name:
+            raise ValueError(
+                f'{self._from_name} and {self._to_name} cannot be the '
+                f'same field')
+        from_type = get_data_type(from_field)
+        to_type = get_data_type(to_field)
+        compatible_types = COMPATIBILITY_LUT.get(from_type, ())
+        if to_type not in compatible_types:
+            raise TypeError(
+                f'{self._from_name} and {self._to_name} must be of the same or '
+                f'compatible data type')
+    # End _validate_compatibility method
+# End ValidateCompatibleFields class
 
 
 if __name__ == '__main__':  # pragma: no cover
