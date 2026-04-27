@@ -262,12 +262,19 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
     """
     lookup = {}
     for field in fields:
-        data_type = field.data_type.casefold()
-        data_type = next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
-                          if data_type.startswith(aliases)), data_type)
-        lookup[field.name.casefold(), data_type] = field
+        lookup[field.name.casefold(), get_data_type(field)] = field
     return lookup
 # End _field_name_type function
+
+
+def get_data_type(field: Field) -> str:
+    """
+    Get Data Type
+    """
+    data_type = field.data_type.casefold()
+    return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
+                 if data_type.startswith(aliases)), data_type)
+# End get_data_type function
 
 
 def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:
