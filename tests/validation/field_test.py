@@ -12,7 +12,8 @@ from spyops.crs.unit import DecimalDegrees, Kilometers, Meters
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
 from spyops.shared.stats import Average, First
 from spyops.validation import (
-    validate_distance, validate_feature_class, validate_field,
+    validate_compatible_fields, validate_distance, validate_feature_class,
+    validate_field,
     validate_statistic_field, validate_table)
 
 
@@ -125,6 +126,48 @@ def test_validate_field_single_field(world_tables, fld, exists, throws):
     else:
         field_function(tbl, fld)
 # End test_validate_field_single_field function
+
+
+def test_validate_compatible_field_repeated(world_tables):
+    """
+    Test validate compatible field repeated
+    """
+    @validate_table('table')
+    @validate_field('field1', element_name='table', single=True)
+    @validate_field('field2', element_name='table', single=True)
+    @validate_compatible_fields('field1', 'field2')
+    def field_function(table, field1, field2):
+        pass
+    tbl = world_tables['admin']
+    with raises(ValueError):
+        field_function(tbl, 'name', 'name')
+# End test_validate_compatible_field_repeated function
+
+
+@mark.parametrize('fld1, fld2, throws', [
+    ('NAME', 'LAND_RANK', True),
+    ('DISPUTED', 'LAND_RANK', False),
+    ('LAND_RANK', 'SHAPE_LENGTH', False),
+    ('LAND_RANK', 'NAME', False),
+])
+def test_validate_compatible_field(world_tables, fld1, fld2, throws):
+    """
+    Test validate compatible field repeated
+    """
+    @validate_table('table')
+    @validate_field('field1', element_name='table', single=True)
+    @validate_field('field2', element_name='table', single=True)
+    @validate_compatible_fields('field1', 'field2')
+    def field_function(table, field1, field2):
+        return field1, field2
+    tbl = world_tables['admin']
+    if throws:
+        with raises(TypeError):
+            field_function(tbl, fld1, fld2)
+    else:
+        result = field_function(tbl, fld1, fld2)
+        assert all(isinstance(f, Field) for f in result)
+# End test_validate_compatible_field_repeated function
 
 
 @mark.parametrize('stats, expected, throws', [
