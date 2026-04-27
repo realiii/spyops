@@ -52,6 +52,23 @@ TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
+COMPATIBILITY_LUT: dict[str, list[str] | tuple[str, ...]] = {
+    FieldType.blob: (FieldType.blob,),
+    FieldType.boolean: TEXT_AND_NUMBERS,
+    FieldType.date: (*TEXTS, *DATES),
+    FieldType.datetime: (*TEXTS, *DATES),
+    FieldType.double: TEXT_AND_NUMBERS,
+    FieldType.float: TEXT_AND_NUMBERS,
+    FieldType.integer: TEXT_AND_NUMBERS,
+    FieldType.mediumint: TEXT_AND_NUMBERS,
+    FieldType.real: TEXT_AND_NUMBERS,
+    FieldType.smallint: TEXT_AND_NUMBERS,
+    FieldType.text: TEXTS,
+    FieldType.timestamp: (*TEXTS, *DATES),
+    FieldType.tinyint: TEXT_AND_NUMBERS,
+}
+
+
 VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
