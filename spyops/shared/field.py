@@ -73,6 +73,9 @@ VALUE: Field = Field('VALUE', data_type=FieldType.real)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+REPEAT_FID: Field = Field(
+    'REPEAT_FID', data_type=FieldType.integer,
+    alias='Repeat Feature Identifier')
 ORIG_SEQ: Field = Field(
     'ORIG_SEQ', data_type=FieldType.integer,
     alias='Original Sequence Number')
