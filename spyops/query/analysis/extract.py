@@ -66,7 +66,7 @@ class SplitByAttributesMixin:
             SELECT DISTINCT * 
             FROM (SELECT dense_rank() OVER (
                     ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
-            FROM {elm.escaped_name} {index_where})
+                  FROM {elm.escaped_name} {index_where})
         """
     # End groups property
 # End SplitByAttributesMixin class
