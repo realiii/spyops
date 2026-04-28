@@ -237,7 +237,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             features, transformer=None, option=DimensionOption.TWO_D)
     # End _fetch_features method
 
-    def _convert_unit(self, geometries: 'ndarray',
+    def _convert_unit(self, geoms: 'ndarray',
                       unit: LinearUnit | DecimalDegrees) -> 'ndarray':
         """
         Convert Unit
@@ -248,7 +248,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
                 value = getattr(unit, METERS_ATTR, nan)
             else:
                 value = getattr(unit, VALUE_ATTR, nan)
-                coordinates = get_coordinates(centroid(geometries))
+                coordinates = get_coordinates(centroid(geoms))
                 return degrees_to_meters(
                     self.source_crs, coordinates=coordinates, value=value)
         else:
@@ -259,10 +259,10 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
                 value *= self._get_conversion_factor()
             else:
                 value = getattr(unit, VALUE_ATTR, nan)
-        return ones_like(geometries, dtype=float) * value
+        return ones_like(geoms, dtype=float) * value
     # End _convert_unit method
 
-    def _convert_units(self, geometries: 'ndarray',
+    def _convert_units(self, geoms: 'ndarray',
                        units: list[LinearUnit | DecimalDegrees | None]) \
             -> 'ndarray':
         """
@@ -277,7 +277,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
                 return meters
             ids, values = zip(*degrees)
             ids = array(ids, dtype=int)
-            coordinates = get_coordinates(centroid(geometries[ids]))
+            coordinates = get_coordinates(centroid(geoms[ids]))
             meters[ids] = degrees_to_meters(
                 self.source_crs, coordinates=coordinates,
                 value=array(values, dtype=float))
@@ -365,16 +365,16 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         pass
     # End _from_distance method
 
-    def _dissolve_and_transform(self, geometries: 'ndarray', ids: 'ndarray') \
+    def _dissolve_and_transform(self, geoms: 'ndarray', ids: 'ndarray') \
             -> dict[int, MultiPolygon]:
         """
         Filter out None and Empty Geometries, Dissolve groups of Polygons,
         and then Apply Transform
         """
-        mask = ~(make_none_mask(geometries) | is_empty(geometries))
+        mask = ~(make_none_mask(geoms) | is_empty(geoms))
         if not mask.any():
             return {}
-        geometries, ids = self._dissolve_polygons(geometries[mask], ids[mask])
+        geometries, ids = self._dissolve_polygons(geoms[mask], ids[mask])
         if transformer := self.source_transformer:
             geometries = transformer(geometries)
             validity = get_validity(geometries, transformer=transformer)
@@ -383,7 +383,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         return dict(zip(ids, geometries))
     # End _dissolve_and_transform method
 
-    def _dissolve_polygons(self, geometries: 'ndarray', ids: 'ndarray') \
+    def _dissolve_polygons(self, geoms: 'ndarray', ids: 'ndarray') \
             -> tuple[list, 'ndarray']:
         """
         Dissolve Polygons
@@ -391,10 +391,10 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         builder = partial(build_dissolved, shape_type=ShapeType.multi_polygon,
                           grid_size=self._xy_tolerance)
         unique_ids = unique(ids)
-        parts = [geometries[ids == i] for i in unique_ids]
+        parts = [geoms[ids == i] for i in unique_ids]
         with PoolExecutor() as executor:
-            geometries: list = list(executor.map(builder, parts))
-        return geometries, unique_ids
+            geoms: list = list(executor.map(builder, parts))
+        return geoms, unique_ids
     # End _dissolve_polygons method
 
     def _get_units(self, features: list[tuple]) -> tuple[
@@ -408,25 +408,25 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         return units, valid
     # End _get_units method
 
-    def _get_distances(self, geometries: 'ndarray',
+    def _get_distances(self, geoms: 'ndarray',
                        units: list[LinearUnit | DecimalDegrees | None]) \
             -> tuple['ndarray', 'ndarray']:
         """
         Get Distances and Distance Validity
         """
-        distances = self._convert_units(geometries, units=units)
+        distances = self._convert_units(geoms, units=units)
         valid = isfinite(distances)
         self._counter += (~valid).sum()
         return distances, valid
     # End _get_distances method
 
-    def _get_distances_broadcast(self, geometries: 'ndarray',
+    def _get_distances_broadcast(self, geoms: 'ndarray',
                                  unit: LinearUnit | DecimalDegrees) \
             -> tuple['ndarray', 'ndarray']:
         """
         Get Distances and Distance Validity, broadcasting unit to all geometries
         """
-        distances = self._convert_unit(geometries, unit=unit)
+        distances = self._convert_unit(geoms, unit=unit)
         valid = isfinite(distances)
         self._counter += (~valid).sum()
         return distances, valid
@@ -786,12 +786,12 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         yield dissolved
     # End _from_distance method
 
-    def _dissolve_polygons(self, geometries: 'ndarray', ids: 'ndarray') \
+    def _dissolve_polygons(self, geoms: 'ndarray', ids: 'ndarray') \
             -> tuple['ndarray', 'ndarray']:
         """
         Dissolve Polygons
         """
-        return geometries, ids
+        return geoms, ids
     # End _dissolve_polygons method
 # End QueryBufferDissolveNone class
 

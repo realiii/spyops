@@ -903,14 +903,13 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
     # End grouped_geometries method
 
     def _process_geometries(self, ids: 'ndarray',
-                            geometries: Union['ndarray', list]) \
-            -> dict[int, tuple]:
+                            geoms: Union['ndarray', list]) -> dict[int, tuple]:
         """
         Process Geometries
         """
         bounder = self._bounding_function
         attributer = self._attribute_function
-        polygons = bounder(geometries)
+        polygons = bounder(geoms)
         if self.add_attributes:
             attributes = attributer(polygons)
             return {id_: (geom, attrs) for id_, geom, attrs in
