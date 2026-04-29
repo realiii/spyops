@@ -1,6 +1,6 @@
 [project]
 name = "spyops"
-version = "0.1.0"
+version = "0.1.1"
 description = """\
     Spatial Python Operations (SPyOps) -- an evolving collection of GIS Analysis, \
     Spatial Statistics, Spatial Operations, and Spatial Data Management capabilities.\

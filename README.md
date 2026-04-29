@@ -46,6 +46,9 @@ MIT
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
 
+### v0.1.1
+- fix `to_shapely` to filter out invalid geometries post transformation 
+
 ### v0.1.0
 - added `clip` (Analysis - Extract)
 - added `select` (Analysis - Extract) and aliased as `extract_features`
