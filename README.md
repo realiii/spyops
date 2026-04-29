@@ -41,6 +41,9 @@ MIT
 
 
 ## Release History
+### v0.1.1
+- fix `to_shapely` to filter out invalid geometries post transformation 
+
 ### v0.1.0
 - added `clip` (Analysis - Extract)
 - added `select` (Analysis - Extract) and aliased as `extract_features`
