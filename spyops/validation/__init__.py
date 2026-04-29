@@ -25,7 +25,7 @@ from spyops.validation.field import (
     ValidateGeometryDimension, ValidateStatisticField)
 from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
-from spyops.validation.setting import ValidateXYTolerance
+from spyops.validation.setting import ValidateTolerance, ValidateXYTolerance
 
 
 # NOTE aliases, decorators look better as snake case
@@ -55,6 +55,7 @@ validate_table = ValidateTable
 validate_transform = ValidateTransform
 validate_values = ValidateValues
 validate_xy_tolerance = ValidateXYTolerance
+validate_tolerance = ValidateTolerance
 
 
 # NOTE commonly used configurations

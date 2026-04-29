@@ -8,7 +8,7 @@ from functools import wraps
 from typing import Any, Callable
 
 from spyops.environment import ANALYSIS_SETTINGS, Setting
-from spyops.shared.hint import XY_TOL
+from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
 from spyops.shared.util import safe_float
 from spyops.validation.base import AbstractValidate
 
@@ -91,6 +91,32 @@ class ValidateXYTolerance(AbstractValidate):
         return max(0, tolerance)
     # End _validate_value method
 # End ValidateXYTolerance class
+
+
+class ValidateTolerance(ValidateXYTolerance):
+    """
+    Validate Tolerance
+    """
+    def __init__(self, name: str) -> None:
+        """
+        Initialize the ValidateTolerance class
+
+        :param name: Name of the argument to validate
+        """
+        super().__init__(name)
+    # End init built-in
+
+    def _validate_value(self, function_tol: Z_TOL | M_TOL) -> Z_TOL | M_TOL:
+        """
+        Validate Value
+
+        When a value provided is less than 0, it is treated as 0.
+        """
+        if function_tol is None:
+            return function_tol
+        return max(0, function_tol)
+    # End _validate_value method
+# End ValidateTolerance class
 
 
 if __name__ == '__main__':  # pragma: no cover
