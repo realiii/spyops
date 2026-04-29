@@ -97,6 +97,7 @@ def to_shapely(features: list[tuple], transformer: Callable | None,
         geometries = transformer(geometries)
         validity = get_validity(geometries, transformer=transformer)
         features = [feature for feature, v in zip(features, validity) if v]
+        geometries = geometries[validity]
     if option == DimensionOption.TWO_D:
         geometries = force_2d(geometries)
     elif option == DimensionOption.THREE_D:
