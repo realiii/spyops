@@ -46,8 +46,7 @@ from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, ORIG_SEQ, POINT_M,
-    POINT_X, POINT_Y,
-    POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
+    POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
     get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE, XY_TOL)
