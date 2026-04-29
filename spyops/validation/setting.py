@@ -60,8 +60,7 @@ class ValidateXYTolerance(AbstractValidate):
         kwargs[self._name] = obj
     # End _set_object method
 
-    @staticmethod
-    def _validate_value(function_xy: XY_TOL) -> XY_TOL:
+    def _validate_value(self, function_tol: XY_TOL) -> XY_TOL:
         """
         Validate Value and also compare with XY Setting
 
@@ -76,18 +75,18 @@ class ValidateXYTolerance(AbstractValidate):
 
         When a value provided is less than 0, it is treated as 0.
         """
-        settings_xy = ANALYSIS_SETTINGS.xy_tolerance
-        has_input = function_xy is not None
-        has_settings = settings_xy is not None
+        settings_tol = ANALYSIS_SETTINGS.xy_tolerance
+        has_input = function_tol is not None
+        has_settings = settings_tol is not None
         if not has_settings:
             if not has_input:
-                return function_xy
-            tolerance = function_xy
+                return function_tol
+            tolerance = function_tol
         else:
             if has_input:
-                tolerance = function_xy
+                tolerance = function_tol
             else:
-                tolerance = settings_xy
+                tolerance = settings_tol
         # noinspection PyTypeChecker
         return max(0, tolerance)
     # End _validate_value method
