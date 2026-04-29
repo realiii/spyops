@@ -115,7 +115,8 @@ class TestCompareGeometry:
             (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 18), (11, 19),
             (20, 21), (20, 22), (20, 23), (20, 24), (20, 25), (20, 26), (20, 27),
             (28, 29), (28, 30), (28, 31), (28, 32), (28, 33), (28, 34),
-            (35, 36), (35, 37), (35, 38), (35, 39), (35, 40)]
+            (35, 36), (35, 37), (35, 38), (35, 39), (35, 40),
+            (52, 53)]
     # End test_multi_line method
 
     @mark.parametrize('xy_tolerance', [
@@ -160,7 +161,7 @@ class TestCompareGeometry:
             features, has_z=has_z, has_m=has_m, xy_tolerance=xy_tolerance)
         assert results == [(1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
                            (8, 9), (8, 10), (8, 11),
-                           (33, 34), (33, 35)]
+                           (17, 33), (17, 34), (17, 35)]
     # End test_multi_poly method
 # End TestCompareGeometry class
 

@@ -12,7 +12,7 @@ from shapely.coordinates import get_coordinates
 from shapely.predicates import equals_exact
 
 from spyops.geometry.util import filter_features, find_slice_indexes, to_shapely
-from spyops.geometry.wa import make_valid, make_valid_structure
+from spyops.geometry.wa import make_valid_structure
 from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
 
 
@@ -36,7 +36,7 @@ def compare_feature_geometry(features: list[tuple], *,
     features, geometries = to_shapely(
         features, transformer=lambda x: x, on_invalid='ignore')
     ids = array([i for _, i in features], dtype=int)
-    geoms = normalize([make_valid(geom) for geom in geometries])
+    geoms = normalize([make_valid_structure(geom) for geom in geometries])
     grp_geom, grp_id = _compare_2d(geoms, ids=ids, xy_tolerance=xy_tolerance)
     if not grp_id:
         return records
