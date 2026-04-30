@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM
 from spyops.query.base import (
-    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery)
+    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery,
+    IntermediateTableContextMixin)
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.field import (
     ORIG_FID, REPEAT_FID, get_geometry_column_name, make_field_names)
@@ -21,7 +22,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Table
 
 
-class FindIdenticalMixin:
+class IdenticalMixin:
     """
     Find Identical Mixin
     """
@@ -39,6 +40,7 @@ class FindIdenticalMixin:
         """
         fields = self._get_unique_fields()
         insert_names = make_field_names(fields)
+        # noinspection PyUnresolvedReferences
         return self._make_insert(
             self.target.escaped_name, field_names=insert_names,
             field_count=len(fields))
@@ -87,20 +89,62 @@ class FindIdenticalMixin:
             description='Results from Find Identical',
             overwrite=ANALYSIS_SETTINGS.overwrite)
     # End target_empty property
-# End FindIdenticalMixin class
+# End IdenticalMixin class
 
 
-class QueryFindIdenticalTable(FindIdenticalMixin, AbstractElementGroupQuery):
+class IntermediateTableContextDeleteMixin(IntermediateTableContextMixin):
     """
-    Query Find Identical for Table
+    Intermediate Table Context Delete Mixin
     """
-    def __init__(self, element: 'Table', target: 'Table', fields: FIELDS,
-                 **kwargs) -> None:
+    @property
+    def delete(self) -> str:
         """
-        Initialize the QueryFindIdenticalTable class
+        Delete
         """
-        super().__init__(element, fields=fields)
-        self._target: 'Table' = target
+        # noinspection PyUnresolvedReferences
+        source = self.source
+        return f"""
+            DELETE FROM {source.escaped_name} 
+            WHERE {source.primary_key_field.name} IN (
+                SELECT {REPEAT_FID.name} 
+                FROM {self._intermediate_table})
+        """
+    # End delete property
+
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'del_ident'
+    # End _short_name property
+
+    def _prepare_source(self) -> None:
+        """
+        Source Preparation Steps
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        return ORIG_FID, REPEAT_FID
+    # End _intermediate_fields property
+# End IntermediateTableContextDeleteMixin class
+
+
+class BaseQueryIdenticalTable(IdenticalMixin, AbstractElementGroupQuery):
+    """
+    Base Query Identical for Table
+    """
+    def __init__(self, source: 'Table', fields: FIELDS, **kwargs) -> None:
+        """
+        Initialize the BaseQueryIdenticalTable class
+        """
+        super().__init__(source, fields=fields)
     # End init built-in
 
     @property
@@ -118,22 +162,44 @@ class QueryFindIdenticalTable(FindIdenticalMixin, AbstractElementGroupQuery):
         """
         return HasZM(has_z=False, has_m=False)
     # End has_zm property
+# End BaseQueryIdenticalTable class
+
+
+class QueryDeleteIdenticalTable(IntermediateTableContextDeleteMixin,
+                                BaseQueryIdenticalTable):
+    """
+    Query Delete Identical for Table
+    """
+# End QueryDeleteIdenticalTable class
+
+
+class QueryFindIdenticalTable(BaseQueryIdenticalTable):
+    """
+    Query Find Identical for Table
+    """
+    def __init__(self, source: 'Table', target: 'Table', fields: FIELDS,
+                 **kwargs) -> None:
+        """
+        Initialize the QueryFindIdenticalTable class
+        """
+        super().__init__(source, fields=fields)
+        self._target: 'Table' = target
+    # End init built-in
 # End QueryFindIdenticalTable class
 
 
-class QueryFindIdenticalFeatureClass(FindIdenticalMixin,
+class BaseQueryIdenticalFeatureClass(IdenticalMixin,
                                      AbstractFeatureClassGroupQuery):
     """
-    Query Find Identical for Feature Class
+    Base Query Identical for Feature Class
     """
-    def __init__(self, element: 'FeatureClass', target: 'Table', fields: FIELDS,
+    def __init__(self, source: 'FeatureClass', fields: FIELDS,
                  *, include_geometry: bool, xy_tolerance: XY_TOL,
                  z_tolerance: Z_TOL, m_tolerance: M_TOL) -> None:
         """
-        Initialize the QueryFindIdenticalFeatureClass class
+        Initialize the BaseQueryIdenticalFeatureClass class
         """
-        super().__init__(element, fields=fields, xy_tolerance=xy_tolerance)
-        self._target: 'Table' = target
+        super().__init__(source, fields=fields, xy_tolerance=xy_tolerance)
         self._include_geometry: bool = include_geometry
         self._z_tolerance: Z_TOL = z_tolerance
         self._m_tolerance: M_TOL = m_tolerance
@@ -170,6 +236,33 @@ class QueryFindIdenticalFeatureClass(FindIdenticalMixin,
         return self._make_select(
             elm, field_names=select_names, where_clause=where_clause)
     # End select property
+# End BaseQueryIdenticalFeatureClass class
+
+
+class QueryDeleteIdenticalFeatureClass(IntermediateTableContextDeleteMixin,
+                                       BaseQueryIdenticalFeatureClass):
+    """
+    Query Delete Identical for Feature Class
+    """
+# End QueryDeleteIdenticalFeatureClass class
+
+
+class QueryFindIdenticalFeatureClass(BaseQueryIdenticalFeatureClass):
+    """
+    Query Find Identical for Feature Class
+    """
+    def __init__(self, source: 'FeatureClass', target: 'Table', fields: FIELDS,
+                 *, include_geometry: bool, xy_tolerance: XY_TOL,
+                 z_tolerance: Z_TOL, m_tolerance: M_TOL) -> None:
+        """
+        Initialize the QueryFindIdenticalFeatureClass class
+        """
+        super().__init__(
+            source, fields=fields, include_geometry=include_geometry,
+            xy_tolerance=xy_tolerance, z_tolerance=z_tolerance,
+            m_tolerance=m_tolerance)
+        self._target: 'Table' = target
+    # End init built-in
 # End QueryFindIdenticalFeatureClass class
 
 
