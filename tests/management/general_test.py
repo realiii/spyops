@@ -5,9 +5,10 @@ Tests for General Data Management
 
 
 from fudgeo import FeatureClass, Table
+from pyproj import CRS
 from pytest import mark
 
-from spyops.environment import Setting
+from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.management import copy, delete, find_identical, rename
 from spyops.shared.field import ORIG_FID, REASON, REPEAT_FID
@@ -149,6 +150,37 @@ class TestFindIdentical:
         cursor = target.select([ORIG_FID, REPEAT_FID])
         assert cursor.fetchall() == expected
     # End test_2d method
+
+    @mark.parametrize('include, expected', [
+        (True, 0),
+        (False, 373),
+    ])
+    def test_multiple_columns(self, ntdb_zm_small, mem_gpkg, include, expected):
+        """
+        Test multiple fields
+        """
+        source = ntdb_zm_small['hydro_zm_a']
+        target = Table(mem_gpkg, name='repeats')
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        find_identical(source, target, fields=names, include_geometry=include)
+        assert len(target) == expected
+    # End test_multiple_columns method
+
+    @mark.parametrize('include, expected', [
+        (True, 0),
+        (False, 231),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, include, expected):
+        """
+        Test extent
+        """
+        source = ntdb_zm_small['hydro_zm_a']
+        target = Table(mem_gpkg, name='repeats')
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=CRS(4326))):
+            find_identical(source, target, fields=names, include_geometry=include)
+        assert len(target) == expected
+    # End test_extent method
 # End TestFindIdentical class
 
 
