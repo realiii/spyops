@@ -953,8 +953,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         Selection Query
         """
         elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {DRID}, {self._group_names}
             FROM (SELECT dense_rank() OVER (
@@ -971,8 +970,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT * 
             FROM (SELECT {geom}, dense_rank() OVER (
@@ -1070,8 +1068,7 @@ class QueryMinimumBoundingGeometryAll(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {geom} 
             FROM {elm.escaped_name} {index_where}
@@ -1167,8 +1164,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         #  the geometry dictionary, the second is used to store in ORIG_FID
         key_names = self._concatenate(name, name)
         field_names = self._concatenate(key_names, field_names)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {field_names} 
             FROM {elm.escaped_name} {index_where}
@@ -1182,8 +1178,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
         geom_and_fid = self._concatenate(geom, name)

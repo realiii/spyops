@@ -126,10 +126,9 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         if self._is_numeric_field:
             is_projected = self.source_crs.is_projected
             return is_projected, not is_projected
-        # NOTE this extent is not used, simply filling a required argument
         distance: Field
         null_clause = f'{distance.escaped_name} IS NOT NULL'
-        if index_where := self._spatial_index_where(elm, extent=(0, 0, 0, 0)):
+        if index_where := self._spatial_index_where(elm):
             where_clause = f'{index_where} AND {null_clause}'
         else:
             where_clause = f'WHERE {null_clause}'
@@ -451,8 +450,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
         Selection Query
         """
         elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {DRID}, {self._group_names}
             FROM (SELECT dense_rank() OVER (
@@ -469,8 +467,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         distance = self._build_distance_field()
         return f"""
             SELECT * 
@@ -567,8 +564,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         distance = self._build_distance_field()
         return f"""
             SELECT {geom}{distance} 
@@ -691,8 +687,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         #  the geometry dictionary, the second is used to store in ORIG_FID
         key_names = self._concatenate(name, name)
         field_names = self._concatenate(key_names, field_names)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {field_names} 
             FROM {elm.escaped_name} {index_where}
@@ -706,8 +701,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         distance = self._build_distance_field()
         # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
@@ -1078,8 +1072,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         #  the geometry dictionary, the second is used to store in ORIG_FID
         key_names = self._concatenate(name, name)
         field_names = self._concatenate(key_names, field_names)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {field_names} 
             FROM {elm.escaped_name} {index_where}
@@ -1093,8 +1086,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         distance = self._build_distance_field()
         return f"""
             SELECT {geom}{distance} 

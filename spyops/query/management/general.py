@@ -51,8 +51,7 @@ class FindIdenticalMixin:
         SQL for Groups with Repeats
         """
         elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         key = elm.primary_key_field.name
         return f"""
         SELECT {key}, {DRID}
