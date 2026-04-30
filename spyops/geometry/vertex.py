@@ -282,12 +282,12 @@ def _middle_with_measures(features: list[tuple], *, has_z: bool, srs_id: int,
 # End _middle_with_measures function
 
 
-def _interpolate_measures(geometries: 'ndarray') -> 'ndarray':
+def _interpolate_measures(geoms: 'ndarray') -> 'ndarray':
     """
     Interplate Measures
     """
     coordinates, indexes = get_coordinates(
-        geometries, include_m=True, return_index=True)
+        geoms, include_m=True, return_index=True)
     ids = find_slice_indexes(indexes)
     # NOTE the current behaviour when passing triplets is for a LineStringZ
     #  to be generated, in this case the Z values are measures

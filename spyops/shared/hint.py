@@ -24,8 +24,11 @@ DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
-XY_TOL: TypeAlias = float | int | None
-GRID_SIZE: TypeAlias = XY_TOL
+TOL: TypeAlias = float | int | None
+XY_TOL: TypeAlias = TOL
+Z_TOL: TypeAlias = TOL
+M_TOL: TypeAlias = TOL
+GRID_SIZE: TypeAlias = TOL
 
 ELEMENT: TypeAlias = Union['Table', 'FeatureClass']
 ELEMENTS: TypeAlias = list[ELEMENT] | tuple[ELEMENT, ...]

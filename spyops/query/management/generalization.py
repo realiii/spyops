@@ -119,8 +119,7 @@ class QueryDissolve(AbstractQueryDissolve):
         # noinspection PyTypeChecker
         dr_select_stats = make_field_names([s.field for s in self.statistics])
         dr_select_names = self._concatenate(dr_select_names, dr_select_stats)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {select_field_names}
             FROM (SELECT dense_rank() OVER (
@@ -137,8 +136,7 @@ class QueryDissolve(AbstractQueryDissolve):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT * 
             FROM (SELECT {geom}, dense_rank() OVER (

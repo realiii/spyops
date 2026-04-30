@@ -70,6 +70,8 @@ GROUP_OPTION: str = 'group_option'
 START_FIELD: str = 'start_field'
 END_FIELD: str = 'end_field'
 SORT_FIELDS: str = 'sort_fields'
+Z_TOLERANCE: str = 'z_tolerance'
+M_TOLERANCE: str = 'm_tolerance'
 
 
 if __name__ == '__main__':  # pragma: no cover

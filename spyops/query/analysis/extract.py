@@ -60,13 +60,12 @@ class SplitByAttributesMixin:
         Groups
         """
         elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT DISTINCT * 
             FROM (SELECT dense_rank() OVER (
                     ORDER BY {self._group_names}) AS {DRID}, {self._group_names} 
-            FROM {elm.escaped_name} {index_where})
+                  FROM {elm.escaped_name} {index_where})
         """
     # End groups property
 # End SplitByAttributesMixin class

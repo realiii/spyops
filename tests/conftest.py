@@ -58,6 +58,15 @@ def check_repair(data_path) -> Generator[GeoPackage, None, None]:
 
 
 @fixture(scope='session')
+def identical(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    Identical
+    """
+    yield from _open_geopackage(data_path.joinpath('identical.gpkg'))
+# End identical function
+
+
+@fixture(scope='session')
 def planar(data_path) -> Generator[GeoPackage, None, None]:
     """
     Planar

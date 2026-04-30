@@ -46,8 +46,7 @@ from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, ORIG_SEQ, POINT_M,
-    POINT_X, POINT_Y,
-    POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
+    POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
     get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE, XY_TOL)
@@ -903,14 +902,13 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
     # End grouped_geometries method
 
     def _process_geometries(self, ids: 'ndarray',
-                            geometries: Union['ndarray', list]) \
-            -> dict[int, tuple]:
+                            geoms: Union['ndarray', list]) -> dict[int, tuple]:
         """
         Process Geometries
         """
         bounder = self._bounding_function
         attributer = self._attribute_function
-        polygons = bounder(geometries)
+        polygons = bounder(geoms)
         if self.add_attributes:
             attributes = attributer(polygons)
             return {id_: (geom, attrs) for id_, geom, attrs in
@@ -955,8 +953,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         Selection Query
         """
         elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {DRID}, {self._group_names}
             FROM (SELECT dense_rank() OVER (
@@ -973,8 +970,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT * 
             FROM (SELECT {geom}, dense_rank() OVER (
@@ -1072,8 +1068,7 @@ class QueryMinimumBoundingGeometryAll(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {geom} 
             FROM {elm.escaped_name} {index_where}
@@ -1169,8 +1164,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         #  the geometry dictionary, the second is used to store in ORIG_FID
         key_names = self._concatenate(name, name)
         field_names = self._concatenate(key_names, field_names)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {field_names} 
             FROM {elm.escaped_name} {index_where}
@@ -1184,8 +1178,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
         geom_and_fid = self._concatenate(geom, name)

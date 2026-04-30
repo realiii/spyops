@@ -6,8 +6,12 @@ Test for Fields Query classes
 
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
+from pytest import mark
 
 from spyops.query.management.fields import QueryCalculateEndTime
+
+
+pytestmark = [mark.fields, mark.query, mark.management]
 
 
 class TestQueryCalculateEndTime:

@@ -16,7 +16,7 @@ from spyops.management.features import (
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
     calculate_field, delete_field)
-from spyops.management.general import copy, delete, rename
+from spyops.management.general import copy, delete, find_identical, rename
 from spyops.management.generalization import dissolve
 from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
@@ -67,6 +67,7 @@ __all__ = [
 
     'copy',
     'delete',
+    'find_identical',
     'rename',
 
     'dissolve',

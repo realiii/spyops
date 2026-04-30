@@ -8,7 +8,7 @@ from functools import wraps
 from typing import Any, Callable
 
 from spyops.environment import ANALYSIS_SETTINGS, Setting
-from spyops.shared.hint import XY_TOL
+from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
 from spyops.shared.util import safe_float
 from spyops.validation.base import AbstractValidate
 
@@ -60,8 +60,7 @@ class ValidateXYTolerance(AbstractValidate):
         kwargs[self._name] = obj
     # End _set_object method
 
-    @staticmethod
-    def _validate_value(function_xy: XY_TOL) -> XY_TOL:
+    def _validate_value(self, function_tol: XY_TOL) -> XY_TOL:
         """
         Validate Value and also compare with XY Setting
 
@@ -76,22 +75,48 @@ class ValidateXYTolerance(AbstractValidate):
 
         When a value provided is less than 0, it is treated as 0.
         """
-        settings_xy = ANALYSIS_SETTINGS.xy_tolerance
-        has_input = function_xy is not None
-        has_settings = settings_xy is not None
+        settings_tol = ANALYSIS_SETTINGS.xy_tolerance
+        has_input = function_tol is not None
+        has_settings = settings_tol is not None
         if not has_settings:
             if not has_input:
-                return function_xy
-            tolerance = function_xy
+                return function_tol
+            tolerance = function_tol
         else:
             if has_input:
-                tolerance = function_xy
+                tolerance = function_tol
             else:
-                tolerance = settings_xy
+                tolerance = settings_tol
         # noinspection PyTypeChecker
         return max(0, tolerance)
     # End _validate_value method
 # End ValidateXYTolerance class
+
+
+class ValidateTolerance(ValidateXYTolerance):
+    """
+    Validate Tolerance
+    """
+    def __init__(self, name: str) -> None:
+        """
+        Initialize the ValidateTolerance class
+
+        :param name: Name of the argument to validate
+        """
+        super().__init__(name)
+    # End init built-in
+
+    def _validate_value(self, function_tol: Z_TOL | M_TOL) -> Z_TOL | M_TOL:
+        """
+        Validate Value
+
+        When a value provided is less than 0, it is treated as 0.
+        """
+        if function_tol is None:
+            return function_tol
+        return max(0, function_tol)
+    # End _validate_value method
+# End ValidateTolerance class
 
 
 if __name__ == '__main__':  # pragma: no cover

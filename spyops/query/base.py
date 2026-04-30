@@ -195,7 +195,7 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
     # End _get_extent_polygon method
 
     def _spatial_index_where(self, element: FeatureClass,
-                             extent: EXTENT) -> str:
+                             extent: EXTENT = (0, 0, 0, 0)) -> str:
         """
         Make a where clause stub that can be used to select features which
         intersect an extent. The query is based on a spatial index (if present).
@@ -266,7 +266,8 @@ class GroupQueryMixin:
     Group Query Mixin
     """
     # noinspection PyUnusedLocal
-    def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
+    def _spatial_index_where(self, element: ELEMENT,
+                             extent: EXTENT = (0, 0, 0, 0)) -> str:
         """
         Make a where clause stub that can be used to select features which
         intersect an extent. The query is based on a spatial index (if present).
@@ -292,8 +293,7 @@ class GroupQueryMixin:
         """
         # noinspection PyUnresolvedReferences
         primary = element.primary_key_field.escaped_name
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(element, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(element)
         # noinspection PyUnresolvedReferences
         return f"""
             {primary} IN (SELECT {primary}
@@ -1111,7 +1111,7 @@ class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
         Group Count
         """
         elm = self.source
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         with elm.geopackage.connection as cin:
             cursor = cin.execute(f"""
                 SELECT COUNT(*) AS CNT 
