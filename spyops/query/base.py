@@ -586,17 +586,11 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
 # End AbstractSourceQuery class
 
 
-class AbstractSourceUpdateQuery(AbstractSourceQuery):
+# noinspection PyUnresolvedReferences
+class IntermediateTableContextMixin:
     """
-    Abstract Source Update Query
+    Intermediate Table Mixin
     """
-    def __init__(self, source: FeatureClass) -> None:
-        """
-        Initialize the AbstractSourceQuery class
-        """
-        super().__init__(source, target=source, xy_tolerance=None)
-    # End init built-in
-
     def __enter__(self) -> Self:
         """
         Context Manager Enter
@@ -614,32 +608,6 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         self._delete_intermediate()
         return False
     # End exit built-in
-
-    @property
-    @abstractmethod
-    def _short_name(self) -> str:
-        """
-        Short Name
-        """
-        pass
-    # End _short_name property
-
-    @abstractmethod
-    def _prepare_source(self) -> None:
-        """
-        Source Preparation Steps
-        """
-        pass
-    # End _prepare_source method
-
-    @property
-    @abstractmethod
-    def _intermediate_fields(self) -> FIELDS:
-        """
-        Intermediate Fields
-        """
-        pass
-    # End _intermediate_fields property
 
     def _delete_intermediate(self) -> None:
         """
@@ -670,6 +638,57 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         return escape_name(f'tmp_{self.source.name}_{self._short_name}_{now}')
     # End _intermediate_name property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        return self._make_insert(
+            self._intermediate_table,
+            field_names=make_field_names(self._intermediate_fields),
+            field_count=len(self._intermediate_fields))
+    # End insert property
+# End IntermediateTableContextMixin class
+
+
+class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
+                                AbstractSourceQuery):
+    """
+    Abstract Source Update Query
+    """
+    def __init__(self, source: FeatureClass) -> None:
+        """
+        Initialize the AbstractSourceQuery class
+        """
+        super().__init__(source, target=source, xy_tolerance=None)
+    # End init built-in
+
+    @property
+    @abstractmethod
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        pass
+    # End _short_name property
+
+    @abstractmethod
+    def _prepare_source(self) -> None:
+        """
+        Source Preparation Steps
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    @abstractmethod
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        pass
+    # End _intermediate_fields property
 
     @staticmethod
     def _make_update_from(element_name: str, key_name: str, field_names: NAMES,
@@ -720,17 +739,6 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         return self._make_select(
             self.source, field_names=select_names, where_clause=SQL_ALL_ID)
     # End select property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        return self._make_insert(
-            self._intermediate_table,
-            field_names=make_field_names(self._intermediate_fields),
-            field_count=len(self._intermediate_fields))
-    # End insert property
 
     @property
     def update(self) -> str:
