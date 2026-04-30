@@ -12,6 +12,7 @@ from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.geometry.compare import compare_feature_geometry
 from spyops.query.management.general import (
+    QueryDeleteIdenticalFeatureClass, QueryDeleteIdenticalTable,
     QueryFindIdenticalFeatureClass, QueryFindIdenticalTable)
 from spyops.shared.keywords import FIELDS_ARG, M_TOLERANCE, SOURCE, Z_TOLERANCE
 from spyops.shared.element import copy_element
@@ -23,7 +24,7 @@ from spyops.validation import (
     validate_target_element, validate_tolerance, validate_xy_tolerance)
 
 
-__all__ = ['copy', 'delete', 'rename', 'find_identical']
+__all__ = ['copy', 'delete', 'rename', 'find_identical', 'delete_identical']
 
 
 @validate_result()
@@ -114,12 +115,11 @@ def find_identical(source: ELEMENT, target: Table,
     records = []
     insert = query.insert
     select = query.select
-    repeats = query.repeats
     has_z, has_m = query.has_zm
     groups = defaultdict(list)
     with (query.source.geopackage.connection as cin,
           query.target.geopackage.connection as cout):
-        cursor = cin.execute(repeats)
+        cursor = cin.execute(query.repeats)
         data = cursor.fetchall()
         for fid, group_id in data:
             groups[group_id].append(fid)
@@ -141,6 +141,61 @@ def find_identical(source: ELEMENT, target: Table,
         records.clear()
     return query.target
 # End find_identical function
+
+
+@validate_result()
+@validate_source_element()
+@validate_field(FIELDS_ARG, element_name=SOURCE)
+@validate_xy_tolerance()
+@validate_tolerance(Z_TOLERANCE)
+@validate_tolerance(M_TOLERANCE)
+def delete_identical(source: ELEMENT, fields: FIELDS | FIELD_NAMES,
+                     include_geometry: bool = False, *,
+                     xy_tolerance: XY_TOL = None, z_tolerance: Z_TOL = None,
+                     m_tolerance: M_TOL = None) -> ELEMENT:
+    """
+    Delete Identical
+
+    Delete Identical rows / features in a Table / Feature Class based on
+    selected field names. Use XY, Z, and M tolerances to find geometries that
+    are not quite but almost identical.
+    """
+    records = []
+    groups = defaultdict(list)
+    if isinstance(source, Table):
+        cls = QueryDeleteIdenticalTable
+    else:
+        cls = QueryDeleteIdenticalFeatureClass
+    kwargs = dict(
+        source=source, fields=fields, include_geometry=include_geometry,
+        xy_tolerance=xy_tolerance, z_tolerance=z_tolerance,
+        m_tolerance=m_tolerance)
+    with cls(**kwargs) as query:
+        select = query.select
+        has_z, has_m = query.has_zm
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.repeats)
+            data = cursor.fetchall()
+            for fid, group_id in data:
+                groups[group_id].append(fid)
+            if select:
+                for group_id in groups:
+                    cursor = cin.execute(select, (group_id,))
+                    features = cursor.fetchall()
+                    results = compare_feature_geometry(
+                        features, has_z=has_z, has_m=has_m,
+                        xy_tolerance=xy_tolerance, z_tolerance=z_tolerance,
+                        m_tolerance=m_tolerance)
+                    records.extend(results)
+            else:
+                for values in groups.values():
+                    first, *others = values
+                    records.extend([(first, other) for other in others])
+            cin.executemany(query.insert, records)
+            records.clear()
+            cin.execute(query.delete)
+    return query.source
+# End delete_identical function
 
 
 if __name__ == '__main__':  # pragma: no cover

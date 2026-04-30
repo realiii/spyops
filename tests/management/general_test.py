@@ -10,7 +10,9 @@ from pytest import mark
 
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
-from spyops.management import copy, delete, find_identical, rename
+from spyops.management import (
+    copy, delete, delete_identical, find_identical,
+    rename)
 from spyops.shared.field import ORIG_FID, REASON, REPEAT_FID
 
 pytestmark = [mark.management, mark.general]
@@ -182,6 +184,69 @@ class TestFindIdentical:
         assert len(target) == expected
     # End test_extent method
 # End TestFindIdentical class
+
+
+class TestDeleteIdentical:
+    """
+    Test Delete Identical
+    """
+    @mark.parametrize('fc_name, include, pre_count, post_count', [
+        ('point_p', True, 20, 10),
+        ('point_p', False, 20, 2),
+        ('multipoint_mp', True, 38, 9),
+        ('multipoint_mp', False, 38, 9),
+        ('linestring_l', True, 55, 20),
+        ('linestring_l', False, 55, 12),
+        ('multilinestring_ml', True, 54, 19),
+        ('multilinestring_ml', False, 54, 10),
+        ('polygon_a', True, 30, 21),
+        ('polygon_a', False, 30, 11),
+        ('multipolygon_ma', True, 36, 25),
+        ('multipolygon_ma', False, 36, 15),
+    ])
+    def test_2d(self, identical, mem_gpkg, fc_name, include, pre_count, post_count):
+        """
+        Test delete identical
+        """
+        source = identical[fc_name].copy(fc_name, geopackage=mem_gpkg)
+        assert len(source) == pre_count
+        delete_identical(source, fields=[REASON], include_geometry=include)
+        assert len(source) == post_count
+    # End test_2d method
+
+    @mark.parametrize('include, count', [
+        (True, 382),
+        (False, 9),
+    ])
+    def test_multiple_columns(self, ntdb_zm_small, mem_gpkg, include, count):
+        """
+        Test multiple fields
+        """
+        name = 'hydro_zm_a'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        assert len(source) == 382
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        delete_identical(source, fields=names, include_geometry=include)
+        assert len(source) == count
+    # End test_multiple_columns method
+
+    @mark.parametrize('include, count', [
+        (True, 382),
+        (False, 151),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, include, count):
+        """
+        Test extent
+        """
+        name = 'hydro_zm_a'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        assert len(source) == 382
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=CRS(4326))):
+            delete_identical(source, fields=names, include_geometry=include)
+        assert len(source) == count
+    # End test_extent method
+# End TestDeleteIdentical class
 
 
 if __name__ == '__main__':  # pragma: no cover
