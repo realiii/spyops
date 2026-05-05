@@ -28,6 +28,7 @@ MIT
 - [Analysis - Extract](https://github.com/realiii/spyops/wiki/Analysis#extract)
 - [Analysis - Overlay](https://github.com/realiii/spyops/wiki/Analysis#overlay)
 - [Analysis - Proximity](https://github.com/realiii/spyops/wiki/Analysis#proximity)
+- [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage) (v0.2.0)
 - [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
 - [Management - Feature Class](https://github.com/realiii/spyops/wiki/Data-Management#feature-class)
 - [Management - Fields](https://github.com/realiii/spyops/wiki/Data-Management#fields)
@@ -47,6 +48,7 @@ MIT
 - added `calculate_end_time` (Management - Fields)
 - added `delete_identical` (Management - General)
 - added `find_identical` (Management - General)
+- added `table_to_geopackage` (Conversion - GeoPackage)
 
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 
