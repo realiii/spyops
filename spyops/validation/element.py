@@ -93,12 +93,16 @@ class ValidateElements(ValidateElement):
         return obj
     # End _get_object method
 
-    def _validate_exists(self, obj: Any) -> None:
+    def _validate_exists(self, obj: Any) -> bool:
         """
         Validate Exists
         """
+        exists = []
         for o in obj:
-            super()._validate_exists(o)
+            if super()._validate_exists(o):
+                exists.append(o)
+        obj[:] = exists
+        return bool(exists)
     # End _validate_exists method
 
     def _validate_type(self, obj: Any) -> None:
