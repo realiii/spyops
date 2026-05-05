@@ -3,11 +3,12 @@
 Package Initialization
 """
 
-
-from spyops.conversion.geopackage import table_to_geopackage
+from spyops.conversion.geopackage import (
+    feature_class_to_geopackage, table_to_geopackage)
 
 
 __all__ = [
+    'feature_class_to_geopackage',
     'table_to_geopackage',
 ]
 
