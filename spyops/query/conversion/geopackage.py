@@ -4,6 +4,8 @@ Query Classes for conversion.geopackage module
 """
 
 
+from functools import cached_property
+
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import BaseQuerySelect
 from spyops.shared.element import copy_element
@@ -40,8 +42,24 @@ class QueryTableToGeoPackage(BaseQuerySelect):
         """
         Copy
         """
-        return copy_element(source=self._element, target=self.target)
+        return self.target
     # End copy method
+
+    @property
+    def target(self) -> ELEMENT:
+        """
+        Alias for Target Empty
+        """
+        return self.target_full
+    # End target property
+
+    @cached_property
+    def target_full(self) -> ELEMENT:
+        """
+        Full Copy of the Source Feature Class
+        """
+        return copy_element(source=self.source, target=self._target)
+    # End target_full property
 # End QueryTableToGeoPackage class
 
 
