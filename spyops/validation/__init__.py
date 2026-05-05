@@ -14,7 +14,7 @@ from spyops.validation.crs import (
     ValidateCoordinateSystem, ValidateTransform)
 from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
-    ValidateOverwriteInput, ValidateTable)
+    ValidateFeatureClasses, ValidateOverwriteInput, ValidateTable)
 from spyops.validation.enumish import (
     ValidateDissolveOption, ValidateGeometryGroupOption, ValidateGroupOption,
     ValidateIntFlagEnumeration,
@@ -36,6 +36,7 @@ validate_distance = ValidateDistance
 validate_element = ValidateElement
 validate_elements = ValidateElements
 validate_feature_class = ValidateFeatureClass
+validate_feature_classes = ValidateFeatureClasses
 validate_field = ValidateField
 validate_geometry_attribute = ValidateGeometryAttribute
 validate_geometry_dimension = ValidateGeometryDimension

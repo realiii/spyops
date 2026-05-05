@@ -32,6 +32,7 @@ GRID_SIZE: TypeAlias = TOL
 
 ELEMENT: TypeAlias = Union['Table', 'FeatureClass']
 ELEMENTS: TypeAlias = list[ELEMENT] | tuple[ELEMENT, ...]
+FEATURE_CLASSES: TypeAlias = list['FeatureClass'] | tuple['FeatureClass', ...]
 EXTENT: TypeAlias = tuple[float, float, float, float]
 FIELD_NAMES: TypeAlias = NAMES
 FIELDS: TypeAlias = list['Field'] | tuple['Field', ...]
