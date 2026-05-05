@@ -198,6 +198,50 @@ class ValidateFeatureClass(ValidateContent):
 # End ValidateFeatureClass class
 
 
+class ValidateFeatureClasses(ValidateFeatureClass):
+    """
+    Validate Feature Classes
+    """
+    def _get_object(self, kwargs: dict[str, Any]) -> Any:
+        """
+        Get Object from kwargs and optionally perform some checks
+        """
+        obj = []
+        for o in self._make_iterable(super()._get_object(kwargs)):
+            obj.append(self._check_element(o))
+        return obj
+    # End _get_object method
+
+    def _validate_exists(self, obj: Any) -> bool:
+        """
+        Validate Exists
+        """
+        exists = []
+        for o in obj:
+            if super()._validate_exists(o):
+                exists.append(o)
+        obj[:] = exists
+        return bool(exists)
+    # End _validate_exists method
+
+    def _validate_type(self, obj: Any) -> None:
+        """
+        Validate Type
+        """
+        for o in obj:
+            super()._validate_type(o)
+    # End _validate_type method
+
+    def _validation(self, obj: Any) -> None:
+        """
+        Validation
+        """
+        for o in obj:
+            super()._validation(o)
+    # End _validation method
+# End ValidateFeatureClasses class
+
+
 class ValidateOverwriteInput(AbstractValidate):
     """
     Validate Overwrite Input, use in conjunction with validate_element,
