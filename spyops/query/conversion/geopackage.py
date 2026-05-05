@@ -4,7 +4,7 @@ Query Classes for conversion.geopackage module
 """
 
 
-from functools import cached_property
+from typing import TYPE_CHECKING
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import BaseQuerySelect
@@ -13,13 +13,17 @@ from spyops.shared.hint import ELEMENT, GPKG
 from spyops.shared.util import element_names, make_unique_name
 
 
-class QueryTableToGeoPackage(BaseQuerySelect):
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
+
+
+class BaseQueryElementToGeoPackage(BaseQuerySelect):
     """
-    Query Table to GeoPackage
+    Base Query Element to GeoPackage
     """
     def __init__(self, element: ELEMENT, geopackage: GPKG) -> None:
         """
-        Initialize the QueryTableToGeoPackage class
+        Initialize the BaseQueryElementToGeoPackage class
         """
         target = self._make_target(element, geopackage)
         super().__init__(source=element, target=target)
@@ -37,29 +41,26 @@ class QueryTableToGeoPackage(BaseQuerySelect):
             name = make_unique_name(element.name, names)
             return element.__class__(geopackage=geopackage, name=name)
     # End _make_target method
+# End BaseQueryElementToGeoPackage class
+
+
+class QueryTableToGeoPackage(BaseQueryElementToGeoPackage):
+    """
+    Query Table to GeoPackage
+    """
+    def __init__(self, element: ELEMENT, geopackage: GPKG) -> None:
+        """
+        Initialize the QueryTableToGeoPackage class
+        """
+        super().__init__(element, geopackage=geopackage)
+    # End init built-in
 
     def copy(self) -> ELEMENT:
         """
         Copy
         """
-        return self.target
-    # End copy method
-
-    @property
-    def target(self) -> ELEMENT:
-        """
-        Alias for Target Empty
-        """
-        return self.target_full
-    # End target property
-
-    @cached_property
-    def target_full(self) -> ELEMENT:
-        """
-        Full Copy of the Source Feature Class
-        """
         return copy_element(source=self.source, target=self._target)
-    # End target_full property
+    # End copy method
 # End QueryTableToGeoPackage class
 
 
