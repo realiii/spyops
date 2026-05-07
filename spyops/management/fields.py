@@ -18,7 +18,7 @@ from spyops.shared.field import (
     GNSS_POLY_LINE_FIELDS, GNSS_POSITION_SOURCE_TYPE_FIELD,
     GNSS_WORST_FIX_TYPE_FIELD)
 from spyops.shared.keywords import (
-    ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, SORT_FIELDS,
+    ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, SORT_FIELDS_ARG,
     SOURCE, START_FIELD)
 from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
@@ -198,7 +198,7 @@ def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
 @validate_field(START_FIELD, single=True, element_name=SOURCE)
 @validate_field(END_FIELD, single=True, element_name=SOURCE)
 @validate_compatible_fields(START_FIELD, END_FIELD)
-@validate_field(SORT_FIELDS, element_name=SOURCE, is_optional=True)
+@validate_field(SORT_FIELDS_ARG, element_name=SOURCE, is_optional=True)
 def calculate_end_time(source: ELEMENT, *,
                        start_field: Field | str, end_field: Field | str,
                        sort_fields: FIELDS | FIELD_NAMES = ()) -> ELEMENT:
