@@ -8,10 +8,8 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING
 
-from fudgeo.constant import COMMA_SPACE
-
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.query.base import BaseQuerySelect
+from spyops.query.base import BaseQuerySelect, BaseQuerySelectOrderBy
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, GPKG, SORT_FIELDS
 from spyops.shared.records import select_and_transform_features
@@ -99,7 +97,7 @@ class QueryFeatureClassToGeoPackage(AbstractQueryElementToGeoPackage):
 # End QueryFeatureClassToGeoPackage class
 
 
-class QueryExportTable(BaseQuerySelect):
+class QueryExportTable(BaseQuerySelectOrderBy):
     """
     Query Export Table
     """
@@ -110,21 +108,9 @@ class QueryExportTable(BaseQuerySelect):
         """
         # noinspection PyTypeChecker
         super().__init__(
-            source=source, target=target, where_clause=where_clause)
-        self._sort_fields: SORT_FIELDS = sort_fields
+            source=source, target=target, where_clause=where_clause,
+            sort_fields=sort_fields)
     # End init built-in
-
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        sql = super().select
-        if not self._sort_fields:
-            return sql
-        fields = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
-        return f'{sql} ORDER BY {fields}'
-    # End select property
 
     @property
     def target(self) -> 'Table':
@@ -144,6 +130,22 @@ class QueryExportTable(BaseQuerySelect):
             self.source, target=self._target, where_clause=SQL_NO_ID)
     # End target_empty property
 # End QueryExportTable class
+
+
+class QueryExportFeatures(BaseQuerySelectOrderBy):
+    """
+    Query Export Features
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 where_clause: str, sort_fields: SORT_FIELDS) -> None:
+        """
+        Initialize the QueryExportFeatures class
+        """
+        super().__init__(
+            source=source, target=target, where_clause=where_clause,
+            sort_fields=sort_fields)
+    # End init built-in
+# End QueryExportFeatures class
 
 
 if __name__ == '__main__':  # pragma: no cover

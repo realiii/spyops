@@ -16,8 +16,10 @@ from shapely.geometry.base import BaseMultipartGeometry
 from spyops.environment import Extent
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.config import GeometryConfig
+from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
 
 
 class AbstractElementQuery(metaclass=ABCMeta):
@@ -212,12 +214,25 @@ class BaseQuerySelect(AbstractSourceQuery):
 
     _where_clause: str
 
-    def __init__(self, source: FeatureClass, target: FeatureClass | Table,
-                 where_clause: str = ..., xy_tolerance: XY_TOL = ...) -> None: ...
+    def __init__(self, source: FeatureClass, target: ELEMENT,
+                 where_clause: str = EMPTY, xy_tolerance: XY_TOL = None) -> None: ...
     @property
     def select(self) -> str: ...
     @property
     def insert(self) -> str: ...
+
+
+class BaseQuerySelectOrderBy(BaseQuerySelect):
+    """
+    Base Query Select Order By
+    """
+    _sort_fields: SORT_FIELDS
+
+    def __init__(self, source: FeatureClass, target: ELEMENT,
+                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = None,
+                 xy_tolerance: XY_TOL = None) -> None: ...
+    @property
+    def select(self) -> str: ...
 
 
 class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
