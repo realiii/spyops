@@ -20,7 +20,7 @@ from spyops.shared.keywords import SORT_FIELDS_ARG, SOURCE
 from spyops.validation import (
     validate_elements, validate_feature_classes, validate_geopackage,
     validate_overwrite_source, validate_result, validate_sort_field,
-    validate_table, validate_target_table)
+    validate_source_feature_class, validate_source_table, validate_target_table)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -71,7 +71,7 @@ def feature_class_to_geopackage(source: FEATURE_CLASSES,
 
 
 @validate_result()
-@validate_table(SOURCE)
+@validate_source_table()
 @validate_target_table()
 @validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE, is_optional=True)
 @validate_overwrite_source()

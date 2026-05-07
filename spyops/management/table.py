@@ -13,7 +13,7 @@ from spyops.shared.hint import ELEMENT, FIELDS, GPKG
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_element, validate_geopackage, validate_overwrite_source,
-    validate_result, validate_table, validate_target_table)
+    validate_result, validate_source_table, validate_target_table)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -66,7 +66,7 @@ def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
 
 
 @validate_result()
-@validate_table(SOURCE)
+@validate_source_table()
 @validate_target_table()
 @validate_overwrite_source()
 def copy_rows(source: 'Table', target: 'Table', *,

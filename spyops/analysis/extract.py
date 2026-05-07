@@ -21,8 +21,8 @@ from spyops.validation import (
     validate_element, validate_feature_class, validate_field,
     validate_geometry_dimension, validate_geopackage,
     validate_operator_feature_class, validate_overwrite_input,
-    validate_overwrite_source, validate_result, validate_supported_crs,
-    validate_source_feature_class, validate_table,
+    validate_overwrite_source, validate_result, validate_source_table,
+    validate_supported_crs, validate_source_feature_class,
     validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
@@ -35,7 +35,7 @@ __all__ = ['table_select', 'select', 'extract_rows', 'extract_features',
 
 
 @validate_result()
-@validate_table(SOURCE)
+@validate_source_table()
 @validate_target_table()
 @validate_overwrite_source()
 def table_select(source: 'Table', target: 'Table', *,

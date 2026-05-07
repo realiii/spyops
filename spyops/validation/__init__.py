@@ -67,6 +67,7 @@ validate_source_feature_class = partial(validate_feature_class, name=SOURCE)
 validate_source_element = partial(validate_element, name=SOURCE)
 validate_source_numeric_field = partial(
     validate_field, single=True, element_name=SOURCE, data_types=NUMBERS)
+validate_source_table = partial(validate_table, name=SOURCE)
 validate_target_element = partial(
     validate_element, name=TARGET, exists=False, is_output=True)
 validate_target_feature_class = partial(
