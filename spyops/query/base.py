@@ -35,7 +35,8 @@ from spyops.shared.exception import BadExtentWarning
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
 from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID, TEMP_SCHEMA
 from spyops.shared.util import make_unique_name
 
@@ -1084,6 +1085,35 @@ class BaseQuerySelect(AbstractSourceQuery):
             field_count=field_count)
     # End insert property
 # End BaseQuerySelect class
+
+
+class BaseQuerySelectOrderBy(BaseQuerySelect):
+    """
+    Base Query Select Order By
+    """
+    def __init__(self, source: FeatureClass, target: ELEMENT,
+                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = None,
+                 xy_tolerance: XY_TOL = None) -> None:
+        """
+        Initialize the BaseQuerySelectOrderBy class
+        """
+        super().__init__(source, target=target, where_clause=where_clause,
+                         xy_tolerance=xy_tolerance)
+        self._sort_fields: SORT_FIELDS = sort_fields
+    # End init built-in
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        sql = super().select
+        if not self._sort_fields:
+            return sql
+        fields = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {fields}'
+    # End select property
+# End BaseQuerySelectOrderBy class
 
 
 class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
