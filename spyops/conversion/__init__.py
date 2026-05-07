@@ -5,11 +5,13 @@ Package Initialization
 
 
 from spyops.conversion.geopackage import (
-    export_table, feature_class_to_geopackage, table_to_geopackage)
+    export_features, export_table, feature_class_to_geopackage,
+    table_to_geopackage)
 from spyops.shared.sort import Ascending, Descending
 
 
 __all__ = [
+    'export_features',
     'export_table',
     'feature_class_to_geopackage',
     'table_to_geopackage',

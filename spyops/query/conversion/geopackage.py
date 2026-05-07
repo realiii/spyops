@@ -132,5 +132,21 @@ class QueryExportTable(BaseQuerySelectOrderBy):
 # End QueryExportTable class
 
 
+class QueryExportFeatures(BaseQuerySelectOrderBy):
+    """
+    Query Export Features
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 where_clause: str, sort_fields: SORT_FIELDS) -> None:
+        """
+        Initialize the QueryExportFeatures class
+        """
+        super().__init__(
+            source=source, target=target, where_clause=where_clause,
+            sort_fields=sort_fields)
+    # End init built-in
+# End QueryExportFeatures class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
