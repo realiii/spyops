@@ -17,6 +17,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry import (
         LineString as ShapelyLineString, MultiLineString, MultiPoint,
         MultiPolygon, Point as ShapelyPoint, Polygon)
+    from spyops.shared.sort import AbstractSortField
     from spyops.shared.stats import AbstractStatisticField
 
 
@@ -37,6 +38,7 @@ EXTENT: TypeAlias = tuple[float, float, float, float]
 FIELD_NAMES: TypeAlias = NAMES
 FIELDS: TypeAlias = list['Field'] | tuple['Field', ...]
 STATS_FIELDS: TypeAlias = list['AbstractStatisticField'] | tuple['AbstractStatisticField', ...]
+SORT_FIELDS: TypeAlias = list['AbstractSortField'] | tuple['AbstractSortField', ...]
 GPKG: TypeAlias = Union['GeoPackage', 'MemoryGeoPackage']
 
 

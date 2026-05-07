@@ -4,20 +4,30 @@ To GeoPackage
 """
 
 
+from typing import TYPE_CHECKING
+
 from fudgeo import FeatureClass
+from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
 
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.query.conversion.geopackage import (
-    QueryFeatureClassToGeoPackage, QueryTableToGeoPackage)
-from spyops.shared.hint import ELEMENT, ELEMENTS, FEATURE_CLASSES, GPKG
-from spyops.shared.keywords import SOURCE
+    QueryExportTable, QueryFeatureClassToGeoPackage, QueryTableToGeoPackage)
+from spyops.shared.hint import (
+    ELEMENT, ELEMENTS, FEATURE_CLASSES, GPKG, SORT_FIELDS)
+from spyops.shared.keywords import SORT_FIELDS_ARG, SOURCE
 from spyops.validation import (
     validate_elements, validate_feature_classes, validate_geopackage,
-    validate_result)
+    validate_overwrite_source, validate_result, validate_sort_field,
+    validate_table, validate_target_table)
 
 
-__all__ = ['table_to_geopackage', 'feature_class_to_geopackage']
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import Table
+
+
+__all__ = ['table_to_geopackage', 'feature_class_to_geopackage', 'export_table']
 
 
 @validate_result()
@@ -58,6 +68,35 @@ def feature_class_to_geopackage(source: FEATURE_CLASSES,
         results.append(query.copy())
     return results
 # End feature_class_to_geopackage function
+
+
+@validate_result()
+@validate_table(SOURCE)
+@validate_target_table()
+@validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE, is_optional=True)
+@validate_overwrite_source()
+def export_table(source: 'Table', target: 'Table', *, where_clause: str = '',
+                 sort_fields: SORT_FIELDS | None = None) -> 'Table':
+    """
+    Export Table
+
+    Export rows from a table to a new table optionally using a where clause
+    and sorting the rows.
+    """
+    # noinspection PyTypeChecker
+    query = QueryExportTable(
+        source, target=target, where_clause=where_clause,
+        sort_fields=sort_fields)
+    query_select = query.select
+    query_insert = query.insert
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query_select)
+        while rows := cursor.fetchmany(FETCH_SIZE):
+            executor(query_insert, rows)
+    return query.target
+# End export_table function
 
 
 if __name__ == '__main__':  # pragma: no cover

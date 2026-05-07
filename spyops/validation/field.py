@@ -21,6 +21,7 @@ from spyops.shared.field import (
     COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, get_data_type,
     validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
+from spyops.shared.sort import AbstractSortField
 from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
@@ -292,41 +293,49 @@ class ValidateStatisticField(ValidateField):
 
     def _find_field(self, obj: Any, element: ELEMENT) -> Any:
         """
-        Find Fields and set them onto the statistics objects
+        Find Fields and set them onto the objects
         """
         obj = self._make_iterable(obj)
         fields = {}
-        for stat in obj:
-            field = stat.field
+        for o in obj:
+            field = o.field
             if not isinstance(field, (Field, str)):
                 continue
             # noinspection PyUnresolvedReferences
             fields[getattr(field, NAME_ATTR, field).casefold()] = field
         fields = super()._find_field(list(fields.values()), element=element)
         fields = {field.name.casefold(): field for field in fields}
-        for stat in obj:
-            field = stat.field
+        for o in obj:
+            field = o.field
             # noinspection PyUnresolvedReferences
-            stat.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
-        return [stat for stat in obj if stat.field]
+            o.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
+        return [o for o in obj if o.field]
     # End _find_field method
 
     def _validate_data_type(self, obj: Any) -> None:
         """
         Validate Data Type
         """
-        for stat in obj:
-            stat.validate()
+        for o in obj:
+            o.validate()
     # End _validate_data_type method
 
     def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
         """
         Validate Exists
         """
-        obj = [stat.field for stat in obj if stat.field]
+        obj = [o.field for o in obj if o.field]
         super()._validate_exists(obj, element=element)
     # End _validate_exists method
 # End ValidateStatisticField class
+
+
+class ValidateSortField(ValidateStatisticField):
+    """
+    Validate Sort Field
+    """
+    _types: ClassVar[tuple[type, ...]] = AbstractSortField,
+# End ValidateSortField class
 
 
 class ValidateGeometryDimension(AbstractValidate):

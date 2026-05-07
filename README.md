@@ -48,6 +48,7 @@ MIT
 - added `calculate_end_time` (Management - Fields)
 - added `delete_identical` (Management - General)
 - added `find_identical` (Management - General)
+- added `export_table` (Conversion - GeoPackage)
 - added `feature_class_to_geopackage` (Conversion - GeoPackage)
 - added `table_to_geopackage` (Conversion - GeoPackage)
 
