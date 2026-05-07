@@ -21,6 +21,7 @@ from spyops.shared.field import (
     COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, get_data_type,
     validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
+from spyops.shared.sort import AbstractSortField
 from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
@@ -327,6 +328,14 @@ class ValidateStatisticField(ValidateField):
         super()._validate_exists(obj, element=element)
     # End _validate_exists method
 # End ValidateStatisticField class
+
+
+class ValidateSortField(ValidateStatisticField):
+    """
+    Validate Sort Field
+    """
+    _types: ClassVar[tuple[type, ...]] = AbstractSortField,
+# End ValidateSortField class
 
 
 class ValidateGeometryDimension(AbstractValidate):

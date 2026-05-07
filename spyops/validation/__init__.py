@@ -22,7 +22,7 @@ from spyops.validation.enumish import (
     ValidateOutputType)
 from spyops.validation.field import (
     ValidateCompatibleFields, ValidateDistance, ValidateField,
-    ValidateGeometryDimension, ValidateStatisticField)
+    ValidateGeometryDimension, ValidateSortField, ValidateStatisticField)
 from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
 from spyops.validation.setting import ValidateTolerance, ValidateXYTolerance
@@ -49,6 +49,7 @@ validate_overwrite_input = ValidateOverwriteInput
 validate_range = ValidateRange
 validate_result = ValidateResult
 validate_side_option = ValidateSideOption
+validate_sort_field = ValidateSortField
 validate_statistic_field = ValidateStatisticField
 validate_str_enumeration = ValidateStrEnumeration
 validate_supported_crs = ValidateSupportedCRS

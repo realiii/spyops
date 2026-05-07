@@ -10,11 +10,12 @@ from fudgeo.enumeration import FieldType
 
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
+from spyops.shared.sort import Ascending, Descending
 from spyops.shared.stats import Average, First
 from spyops.validation import (
     validate_compatible_fields, validate_distance, validate_feature_class,
-    validate_field,
-    validate_statistic_field, validate_table)
+    validate_field, validate_sort_field, validate_statistic_field,
+    validate_table)
 
 
 pytestmark = [mark.validation]
@@ -199,6 +200,37 @@ def test_validate_statistic_field(world_tables, stats, expected, throws):
         assert all(isinstance(s.field, Field) for s in result)
         assert tuple(result) == tuple(expected)
 # End test_validate_statistic_field function
+
+
+@mark.parametrize('stats, expected, throws', [
+    (Ascending('PART_ID'), None, True),
+    (Ascending('ISO_CODE'), [Ascending(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    (Ascending('LAND_RANK'), [Ascending(Field('LAND_RANK', data_type='SMALLINT'))], False),
+    (Descending('ISO_CODE'), [Descending(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    (Descending(Field('ISO_CODE', data_type='TEXT')), [Descending(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    ([Descending(Field('ISO_CODE', data_type='TEXT'))], [Descending(Field('ISO_CODE', data_type='TEXT(10)'))], False),
+    (Field('ISO_CODE', data_type='TEXT'), None, True),
+    (None, [], False),
+    ([None], [], False),
+    ((), [], False),
+])
+def test_validate_sort_field(world_tables, stats, expected, throws):
+    """
+    Test validate sort field
+    """
+    @validate_table('table')
+    @validate_sort_field('sort_fields', element_name='table')
+    def stat_function(table, sort_fields):
+        return sort_fields
+    tbl = world_tables['admin']
+    if throws:
+        with raises((ValueError, TypeError)):
+            stat_function(tbl, stats)
+    else:
+        result = stat_function(tbl, stats)
+        assert all(isinstance(s.field, Field) for s in result)
+        assert tuple(result) == tuple(expected)
+# End test_validate_sort_field function
 
 
 @mark.parametrize('fc_name, value, expected, throws', [

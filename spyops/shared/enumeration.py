@@ -241,6 +241,15 @@ class Statistic(StrEnum):
 # End Statistic class
 
 
+class SortOrder(StrEnum):
+    """
+    Sort Order
+    """
+    ASCENDING = auto()
+    DESCENDING = auto()
+# End SortOrder class
+
+
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
     GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |
