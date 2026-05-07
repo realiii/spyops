@@ -4,12 +4,15 @@ Tests for Geopackage Conversion Classes
 """
 
 
+from fudgeo import Field
 from pytest import mark
 
 from spyops.environment import Setting
 from spyops.environment.context import Swap
-from spyops.query.conversion.geopackage import QueryTableToGeoPackage
-
+from spyops.query.conversion.geopackage import (
+    QueryExportTable,
+    QueryTableToGeoPackage)
+from spyops.shared.sort import Ascending
 
 pytestmark = [mark.conversion, mark.geopackage, mark.query]
 
@@ -32,6 +35,26 @@ class TestQueryTableToGeoPackage:
             assert target.name == expected
     # End test_make_target method
 # End TestQueryTableToGeoPackage class
+
+
+class TestQueryExportTable:
+    """
+    Test Query Export Table
+    """
+    def test_sort_fields(self, world_tables):
+        """
+        Test sort fields
+        """
+        source = world_tables['admin']
+        query = QueryExportTable(
+            source, target=None, where_clause='', sort_fields=[])
+        assert 'ORDER BY' not in query.select
+        query = QueryExportTable(
+            source, target=None, where_clause='',
+            sort_fields=[Ascending(Field('ISO_CODE', data_type='TEXT(10)'))])
+        assert 'ORDER BY ISO_CODE ASC' in query.select
+    # End test_sort_fields method
+# End TestQueryExportTable class
 
 
 if __name__ == '__main__':  # pragma: no cover

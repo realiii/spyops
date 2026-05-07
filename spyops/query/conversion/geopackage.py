@@ -5,18 +5,22 @@ Query Classes for conversion.geopackage module
 
 
 from abc import ABCMeta, abstractmethod
+from functools import cached_property
 from typing import TYPE_CHECKING
+
+from fudgeo.constant import COMMA_SPACE
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import BaseQuerySelect
 from spyops.shared.element import copy_element
-from spyops.shared.hint import ELEMENT, GPKG
+from spyops.shared.hint import ELEMENT, GPKG, SORT_FIELDS
 from spyops.shared.records import select_and_transform_features
+from spyops.shared.sql import SQL_NO_ID
 from spyops.shared.util import element_names, make_unique_name
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, Table
 
 
 class AbstractQueryElementToGeoPackage(BaseQuerySelect, metaclass=ABCMeta):
@@ -93,6 +97,53 @@ class QueryFeatureClassToGeoPackage(AbstractQueryElementToGeoPackage):
         return select_and_transform_features(self)
     # End copy method
 # End QueryFeatureClassToGeoPackage class
+
+
+class QueryExportTable(BaseQuerySelect):
+    """
+    Query Export Table
+    """
+    def __init__(self, source: 'Table', target: 'Table',
+                 where_clause: str, sort_fields: SORT_FIELDS) -> None:
+        """
+        Initialize the QueryExportTable class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(
+            source=source, target=target, where_clause=where_clause)
+        self._sort_fields: SORT_FIELDS = sort_fields
+    # End init built-in
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        sql = super().select
+        if not self._sort_fields:
+            return sql
+        fields = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {fields}'
+    # End select property
+
+    @property
+    def target(self) -> 'Table':
+        """
+        Target
+        """
+        return self.target_empty
+    # End target property
+
+    @cached_property
+    def target_empty(self) -> 'Table':
+        """
+        Target Empty
+        """
+        # noinspection PyTypeChecker
+        return copy_element(
+            self.source, target=self._target, where_clause=SQL_NO_ID)
+    # End target_empty property
+# End QueryExportTable class
 
 
 if __name__ == '__main__':  # pragma: no cover
