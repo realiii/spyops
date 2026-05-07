@@ -73,7 +73,7 @@ def feature_class_to_geopackage(source: FEATURE_CLASSES,
 @validate_result()
 @validate_source_table()
 @validate_target_table()
-@validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE, is_optional=True)
+@validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE)
 @validate_overwrite_source()
 def export_table(source: 'Table', target: 'Table', *, where_clause: str = '',
                  sort_fields: SORT_FIELDS | None = None) -> 'Table':
