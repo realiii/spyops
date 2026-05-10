@@ -12,6 +12,7 @@ from spyops.analysis.overlay import (
 from spyops.analysis.proximity import (
     buffer, create_thiessen_polygons,
     multiple_buffer)
+from spyops.analysis.statistics import statistics
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
@@ -41,6 +42,8 @@ __all__ = [
     'buffer',
     'create_thiessen_polygons',
     'multiple_buffer',
+
+    'statistics',
 
     'AlgorithmOption',
     'AttributeOption',
