@@ -6,9 +6,9 @@ Type stubs for query.base module
 from abc import ABCMeta
 from collections.abc import Generator
 from functools import cache, cached_property
-from typing import Callable, Optional, Self
+from typing import Callable, Optional
 
-from fudgeo import FeatureClass, SpatialReferenceSystem, Table
+from fudgeo import FeatureClass, SpatialReferenceSystem
 from pyproj import CRS, Transformer
 from shapely import Polygon
 from shapely.geometry.base import BaseMultipartGeometry
