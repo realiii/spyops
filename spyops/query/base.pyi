@@ -67,10 +67,18 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
 
 
 class AbstractElementGroupQuery(GroupQueryMixin, AbstractElementQuery, metaclass=ABCMeta):
+
+    _fields: FIELDS
+    _group_names: str
+
     def __init__(self, element: ELEMENT, fields: FIELDS) -> None: ...
 
 
 class AbstractFeatureClassGroupQuery(GroupQueryMixin, AbstractFeatureClassQuery, metaclass=ABCMeta):
+
+    _fields: FIELDS
+    _group_names: str
+
     def __init__(self, element: FeatureClass, fields: FIELDS, *,
                  xy_tolerance: XY_TOL) -> None: ...
 
