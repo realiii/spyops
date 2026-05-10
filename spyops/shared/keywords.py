@@ -70,6 +70,7 @@ GROUP_OPTION: str = 'group_option'
 START_FIELD: str = 'start_field'
 END_FIELD: str = 'end_field'
 SORT_FIELDS_ARG: str = 'sort_fields'
+STATS_FIELDS_ARG: str = 'stats_fields'
 Z_TOLERANCE: str = 'z_tolerance'
 M_TOLERANCE: str = 'm_tolerance'
 

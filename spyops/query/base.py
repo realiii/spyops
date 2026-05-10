@@ -5,14 +5,12 @@ Abstract Classes in support of Query objects
 
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
 from functools import cache, cached_property
-from typing import Callable, Generator, Optional, Self, TYPE_CHECKING
+from typing import Callable, Generator, Optional, TYPE_CHECKING
 from warnings import warn
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.util import escape_name
 from numpy import isfinite
 from pyproj import CRS
 from shapely.creation import box
@@ -29,7 +27,7 @@ from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
 from spyops.shared.constant import (
-    DOT, DRID, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
+    DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -38,7 +36,7 @@ from spyops.shared.field import (
     validate_fields)
 from spyops.shared.hint import (
     ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
-from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID, TEMP_SCHEMA
+from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID
 from spyops.shared.util import make_unique_name
 
 
