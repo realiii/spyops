@@ -5,14 +5,12 @@ Abstract Classes in support of Query objects
 
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
 from functools import cache, cached_property
-from typing import Callable, Generator, Optional, Self, TYPE_CHECKING
+from typing import Callable, Generator, Optional, TYPE_CHECKING
 from warnings import warn
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.util import escape_name
 from numpy import isfinite
 from pyproj import CRS
 from shapely.creation import box
@@ -27,8 +25,9 @@ from spyops.environment.core import HasZM, zm_config
 from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
+from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
 from spyops.shared.constant import (
-    DOT, DRID, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
+    DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
@@ -37,7 +36,7 @@ from spyops.shared.field import (
     validate_fields)
 from spyops.shared.hint import (
     ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
-from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID, TEMP_SCHEMA
+from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID
 from spyops.shared.util import make_unique_name
 
 
@@ -260,51 +259,6 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
             target_srs=self.spatial_reference_system)
     # End grid_size property
 # End AbstractFeatureClassQuery class
-
-
-class GroupQueryMixin:
-    """
-    Group Query Mixin
-    """
-    # noinspection PyUnusedLocal
-    def _spatial_index_where(self, element: ELEMENT,
-                             extent: EXTENT = (0, 0, 0, 0)) -> str:
-        """
-        Make a where clause stub that can be used to select features which
-        intersect an extent. The query is based on a spatial index (if present).
-        """
-        if not isinstance(element, FeatureClass):
-            return EMPTY
-        # noinspection PyTypeChecker
-        if not (extent := ANALYSIS_SETTINGS.extent):
-            return EMPTY
-        # noinspection PyUnresolvedReferences
-        polygon = self._get_extent_polygon(
-            extent, crs=crs_from_srs(element.spatial_reference_system))
-        # noinspection PyProtectedMember,PyUnresolvedReferences
-        if index_where := super()._spatial_index_where(
-                element, extent=polygon.bounds):
-            index_where = f'WHERE ({index_where.format(IN)})'
-        return index_where
-    # End _spatial_index_where function
-
-    def _build_spatial_rank(self, element: ELEMENT) -> str:
-        """
-        Build Spatial Rank
-        """
-        # noinspection PyUnresolvedReferences
-        primary = element.primary_key_field.escaped_name
-        index_where = self._spatial_index_where(element)
-        # noinspection PyUnresolvedReferences
-        return f"""
-            {primary} IN (SELECT {primary}
-            FROM (SELECT {primary}, 
-                         dense_rank() OVER (ORDER BY {self._group_names}) AS {DRID} 
-                  FROM {element.escaped_name} {index_where})
-            WHERE {DRID} = ?) 
-        """
-    # End _build_spatial_rank method
-# End GroupQueryMixin class
 
 
 class AbstractElementGroupQuery(GroupQueryMixin, AbstractElementQuery,
@@ -585,72 +539,6 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
             zm=self.zm_config)
     # End target_full property
 # End AbstractSourceQuery class
-
-
-# noinspection PyUnresolvedReferences
-class IntermediateTableContextMixin:
-    """
-    Intermediate Table Mixin
-    """
-    def __enter__(self) -> Self:
-        """
-        Context Manager Enter
-        """
-        self._prepare_source()
-        self._delete_intermediate()
-        _ = self._intermediate_table
-        return self
-    # End enter built-in
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        """
-        Context Manager Exit
-        """
-        self._delete_intermediate()
-        return False
-    # End exit built-in
-
-    def _delete_intermediate(self) -> None:
-        """
-        Delete Intermediate
-        """
-        name = self._intermediate_name
-        with self.source.geopackage.connection as cin:
-            cin.execute(f"""DROP TABLE IF EXISTS {TEMP_SCHEMA}{DOT}{name}""")
-    # End _delete_intermediate method
-
-    @cached_property
-    def _intermediate_table(self) -> str:
-        """
-        Intermediate Table
-        """
-        name = self._intermediate_name
-        defs = COMMA_SPACE.join(repr(f) for f in self._intermediate_fields)
-        with self.source.geopackage.connection as cin:
-            cin.execute(f"""CREATE TEMPORARY TABLE {name} ({defs})""")
-        return f'{TEMP_SCHEMA}{DOT}{name}'
-    # End _intermediate_table property
-
-    @cached_property
-    def _intermediate_name(self) -> str:
-        """
-        Intermediate Name
-        """
-        now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        return escape_name(f'tmp_{self.source.name}_{self._short_name}_{now}')
-    # End _intermediate_name property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        return self._make_insert(
-            self._intermediate_table,
-            field_names=make_field_names(self._intermediate_fields),
-            field_count=len(self._intermediate_fields))
-    # End insert property
-# End IntermediateTableContextMixin class
 
 
 class AbstractSourceUpdateQuery(IntermediateTableContextMixin,

@@ -28,6 +28,7 @@ MIT
 - [Analysis - Extract](https://github.com/realiii/spyops/wiki/Analysis#extract)
 - [Analysis - Overlay](https://github.com/realiii/spyops/wiki/Analysis#overlay)
 - [Analysis - Proximity](https://github.com/realiii/spyops/wiki/Analysis#proximity)
+- [Analysis - Statistics](https://github.com/realiii/spyops/wiki/Analysis#statistics) (v0.2.0)
 - [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage) (v0.2.0)
 - [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
 - [Management - Feature Class](https://github.com/realiii/spyops/wiki/Data-Management#feature-class)
@@ -52,6 +53,7 @@ MIT
 - added `export_table` (Conversion - GeoPackage)
 - added `feature_class_to_geopackage` (Conversion - GeoPackage)
 - added `table_to_geopackage` (Conversion - GeoPackage)
+- added `statistics` (Analysis - Statistics)
 
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 

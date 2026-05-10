@@ -6,9 +6,9 @@ Type stubs for query.base module
 from abc import ABCMeta
 from collections.abc import Generator
 from functools import cache, cached_property
-from typing import Callable, Optional, Self
+from typing import Callable, Optional
 
-from fudgeo import FeatureClass, SpatialReferenceSystem, Table
+from fudgeo import FeatureClass, SpatialReferenceSystem
 from pyproj import CRS, Transformer
 from shapely import Polygon
 from shapely.geometry.base import BaseMultipartGeometry
@@ -16,6 +16,7 @@ from shapely.geometry.base import BaseMultipartGeometry
 from spyops.environment import Extent
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.config import GeometryConfig
+from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.hint import (
@@ -65,17 +66,19 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
     def source(self) -> FeatureClass: ...
 
 
-class GroupQueryMixin:
-    def _spatial_index_where(self, element: ELEMENT,
-                             extent: EXTENT = (0, 0, 0, 0)) -> str: ...
-    def _build_spatial_rank(self, element: ELEMENT) -> str: ...
-
-
 class AbstractElementGroupQuery(GroupQueryMixin, AbstractElementQuery, metaclass=ABCMeta):
+
+    _fields: FIELDS
+    _group_names: str
+
     def __init__(self, element: ELEMENT, fields: FIELDS) -> None: ...
 
 
 class AbstractFeatureClassGroupQuery(GroupQueryMixin, AbstractFeatureClassQuery, metaclass=ABCMeta):
+
+    _fields: FIELDS
+    _group_names: str
+
     def __init__(self, element: FeatureClass, fields: FIELDS, *,
                  xy_tolerance: XY_TOL) -> None: ...
 
@@ -121,18 +124,6 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
     def target_empty(self) -> FeatureClass: ...
     @cached_property
     def target_full(self) -> FeatureClass: ...
-
-
-class IntermediateTableContextMixin:
-    def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool: ...
-    def _delete_intermediate(self) -> None: ...
-    @cached_property
-    def _intermediate_table(self) -> str: ...
-    @cached_property
-    def _intermediate_name(self) -> str: ...
-    @property
-    def insert(self) -> str: ...
 
 
 class AbstractSourceUpdateQuery(IntermediateTableContextMixin, AbstractSourceQuery):

@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM
 from spyops.query.base import (
-    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery,
-    IntermediateTableContextMixin)
+    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery)
+from spyops.query.mixin import IntermediateTableContextMixin
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.field import (
     ORIG_FID, REPEAT_FID, get_geometry_column_name, make_field_names)

@@ -6,7 +6,7 @@ Query Classes for management.generalization module
 
 from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
 from functools import cache, cached_property, partial
-from typing import Generator, Self, TYPE_CHECKING
+from typing import Generator, TYPE_CHECKING
 
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
@@ -15,11 +15,10 @@ from numpy import array
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.base import AbstractQueryDissolve
+from spyops.query.mixin import StatisticsMixin
 from spyops.shared.constant import DRID
-from spyops.shared.database import (
-    add_aggregates, remove_aggregates)
 from spyops.shared.field import (
-    get_geometry_column_name, make_field_names, make_unique_fields)
+    get_geometry_column_name, make_field_names)
 from spyops.shared.hint import FIELDS, STATS_FIELDS, XY_TOL
 
 
@@ -28,7 +27,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseMultipartGeometry
 
 
-class QueryDissolve(AbstractQueryDissolve):
+class QueryDissolve(StatisticsMixin, AbstractQueryDissolve):
     """
     Queries for Dissolve
     """
@@ -43,22 +42,6 @@ class QueryDissolve(AbstractQueryDissolve):
             xy_tolerance=xy_tolerance)
         self._statistics: STATS_FIELDS = statistics
     # End init built-in
-
-    def __enter__(self) -> Self:
-        """
-        Context Manager Enter
-        """
-        add_aggregates(self.source.geopackage.connection)
-        return self
-    # End enter built-in
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        """
-        Context Manager Exit
-        """
-        remove_aggregates(self.source.geopackage.connection)
-        return False
-    # End exit built-in
 
     @cache
     def _field_names_and_count(self, element: 'FeatureClass') \
@@ -98,15 +81,6 @@ class QueryDissolve(AbstractQueryDissolve):
                ShapeType.multi_polygon: ShapeType.polygon}
         return lut[self.source.shape_type]
     # End _get_target_shape_type method
-
-    def _get_unique_fields(self) -> FIELDS:
-        """
-        Get Unique Fields
-        """
-        stat_fields = [stat.output_field for stat in self.statistics]
-        stat_fields = make_unique_fields(self._fields, stat_fields)
-        return [*self._fields, *stat_fields]
-    # End _get_unique_fields method
 
     @property
     def select(self) -> str:
@@ -192,22 +166,6 @@ class QueryDissolve(AbstractQueryDissolve):
                     yield dissolved
         yield dissolved
     # End dissolved_geometries method
-
-    @cached_property
-    def statistics(self) -> STATS_FIELDS:
-        """
-        Statistics with repeated output names removed
-        """
-        keepers = []
-        names = set()
-        for stat in self._statistics:
-            name = stat.output_name.casefold()
-            if name in names:
-                continue
-            names.add(name)
-            keepers.append(stat)
-        return keepers
-    # End statistics property
 
     @cached_property
     def group_count(self) -> int:
