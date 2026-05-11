@@ -28,7 +28,8 @@ if TYPE_CHECKING:  # pragma: no cover
                           is_optional=False)
 @validate_field(GROUP_FIELDS, element_name=SOURCE, is_optional=True)
 @validate_overwrite_source()
-def statistics(source: ELEMENT, target: 'Table', *, stats_fields: STATS_FIELDS,
+def statistics(source: ELEMENT, target: 'Table', *,
+               stats_fields: STATS_FIELDS,
                group_fields: FIELDS | FIELD_NAMES = (),
                where_clause: str = '') -> 'Table':
     """
