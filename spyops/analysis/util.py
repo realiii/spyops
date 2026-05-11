@@ -44,6 +44,21 @@ QUERY_INT: TypeAlias = Union['QueryIntersectClassic', 'QueryIntersectPairwise']
 QUERY_SYM: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
 
 
+def _load_statistics(query: QUERY_STAT) -> Table:
+    """
+    Load Statistics
+    """
+    insert_sql = query.insert
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while rows := cursor.fetchmany(FETCH_SIZE):
+            executor(sql=insert_sql, data=rows)
+    return query.target
+# End _load_statistics function
+
+
 def _clip(*, source: FeatureClass, operator: FeatureClass,
           target: FeatureClass, xy_tolerance: XY_TOL) -> FeatureClass:
     """

@@ -6,10 +6,8 @@ Statistics
 
 from typing import TYPE_CHECKING
 
-from fudgeo.constant import FETCH_SIZE
-from fudgeo.context import ExecuteMany
-
 from spyops.query.analysis.statistics import QueryStatistics
+from spyops.analysis.util import _load_statistics
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, STATS_FIELDS
 from spyops.shared.keywords import GROUP_FIELDS, SOURCE, STATS_FIELDS_ARG
 from spyops.validation import (
@@ -43,14 +41,8 @@ def statistics(source: ELEMENT, target: 'Table', *,
     with QueryStatistics(
             source, target=target, statistics=stats_fields,
             fields=group_fields, where_clause=where_clause) as query:
-        insert_sql = query.insert
-        with (query.source.geopackage.connection as cin,
-              query.target.geopackage.connection as cout,
-              ExecuteMany(connection=cout, table=query.target) as executor):
-            cursor = cin.execute(query.select)
-            while rows := cursor.fetchmany(FETCH_SIZE):
-                executor(sql=insert_sql, data=rows)
-    return query.target
+        table = _load_statistics(query)
+    return table
 # End statistics function
 
 
