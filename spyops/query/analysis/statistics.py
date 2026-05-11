@@ -13,24 +13,25 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import AbstractElementGroupQuery
 from spyops.query.mixin import StatisticsMixin
 from spyops.shared.constant import EMPTY
-from spyops.shared.field import make_field_names
+from spyops.shared.field import FREQUENCY, add_key_fields, make_field_names
 from spyops.shared.hint import ELEMENT, FIELDS, STATS_FIELDS
 from spyops.shared.sql import SQL_ALL_ID
+from spyops.shared.stats import Frequency
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Table
 
 
-class QueryStatistics(StatisticsMixin, AbstractElementGroupQuery):
+class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
     """
-    Query Statistics
+    Base Summary Statistics
     """
     def __init__(self, element: ELEMENT, target: 'Table',
                  statistics: STATS_FIELDS, fields: FIELDS,
                  where_clause: str) -> None:
         """
-        Initialize the QueryStatistics class
+        Initialize the BaseSummaryStatistics class
         """
         super().__init__(element, fields=fields)
         self._target: 'Table' = target
@@ -113,7 +114,43 @@ class QueryStatistics(StatisticsMixin, AbstractElementGroupQuery):
             self._target.name, fields=self._get_unique_fields(),
             overwrite=ANALYSIS_SETTINGS.overwrite)
     # End target_empty property
+# End BaseSummaryStatistics class
+
+
+class QueryStatistics(BaseSummaryStatistics):
+    """
+    Query Statistics
+    """
 # End QueryStatistics class
+
+
+class QueryFrequency(BaseSummaryStatistics):
+    """
+    Query Frequency
+    """
+    def __init__(self, element: ELEMENT, target: 'Table',
+                 statistics: STATS_FIELDS, fields: FIELDS,
+                 where_clause: str) -> None:
+        """
+        Initialize the QueryFrequency class
+        """
+        super().__init__(element, target=target, statistics=statistics,
+                         fields=fields, where_clause=where_clause)
+        self._statistics: STATS_FIELDS = [
+            self._get_frequency_stat(fields), *statistics]
+    # End init built-in
+
+    @staticmethod
+    def _get_frequency_stat(fields: FIELDS) -> Frequency:
+        """
+        Get Frequency Statistics wtih output name set
+        """
+        stat = Frequency()
+        *_, frequency = add_key_fields([FREQUENCY], fields)
+        stat.output_name = frequency.name
+        return stat
+    # End _get_frequency_stat method
+# End QueryFrequency class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -38,10 +38,27 @@ if TYPE_CHECKING:  # pragma: no cover
     from spyops.query.analysis.overlay import (
         QueryIntersectClassic, QueryIntersectPairwise,
         QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
+    from spyops.query.analysis.statistics import QueryFrequency, QueryStatistics
 
 
 QUERY_INT: TypeAlias = Union['QueryIntersectClassic', 'QueryIntersectPairwise']
 QUERY_SYM: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
+QUERY_STAT: TypeAlias = Union['QueryStatistics', 'QueryFrequency']
+
+
+def _load_statistics(query: QUERY_STAT) -> Table:
+    """
+    Load Statistics
+    """
+    insert_sql = query.insert
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while rows := cursor.fetchmany(FETCH_SIZE):
+            executor(sql=insert_sql, data=rows)
+    return query.target
+# End _load_statistics function
 
 
 def _clip(*, source: FeatureClass, operator: FeatureClass,
