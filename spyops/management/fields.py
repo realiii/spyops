@@ -24,8 +24,8 @@ from spyops.shared.enumeration import FieldProperty
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
 from spyops.validation import (
     validate_compatible_fields, validate_element, validate_elements,
-    validate_feature_class, validate_result, validate_str_enumeration,
-    validate_field)
+    validate_feature_class, validate_result, validate_source_element,
+    validate_str_enumeration, validate_field)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -81,7 +81,7 @@ def add_field(source: ELEMENT, *, fields: FIELDS = (),
 
 
 @validate_result()
-@validate_element(SOURCE)
+@validate_source_element()
 @validate_field(FIELD, single=True, element_name=SOURCE)
 def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
                     where_clause: str = '') -> ELEMENT:
@@ -194,7 +194,7 @@ def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
 
 
 @validate_result()
-@validate_element(SOURCE)
+@validate_source_element()
 @validate_field(START_FIELD, single=True, element_name=SOURCE)
 @validate_field(END_FIELD, single=True, element_name=SOURCE)
 @validate_compatible_fields(START_FIELD, END_FIELD)
