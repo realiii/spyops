@@ -22,15 +22,15 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Table
 
 
-class QueryStatistics(StatisticsMixin, AbstractElementGroupQuery):
+class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
     """
-    Query Statistics
+    Base Summary Statistics
     """
     def __init__(self, element: ELEMENT, target: 'Table',
                  statistics: STATS_FIELDS, fields: FIELDS,
                  where_clause: str) -> None:
         """
-        Initialize the QueryStatistics class
+        Initialize the BaseSummaryStatistics class
         """
         super().__init__(element, fields=fields)
         self._target: 'Table' = target
@@ -113,6 +113,13 @@ class QueryStatistics(StatisticsMixin, AbstractElementGroupQuery):
             self._target.name, fields=self._get_unique_fields(),
             overwrite=ANALYSIS_SETTINGS.overwrite)
     # End target_empty property
+# End BaseSummaryStatistics class
+
+
+class QueryStatistics(BaseSummaryStatistics):
+    """
+    Query Statistics
+    """
 # End QueryStatistics class
 
 
