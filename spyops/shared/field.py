@@ -70,6 +70,7 @@ COMPATIBILITY_LUT: dict[str, list[str] | tuple[str, ...]] = {
 
 
 VALUE: Field = Field('VALUE', data_type=FieldType.real)
+FREQUENCY: Field = Field('FREQUENCY', data_type=FieldType.integer)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
