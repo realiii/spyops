@@ -10,9 +10,8 @@ from spyops.analysis.extract import (
 from spyops.analysis.overlay import (
     erase, intersect, symmetrical_difference, union)
 from spyops.analysis.proximity import (
-    buffer, create_thiessen_polygons,
-    multiple_buffer)
-from spyops.analysis.statistics import statistics
+    buffer, create_thiessen_polygons, multiple_buffer)
+from spyops.analysis.statistics import frequency, statistics
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
@@ -43,6 +42,7 @@ __all__ = [
     'create_thiessen_polygons',
     'multiple_buffer',
 
+    'frequency',
     'statistics',
 
     'AlgorithmOption',

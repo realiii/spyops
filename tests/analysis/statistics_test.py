@@ -7,8 +7,7 @@ Tests for Statistics
 from fudgeo import Table
 
 from conftest import world_features
-from spyops.analysis import statistics
-from spyops.analysis.statistics import frequency
+from spyops.analysis import statistics, frequency
 from spyops.shared.stats import First, Min, Mode
 
 
