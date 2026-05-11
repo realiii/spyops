@@ -16,7 +16,8 @@ from fudgeo.enumeration import FieldType
 
 from spyops.shared.constant import COMMA, SPYOPS, UNDERSCORE
 from spyops.shared.enumeration import Statistic
-from spyops.shared.field import NUMBERS, get_data_type
+from spyops.shared.field import FREQUENCY, NUMBERS, get_data_type
+from spyops.shared.sql import ROWID
 
 
 def mode(values: list) -> Any:
@@ -589,6 +590,56 @@ class Count(AbstractStatisticField):
         return 'COUNT'
     # End prefix property
 # End Count class
+
+
+class Frequency(Count):
+    """
+    Frequency Statistics Field
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the Count class
+        """
+        super().__init__(ROWID)
+        self._output_name: str = FREQUENCY.name
+    # End init built-in
+
+    @property
+    def aggregate(self) -> str:
+        """
+        Function Stub
+        """
+        return f'{self.prefix}({ROWID})'
+    # End aggregate property
+
+    @property
+    def output_name(self) -> str:
+        """
+        Output Name
+        """
+        return self._output_name
+
+    @output_name.setter
+    def output_name(self, value: str) -> None:
+        self._output_name = value
+    # End output_name property
+
+    @property
+    def output_field(self) -> Field:
+        """
+        Output Field
+        """
+        return Field(self.output_name, data_type=FREQUENCY.data_type)
+    # End output_field property
+
+    @property
+    def data_type(self) -> str:
+        """
+        Data Type
+        """
+        return FREQUENCY.data_type
+    # End data_type property
+# End Frequency class
 
 
 class Unique(AbstractStatisticField):
