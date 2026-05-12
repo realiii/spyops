@@ -29,7 +29,8 @@ from spyops.management.workspace import (
     create_folder, create_geopackage, create_sqlite_database)
 from spyops.shared.enumeration import (
     FieldProperty, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
+    LineTypeOption, MinimumGeometryOption, PointTypeOption,
+    StatisticOutputOption, WeightOption)
 from spyops.shared.stats import (
     Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
     Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
@@ -100,6 +101,7 @@ __all__ = [
     'LineTypeOption',
     'MinimumGeometryOption',
     'PointTypeOption',
+    'StatisticOutputOption',
     'WeightOption',
 
     'Average',

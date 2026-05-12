@@ -119,6 +119,16 @@ class OutputTypeOption(StrEnum):
 # End OutputTypeOption class
 
 
+class StatisticOutputOption(StrEnum):
+    """
+    Statistic Output Type Options
+    """
+    NUMERIC = auto()
+    TEXT = auto()
+    DATE = auto()
+# End StatisticOutputOption class
+
+
 class FieldProperty(StrEnum):
     """
     Field Properties
