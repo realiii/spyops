@@ -19,6 +19,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Table
 
 
+__all__ = ['statistics', 'frequency']
+
+
 @validate_result()
 @validate_source_element()
 @validate_target_table()
