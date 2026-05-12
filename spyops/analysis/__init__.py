@@ -22,6 +22,10 @@ from spyops.crs.unit import (
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, BufferTypeOption, DissolveOption,
     EndOption, OutputTypeOption, SideOption)
+from spyops.shared.stats import (
+    Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
+    Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
+    Summation, Unique, Var, Variance)
 
 
 __all__ = [
@@ -78,6 +82,29 @@ __all__ = [
     'Yards',
     'YardsInternational',
     'YardsUS',
+
+    'Average',
+    'Avg',
+    'Concat',
+    'Concatenate',
+    'Count',
+    'First',
+    'Last',
+    'Max',
+    'Maximum',
+    'Mean',
+    'Median',
+    'Min',
+    'Minimum',
+    'Mode',
+    'Range',
+    'StandardDeviation',
+    'StdDev',
+    'Sum',
+    'Summation',
+    'Unique',
+    'Var',
+    'Variance'
 ]
 
 
