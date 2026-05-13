@@ -5,10 +5,12 @@ Statistics Functions for use within SQLite
 
 
 from abc import ABCMeta, abstractmethod
+from collections import Counter
+from datetime import datetime, timezone
 from math import isfinite
 from statistics import (
-    StatisticsError, median as _median, mode as _mode,
-    stdev as _standard_deviation, variance)
+    StatisticsError, mean as _mean, median as _median, mode as _mode,
+    quantiles as _quantiles, stdev as _standard_deviation, variance as _var)
 from typing import Any, Callable, Self
 
 from fudgeo import Field
@@ -16,8 +18,105 @@ from fudgeo.enumeration import FieldType
 
 from spyops.shared.constant import COMMA, SPYOPS, UNDERSCORE
 from spyops.shared.enumeration import Statistic
-from spyops.shared.field import FREQUENCY, NUMBERS, get_data_type
+from spyops.shared.field import DATES, FREQUENCY, NUMBERS, get_data_type
 from spyops.shared.sql import ROWID
+
+
+def _kurt(values: list) -> float | None:
+    """
+    Uses the Fisher's definition, Normal = 0.
+    """
+    n = len(values)
+    if n < 4:
+        return None
+    avg = _mean(values)
+    variance = _var(values)
+    moment = sum([(x - avg) ** 4 for x in values]) / n
+    return (moment / (variance ** 2)) - 3
+# End _kurt function
+
+
+def _skew(values: list) -> float | None:
+    """
+    Skewness via Adjusted Fisher-Pearson's Skewness.
+    """
+    n = len(values)
+    if n < 3:
+        return None
+    factor = n / ((n - 1) * (n - 2))
+    avg = _mean(values)
+    std = _standard_deviation(values)
+    return factor * sum([((x - avg) / std) ** 3 for x in values])
+# End _skew function
+
+
+def _cv(values: list) -> float | None:
+    """
+    Coefficient of Variation
+    """
+    avg = _mean(values)
+    std = _standard_deviation(values)
+    return 100 * std / avg
+# End _cv function
+
+
+def _first_quartile(values: list) -> float | None:
+    """
+    First Quartile
+    """
+    # noinspection PyArgumentEqualDefault
+    return _quantiles(values, n=4)[0]
+# End _first_quartile function
+
+
+def _third_quartile(values: list) -> float | None:
+    """
+    Third Quartile
+    """
+    # noinspection PyArgumentEqualDefault
+    return _quantiles(values, n=4)[-1]
+# End _third_quartile function
+
+
+def _interquartile_range(values: list) -> float | None:
+    """
+    Interquartile Range
+    """
+    # noinspection PyArgumentEqualDefault
+    a, _, c = _quantiles(values, n=4)
+    return c - a
+# End _interquartile_range function
+
+
+def _outlier_count(values: list) -> int | None:
+    """
+    Outlier Count
+    """
+    # noinspection PyArgumentEqualDefault
+    a, _, c = _quantiles(values, n=4)
+    if not (rng := 1.5 * (c - a)):
+        return None
+    lower, upper = a - rng, c + rng
+    return sum(v < lower or v > upper for v in values)
+# End _outlier_count function
+
+
+def _least(values: list) -> Any:
+    """
+    Least Common
+    """
+    *_, (value, _) = Counter(values).most_common()
+    return value
+# End _least function
+
+
+def _most(values: list) -> Any:
+    """
+    Most Common
+    """
+    (value, _), *_ = Counter(values).most_common()
+    return value
+# End _most function
 
 
 def mode(values: list) -> Any:
@@ -48,7 +147,7 @@ def var(values: list) -> float | None:
     Calculate Variance, ignoring Null values and non-finite values.
     If a non-number is encountered, the result is None.
     """
-    return _calculate_stat(variance, values)
+    return _calculate_stat(_var, values)
 # End var function
 
 
@@ -59,6 +158,88 @@ def median(values: list) -> float | None:
     """
     return _calculate_stat(_median, values)
 # End median function
+
+
+def kurtosis(values: list) -> float | None:
+    """
+    Calculate Kurtosis, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_kurt, values)
+# End kurtosis function
+
+
+def skewness(values: list) -> float | None:
+    """
+    Calculate Skewness, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_skew, values)
+# End skewness function
+
+
+def coefficient_of_variation(values: list) -> float | None:
+    """
+    Calculate Coefficient of Variation, ignoring Null values and non-finite
+    values. If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_cv, values)
+# End coefficient_of_variation function
+
+
+def first_quartile(values: list) -> float | None:
+    """
+    Calculate First Quartile, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_first_quartile, values)
+# End first_quartile function
+
+
+def third_quartile(values: list) -> float | None:
+    """
+    Calculate Third Quartile, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_third_quartile, values)
+# End third_quartile function
+
+
+def interquartile_range(values: list) -> float | None:
+    """
+    Calculate Interquartile Range, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_interquartile_range, values)
+# End interquartile_range function
+
+
+def outlier_count(values: list) -> int | None:
+    """
+    Calculate Outlier Count, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    # noinspection PyTypeChecker
+    return _calculate_stat(_outlier_count, values)
+# End outlier_count function
+
+
+def least_common(values: list) -> float | None:
+    """
+    Calculate Least Common, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_least, values)
+# End least_common function
+
+
+def most_common(values: list) -> float | None:
+    """
+    Calculate Most Common, ignoring Null values and non-finite values.
+    If a non-number is encountered, the result is None.
+    """
+    return _calculate_stat(_most, values)
+# End most_common function
 
 
 def first(values: list) -> Any:
@@ -96,7 +277,7 @@ def _calculate_stat(func: Callable, values: list | float | None) -> float | None
         return None
     try:
         return func(values)
-    except (IndexError, ValueError, StatisticsError):
+    except (IndexError, ZeroDivisionError, ValueError, StatisticsError):
         return None
 # End _calculate_stat function
 
@@ -220,6 +401,153 @@ class _LastAggregate(AbstractAggregate):
 # End _LastAggregate class
 
 
+class _KurtAggregate(AbstractAggregate):
+    """
+    Kurtosis Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return kurtosis(self._values)
+    # End finalize method
+# End _KurtAggregate class
+
+
+class _SkewAggregate(AbstractAggregate):
+    """
+    Skewness Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return skewness(self._values)
+    # End finalize method
+# End _SkewAggregate class
+
+
+class _VariationAggregate(AbstractAggregate):
+    """
+    Coefficient of Variation Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return coefficient_of_variation(self._values)
+    # End finalize method
+# End _VariationAggregate class
+
+
+class _FirstQuartileNumericAggregate(AbstractAggregate):
+    """
+    First Quartile Numeric Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return first_quartile(self._values)
+    # End finalize method
+# End _FirstQuartileNumericAggregate class
+
+
+class _ThirdQuartileNumericAggregate(AbstractAggregate):
+    """
+    Third Quartile Numeric Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return third_quartile(self._values)
+    # End finalize method
+# End _ThirdQuartileNumericAggregate class
+
+
+class _FirstQuartileDateAggregate(AbstractAggregate):
+    """
+    First Quartile Date Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        if (result := first_quartile(self._values)) is None:
+            return result
+        return datetime.fromtimestamp(result, tz=timezone.utc)
+    # End finalize method
+# End _FirstQuartileDateAggregate class
+
+
+class _ThirdQuartileDateAggregate(AbstractAggregate):
+    """
+    Third Quartile Date Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        if (result := third_quartile(self._values)) is None:
+            return result
+        return datetime.fromtimestamp(result, tz=timezone.utc)
+    # End finalize method
+# End _ThirdQuartileDateAggregate class
+
+
+class _InterquartileRangeAggregate(AbstractAggregate):
+    """
+    Interquartile Range Numeric Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return interquartile_range(self._values)
+    # End finalize method
+# End _InterquartileRangeAggregate class
+
+
+class _OutlierCountAggregate(AbstractAggregate):
+    """
+    Outlier Count Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return outlier_count(self._values)
+    # End finalize method
+# End _OutlierCountAggregate class
+
+
+class _LeastCommonAggregate(AbstractAggregate):
+    """
+    Least Common Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return least_common(self._values)
+    # End finalize method
+# End _LeastCommonAggregate class
+
+
+class _MostCommonAggregate(AbstractAggregate):
+    """
+    Most Common Aggregate for SQLite
+    """
+    def finalize(self) -> Any:
+        """
+        Finalize
+        """
+        return most_common(self._values)
+    # End finalize method
+# End _MostCommonAggregate class
+
+
 STATS_FUNCS: dict[str, Callable] = {
     'mode': _ModeAggregate,
     'stdev': _StandardDeviationAggregate,
@@ -227,6 +555,17 @@ STATS_FUNCS: dict[str, Callable] = {
     'median': _MedianAggregate,
     'first': _FirstAggregate,
     'last': _LastAggregate,
+    'kurtosis': _KurtAggregate,
+    'skewness': _SkewAggregate,
+    'variation': _VariationAggregate,
+    'first_quartile': _FirstQuartileNumericAggregate,
+    'third_quartile': _ThirdQuartileNumericAggregate,
+    'first_quartile_date': _FirstQuartileDateAggregate,
+    'third_quartile_date': _ThirdQuartileDateAggregate,
+    'interquartile_range': _InterquartileRangeAggregate,
+    'outlier_count': _OutlierCountAggregate,
+    'least_common': _LeastCommonAggregate,
+    'most_common': _MostCommonAggregate,
 }
 
 
@@ -384,25 +723,77 @@ class _NumericStatisticField(AbstractStatisticField):
 # End _NumericStatisticField class
 
 
-class Average(_NumericStatisticField):
+class _NumericDateStatisticField(AbstractStatisticField):
     """
-    Average Statistics Field
+    Numeric or Date Statistic Field
     """
-    def __init__(self, field: Field | str) -> None:
+    @property
+    def _is_date(self) -> bool:
         """
-        Initialize the Average class
+        Is Date
         """
-        super().__init__(field, stat=Statistic.AVERAGE)
-    # End init built-in
+        return self._get_data_type() in DATES
+    # End _is_date property
+
+    def validate(self) -> None:
+        """
+        Validate
+        """
+        super().validate()
+        data_type = self._get_data_type()
+        if data_type in NUMBERS or self._is_date:
+            return
+        # noinspection PyUnresolvedReferences
+        raise ValueError(
+            f'Expected {self.field.name} field to be numeric or date, '
+            f'got {data_type}')
+    # End validate method
 
     @property
-    def prefix(self) -> str:
+    def aggregate(self) -> str:
         """
-        Prefix
+        Function Stub
         """
-        return 'AVG'
-    # End prefix property
-# End Average class
+        # noinspection PyUnresolvedReferences
+        return f'{self.prefix}({self.field.escaped_name})'
+    # End aggregate property
+# End _NumericDateStatisticField class
+
+
+class _FunctionStatisticField(AbstractStatisticField):
+    """
+    Function Statistic Field
+    """
+    @property
+    def aggregate(self) -> str:
+        """
+        Function Stub
+        """
+        name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
+        # noinspection PyUnresolvedReferences
+        return f'{name}({self.field.escaped_name})'
+    # End aggregate property
+# End _FunctionStatisticField class
+
+
+class _FunctionStatisticNumericDateField(_NumericDateStatisticField):
+    """
+    Function Statistic Field for Numeric or Date Fields
+    """
+    @property
+    def aggregate(self) -> str:
+        """
+        Function Stub
+        """
+        # noinspection PyUnresolvedReferences
+        escaped_name = self.field.escaped_name
+        name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
+        if not self._is_date:
+            return f'{name}({escaped_name})'
+        # noinspection PyUnresolvedReferences
+        return f"{name}_date(unixepoch({escaped_name}, 'subsecond'))"
+    # End aggregate property
+# End _FunctionStatisticNumericDateField class
 
 
 class _FunctionNumericStatisticField(_NumericStatisticField):
@@ -421,7 +812,40 @@ class _FunctionNumericStatisticField(_NumericStatisticField):
 # End _FunctionNumericStatisticField class
 
 
-class Median(_FunctionNumericStatisticField):
+class Average(_NumericDateStatisticField):
+    """
+    Average Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the Average class
+        """
+        super().__init__(field, stat=Statistic.AVERAGE)
+    # End init built-in
+
+    @property
+    def prefix(self) -> str:
+        """
+        Prefix
+        """
+        return 'AVG'
+    # End prefix property
+
+    @property
+    def aggregate(self) -> str:
+        """
+        Aggregate
+        """
+        if not self._is_date:
+            return super().aggregate
+        # noinspection PyUnresolvedReferences
+        return (f"datetime({self.prefix}(unixepoch({self.field.escaped_name}, "
+                f"'subsecond')), 'unixepoch')")
+    # End aggregate property
+# End Average class
+
+
+class Median(_FunctionStatisticNumericDateField):
     """
     Median Statistics Field
     """
@@ -431,10 +855,24 @@ class Median(_FunctionNumericStatisticField):
         """
         super().__init__(field, stat=Statistic.MEDIAN)
     # End init built-in
+
+    @property
+    def aggregate(self) -> str:
+        """
+        Aggregate
+        """
+        if not self._is_date:
+            return super().aggregate
+        # noinspection PyUnresolvedReferences
+        escaped_name = self.field.escaped_name
+        name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
+        agg = f"{name}_date(unixepoch({escaped_name}, 'subsecond'))"
+        return f"datetime({agg}, 'unixepoch')"
+    # End aggregate property
 # End Median class
 
 
-class Minimum(_NumericStatisticField):
+class Minimum(_NumericDateStatisticField):
     """
     Minimum Statistics Field
     """
@@ -455,7 +893,7 @@ class Minimum(_NumericStatisticField):
 # End Minimum class
 
 
-class Maximum(_NumericStatisticField):
+class Maximum(_NumericDateStatisticField):
     """
     Maximum Statistics Field
     """
@@ -476,7 +914,7 @@ class Maximum(_NumericStatisticField):
 # End Maximum class
 
 
-class Range(_NumericStatisticField):
+class Range(_NumericDateStatisticField):
     """
     Range Statistics Field
     """
@@ -494,7 +932,10 @@ class Range(_NumericStatisticField):
         """
         # noinspection PyUnresolvedReferences
         name = self.field.escaped_name
-        return f'(MAX({name}) - MIN({name}))'
+        if not self._is_date:
+            return f'(MAX({name}) - MIN({name}))'
+        return (f"(MAX(unixepoch({name}, 'subsecond')) - "
+                f" MIN(unixepoch({name}, 'subsecond')))")
     # End aggregate property
 # End Range class
 
@@ -581,15 +1022,57 @@ class Count(AbstractStatisticField):
         # noinspection PyUnresolvedReferences
         return f'{self.prefix}({self.field.escaped_name})'
     # End aggregate property
+# End Count class
+
+
+class CountNull(Count):
+    """
+    Count Null Statistics Field
+    """
+    @property
+    def aggregate(self) -> str:
+        """
+        Function Stub
+        """
+        # noinspection PyUnresolvedReferences
+        name = self.field.escaped_name
+        return f'SUM(CASE WHEN {name} IS NULL THEN 1 ELSE 0 END)'
+    # End aggregate property
 
     @property
     def prefix(self) -> str:
         """
         Prefix
         """
-        return 'COUNT'
+        prefix = super().prefix
+        return f'{prefix}_NULL'
     # End prefix property
-# End Count class
+# End CountNull class
+
+
+class CountNonNull(Count):
+    """
+    Count Non-Null Statistics Field
+    """
+    @property
+    def aggregate(self) -> str:
+        """
+        Function Stub
+        """
+        # noinspection PyUnresolvedReferences
+        name = self.field.escaped_name
+        return f'SUM(CASE WHEN {name} IS NOT NULL THEN 1 ELSE 0 END)'
+    # End aggregate property
+
+    @property
+    def prefix(self) -> str:
+        """
+        Prefix
+        """
+        prefix = super().prefix
+        return f'{prefix}_NON_NULL'
+    # End prefix property
+# End CountNonNull class
 
 
 class Frequency(Count):
@@ -672,22 +1155,6 @@ class Unique(AbstractStatisticField):
 # End Unique class
 
 
-class _FunctionStatisticField(AbstractStatisticField):
-    """
-    Function Statistic Field
-    """
-    @property
-    def aggregate(self) -> str:
-        """
-        Function Stub
-        """
-        name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        # noinspection PyUnresolvedReferences
-        return f'{name}({self.field.escaped_name})'
-    # End aggregate property
-# End _FunctionStatisticField class
-
-
 class Mode(_FunctionStatisticField):
     """
     Mode Statistics Field
@@ -725,6 +1192,123 @@ class Last(_FunctionStatisticField):
         super().__init__(field, stat=Statistic.LAST)
     # End init built-in
 # End Last class
+
+
+class Kurtosis(_FunctionNumericStatisticField):
+    """
+    Kurtosis Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the Kurtosis class
+        """
+        super().__init__(field, stat=Statistic.KURTOSIS)
+    # End init built-in
+# End Kurtosis class
+
+
+class Skewness(_FunctionNumericStatisticField):
+    """
+    Skewness Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the Skewness class
+        """
+        super().__init__(field, stat=Statistic.SKEWNESS)
+    # End init built-in
+# End Skewness class
+
+
+class Variation(_FunctionNumericStatisticField):
+    """
+    Variation Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the Variation class
+        """
+        super().__init__(field, stat=Statistic.VARIATION)
+    # End init built-in
+# End Variation class
+
+
+class FirstQuartile(_FunctionStatisticNumericDateField):
+    """
+    First Quartile Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the FirstQuartile class
+        """
+        super().__init__(field, stat=Statistic.FIRST_QUARTILE)
+    # End init built-in
+# End FirstQuartile class
+
+
+class ThirdQuartile(_FunctionStatisticNumericDateField):
+    """
+    Third Quartile Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the ThirdQuartile class
+        """
+        super().__init__(field, stat=Statistic.THIRD_QUARTILE)
+    # End init built-in
+# End ThirdQuartile class
+
+
+class InterquartileRange(_FunctionNumericStatisticField):
+    """
+    Interquartile Range Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the InterquartileRange class
+        """
+        super().__init__(field, stat=Statistic.INTERQUARTILE_RANGE)
+    # End init built-in
+# End InterquartileRange class
+
+
+class CountOutlier(_FunctionNumericStatisticField):
+    """
+    Outlier Count Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the CountOutlier class
+        """
+        super().__init__(field, stat=Statistic.OUTLIER_COUNT)
+    # End init built-in
+# End CountOutlier class
+
+
+class LeastCommon(_FunctionStatisticField):
+    """
+    Least Common Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the LeastCommon class
+        """
+        super().__init__(field, stat=Statistic.LEAST_COMMON)
+    # End init built-in
+# End LeastCommon class
+
+
+class MostCommon(_FunctionStatisticField):
+    """
+    Most Common Statistics Field
+    """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the MostCommon class
+        """
+        super().__init__(field, stat=Statistic.MOST_COMMON)
+    # End init built-in
+# End MostCommon class
 
 
 class Concatenate(AbstractStatisticField):
@@ -776,13 +1360,23 @@ class Concatenate(AbstractStatisticField):
 
 # aliases
 Avg = Average
+CV = Variation
+CoefficientOfVariation = Variation
+Concat = Concatenate
+IQR = InterquartileRange
+Kurt = Kurtosis
+Least = LeastCommon
+Max = Maximum
 Mean = Average
 Min = Minimum
-Max = Maximum
+Most = MostCommon
+Outliers = CountOutlier
+Q1 = FirstQuartile
+Q3 = ThirdQuartile
+Skew = Skewness
 StdDev = StandardDeviation
-Var = Variance
 Sum = Summation
-Concat = Concatenate
+Var = Variance
 
 
 if __name__ == '__main__':  # pragma: no cover

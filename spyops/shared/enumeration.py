@@ -248,6 +248,18 @@ class Statistic(StrEnum):
     FIRST = auto()
     LAST = auto()
     CONCATENATE = auto()
+
+    SKEWNESS = auto()
+    KURTOSIS = auto()
+    VARIATION = auto()
+
+    FIRST_QUARTILE = auto()
+    THIRD_QUARTILE = auto()
+    INTERQUARTILE_RANGE = auto()
+    OUTLIER_COUNT = auto()
+
+    LEAST_COMMON = auto()
+    MOST_COMMON = auto()
 # End Statistic class
 
 
