@@ -32,9 +32,12 @@ from spyops.shared.enumeration import (
     LineTypeOption, MinimumGeometryOption, PointTypeOption,
     StatisticOutputOption, WeightOption)
 from spyops.shared.stats import (
-    Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
-    Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
-    Summation, Unique, Var, Variance)
+    Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
+    CountNonNull, CountNull, CountOutlier, First, FirstQuartile, IQR,
+    InterquartileRange, Kurt, Kurtosis, Last, Least, LeastCommon, Max, Maximum,
+    Mean, Median, Min, Minimum, Mode, Most, MostCommon, Outliers, Q1, Q3, Range,
+    Skew, Skewness, StandardDeviation, StdDev, Sum, Summation, ThirdQuartile,
+    Unique, Var, Variance, Variation)
 
 
 __all__ = [
@@ -106,11 +109,23 @@ __all__ = [
 
     'Average',
     'Avg',
+    'CV',
+    'CoefficientOfVariation',
     'Concat',
     'Concatenate',
     'Count',
+    'CountNonNull',
+    'CountNull',
+    'CountOutlier',
     'First',
+    'FirstQuartile',
+    'IQR',
+    'InterquartileRange',
+    'Kurt',
+    'Kurtosis',
     'Last',
+    'Least',
+    'LeastCommon',
     'Max',
     'Maximum',
     'Mean',
@@ -118,14 +133,23 @@ __all__ = [
     'Min',
     'Minimum',
     'Mode',
+    'Most',
+    'MostCommon',
+    'Outliers',
+    'Q1',
+    'Q3',
     'Range',
+    'Skew',
+    'Skewness',
     'StandardDeviation',
     'StdDev',
     'Sum',
     'Summation',
+    'ThirdQuartile',
     'Unique',
     'Var',
-    'Variance'
+    'Variance',
+    'Variation',
 ]
 
 
