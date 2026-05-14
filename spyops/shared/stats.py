@@ -88,7 +88,7 @@ def _interquartile_range(values: list) -> float | None:
 # End _interquartile_range function
 
 
-def _outlier_count(values: list) -> int | None:
+def _count_outlier(values: list) -> int | None:
     """
     Outlier Count
     """
@@ -98,7 +98,7 @@ def _outlier_count(values: list) -> int | None:
         return None
     lower, upper = a - rng, c + rng
     return sum(v < lower or v > upper for v in values)
-# End _outlier_count function
+# End _count_outlier function
 
 
 def _least(values: list) -> Any:
@@ -214,14 +214,14 @@ def interquartile_range(values: list) -> float | None:
 # End interquartile_range function
 
 
-def outlier_count(values: list) -> int | None:
+def count_outlier(values: list) -> int | None:
     """
     Calculate Outlier Count, ignoring Null values and non-finite values.
     If a non-number is encountered, the result is None.
     """
     # noinspection PyTypeChecker
-    return _calculate_stat(_outlier_count, values)
-# End outlier_count function
+    return _calculate_stat(_count_outlier, values)
+# End count_outlier function
 
 
 def least_common(values: list) -> float | None:
@@ -509,17 +509,17 @@ class _InterquartileRangeAggregate(AbstractAggregate):
 # End _InterquartileRangeAggregate class
 
 
-class _OutlierCountAggregate(AbstractAggregate):
+class _CountOutlierAggregate(AbstractAggregate):
     """
-    Outlier Count Aggregate for SQLite
+    Count Outlier Aggregate for SQLite
     """
     def finalize(self) -> Any:
         """
         Finalize
         """
-        return outlier_count(self._values)
+        return count_outlier(self._values)
     # End finalize method
-# End _OutlierCountAggregate class
+# End _CountOutlierAggregate class
 
 
 class _LeastCommonAggregate(AbstractAggregate):
@@ -563,7 +563,7 @@ STATS_FUNCS: dict[str, Callable] = {
     'first_quartile_date': _FirstQuartileDateAggregate,
     'third_quartile_date': _ThirdQuartileDateAggregate,
     'interquartile_range': _InterquartileRangeAggregate,
-    'outlier_count': _OutlierCountAggregate,
+    'count_outlier': _CountOutlierAggregate,
     'least_common': _LeastCommonAggregate,
     'most_common': _MostCommonAggregate,
 }
@@ -1274,13 +1274,13 @@ class InterquartileRange(_FunctionNumericStatisticField):
 
 class CountOutlier(_FunctionNumericStatisticField):
     """
-    Outlier Count Statistics Field
+    Count Outlier Statistics Field
     """
     def __init__(self, field: Field | str) -> None:
         """
         Initialize the CountOutlier class
         """
-        super().__init__(field, stat=Statistic.OUTLIER_COUNT)
+        super().__init__(field, stat=Statistic.COUNT_OUTLIER)
     # End init built-in
 # End CountOutlier class
 
