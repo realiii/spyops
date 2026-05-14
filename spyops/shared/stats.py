@@ -674,7 +674,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Prefix
         """
-        return f'{str(self._stat).upper()}'
+        return f'{str(self.statistic).upper()}'
     # End prefix property
 
     @property
