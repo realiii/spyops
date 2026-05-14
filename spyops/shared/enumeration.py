@@ -243,6 +243,8 @@ class Statistic(StrEnum):
     SUMMATION = auto()
 
     COUNT = auto()
+    COUNT_NULL = auto()
+    COUNT_NON_NULL = auto()
     UNIQUE = auto()
     MODE = auto()
     FIRST = auto()
@@ -256,7 +258,7 @@ class Statistic(StrEnum):
     FIRST_QUARTILE = auto()
     THIRD_QUARTILE = auto()
     INTERQUARTILE_RANGE = auto()
-    OUTLIER_COUNT = auto()
+    COUNT_OUTLIER = auto()
 
     LEAST_COMMON = auto()
     MOST_COMMON = auto()
