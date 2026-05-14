@@ -11,7 +11,7 @@ from math import isfinite
 from statistics import (
     StatisticsError, mean as _mean, median as _median, mode as _mode,
     quantiles as _quantiles, stdev as _standard_deviation, variance as _var)
-from typing import Any, Callable, Self
+from typing import Any, Callable, Self, Type
 
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
@@ -1361,6 +1361,86 @@ Skew = Skewness
 StdDev = StandardDeviation
 Sum = Summation
 Var = Variance
+
+
+STAT_NAME_ALIASES: dict[Statistic, tuple[str, str]] = {
+    # NOTE numeric and date
+    Statistic.AVERAGE: ('MEAN', 'Mean'),
+    Statistic.MEDIAN: ('MEDIAN', 'Median'),
+    Statistic.MINIMUM: ('MINIMUM', 'Minimum'),
+    Statistic.MAXIMUM: ('MAXIMUM', 'Maximum'),
+    Statistic.RANGE: ('RANGE_', 'Range'),
+
+    Statistic.COUNT: ('COUNT_', 'Count'),
+    Statistic.COUNT_NULL: ('COUNT_NULL', 'Null Count'),
+    Statistic.COUNT_NON_NULL: ('COUNT_NON_NULL', 'Non Null Count'),
+    Statistic.UNIQUE: ('UNIQUE_', 'Unique Count'),
+
+    Statistic.FIRST_QUARTILE: ('FIRST_QUARTILE', 'First Quartile'),
+    Statistic.THIRD_QUARTILE: ('THIRD_QUARTILE', 'Third Quartile'),
+
+    # NOTE numeric only
+    Statistic.SUMMATION: ('SUM_', 'Sum'),
+    Statistic.STANDARD_DEVIATION: ('STD_DEV', 'Standard Deviation'),
+    Statistic.VARIANCE: ('VARIANCE', 'Variance'),
+
+    Statistic.SKEWNESS: ('SKEWNESS', 'Skewness'),
+    Statistic.KURTOSIS: ('KURTOSIS', 'Kurtosis'),
+    Statistic.VARIATION: ('VARIATION', 'Coefficient of Variation'),
+    Statistic.INTERQUARTILE_RANGE: (
+        'INTERQUARTILE_RANGE', 'Interquartile Range'),
+    Statistic.COUNT_OUTLIER: ('COUNT_OUTLIER', 'Outlier Count'),
+
+    # NOTE shared
+    Statistic.MODE: ('MODE', 'Mode'),
+    Statistic.LEAST_COMMON: ('LEAST_COMMON', 'Least Common'),
+}
+
+COUNT_STATS: tuple[tuple[Type, str], ...] = (
+    (Count, FieldType.integer),
+    (CountNull, FieldType.integer),
+    (CountNonNull, FieldType.integer),
+    (Unique, FieldType.integer),
+)
+
+NUMERIC_STATS: tuple[tuple[Type, str], ...] = (
+    *COUNT_STATS,
+    (Mean, FieldType.real),
+    (StandardDeviation, FieldType.real),
+    (Median, FieldType.real),
+    (Mode, FieldType.real),
+    (LeastCommon, FieldType.real),
+    (Minimum, FieldType.real),
+    (Maximum, FieldType.real),
+    (Range, FieldType.real),
+    (Summation, FieldType.real),
+    (FirstQuartile, FieldType.real),
+    (ThirdQuartile, FieldType.real),
+    (InterquartileRange, FieldType.real),
+    (CountOutlier, FieldType.integer),
+    (Variation, FieldType.real),
+    (Skewness, FieldType.real),
+    (Kurtosis, FieldType.real),
+)
+DATE_STATS: tuple[tuple[Type, str], ...] = (
+    *COUNT_STATS,
+    (Mean, FieldType.timestamp),
+    (Median, FieldType.timestamp),
+    (Mode, FieldType.timestamp),
+    (LeastCommon, FieldType.timestamp),
+    (Minimum, FieldType.timestamp),
+    (Maximum, FieldType.timestamp),
+    (Range, FieldType.real),
+    (FirstQuartile, FieldType.timestamp),
+    (ThirdQuartile, FieldType.timestamp),
+)
+TEXT_STATS: tuple[tuple[Type, str], ...] = (
+    *COUNT_STATS,
+    (Mode, FieldType.text),
+    (LeastCommon, FieldType.text),
+    (Minimum, FieldType.text),
+    (Maximum, FieldType.text),
+)
 
 
 if __name__ == '__main__':  # pragma: no cover
