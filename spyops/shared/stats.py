@@ -128,7 +128,7 @@ def mode(values: list) -> Any:
         return None
     try:
         return _mode(values)
-    except (IndexError, TypeError):
+    except (IndexError, TypeError, StatisticsError):
         return None
 # End mode function
 
