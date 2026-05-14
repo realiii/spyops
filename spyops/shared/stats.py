@@ -696,7 +696,22 @@ class AbstractStatisticField(metaclass=ABCMeta):
 # End AbstractStatisticField class
 
 
-class _NumericStatisticField(AbstractStatisticField):
+class _BaseStatisticField(AbstractStatisticField):
+    """
+    Base Statistic Field
+    """
+    @property
+    def aggregate(self) -> str:
+        """
+        Function Stub
+        """
+        # noinspection PyUnresolvedReferences
+        return f'{self.prefix}({self.field.escaped_name})'
+    # End aggregate property
+# End _BaseStatisticField class
+
+
+class _NumericStatisticField(_BaseStatisticField):
     """
     Numeric Statistic Field
     """
@@ -711,19 +726,10 @@ class _NumericStatisticField(AbstractStatisticField):
         raise ValueError(
             f'Expected {self.field.name} field to be numeric, got {data_type}')
     # End validate method
-
-    @property
-    def aggregate(self) -> str:
-        """
-        Function Stub
-        """
-        # noinspection PyUnresolvedReferences
-        return f'{self.prefix}({self.field.escaped_name})'
-    # End aggregate property
 # End _NumericStatisticField class
 
 
-class _NumericDateStatisticField(AbstractStatisticField):
+class _NumericDateStatisticField(_BaseStatisticField):
     """
     Numeric or Date Statistic Field
     """
@@ -748,15 +754,6 @@ class _NumericDateStatisticField(AbstractStatisticField):
             f'Expected {self.field.name} field to be numeric or date, '
             f'got {data_type}')
     # End validate method
-
-    @property
-    def aggregate(self) -> str:
-        """
-        Function Stub
-        """
-        # noinspection PyUnresolvedReferences
-        return f'{self.prefix}({self.field.escaped_name})'
-    # End aggregate property
 # End _NumericDateStatisticField class
 
 
@@ -872,7 +869,7 @@ class Median(_FunctionStatisticNumericDateField):
 # End Median class
 
 
-class Minimum(_NumericDateStatisticField):
+class Minimum(_BaseStatisticField):
     """
     Minimum Statistics Field
     """
@@ -893,7 +890,7 @@ class Minimum(_NumericDateStatisticField):
 # End Minimum class
 
 
-class Maximum(_NumericDateStatisticField):
+class Maximum(_BaseStatisticField):
     """
     Maximum Statistics Field
     """
@@ -1003,7 +1000,7 @@ class Summation(_NumericStatisticField):
 # End Summation class
 
 
-class Count(AbstractStatisticField):
+class Count(_BaseStatisticField):
     """
     Count Statistics Field
     """
@@ -1013,22 +1010,20 @@ class Count(AbstractStatisticField):
         """
         super().__init__(field, stat=Statistic.COUNT)
     # End init built-in
-
-    @property
-    def aggregate(self) -> str:
-        """
-        Function Stub
-        """
-        # noinspection PyUnresolvedReferences
-        return f'{self.prefix}({self.field.escaped_name})'
-    # End aggregate property
 # End Count class
 
 
-class CountNull(Count):
+class CountNull(_BaseStatisticField):
     """
     Count Null Statistics Field
     """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the CountNull class
+        """
+        super().__init__(field, stat=Statistic.COUNT_NULL)
+    # End init built-in
+
     @property
     def aggregate(self) -> str:
         """
@@ -1038,22 +1033,20 @@ class CountNull(Count):
         name = self.field.escaped_name
         return f'SUM(CASE WHEN {name} IS NULL THEN 1 ELSE 0 END)'
     # End aggregate property
-
-    @property
-    def prefix(self) -> str:
-        """
-        Prefix
-        """
-        prefix = super().prefix
-        return f'{prefix}_NULL'
-    # End prefix property
 # End CountNull class
 
 
-class CountNonNull(Count):
+class CountNonNull(_BaseStatisticField):
     """
     Count Non-Null Statistics Field
     """
+    def __init__(self, field: Field | str) -> None:
+        """
+        Initialize the CountNonNull class
+        """
+        super().__init__(field, stat=Statistic.COUNT_NON_NULL)
+    # End init built-in
+
     @property
     def aggregate(self) -> str:
         """
@@ -1063,15 +1056,6 @@ class CountNonNull(Count):
         name = self.field.escaped_name
         return f'SUM(CASE WHEN {name} IS NOT NULL THEN 1 ELSE 0 END)'
     # End aggregate property
-
-    @property
-    def prefix(self) -> str:
-        """
-        Prefix
-        """
-        prefix = super().prefix
-        return f'{prefix}_NON_NULL'
-    # End prefix property
 # End CountNonNull class
 
 

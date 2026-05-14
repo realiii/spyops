@@ -17,7 +17,7 @@ from spyops.shared.stats import (
     Skew, Skewness, StandardDeviation, StdDev, Sum, Summation, ThirdQuartile,
     Unique, Var, Variance, Variation, first, first_quartile, last, median, mode,
     stdev, third_quartile, var, kurtosis, skewness, least_common, most_common,
-    interquartile_range, outlier_count, coefficient_of_variation)
+    interquartile_range, count_outlier, coefficient_of_variation)
 
 
 pytestmark = [mark.statistics]
@@ -176,7 +176,7 @@ class TestSQLiteStatisticsFunctions:
         Test outlier count
         """
         values = [1000, 1000, -1000, -1000, *range(1, 100)]
-        assert outlier_count(values) == 4
+        assert count_outlier(values) == 4
     # End test_outlier_count method
 # End TestSQLiteStatisticsFunctions class
 
@@ -191,9 +191,9 @@ class TestStatisticField:
         (CV, Statistic.VARIATION, 'spyops_variation({})', 'VARIATION'),
         (CoefficientOfVariation, Statistic.VARIATION, 'spyops_variation({})', 'VARIATION'),
         (Count, Statistic.COUNT, 'COUNT({})', 'COUNT'),
-        (CountNonNull, Statistic.COUNT, 'SUM(CASE WHEN {} IS NOT NULL THEN 1 ELSE 0 END)', 'COUNT_NON_NULL'),
-        (CountNull, Statistic.COUNT, 'SUM(CASE WHEN {} IS NULL THEN 1 ELSE 0 END)', 'COUNT_NULL'),
-        (CountOutlier, Statistic.OUTLIER_COUNT, 'spyops_outlier_count({})', 'OUTLIER_COUNT'),
+        (CountNonNull, Statistic.COUNT_NON_NULL, 'SUM(CASE WHEN {} IS NOT NULL THEN 1 ELSE 0 END)', 'COUNT_NON_NULL'),
+        (CountNull, Statistic.COUNT_NULL, 'SUM(CASE WHEN {} IS NULL THEN 1 ELSE 0 END)', 'COUNT_NULL'),
+        (CountOutlier, Statistic.COUNT_OUTLIER, 'spyops_count_outlier({})', 'COUNT_OUTLIER'),
         (First, Statistic.FIRST, 'spyops_first({})', 'FIRST'),
         (FirstQuartile, Statistic.FIRST_QUARTILE, 'spyops_first_quartile({})', 'FIRST_QUARTILE'),
         (IQR, Statistic.INTERQUARTILE_RANGE, 'spyops_interquartile_range({})', 'INTERQUARTILE_RANGE'),
@@ -212,7 +212,7 @@ class TestStatisticField:
         (Mode, Statistic.MODE, 'spyops_mode({})', 'MODE'),
         (Most, Statistic.MOST_COMMON, 'spyops_most_common({})', 'MOST_COMMON'),
         (MostCommon, Statistic.MOST_COMMON, 'spyops_most_common({})', 'MOST_COMMON'),
-        (Outliers, Statistic.OUTLIER_COUNT, 'spyops_outlier_count({})', 'OUTLIER_COUNT'),
+        (Outliers, Statistic.COUNT_OUTLIER, 'spyops_count_outlier({})', 'COUNT_OUTLIER'),
         (Q1, Statistic.FIRST_QUARTILE, 'spyops_first_quartile({})', 'FIRST_QUARTILE'),
         (Q3, Statistic.THIRD_QUARTILE, 'spyops_third_quartile({})', 'THIRD_QUARTILE'),
         (Range, Statistic.RANGE, '(MAX({0}) - MIN({0}))', 'RANGE'),
@@ -252,9 +252,9 @@ class TestStatisticField:
         (CV, True, Statistic.VARIATION, 'spyops_variation({})', 'VARIATION'),
         (CoefficientOfVariation, True, Statistic.VARIATION, 'spyops_variation({})', 'VARIATION'),
         (Count, False, Statistic.COUNT, 'COUNT({})', 'COUNT'),
-        (CountNonNull, False, Statistic.COUNT, 'SUM(CASE WHEN {} IS NOT NULL THEN 1 ELSE 0 END)', 'COUNT_NON_NULL'),
-        (CountNull, False, Statistic.COUNT, 'SUM(CASE WHEN {} IS NULL THEN 1 ELSE 0 END)', 'COUNT_NULL'),
-        (CountOutlier, True, Statistic.OUTLIER_COUNT, 'spyops_outlier_count({})', 'OUTLIER_COUNT'),
+        (CountNonNull, False, Statistic.COUNT_NON_NULL, 'SUM(CASE WHEN {} IS NOT NULL THEN 1 ELSE 0 END)', 'COUNT_NON_NULL'),
+        (CountNull, False, Statistic.COUNT_NULL, 'SUM(CASE WHEN {} IS NULL THEN 1 ELSE 0 END)', 'COUNT_NULL'),
+        (CountOutlier, True, Statistic.COUNT_OUTLIER, 'spyops_count_outlier({})', 'COUNT_OUTLIER'),
         (First, False, Statistic.FIRST, 'spyops_first({})', 'FIRST'),
         (FirstQuartile, False, Statistic.FIRST_QUARTILE, "spyops_first_quartile_date(unixepoch({}, 'subsecond'))", 'FIRST_QUARTILE'),
         (IQR, True, Statistic.INTERQUARTILE_RANGE, 'spyops_interquartile_range({})', 'INTERQUARTILE_RANGE'),
@@ -273,7 +273,7 @@ class TestStatisticField:
         (Mode, False, Statistic.MODE, 'spyops_mode({})', 'MODE'),
         (Most, False, Statistic.MOST_COMMON, 'spyops_most_common({})', 'MOST_COMMON'),
         (MostCommon, False, Statistic.MOST_COMMON, 'spyops_most_common({})', 'MOST_COMMON'),
-        (Outliers, True, Statistic.OUTLIER_COUNT, 'spyops_outlier_count({})', 'OUTLIER_COUNT'),
+        (Outliers, True, Statistic.COUNT_OUTLIER, 'spyops_count_outlier({})', 'COUNT_OUTLIER'),
         (Q1, False, Statistic.FIRST_QUARTILE, "spyops_first_quartile_date(unixepoch({}, 'subsecond'))", 'FIRST_QUARTILE'),
         (Q3, False, Statistic.THIRD_QUARTILE, "spyops_third_quartile_date(unixepoch({}, 'subsecond'))", 'THIRD_QUARTILE'),
         (Range, False, Statistic.RANGE, "(MAX(unixepoch({0}, 'subsecond')) -  MIN(unixepoch({0}, 'subsecond')))", 'RANGE'),
@@ -317,9 +317,9 @@ class TestStatisticField:
         (CV, True, Statistic.VARIATION, 'spyops_variation({})', 'VARIATION'),
         (CoefficientOfVariation, True, Statistic.VARIATION, 'spyops_variation({})', 'VARIATION'),
         (Count, False, Statistic.COUNT, 'COUNT({})', 'COUNT'),
-        (CountNonNull, False, Statistic.COUNT, 'SUM(CASE WHEN {} IS NOT NULL THEN 1 ELSE 0 END)', 'COUNT_NON_NULL'),
-        (CountNull, False, Statistic.COUNT, 'SUM(CASE WHEN {} IS NULL THEN 1 ELSE 0 END)', 'COUNT_NULL'),
-        (CountOutlier, True, Statistic.OUTLIER_COUNT, 'spyops_outlier_count({})', 'OUTLIER_COUNT'),
+        (CountNonNull, False, Statistic.COUNT_NON_NULL, 'SUM(CASE WHEN {} IS NOT NULL THEN 1 ELSE 0 END)', 'COUNT_NON_NULL'),
+        (CountNull, False, Statistic.COUNT_NULL, 'SUM(CASE WHEN {} IS NULL THEN 1 ELSE 0 END)', 'COUNT_NULL'),
+        (CountOutlier, True, Statistic.COUNT_OUTLIER, 'spyops_count_outlier({})', 'COUNT_OUTLIER'),
         (First, False, Statistic.FIRST, 'spyops_first({})', 'FIRST'),
         (FirstQuartile, True, Statistic.FIRST_QUARTILE, "spyops_first_quartile_date(unixepoch({}, 'subsecond'))", 'FIRST_QUARTILE'),
         (IQR, True, Statistic.INTERQUARTILE_RANGE, 'spyops_interquartile_range({})', 'INTERQUARTILE_RANGE'),
@@ -329,16 +329,16 @@ class TestStatisticField:
         (Last, False, Statistic.LAST, 'spyops_last({})', 'LAST'),
         (Least, False, Statistic.LEAST_COMMON, 'spyops_least_common({})', 'LEAST_COMMON'),
         (LeastCommon, False, Statistic.LEAST_COMMON, 'spyops_least_common({})', 'LEAST_COMMON'),
-        (Max, True, Statistic.MAXIMUM, 'MAX({})', 'MAX'),
-        (Maximum, True, Statistic.MAXIMUM, 'MAX({})', 'MAX'),
+        (Max, False, Statistic.MAXIMUM, 'MAX({})', 'MAX'),
+        (Maximum, False, Statistic.MAXIMUM, 'MAX({})', 'MAX'),
         (Mean, True, Statistic.AVERAGE, "datetime(AVG(unixepoch({}, 'subsecond')), 'unixepoch')", 'AVG'),
         (Median, True, Statistic.MEDIAN, "datetime(spyops_median_date(unixepoch({}, 'subsecond')), 'unixepoch')", 'MEDIAN'),
-        (Min, True, Statistic.MINIMUM, 'MIN({})', 'MIN'),
-        (Minimum, True, Statistic.MINIMUM, 'MIN({})', 'MIN'),
+        (Min, False, Statistic.MINIMUM, 'MIN({})', 'MIN'),
+        (Minimum, False, Statistic.MINIMUM, 'MIN({})', 'MIN'),
         (Mode, False, Statistic.MODE, 'spyops_mode({})', 'MODE'),
         (Most, False, Statistic.MOST_COMMON, 'spyops_most_common({})', 'MOST_COMMON'),
         (MostCommon, False, Statistic.MOST_COMMON, 'spyops_most_common({})', 'MOST_COMMON'),
-        (Outliers, True, Statistic.OUTLIER_COUNT, 'spyops_outlier_count({})', 'OUTLIER_COUNT'),
+        (Outliers, True, Statistic.COUNT_OUTLIER, 'spyops_count_outlier({})', 'COUNT_OUTLIER'),
         (Q1, True, Statistic.FIRST_QUARTILE, "spyops_first_quartile_date(unixepoch({}, 'subsecond'))", 'FIRST_QUARTILE'),
         (Q3, True, Statistic.THIRD_QUARTILE, "spyops_third_quartile_date(unixepoch({}, 'subsecond'))", 'THIRD_QUARTILE'),
         (Range, True, Statistic.RANGE, "(MAX(unixepoch({0}, 'subsecond')) -  MIN(unixepoch({0}, 'subsecond')))", 'RANGE'),
