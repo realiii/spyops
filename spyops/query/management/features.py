@@ -840,6 +840,23 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
         self._add_attrs: bool = add_geometric_attributes
     # End init built-in
 
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+
+        Only generating a 2D bounding geometry regardless of the input feature
+        class dimensions, which means that the presence of Z or M on the source
+        (or from the settings) handled as is_different=True to ensure that
+        geometry casting occurs.
+        """
+        zm = zm_config(self.source)
+        is_different = zm.z_enabled or zm.m_enabled
+        return ZMConfig(
+            is_different=is_different, z_enabled=zm.z_enabled,
+            m_enabled=zm.m_enabled)
+    # End zm_config property
+
     @property
     def add_attributes(self) -> bool:
         """
