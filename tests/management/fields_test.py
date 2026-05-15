@@ -2,7 +2,7 @@
 """
 Tests for Fields
 """
-
+from datetime import datetime, timezone
 
 from fudgeo import Field, Table
 from fudgeo.enumeration import FieldType
@@ -10,8 +10,9 @@ from pytest import mark
 
 from spyops.management import (
     add_field, add_gps_metadata_fields,
-    calculate_end_time, calculate_field, delete_field, alter_field)
-from spyops.shared.enumeration import FieldProperty
+    calculate_end_time, calculate_field, delete_field, alter_field,
+    field_statistics_to_table)
+from spyops.shared.enumeration import FieldProperty, StatisticOutputOption
 from spyops.shared.field import GNSS_COMMON_FIELDS
 
 pytestmark = [mark.management, mark.field]
@@ -239,6 +240,211 @@ class TestCalculateEndTime:
             1480052, 1480052, 1480052, 1480272, None, 1480052, 1480062, 1480192]
     # End test_with_sort method
 # End TestCalculateEndTime class
+
+
+class TestFieldStatisticsToTable:
+    """
+    Test Field Statistics to Table
+    """
+    def test_numeric_sans_group(self, inputs, mem_gpkg):
+        """
+        Test numeric sans group
+        """
+        source = inputs['cl_run_messages']
+        target = Table(geopackage=mem_gpkg, name='stats')
+        fields = source.fields[1:]
+        tbl = field_statistics_to_table(
+            source, target, fields=fields, where_clause="""RECORD_ID > 10""")
+        assert len(tbl) == 12
+        assert len(tbl.field_names) == 24
+        with tbl.geopackage.connection as cin:
+            name = tbl.escaped_name
+            cursor = cin.execute(f'SELECT FIELD_NAME FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                'SESSION_ID', 'RECORD_ID', 'SEGMENT_ID', 'DISTANCE', 'SPEED',
+                'GPS_ACCURACY', 'ENHANCED_ALTITUDE', 'ALTITUDE', 'GRADE',
+                'CADENCE', 'ENHANCED_SPEED', 'EMPTY']
+            cursor = cin.execute(f'SELECT COUNT_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                0, 0, 0, 0, 0, 10, 10, 10, 5687, 4, 37, 5687]
+            cursor = cin.execute(f'SELECT COUNT_NON_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                5687, 5687, 5687, 5687, 5687, 5677, 5677, 5677,
+                0, 5683, 5650, 0]
+            cursor = cin.execute(f'SELECT ROUND(MEAN, 1) FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                1.4, 1533.1, 1.6, 5517.4, 3.6, 1.0, 243.6, 243.6,
+                None, 81.2, 3.6, None]
+            cursor = cin.execute(f'SELECT ROUND(MODE, 1) FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                1.0, 11.0, 1.0, 9069.1, 0.0, 1.0, 248.6, 248.6,
+                None, 82.0, 3.7, None]
+    # End test_numeric_sans_group method
+
+    def test_numeric_with_group(self, inputs, mem_gpkg):
+        """
+        Test numeric with group
+        """
+        source = inputs['cl_run_messages']
+        target = Table(geopackage=mem_gpkg, name='stats')
+        fields = source.fields[1:]
+        tbl = field_statistics_to_table(
+            source, target, fields=fields, group_fields='SESSION_ID',
+            where_clause="""RECORD_ID > 10""")
+        assert len(tbl) == 24
+        assert len(tbl.field_names) == 25
+        with tbl.geopackage.connection as cin:
+            name = tbl.escaped_name
+            cursor = cin.execute(f'SELECT SESSION_ID FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2]
+            cursor = cin.execute(f'SELECT FIELD_NAME FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                'SESSION_ID', 'SESSION_ID', 'RECORD_ID', 'RECORD_ID',
+                'SEGMENT_ID', 'SEGMENT_ID', 'DISTANCE', 'DISTANCE', 'SPEED',
+                'SPEED', 'GPS_ACCURACY', 'GPS_ACCURACY', 'ENHANCED_ALTITUDE',
+                'ENHANCED_ALTITUDE', 'ALTITUDE', 'ALTITUDE', 'GRADE', 'GRADE',
+                'CADENCE', 'CADENCE', 'ENHANCED_SPEED', 'ENHANCED_SPEED',
+                'EMPTY', 'EMPTY']
+            cursor = cin.execute(f'SELECT COUNT_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 4, 6, 4, 6, 4,
+                3601, 2086, 1, 3, 23, 14, 3601, 2086]
+            cursor = cin.execute(f'SELECT COUNT_NON_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                3601, 2086, 3601, 2086, 3601, 2086, 3601, 2086, 3601, 2086,
+                3595, 2082, 3595, 2082, 3595, 2082, 0, 0, 3600, 2083, 3578,
+                2072, 0, 0]
+            cursor = cin.execute(f'SELECT ROUND(MEAN, 1) FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                1.0, 2.0, 1811.0, 1053.5, 1.6, 1.6, 6622.9, 3608.9, 3.7, 3.5,
+                1.0, 1.0, 240.2, 249.4, 240.2, 249.4, None, None, 81.8, 80.3,
+                3.7, 3.5, None, None]
+            cursor = cin.execute(f'SELECT ROUND(MODE, 1) FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                1.0, 2.0, 11.0, 11.0, 1.0, 1.0, 9069.1, 3636.5, 0.0, 0.0, 1.0,
+                1.0, 246.0, 248.6, 246.0, 248.6, None, None, 82.0, 82.0, 3.7,
+                3.7, None, None]
+    # End test_numeric_with_group method
+
+    def test_text_sans_group(self, inputs, mem_gpkg):
+        """
+        Test text sans group
+        """
+        source = inputs['cl_run_messages']
+        target = Table(geopackage=mem_gpkg, name='stats')
+        fields = source.fields[1:]
+        tbl = field_statistics_to_table(
+            source, target, fields=fields,
+            output_type_option=StatisticOutputOption.TEXT,
+            where_clause="""RECORD_ID > 10""")
+        assert len(tbl) == 1
+        assert len(tbl.field_names) == 12
+        with tbl.geopackage.connection as cin:
+            name = tbl.escaped_name
+            cursor = cin.execute(f'SELECT FIELD_NAME FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['SIMPLE']
+            cursor = cin.execute(f'SELECT COUNT_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [0]
+            cursor = cin.execute(f'SELECT COUNT_NON_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [5687]
+            cursor = cin.execute(f'SELECT MINIMUM FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['0']
+            cursor = cin.execute(f'SELECT MODE FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['A']
+    # End test_text_sans_group method
+
+    def test_text_with_group(self, inputs, mem_gpkg):
+        """
+        Test text with group
+        """
+        source = inputs['cl_run_messages']
+        target = Table(geopackage=mem_gpkg, name='stats')
+        fields = source.fields[1:]
+        tbl = field_statistics_to_table(
+            source, target, fields=fields,
+            output_type_option=StatisticOutputOption.TEXT,
+            group_fields='SESSION_ID',
+            where_clause="""RECORD_ID > 10""")
+        assert len(tbl) == 2
+        assert len(tbl.field_names) == 13
+        with tbl.geopackage.connection as cin:
+            name = tbl.escaped_name
+            cursor = cin.execute(f'SELECT SESSION_ID FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [1, 2]
+            cursor = cin.execute(f'SELECT FIELD_NAME FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['SIMPLE', 'SIMPLE']
+            cursor = cin.execute(f'SELECT COUNT_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [0, 0]
+            cursor = cin.execute(f'SELECT COUNT_NON_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [3601, 2086]
+            cursor = cin.execute(f'SELECT MINIMUM FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['0', '0']
+            cursor = cin.execute(f'SELECT MODE FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['A', 'A']
+    # End test_text_with_group method
+
+    def test_date_sans_group(self, inputs, mem_gpkg):
+        """
+        Test date sans group
+        """
+        source = inputs['cl_run_messages']
+        target = Table(geopackage=mem_gpkg, name='stats')
+        fields = source.fields[1:]
+        tbl = field_statistics_to_table(
+            source, target, fields=fields,
+            output_type_option=StatisticOutputOption.DATE,
+            where_clause="""RECORD_ID > 10""")
+        assert len(tbl) == 1
+        assert len(tbl.field_names) == 17
+        with tbl.geopackage.connection as cin:
+            name = tbl.escaped_name
+            cursor = cin.execute(f'SELECT FIELD_NAME FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['RECORD_DATE']
+            cursor = cin.execute(f'SELECT COUNT_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [0]
+            cursor = cin.execute(f'SELECT COUNT_NON_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [5687]
+            cursor = cin.execute(f'SELECT MINIMUM FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [datetime(2026, 5, 7, 17, 19, 7, tzinfo=timezone.utc)]
+            cursor = cin.execute(f'SELECT MODE FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [datetime(2026, 5, 8, 15, 15, 36, tzinfo=timezone.utc)]
+    # End test_date_sans_group method
+
+    def test_date_with_group(self, inputs, mem_gpkg):
+        """
+        Test date with group
+        """
+        source = inputs['cl_run_messages']
+        target = Table(geopackage=mem_gpkg, name='stats')
+        fields = source.fields[1:]
+        tbl = field_statistics_to_table(
+            source, target, fields=fields,
+            output_type_option=StatisticOutputOption.DATE,
+            group_fields='SESSION_ID',
+            where_clause="""RECORD_ID > 10""")
+        assert len(tbl) == 2
+        assert len(tbl.field_names) == 18
+        with tbl.geopackage.connection as cin:
+            name = tbl.escaped_name
+            cursor = cin.execute(f'SELECT SESSION_ID FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [1, 2]
+            cursor = cin.execute(f'SELECT FIELD_NAME FROM {name}')
+            assert [n for n, in cursor.fetchall()] == ['RECORD_DATE', 'RECORD_DATE']
+            cursor = cin.execute(f'SELECT COUNT_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [0, 0]
+            cursor = cin.execute(f'SELECT COUNT_NON_NULL FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [3601, 2086]
+            cursor = cin.execute(f'SELECT MINIMUM FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                datetime(2026, 5, 8, 15, 15, 36, tzinfo=timezone.utc),
+                datetime(2026, 5, 7, 17, 19, 7, tzinfo=timezone.utc)]
+            cursor = cin.execute(f'SELECT MODE FROM {name}')
+            assert [n for n, in cursor.fetchall()] == [
+                datetime(2026, 5, 8, 15, 15, 36, tzinfo=timezone.utc),
+                datetime(2026, 5, 7, 17, 19, 7, tzinfo=timezone.utc)]
+    # End test_date_with_group method
+# End TestFieldStatisticsToTable class
 
 
 if __name__ == '__main__':  # pragma: no cover

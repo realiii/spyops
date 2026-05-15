@@ -15,7 +15,7 @@ from spyops.management.features import (
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
-    calculate_field, delete_field)
+    calculate_field, delete_field, field_statistics_to_table)
 from spyops.management.general import (
     copy, delete, delete_identical, find_identical, rename)
 from spyops.management.generalization import dissolve
@@ -68,6 +68,7 @@ __all__ = [
     'calculate_end_time',
     'calculate_field',
     'delete_field',
+    'field_statistics_to_table',
 
     'copy',
     'delete',
