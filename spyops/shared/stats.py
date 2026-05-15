@@ -863,7 +863,7 @@ class Median(_FunctionStatisticNumericDateField):
         # noinspection PyUnresolvedReferences
         escaped_name = self.field.escaped_name
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        agg = f"{name}_date(unixepoch({escaped_name}, 'subsecond'))"
+        agg = f"{name}(unixepoch({escaped_name}, 'subsecond'))"
         return f"datetime({agg}, 'unixepoch')"
     # End aggregate property
 # End Median class
