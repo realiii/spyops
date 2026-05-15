@@ -305,6 +305,14 @@ def get_data_type(field: Field) -> str:
 # End get_data_type function
 
 
+def filter_by_data_type(fields: FIELDS, data_types: NAMES) -> FIELDS:
+    """
+    Filter by Data Type
+    """
+    return [fld for fld in fields if get_data_type(fld) in data_types]
+# End filter_by_data_type function
+
+
 def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:
     """
     Clone Field
