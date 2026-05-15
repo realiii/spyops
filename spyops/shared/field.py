@@ -99,6 +99,13 @@ POINT_Z: Field = Field(
     'POINT_Z', data_type=FieldType.real, alias='Z Coordinate')
 POINT_M: Field = Field(
     'POINT_M', data_type=FieldType.real, alias='M Coordinate')
+FIELD_NAME: Field = Field(
+    'FIELD_NAME', data_type=FieldType.text, alias='Field Name')
+FIELD_ALIAS: Field = Field(
+    'FIELD_ALIAS', data_type=FieldType.text, alias='Alias')
+FIELD_TYPE: Field = Field(
+    'FIELD_TYPE', data_type=FieldType.text, alias='Field Type')
+
 
 GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(
     'GNSS_POSITIONSOURCETYPE', data_type=FieldType.text,
@@ -296,6 +303,14 @@ def get_data_type(field: Field) -> str:
     return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
                  if data_type.startswith(aliases)), data_type)
 # End get_data_type function
+
+
+def filter_by_data_type(fields: FIELDS, data_types: NAMES) -> FIELDS:
+    """
+    Filter by Data Type
+    """
+    return [fld for fld in fields if get_data_type(fld) in data_types]
+# End filter_by_data_type function
 
 
 def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:

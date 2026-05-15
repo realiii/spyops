@@ -22,6 +22,13 @@ from spyops.crs.unit import (
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, BufferTypeOption, DissolveOption,
     EndOption, OutputTypeOption, SideOption)
+from spyops.shared.stats import (
+    Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
+    CountNonNull, CountNull, CountOutlier, First, FirstQuartile, IQR,
+    InterquartileRange, Kurt, Kurtosis, Last, Least, LeastCommon, Max, Maximum,
+    Mean, Median, Min, Minimum, Mode, Most, MostCommon, Outliers, Q1, Q3, Range,
+    Skew, Skewness, StandardDeviation, StdDev, Sum, Summation, ThirdQuartile,
+    Unique, Var, Variance, Variation)
 
 
 __all__ = [
@@ -78,6 +85,50 @@ __all__ = [
     'Yards',
     'YardsInternational',
     'YardsUS',
+
+    'Average',
+    'Avg',
+    'CV',
+    'CoefficientOfVariation',
+    'Concat',
+    'Concatenate',
+    'Count',
+    'CountNonNull',
+    'CountNull',
+    'CountOutlier',
+    'First',
+    'FirstQuartile',
+    'IQR',
+    'InterquartileRange',
+    'Kurt',
+    'Kurtosis',
+    'Last',
+    'Least',
+    'LeastCommon',
+    'Max',
+    'Maximum',
+    'Mean',
+    'Median',
+    'Min',
+    'Minimum',
+    'Mode',
+    'Most',
+    'MostCommon',
+    'Outliers',
+    'Q1',
+    'Q3',
+    'Range',
+    'Skew',
+    'Skewness',
+    'StandardDeviation',
+    'StdDev',
+    'Sum',
+    'Summation',
+    'ThirdQuartile',
+    'Unique',
+    'Var',
+    'Variance',
+    'Variation',
 ]
 
 

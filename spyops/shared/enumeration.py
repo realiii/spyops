@@ -119,6 +119,16 @@ class OutputTypeOption(StrEnum):
 # End OutputTypeOption class
 
 
+class StatisticOutputOption(StrEnum):
+    """
+    Statistic Output Type Options
+    """
+    NUMERIC = auto()
+    TEXT = auto()
+    DATE = auto()
+# End StatisticOutputOption class
+
+
 class FieldProperty(StrEnum):
     """
     Field Properties
@@ -233,11 +243,25 @@ class Statistic(StrEnum):
     SUMMATION = auto()
 
     COUNT = auto()
+    COUNT_NULL = auto()
+    COUNT_NON_NULL = auto()
     UNIQUE = auto()
     MODE = auto()
     FIRST = auto()
     LAST = auto()
     CONCATENATE = auto()
+
+    SKEWNESS = auto()
+    KURTOSIS = auto()
+    VARIATION = auto()
+
+    FIRST_QUARTILE = auto()
+    THIRD_QUARTILE = auto()
+    INTERQUARTILE_RANGE = auto()
+    COUNT_OUTLIER = auto()
+
+    LEAST_COMMON = auto()
+    MOST_COMMON = auto()
 # End Statistic class
 
 

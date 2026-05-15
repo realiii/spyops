@@ -15,10 +15,9 @@ from spyops.management.features import (
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
-    calculate_field, delete_field)
+    calculate_field, delete_field, field_statistics_to_table)
 from spyops.management.general import (
-    copy, delete, delete_identical,
-    find_identical, rename)
+    copy, delete, delete_identical, find_identical, rename)
 from spyops.management.generalization import dissolve
 from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
@@ -27,15 +26,18 @@ from spyops.management.projections import define_projection, project
 from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.management.workspace import (
-    create_folder, create_geopackage,
-    create_sqlite_database)
+    create_folder, create_geopackage, create_sqlite_database)
 from spyops.shared.enumeration import (
     FieldProperty, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
+    LineTypeOption, MinimumGeometryOption, PointTypeOption,
+    StatisticOutputOption, WeightOption)
 from spyops.shared.stats import (
-    Average, Avg, Concat, Concatenate, Count, First, Last, Max, Maximum, Mean,
-    Median, Min, Minimum, Mode, Range, StandardDeviation, StdDev, Sum,
-    Summation, Unique, Var, Variance)
+    Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
+    CountNonNull, CountNull, CountOutlier, First, FirstQuartile, IQR,
+    InterquartileRange, Kurt, Kurtosis, Last, Least, LeastCommon, Max, Maximum,
+    Mean, Median, Min, Minimum, Mode, Most, MostCommon, Outliers, Q1, Q3, Range,
+    Skew, Skewness, StandardDeviation, StdDev, Sum, Summation, ThirdQuartile,
+    Unique, Var, Variance, Variation)
 
 
 __all__ = [
@@ -66,6 +68,7 @@ __all__ = [
     'calculate_end_time',
     'calculate_field',
     'delete_field',
+    'field_statistics_to_table',
 
     'copy',
     'delete',
@@ -102,15 +105,28 @@ __all__ = [
     'LineTypeOption',
     'MinimumGeometryOption',
     'PointTypeOption',
+    'StatisticOutputOption',
     'WeightOption',
 
     'Average',
     'Avg',
+    'CV',
+    'CoefficientOfVariation',
     'Concat',
     'Concatenate',
     'Count',
+    'CountNonNull',
+    'CountNull',
+    'CountOutlier',
     'First',
+    'FirstQuartile',
+    'IQR',
+    'InterquartileRange',
+    'Kurt',
+    'Kurtosis',
     'Last',
+    'Least',
+    'LeastCommon',
     'Max',
     'Maximum',
     'Mean',
@@ -118,14 +134,23 @@ __all__ = [
     'Min',
     'Minimum',
     'Mode',
+    'Most',
+    'MostCommon',
+    'Outliers',
+    'Q1',
+    'Q3',
     'Range',
+    'Skew',
+    'Skewness',
     'StandardDeviation',
     'StdDev',
     'Sum',
     'Summation',
+    'ThirdQuartile',
     'Unique',
     'Var',
-    'Variance'
+    'Variance',
+    'Variation',
 ]
 
 

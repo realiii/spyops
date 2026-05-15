@@ -18,12 +18,12 @@ from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from spyops.shared.records import select_and_transform_features
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
-    validate_element, validate_feature_class, validate_field,
-    validate_geometry_dimension, validate_geopackage,
-    validate_operator_feature_class, validate_overwrite_input,
-    validate_overwrite_source, validate_result, validate_source_table,
-    validate_supported_crs, validate_source_feature_class,
-    validate_target_feature_class, validate_target_table, validate_xy_tolerance)
+    validate_feature_class, validate_field, validate_geometry_dimension,
+    validate_geopackage, validate_operator_feature_class,
+    validate_overwrite_input, validate_overwrite_source, validate_result,
+    validate_source_element, validate_source_table, validate_supported_crs,
+    validate_source_feature_class, validate_target_feature_class,
+    validate_target_table, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -69,7 +69,7 @@ def select(source: FeatureClass, target: FeatureClass, *,
 
 
 @validate_result()
-@validate_element(SOURCE)
+@validate_source_element()
 @validate_field(GROUP_FIELDS, data_types=TEXT_AND_NUMBERS,
                 element_name=SOURCE, exclude_primary=False)
 @validate_geopackage()

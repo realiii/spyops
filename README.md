@@ -47,6 +47,7 @@ MIT
 - avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
+- added `field_statistics_to_table` (Management - Fields)
 - added `delete_identical` (Management - General)
 - added `find_identical` (Management - General)
 - added `export_features` (Conversion - GeoPackage)
