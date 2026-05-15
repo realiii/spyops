@@ -272,7 +272,9 @@ class ValidateOverwriteInput(AbstractValidate):
                 func=func, args=args, kwargs=kwargs)
             target: ELEMENT = kwargs[self._target]
             for name in self._inputs:
-                self._check_same(target, other=kwargs[name], name=name)
+                others = self._make_iterable(kwargs[name])
+                for other in others:
+                    self._check_same(target, other=other, name=name)
             return func(**kwargs)
         # End wrapper function
         return wrapper
