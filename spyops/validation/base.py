@@ -137,15 +137,18 @@ class AbstractValidateTypeExists(AbstractValidateType):
     """
     Abstract Validate Type and Object Exists
     """
-    def __init__(self, name: str, *, exists: bool = True) -> None:
+    def __init__(self, name: str, *, exists: bool = True,
+                 is_optional: bool = False) -> None:
         """
         Initialize the ValidateContent class
 
         :param name: Name of the argument to validate
         :param exists: Ensure that the specified item exists
+        :param is_optional: Allow the item to be None
         """
         super().__init__(name=name)
         self._exists: bool = exists
+        self._is_optional: bool = is_optional
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -159,6 +162,8 @@ class AbstractValidateTypeExists(AbstractValidateType):
             """
             kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
             obj = self._get_object(kwargs)
+            if obj is None and self._is_optional:
+                return func(**kwargs)
             self._validate_type(obj)
             self._set_object(obj, kwargs=kwargs)
             if not self._validate_exists(obj):
