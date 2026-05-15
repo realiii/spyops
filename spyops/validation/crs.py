@@ -78,11 +78,12 @@ class ValidateSupportedCRS(AbstractValidate):
         crses = []
         valid = True
         for name in self._names:
-            feature_class = kwargs[name]
-            if crs := _check_supported_crs(feature_class, name=name):
-                crses.append(crs)
-            else:
-                valid = False
+            feature_classes = self._make_iterable(kwargs[name])
+            for feature_class in feature_classes:
+                if crs := _check_supported_crs(feature_class, name=name):
+                    crses.append(crs)
+                else:
+                    valid = False
         if not valid:
             raise CoordinateSystemNotSupportedError(
                 'One or more feature classes have an unsupported '
