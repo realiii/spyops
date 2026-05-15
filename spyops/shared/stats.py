@@ -476,7 +476,7 @@ class _FirstQuartileDateAggregate(AbstractAggregate):
         """
         if (result := first_quartile(self._values)) is None:
             return result
-        return datetime.fromtimestamp(result, tz=timezone.utc)
+        return str(datetime.fromtimestamp(result, tz=timezone.utc))
     # End finalize method
 # End _FirstQuartileDateAggregate class
 
@@ -491,7 +491,7 @@ class _ThirdQuartileDateAggregate(AbstractAggregate):
         """
         if (result := third_quartile(self._values)) is None:
             return result
-        return datetime.fromtimestamp(result, tz=timezone.utc)
+        return str(datetime.fromtimestamp(result, tz=timezone.utc))
     # End finalize method
 # End _ThirdQuartileDateAggregate class
 
