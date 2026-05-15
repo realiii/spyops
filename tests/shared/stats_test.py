@@ -267,7 +267,7 @@ class TestStatisticField:
         (Max, False, Statistic.MAXIMUM, 'MAX({})', 'MAX'),
         (Maximum, False, Statistic.MAXIMUM, 'MAX({})', 'MAX'),
         (Mean, False, Statistic.AVERAGE, "datetime(AVG(unixepoch({}, 'subsecond')), 'unixepoch')", 'AVG'),
-        (Median, False, Statistic.MEDIAN, "datetime(spyops_median_date(unixepoch({}, 'subsecond')), 'unixepoch')", 'MEDIAN'),
+        (Median, False, Statistic.MEDIAN, "datetime(spyops_median(unixepoch({}, 'subsecond')), 'unixepoch')", 'MEDIAN'),
         (Min, False, Statistic.MINIMUM, 'MIN({})', 'MIN'),
         (Minimum, False, Statistic.MINIMUM, 'MIN({})', 'MIN'),
         (Mode, False, Statistic.MODE, 'spyops_mode({})', 'MODE'),
