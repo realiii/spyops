@@ -166,8 +166,8 @@ def select_and_transform_features(query: 'BaseQuerySelect') -> 'FeatureClass':
     records = []
     query_select = query.select
     query_insert = query.insert
-    transformer = query.source_transformer
     config = query.geometry_config
+    transformer = query.source_transformer
     with (query.target.geopackage.connection as cout,
           query.source.geopackage.connection as cin,
           ExecuteMany(connection=cout, table=query.target) as executor):
