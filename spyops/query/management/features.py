@@ -20,6 +20,7 @@ from shapely import (
     GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
     get_num_coordinates, get_num_geometries)
 from shapely.constructive import boundary
+from shapely.geometry.multilinestring import MultiLineString
 from shapely.set_operations import union_all
 from shapely.strtree import STRtree
 
@@ -1828,6 +1829,9 @@ class QueryFeatureToLine(BaseQueryFeatureTo):
         lines, *_ = self._get_lines(scratch)
         if conn := scratch.connection:
             conn.close()
+        combiner = self.geometry_config.combiner
+        lines = get_geoms_iter(combiner(MultiLineString(lines)))
+        # noinspection PyTypeChecker
         return [(line, ()) for line in lines]
     # End build_features method
 # End QueryFeatureToLine class
