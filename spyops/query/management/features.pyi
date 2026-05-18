@@ -5,15 +5,16 @@ Type stubs for query.management.features module
 
 
 from abc import ABCMeta
-from functools import cached_property
+from collections import defaultdict
+from functools import cache, cached_property
 from operator import itemgetter
 from sqlite3 import Connection
-from typing import Callable, Generator, Union
+from typing import Callable, Generator, Optional, Union
 
 from fudgeo import FeatureClass, Field, SpatialReferenceSystem, Table
 from numpy import ndarray
 from pyproj import CRS
-from shapely import Polygon
+from shapely import Polygon, Point as ShapelyPoint, LineString
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment.core import HasZM, ZMConfig
@@ -23,8 +24,8 @@ from spyops.query.base import (
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.hint import (
-    ELEMENT, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE, XY_TOL)
-
+    ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE,
+    XY_TOL)
 
 
 class QueryMultiPartToSinglePart(AbstractSourceQuery):
@@ -318,3 +319,39 @@ class QueryPolygonToLine(BaseQuerySelect):
     def line_class(self) -> LINE_TYPE: ...
     @cached_property
     def source_transformer(self) -> Callable | None: ...
+
+
+class QueryFeatureToPolygonPrepare(BaseQuerySelect):
+    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+
+
+class QueryFeatureToPolygon(AbstractSourceQuery):
+
+    _source: FEATURE_CLASSES
+    _label: Optional[FeatureClass]
+
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None: ...
+    def _get_target_shape_type(self) -> str: ...
+    @cached_property
+    def spatial_reference_system(self) -> Optional[SpatialReferenceSystem]: ...
+    @cached_property
+    def zm_config(self) -> ZMConfig: ...
+    @property
+    def _has_zm(self) -> HasZM: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+    @property
+    def insert(self) -> str: ...
+    def build_features(self) -> list[tuple[Polygon, tuple]]: ...
+    def _add_attributes(self, polygons: list[Polygon]) -> list[tuple[Polygon, tuple]]: ...
+    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]: ...
+    def _get_null_record(self) -> tuple: ...
+    @staticmethod
+    def _index_overlay(points: list[ShapelyPoint], polygons: list[Polygon]) -> defaultdict[int, list[int]]: ...
+    @staticmethod
+    def _build_polygons(lines: ndarray) -> list[Polygon]: ...
+    def _get_lines(self) -> ndarray: ...
+    @staticmethod
+    def _fetch_lines_sizes(query: QueryFeatureToPolygonPrepare, lines: list[LineString], sizes: list[GRID_SIZE]) -> None: ...

@@ -6,9 +6,9 @@ Query Classes for management.features module
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from functools import cached_property, partial
+from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Callable, Generator, TYPE_CHECKING, Union
+from typing import Callable, Generator, Optional, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import FETCH_SIZE
@@ -17,12 +17,17 @@ from fudgeo.geometry import Point
 from numpy import array
 from pyproj import CRS
 from shapely import (
-    GeometryCollection, Polygon, get_num_coordinates, get_num_geometries)
+    GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
+    get_num_coordinates, get_num_geometries)
+from shapely.constructive import boundary
+from shapely.set_operations import union_all
+from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.util import get_crs_from_source, srs_from_crs
-from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
 from spyops.environment.core import HasZM, ZMConfig, zm_config
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
@@ -34,10 +39,11 @@ from spyops.geometry.extent import (
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
 from spyops.geometry.segment import GEOMETRY_SEGMENT
-from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
+from spyops.geometry.wa import polygonize
 from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
     BaseQuerySelect)
@@ -49,14 +55,16 @@ from spyops.shared.field import (
     POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
     get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
-    ELEMENT, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE, XY_TOL)
+    ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE,
+    XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
+from spyops.shared.records import select_and_transform_features
 from spyops.shared.sql import SQL_ALL_ID
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    from fudgeo import FeatureClass, Table
+    from fudgeo import Table
     from numpy import ndarray
 
 
@@ -1507,6 +1515,265 @@ class QueryPolygonToLine(BaseQuerySelect):
             transformer=transformer)
     # End source_transformer property
 # End QueryPolygonToLine class
+
+
+class QueryFeatureToPolygonPrepare(BaseQuerySelect):
+    """
+    Query for each input to Feature to Polygon
+    """
+    def __init__(self, source: FeatureClass, target: Optional[FeatureClass],
+                 xy_tolerance: XY_TOL = None) -> None:
+        """
+        Initialize the QueryFeatureToPolygonPrepare class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+    # End init built-in
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Limit fields to just geometry
+        """
+        insert_names = get_geometry_column_name(element)
+        select_names = get_geometry_column_name(element, include_geom_type=True)
+        return 1, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Limit fields to just geometry, sans attributes
+        """
+        return []
+    # End _get_unique_fields method
+# End QueryFeatureToPolygonPrepare class
+
+
+class QueryFeatureToPolygon(AbstractSourceQuery):
+    """
+    Query Feature to Polygon
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryFeatureToPolygon class
+        """
+        src, *_ = source
+        super().__init__(src, target=target, xy_tolerance=xy_tolerance)
+        self._source: FEATURE_CLASSES = source
+        self._label: Optional[FeatureClass] = label
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    @cached_property
+    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the first
+        feature class in the source.
+        """
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        source, *_ = self._source
+        return source.spatial_reference_system
+    # End spatial_reference_system property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+        """
+        return zm_config(*self._source)
+    # End zm_config property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        has_z = any(source.has_z for source in self._source)
+        has_m = any(source.has_m for source in self._source)
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        label = self._label
+        if label is None:
+            return []
+        return validate_fields(label, fields=label.fields)
+    # End _get_unique_fields method
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert SQL
+        """
+        elm = self.target
+        fields = self._get_unique_fields()
+        insert_field_names = make_field_names(fields)
+        insert_field_names = self._concatenate(
+            get_geometry_column_name(elm), insert_field_names)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=len(fields) + 1)
+    # End insert property
+
+    def build_features(self) -> list[tuple[Polygon, tuple]]:
+        """
+        Polygonized Features
+        """
+        lines = self._get_lines()
+        if not len(lines):
+            return []
+        if not (polygons := self._build_polygons(lines)):
+            return []
+        return self._add_attributes(polygons)
+    # End build_features method
+
+    def _add_attributes(self, polygons: list[Polygon]) \
+            -> list[tuple[Polygon, tuple]]:
+        """
+        Add Attributes, keeping all matches between label points and polygons
+        """
+        nulls = self._get_null_record()
+        points, attributes = self._get_points_attributes()
+        if not attributes:
+            return [(polygon, nulls) for polygon in polygons]
+        if not (grouper := self._index_overlay(points, polygons)):
+            return [(polygon, nulls) for polygon in polygons]
+        results = []
+        for i, polygon in enumerate(polygons):
+            if i in grouper:
+                results.extend(
+                    [(polygon, attributes[idx]) for idx in grouper[i]])
+            else:
+                results.append((polygon, nulls))
+        return results
+    # End _add_attributes method
+
+    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]:
+        """
+        Get Points and Attributes
+        """
+        points = []
+        attributes = []
+        if self._label is None or not self._get_unique_fields():
+            return points, attributes
+        # noinspection PyTypeChecker
+        query = QueryCopyFeatures(self._label, target=None)
+        transformer = query.source_transformer
+        srs = self.spatial_reference_system
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs),
+              self._label.geopackage.connection as cin):
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geoms = to_shapely(
+                    features, transformer=transformer,
+                    option=DimensionOption.TWO_D)
+                if not features:
+                    continue
+                points.extend(geoms)
+                attributes.extend([feature[1:] for feature in features])
+        return points, attributes
+    # End _get_points_attributes method
+
+    def _get_null_record(self) -> tuple:
+        """
+        Get Null Record
+        """
+        return tuple([None] * len(self._get_unique_fields()))
+    # End _get_null_record method
+
+    @staticmethod
+    def _index_overlay(points: list[ShapelyPoint], polygons: list[Polygon]) \
+            -> defaultdict[int, list[int]]:
+        """
+        Build cross-reference between label planarized polygons and label points
+        for use in assigning attributes to polygons
+        """
+        tree = STRtree(polygons)
+        intersects = tree.query(points, predicate='intersects')
+        grouper = defaultdict(list)
+        for pnt_idx, poly_idx in intersects.T.tolist():
+            grouper[poly_idx].append(pnt_idx)
+        return grouper
+    # End _index_overlay method
+
+    @staticmethod
+    def _build_polygons(lines: 'ndarray') -> list[Polygon]:
+        """
+        Build Polygons
+        """
+        collections = polygonize(lines)
+        if isinstance(collections, GeometryCollection):
+            collections = [collections]
+        planarized = []
+        for collection in collections:
+            planarized.extend(get_geoms_iter(collection))
+        return planarized
+    # End _build_polygons method
+
+    def _get_lines(self) -> 'ndarray':
+        """
+        Get lines from the input feature classes, the lines will be
+        in the Output Coordinate System and planarized.
+        """
+        sizes = []
+        lines = []
+        xy_tol = self._xy_tolerance
+        srs = self.spatial_reference_system
+        scratch = MemoryGeoPackage.create()
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
+            for i, source in enumerate(self._source):
+                query = QueryFeatureToPolygonPrepare(
+                    source, target=FeatureClass(scratch, name=f'fc_{i}'),
+                    xy_tolerance=xy_tol)
+                fc = select_and_transform_features(query)
+                if not len(fc):
+                    continue
+                self._fetch_lines_sizes(query, lines=lines, sizes=sizes)
+        if conn := scratch.connection:
+            conn.close()
+        if not lines:
+            return array([], dtype=object)
+        grid_size = max([s for s in sizes if s is not None], default=None)
+        # noinspection PyTypeChecker
+        return get_geoms_iter(union_all(lines, grid_size=grid_size))
+    # End _get_lines method
+
+    @staticmethod
+    def _fetch_lines_sizes(query: QueryFeatureToPolygonPrepare,
+                           lines: list[LineString],
+                           sizes: list[GRID_SIZE]) -> None:
+        """
+        Fetch Lines from memory feature classes and grid sizes from query
+        """
+        fc = query.target
+        cursor = fc.select(include_primary=True)
+        is_polygon = ShapeType.polygon in fc.shape_type
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            _, geoms = to_shapely(features, transformer=None)
+            if is_polygon:
+                geoms = boundary(geoms)
+            lines.extend(geoms)
+            sizes.append(query.grid_size)
+    # End _fetch_lines_sizes method
+# End QueryFeatureToPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover
