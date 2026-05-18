@@ -20,7 +20,8 @@ from spyops.environment.core import zm_config
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
-    delete_features, feature_envelope_to_polygon, feature_to_point,
+    delete_features, feature_envelope_to_polygon, feature_to_line,
+    feature_to_point,
     feature_vertices_to_points, multipart_to_singlepart, polygon_to_line,
     split_line_at_vertices, xy_to_line, check_geometry,
     minimum_bounding_geometry, repair_geometry, xy_table_to_point)
@@ -2204,6 +2205,67 @@ class TestFeatureToPolygon:
             assert all(all(rec) for rec in cursor.fetchall())
     # End test_with_label method
 # End TestFeatureToPolygon class
+
+
+class TestFeatureToLine:
+    """
+    Test Feature To Line
+    """
+    @mark.zm
+    @mark.parametrize('xy_tol', [
+        None,
+        0.0001
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        OutputZOption.ENABLED,
+        OutputZOption.DISABLED,
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        OutputMOption.ENABLED,
+        OutputMOption.DISABLED,
+    ])
+    @mark.parametrize('multiple', [
+        0, 2, 5
+    ])
+    def test_sans_label(self, ntdb_zm, mem_gpkg, xy_tol, output_m, output_z, multiple):
+        """
+        Test sans label
+        """
+        if not multiple:
+            source = ntdb_zm['index_a']
+        else:
+            source = [ntdb_zm['index_a']] * multiple
+        target = FeatureClass(geopackage=mem_gpkg, name='ftp')
+        with (Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m)):
+            fc = feature_to_line(source, target, xy_tolerance=xy_tol)
+            assert len(fc) == 36
+            assert len(fc.fields) == 2
+            assert fc.has_m is (output_m == OutputMOption.ENABLED)
+            assert fc.has_z is (output_z == OutputZOption.ENABLED)
+    # End test_sans_label method
+
+    def test_with_extent(self, ntdb_zm, mem_gpkg):
+        """
+        Test with extent
+        """
+        code = 6654
+        index = ntdb_zm['index_a']
+        source = [index] * 2
+        target = FeatureClass(geopackage=mem_gpkg, name='ftp')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-115.1, 50.8, -113.6, 51.5, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(code))):
+            fc = feature_to_line(source, target)
+            assert len(fc) == 20
+            assert len(fc.fields) == 2
+            assert fc.spatial_reference_system.srs_id == code
+            assert approx(fc.extent, abs=1) == (638819., 5623931., 746880.5, 5711239.)
+            cursor = fc.select(fc.fields, include_geometry=False)
+            assert all(all(rec) for rec in cursor.fetchall())
+    # End test_with_extent method
+# End TestFeatureToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover
