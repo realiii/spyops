@@ -274,6 +274,8 @@ class ValidateOverwriteInput(AbstractValidate):
             for name in self._inputs:
                 others = self._make_iterable(kwargs[name])
                 for other in others:
+                    if not isinstance(other, (FeatureClass, Table)):
+                        continue
                     self._check_same(target, other=other, name=name)
             return func(**kwargs)
         # End wrapper function
