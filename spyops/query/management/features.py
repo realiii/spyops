@@ -20,6 +20,7 @@ from shapely import (
     GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
     get_num_coordinates, get_num_geometries)
 from shapely.constructive import boundary
+from shapely.geometry.multilinestring import MultiLineString
 from shapely.set_operations import union_all
 from shapely.strtree import STRtree
 
@@ -893,7 +894,7 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
 
     def _get_target_shape_type(self) -> str:
         """
-        Get Target Shape Type based on Output Type Option and Source Shape Type
+        Get Target Shape Type
         """
         return ShapeType.polygon
     # End _get_target_shape_type method
@@ -1517,14 +1518,14 @@ class QueryPolygonToLine(BaseQuerySelect):
 # End QueryPolygonToLine class
 
 
-class QueryFeatureToPolygonPrepare(BaseQuerySelect):
+class QueryFeatureToPrepare(BaseQuerySelect):
     """
-    Query for each input to Feature to Polygon
+    Query for each input to Feature to Polygon / Feature to Line
     """
     def __init__(self, source: FeatureClass, target: Optional[FeatureClass],
                  xy_tolerance: XY_TOL = None) -> None:
         """
-        Initialize the QueryFeatureToPolygonPrepare class
+        Initialize the QueryFeatureToPrepare class
         """
         # noinspection PyTypeChecker
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
@@ -1546,30 +1547,22 @@ class QueryFeatureToPolygonPrepare(BaseQuerySelect):
         """
         return []
     # End _get_unique_fields method
-# End QueryFeatureToPolygonPrepare class
+# End QueryFeatureToPrepare class
 
 
-class QueryFeatureToPolygon(AbstractSourceQuery):
+class BaseQueryFeatureTo(AbstractSourceQuery):
     """
-    Query Feature to Polygon
+    Base Query Feature To
     """
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
-                 label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None:
+                 xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QueryFeatureToPolygon class
+        Initialize the BaseQueryFeatureTo class
         """
         src, *_ = source
         super().__init__(src, target=target, xy_tolerance=xy_tolerance)
         self._source: FEATURE_CLASSES = source
-        self._label: Optional[FeatureClass] = label
     # End init built-in
-
-    def _get_target_shape_type(self) -> str:
-        """
-        Get Target Shape Type based on Output Type Option and Source Shape Type
-        """
-        return ShapeType.polygon
-    # End _get_target_shape_type method
 
     @cached_property
     def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
@@ -1595,26 +1588,6 @@ class QueryFeatureToPolygon(AbstractSourceQuery):
     # End zm_config property
 
     @property
-    def _has_zm(self) -> HasZM:
-        """
-        Has ZM
-        """
-        has_z = any(source.has_z for source in self._source)
-        has_m = any(source.has_m for source in self._source)
-        return HasZM(has_z=has_z, has_m=has_m)
-    # End _has_zm property
-
-    def _get_unique_fields(self) -> FIELDS:
-        """
-        Get Unique Fields
-        """
-        label = self._label
-        if label is None:
-            return []
-        return validate_fields(label, fields=label.fields)
-    # End _get_unique_fields method
-
-    @property
     def insert(self) -> str:
         """
         Insert SQL
@@ -1629,11 +1602,112 @@ class QueryFeatureToPolygon(AbstractSourceQuery):
             field_count=len(fields) + 1)
     # End insert property
 
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        has_z = any(source.has_z for source in self._source)
+        has_m = any(source.has_m for source in self._source)
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
+
+    def _get_lines(self, scratch: MemoryGeoPackage) \
+            -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]:
+        """
+        Get lines from the input feature classes, the lines will be
+        in the Output Coordinate System and planarized.
+        """
+        sizes = []
+        lines = []
+        queries = []
+        xy_tol = self._xy_tolerance
+        srs = self.spatial_reference_system
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
+            for i, source in enumerate(self._source):
+                query = QueryFeatureToPrepare(
+                    source, target=FeatureClass(scratch, name=f'fc_{i}'),
+                    xy_tolerance=xy_tol)
+                queries.append(query)
+                fc = select_and_transform_features(query)
+                if not len(fc):
+                    continue
+                self._fetch_lines_sizes(query, lines=lines, sizes=sizes)
+        if not lines:
+            return lines, queries, None
+        grid_size = max([s for s in sizes if s is not None], default=None)
+        lines = get_geoms_iter(union_all(lines, grid_size=grid_size))
+        # noinspection PyTypeChecker
+        return lines, queries, grid_size
+    # End _get_lines method
+
+    @staticmethod
+    def _fetch_lines_sizes(query: QueryFeatureToPrepare,
+                           lines: list[LineString],
+                           sizes: list[GRID_SIZE]) -> None:
+        """
+        Fetch Lines from memory feature classes and grid sizes from query
+        """
+        fc = query.target
+        cursor = fc.select(include_primary=True)
+        is_polygon = ShapeType.polygon in fc.shape_type
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            _, geoms = to_shapely(features, transformer=None)
+            if is_polygon:
+                geoms = boundary(geoms)
+            lines.extend(geoms)
+            sizes.append(query.grid_size)
+    # End _fetch_lines_sizes method
+
+    def _get_null_record(self) -> tuple:
+        """
+        Get Null Record
+        """
+        return tuple([None] * len(self._get_unique_fields()))
+    # End _get_null_record method
+# End BaseQueryFeatureTo class
+
+
+class QueryFeatureToPolygon(BaseQueryFeatureTo):
+    """
+    Query Feature to Polygon
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryFeatureToPolygon class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        self._label: Optional[FeatureClass] = label
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        label = self._label
+        if label is None:
+            return []
+        return validate_fields(label, fields=label.fields)
+    # End _get_unique_fields method
+
     def build_features(self) -> list[tuple[Polygon, tuple]]:
         """
         Polygonized Features
         """
-        lines = self._get_lines()
+        scratch = MemoryGeoPackage.create()
+        lines, _, _ = self._get_lines(scratch)
+        if conn := scratch.connection:
+            conn.close()
         if not len(lines):
             return []
         if not (polygons := self._build_polygons(lines)):
@@ -1644,7 +1718,7 @@ class QueryFeatureToPolygon(AbstractSourceQuery):
     def _add_attributes(self, polygons: list[Polygon]) \
             -> list[tuple[Polygon, tuple]]:
         """
-        Add Attributes, keeping all matches between label points and polygons
+        Add Attributes, keeping all matches between label points and planarized
         """
         nulls = self._get_null_record()
         points, attributes = self._get_points_attributes()
@@ -1690,13 +1764,6 @@ class QueryFeatureToPolygon(AbstractSourceQuery):
         return points, attributes
     # End _get_points_attributes method
 
-    def _get_null_record(self) -> tuple:
-        """
-        Get Null Record
-        """
-        return tuple([None] * len(self._get_unique_fields()))
-    # End _get_null_record method
-
     @staticmethod
     def _index_overlay(points: list[ShapelyPoint], polygons: list[Polygon]) \
             -> defaultdict[int, list[int]]:
@@ -1713,7 +1780,7 @@ class QueryFeatureToPolygon(AbstractSourceQuery):
     # End _index_overlay method
 
     @staticmethod
-    def _build_polygons(lines: 'ndarray') -> list[Polygon]:
+    def _build_polygons(lines: list[LineString]) -> list[Polygon]:
         """
         Build Polygons
         """
@@ -1725,55 +1792,49 @@ class QueryFeatureToPolygon(AbstractSourceQuery):
             planarized.extend(get_geoms_iter(collection))
         return planarized
     # End _build_polygons method
+# End QueryFeatureToPolygon class
 
-    def _get_lines(self) -> 'ndarray':
+
+class QueryFeatureToLine(BaseQueryFeatureTo):
+    """
+    Query Feature To Line
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 xy_tolerance: XY_TOL) -> None:
         """
-        Get lines from the input feature classes, the lines will be
-        in the Output Coordinate System and planarized.
+        Initialize the QueryFeatureToPolygon class
         """
-        sizes = []
-        lines = []
-        xy_tol = self._xy_tolerance
-        srs = self.spatial_reference_system
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return []
+    # End _get_unique_fields method
+
+    def build_features(self) -> list[tuple[LineString, tuple]]:
+        """
+        LineString Features
+        """
         scratch = MemoryGeoPackage.create()
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
-            for i, source in enumerate(self._source):
-                query = QueryFeatureToPolygonPrepare(
-                    source, target=FeatureClass(scratch, name=f'fc_{i}'),
-                    xy_tolerance=xy_tol)
-                fc = select_and_transform_features(query)
-                if not len(fc):
-                    continue
-                self._fetch_lines_sizes(query, lines=lines, sizes=sizes)
+        lines, *_ = self._get_lines(scratch)
         if conn := scratch.connection:
             conn.close()
-        if not lines:
-            return array([], dtype=object)
-        grid_size = max([s for s in sizes if s is not None], default=None)
+        combiner = self.geometry_config.combiner
+        lines = get_geoms_iter(combiner(MultiLineString(lines)))
         # noinspection PyTypeChecker
-        return get_geoms_iter(union_all(lines, grid_size=grid_size))
-    # End _get_lines method
-
-    @staticmethod
-    def _fetch_lines_sizes(query: QueryFeatureToPolygonPrepare,
-                           lines: list[LineString],
-                           sizes: list[GRID_SIZE]) -> None:
-        """
-        Fetch Lines from memory feature classes and grid sizes from query
-        """
-        fc = query.target
-        cursor = fc.select(include_primary=True)
-        is_polygon = ShapeType.polygon in fc.shape_type
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            _, geoms = to_shapely(features, transformer=None)
-            if is_polygon:
-                geoms = boundary(geoms)
-            lines.extend(geoms)
-            sizes.append(query.grid_size)
-    # End _fetch_lines_sizes method
-# End QueryFeatureToPolygon class
+        return [(line, ()) for line in lines]
+    # End build_features method
+# End QueryFeatureToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

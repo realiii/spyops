@@ -23,12 +23,12 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
-    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
-    QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
-    QueryMinimumBoundingGeometryAll,
-    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryPolygonToLine, QueryRepairGeometry,
-    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
+    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
+    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
+    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
+    QueryPolygonToLine, QueryRepairGeometry, QuerySplitLineAtVertices,
+    QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
     FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
@@ -47,12 +47,11 @@ from spyops.validation import (
     validate_coordinate_system, validate_element, validate_feature_classes,
     validate_field, validate_geometry_group_option, validate_group_option,
     validate_int_flag_enumeration, validate_overwrite_input, validate_range,
-    validate_source_element,
-    validate_source_numeric_field, validate_str_enumeration,
-    validate_feature_class, validate_geometry_attribute,
-    validate_overwrite_source, validate_result, validate_source_feature_class,
-    validate_supported_crs, validate_target_feature_class,
-    validate_target_table, validate_xy_tolerance)
+    validate_source_element, validate_source_numeric_field,
+    validate_str_enumeration, validate_feature_class,
+    validate_geometry_attribute, validate_overwrite_source, validate_result,
+    validate_source_feature_class, validate_supported_crs,
+    validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -65,7 +64,7 @@ __all__ = [
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
     'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
-    'polygon_to_line', 'feature_to_polygon']
+    'polygon_to_line', 'feature_to_polygon', 'feature_to_line']
 
 
 @validate_result()
@@ -811,18 +810,43 @@ def feature_to_polygon(source: FEATURE_CLASSES, target: 'FeatureClass', *,
     Optionally, adds attributes to the generated polygons based on the label
     point feature class.
     """
-    query = QueryFeatureToPolygon(source, target=target, label=label,
-                                  xy_tolerance=xy_tolerance)
-    records = []
-    insert_sql = query.insert
-    config = query.geometry_config
+    query = QueryFeatureToPolygon(
+        source, target=target, label=label, xy_tolerance=xy_tolerance)
     with (query.target.geopackage.connection as cout,
           ExecuteMany(connection=cout, table=query.target) as executor):
+        records = []
         results = query.build_features()
-        extend_records(results, records=records, config=config)
-        executor(sql=insert_sql, data=records)
+        extend_records(results, records=records, config=query.geometry_config)
+        executor(sql=query.insert, data=records)
     return query.target
 # End feature_to_polygon function
+
+
+@validate_result()
+@validate_feature_classes(SOURCE, geometry_types=(
+        ShapeType.linestring, ShapeType.multi_linestring,
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_xy_tolerance()
+@validate_supported_crs(SOURCE)
+@validate_overwrite_source()
+def feature_to_line(source: FEATURE_CLASSES, target: 'FeatureClass', *,
+                    xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Feature to Line
+
+    Creates a feature class containing lines generated from the intersections
+    of input line features and / or the boundary of polygon features
+    """
+    query = QueryFeatureToLine(source, target=target, xy_tolerance=xy_tolerance)
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        records = []
+        results = query.build_features()
+        extend_records(results, records=records, config=query.geometry_config)
+        executor(sql=query.insert, data=records)
+    return query.target
+# End feature_to_line function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
