@@ -56,6 +56,7 @@ MIT
 - added `table_to_geopackage` (Conversion - GeoPackage)
 - added `frequency` (Analysis - Statistics)
 - added `statistics` (Analysis - Statistics)
+- added `feature_to_polygon` (Management - Features)
 
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 

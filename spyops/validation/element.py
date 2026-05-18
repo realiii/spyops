@@ -20,7 +20,8 @@ class ValidateContent(AbstractValidateTypeExists):
     Validate Content
     """
     def __init__(self, name: str, *, exists: bool = True,
-                 has_content: bool = True, is_output: bool = False) -> None:
+                 is_optional: bool = False, has_content: bool = True,
+                 is_output: bool = False) -> None:
         """
         Initialize the ValidateContent class
 
@@ -28,8 +29,9 @@ class ValidateContent(AbstractValidateTypeExists):
         :param exists: Ensure that the specified item exists
         :param has_content: Ensure that the specified item has content
         :param is_output: Distinguish between input and output items
+        :param is_optional: Allow the item to be None
         """
-        super().__init__(name=name, exists=exists)
+        super().__init__(name=name, exists=exists, is_optional=is_optional)
         self._has_content: bool = has_content
         self._is_output: bool = is_output
     # End init built-in
@@ -138,15 +140,15 @@ class ValidateFeatureClass(ValidateContent):
     _types: ClassVar[tuple[type, ...]] = FeatureClass,
 
     def __init__(self, name: str, *, exists: bool = True,
-                 has_content: bool = True, is_output: bool = False,
-                 geometry_types: NAMES = (),
+                 is_optional: bool = False, has_content: bool = True,
+                 is_output: bool = False, geometry_types: NAMES = (),
                  has_z: bool = False, has_m: bool = False,
                  add_index: bool = True) -> None:
         """
         Initialize the ValidateFeatureClass class
         """
-        super().__init__(name=name, exists=exists, is_output=is_output,
-                         has_content=has_content)
+        super().__init__(name=name, exists=exists, is_optional=is_optional,
+                         is_output=is_output, has_content=has_content)
         self._geometry_types: NAMES = geometry_types
         self._has_z: bool = has_z
         self._has_m: bool = has_m
@@ -270,7 +272,11 @@ class ValidateOverwriteInput(AbstractValidate):
                 func=func, args=args, kwargs=kwargs)
             target: ELEMENT = kwargs[self._target]
             for name in self._inputs:
-                self._check_same(target, other=kwargs[name], name=name)
+                others = self._make_iterable(kwargs[name])
+                for other in others:
+                    if not isinstance(other, (FeatureClass, Table)):
+                        continue
+                    self._check_same(target, other=other, name=name)
             return func(**kwargs)
         # End wrapper function
         return wrapper

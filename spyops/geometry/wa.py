@@ -47,8 +47,8 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
         return collections
     if collections.is_empty:
         return collections
-    has_z = any(geometries.has_z for geometries in geometries)
-    has_m = any(geometries.has_m for geometries in geometries)
+    has_z = any(geometry.has_z for geometry in geometries)
+    has_m = any(geometry.has_m for geometry in geometries)
     if not has_z and not has_m:
         return collections
     lookup = defaultdict(list)
