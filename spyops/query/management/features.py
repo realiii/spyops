@@ -10,7 +10,7 @@ from functools import cached_property, partial
 from operator import itemgetter
 from typing import Callable, Generator, TYPE_CHECKING, Union
 
-from fudgeo import Field, SpatialReferenceSystem
+from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from fudgeo.geometry import Point
@@ -64,7 +64,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
     """
     Queries for MultiPart to SinglePart
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass') -> None:
+    def __init__(self, source: FeatureClass, target: FeatureClass) -> None:
         """
         Initialize the QueryMultiPartToSinglePart class
         """
@@ -137,7 +137,7 @@ class QueryCheckGeometry(BaseQuerySelect):
     """
     Query for Check Geometry
     """
-    def __init__(self, source: 'FeatureClass', target: 'Table',
+    def __init__(self, source: FeatureClass, target: 'Table',
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryCheckGeometry class
@@ -278,7 +278,7 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
     """
-    def __init__(self, source: 'FeatureClass',
+    def __init__(self, source: FeatureClass,
                  weight_option: WeightOption) -> None:
         """
         Initialize the QueryAddXYCoordinates class
@@ -342,7 +342,7 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     """
     Queries for Calculate Geometry Attributes
     """
-    def __init__(self, source: 'FeatureClass', field: Field,
+    def __init__(self, source: FeatureClass, field: Field,
                  geometry_attribute: GeometryAttribute, *,
                  weight_option: WeightOption,
                  length_unit: LengthUnit, area_unit: AreaUnit) -> None:
@@ -557,7 +557,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
     """
     Query for XY Table to Point Feature Class
     """
-    def __init__(self, source: ELEMENT, target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: FeatureClass,
                  fields: tuple[Field | None, ...],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
@@ -690,7 +690,7 @@ class QueryXYTableLine(QueryXYTablePoint):
     """
     Query for XY to Line Feature Class
     """
-    def __init__(self, source: ELEMENT, target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: FeatureClass,
                  fields: tuple[Field, Field, Field, Field],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
@@ -749,7 +749,7 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
     """
     Query Feature Envelope to Polygon
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  as_multi_part: bool) -> None:
         """
         Initialize the QueryFeatureEnvelopeToPolygon class
@@ -828,7 +828,7 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
     """
     Abstract Query Minimum Bounding Geometry Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  geometry_type: MinimumGeometryOption, *,
                  add_geometric_attributes: bool, fields: FIELDS) -> None:
         """
@@ -1251,7 +1251,7 @@ class QueryFeatureToPoint(BaseQuerySelect):
     """
     Query Feature to Point
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  inside: bool, weight_option: WeightOption) -> None:
         """
         Initialize the QueryFeatureToPoint class
@@ -1328,7 +1328,7 @@ class QueryFeatureVerticesToPoints(BaseQuerySelect):
     """
     Query Feature Vertices to Points
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  point_type: PointTypeOption) -> None:
         """
         Initialize the QueryFeatureVerticesToPoints class
