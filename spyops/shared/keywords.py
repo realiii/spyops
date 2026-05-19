@@ -74,6 +74,7 @@ SORT_FIELDS_ARG: str = 'sort_fields'
 STATS_FIELDS_ARG: str = 'stats_fields'
 Z_TOLERANCE: str = 'z_tolerance'
 M_TOLERANCE: str = 'm_tolerance'
+ATTRIBUTE_SOURCE: str = 'attribute_source'
 
 
 if __name__ == '__main__':  # pragma: no cover

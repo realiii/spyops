@@ -150,7 +150,7 @@ class WeightOption(StrEnum):
 
 class GeometryAttribute(StrEnum):
     """
-    GeometryAttributes
+    Geometry Attributes
     """
     POINT_X = auto()
     POINT_Y = auto()
@@ -272,6 +272,17 @@ class SortOrder(StrEnum):
     ASCENDING = auto()
     DESCENDING = auto()
 # End SortOrder class
+
+
+class AttributeSource(StrEnum):
+    """
+    Attribute Source
+    """
+    NONE = auto()
+    BOTH = auto()
+    START = auto()
+    END = auto()
+# End AttributeSource class
 
 
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
