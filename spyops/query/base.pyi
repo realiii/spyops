@@ -220,7 +220,8 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
     _sort_fields: SORT_FIELDS
 
     def __init__(self, source: FeatureClass, target: ELEMENT,
-                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = None,
+                 where_clause: str = EMPTY,
+                 sort_fields: SORT_FIELDS = (),
                  xy_tolerance: XY_TOL = None) -> None: ...
     @property
     def select(self) -> str: ...
