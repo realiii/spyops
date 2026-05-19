@@ -10,7 +10,9 @@ from pytest import mark, raises
 
 from spyops.environment import Setting
 from spyops.environment.context import Swap
-from spyops.management import delete_rows, get_count, create_table, copy_rows
+from spyops.management import (
+    delete_rows, get_count, create_table, copy_rows,
+    truncate_table)
 from spyops.shared.exception import OperationsError
 
 
@@ -57,6 +59,27 @@ def test_delete_rows(grid_index, fresh_gpkg):
     assert fc
     assert fc.is_empty
 # End test_delete_rows function
+
+
+def test_truncate_table(grid_index, fresh_gpkg):
+    """
+    Test truncate_table
+    """
+    name = 'grid_a_copy'
+    grid = grid_index['grid_a'].copy(name, geopackage=fresh_gpkg)
+    assert len(grid) == 8
+    truncate_table(grid)
+    assert len(grid) == 0
+    truncate_table(grid)
+    assert len(grid) == 0
+    path = fresh_gpkg.path
+    assert path.exists()
+    fresh_gpkg.connection.close()
+    gpkg = GeoPackage(path)
+    fc = gpkg[name]
+    assert fc
+    assert fc.is_empty
+# End test_truncate_table function
 
 
 class TestCopyRows:
