@@ -137,7 +137,7 @@ def _angle_continuous(x_coord: float, y_coord: float) -> float:
     value between 0 and 360 degrees
     """
     try:
-        angle = abs(degrees(atan(y_coord / x_coord)))
+        angle = abs(degrees(atan(float(y_coord) / float(x_coord))))
     except ZeroDivisionError:
         if y_coord < 0:
             return 180.
