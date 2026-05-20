@@ -6,7 +6,7 @@ Type stubs for query.management.features module
 
 from abc import ABCMeta
 from collections import defaultdict
-from functools import cache, cached_property
+from functools import cached_property
 from operator import itemgetter
 from sqlite3 import Connection
 from typing import Callable, Generator, Optional, Union
@@ -324,7 +324,6 @@ class QueryPolygonToLine(BaseQuerySelect):
 
 class QueryFeatureToPrepare(BaseQuerySelect):
     def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
-    @cache
     def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
     def _get_unique_fields(self) -> FIELDS: ...
 

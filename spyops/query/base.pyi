@@ -5,7 +5,7 @@ Type stubs for query.base module
 
 from abc import ABCMeta
 from collections.abc import Generator
-from functools import cache, cached_property
+from functools import cached_property
 from typing import Callable, Optional
 
 from fudgeo import FeatureClass, SpatialReferenceSystem
@@ -181,7 +181,6 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass, attribute_option: AttributeOption, *,
                  xy_tolerance: XY_TOL) -> None: ...
-    @cache
     def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
     def _get_fields(self, element: ELEMENT) -> FIELDS: ...
     def _get_unique_fields(self) -> FIELDS: ...
