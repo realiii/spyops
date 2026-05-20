@@ -999,8 +999,8 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
         sql = super().select
         if not self._sort_fields:
             return sql
-        fields = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
-        return f'{sql} ORDER BY {fields}'
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {sorts}'
     # End select property
 # End BaseQuerySelectOrderBy class
 
