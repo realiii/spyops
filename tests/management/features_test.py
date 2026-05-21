@@ -22,15 +22,18 @@ from spyops.management import (
     add_xy_coordinates, calculate_geometry_attributes, copy_features,
     delete_features, feature_envelope_to_polygon, feature_to_line,
     feature_to_point,
-    feature_vertices_to_points, multipart_to_singlepart, polygon_to_line,
+    feature_vertices_to_points, multipart_to_singlepart, points_to_line,
+    polygon_to_line,
     split_line_at_vertices, xy_to_line, check_geometry,
     minimum_bounding_geometry, repair_geometry, xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI
 from spyops.management.features import feature_to_polygon
 from spyops.shared.enumeration import (
-    GeometryAttribute, GeometryCheck, GroupOption, LineTypeOption,
+    AttributeSource, GeometryAttribute, GeometryCheck, GroupOption,
+    LineTypeOption,
     MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
+from spyops.shared.sort import Ascending
 
 from tests.util import UseGrids
 
@@ -2266,6 +2269,111 @@ class TestFeatureToLine:
             assert all(all(rec) for rec in cursor.fetchall())
     # End test_with_extent method
 # End TestFeatureToLine class
+
+
+class TestPointsToLine:
+    """
+    Test Points to Line
+    """
+    @mark.parametrize('close_line, is_continuous, count', [
+        (False, False, 21258),
+        (False, True, 98),
+        (True, False, 21356),
+        (True, True, 98),
+    ])
+    @mark.parametrize('sorts', [
+        ([]),
+        (Ascending('vertex_index'),)
+    ])
+    def test_none(self, inputs, mem_gpkg, close_line, is_continuous, sorts, count):
+        """
+        Test None
+        """
+        source = inputs['river_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='river_l')
+        fields = 'NAME', 'SYSTEM'
+        fc = points_to_line(
+            source, target=target, group_fields=fields, sort_fields=sorts,
+            close_line=close_line, construct_continuous=is_continuous,
+            attribute_source=AttributeSource.NONE)
+        assert len(fc) == count
+        assert len(fc.fields) == 2 + len(fields) + len(sorts)
+        assert fc.has_m is False
+        assert fc.has_z is False
+        assert fc.spatial_reference_system.srs_id == 4326
+        assert fc.shape_type == ShapeType.linestring
+    # End test_none method
+
+    @mark.parametrize('close_line, is_continuous, count', [
+        (False, False, 21258),
+        (False, True, 98),
+        (True, False, 21356),
+        (True, True, 98),
+    ])
+    @mark.parametrize('sorts', [
+        ([]),
+        (Ascending('vertex_index'),)
+    ])
+    def test_both(self, inputs, mem_gpkg, close_line, is_continuous, sorts, count):
+        """
+        Test both
+        """
+        source = inputs['river_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='river_l')
+        fields = 'NAME', 'SYSTEM'
+        fc = points_to_line(
+            source, target=target, group_fields=fields, sort_fields=sorts,
+            close_line=close_line, construct_continuous=is_continuous,
+            attribute_source=AttributeSource.BOTH)
+        assert len(fc) == count
+        assert len(fc.fields) == 16
+        assert fc.has_m is False
+        assert fc.has_z is False
+        assert fc.spatial_reference_system.srs_id == 4326
+        assert fc.shape_type == ShapeType.linestring
+    # End test_both method
+
+    @mark.zm
+    @mark.parametrize('close_line, is_continuous, count', [
+        (False, False, 3903),
+        (False, True, 30),
+        (True, False, 3933),
+        (True, True, 30),
+    ])
+    @mark.parametrize('sorts', [
+        ([]),
+        (Ascending('vertex_index'),)
+    ])
+    @mark.parametrize('attr_source', [
+        AttributeSource.START,
+        AttributeSource.END,
+    ])
+    def test_start_end(self, inputs, mem_gpkg, close_line, is_continuous, sorts,
+                       count, attr_source):
+        """
+        Test Start / End
+        """
+        source = inputs['river_p']
+        target = FeatureClass(geopackage=mem_gpkg, name=f'river_l')
+        fields = 'NAME', 'SYSTEM'
+        code = 102008
+        crs = CRS.from_authority('ESRI', code)
+        with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
+              Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs)):
+            fc = points_to_line(
+                source, target=target, group_fields=fields, sort_fields=sorts,
+                close_line=close_line, construct_continuous=is_continuous,
+                attribute_source=attr_source)
+        assert len(fc) == count
+        assert len(fc.fields) == 9
+        assert fc.has_m is True
+        assert fc.has_z is True
+        assert fc.spatial_reference_system.srs_id == code
+        assert fc.shape_type == ShapeType.linestring
+    # End test_start_end method
+# End TestPointsToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -27,27 +27,29 @@ from spyops.query.management.features import (
     QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
     QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
     QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryPolygonToLine, QueryRepairGeometry, QuerySplitLineAtVertices,
-    QueryXYTableLine, QueryXYTablePoint)
+    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
+    QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
+    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.keywords import (
-    AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
-    FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
-    LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT, POINT_TYPE, SOURCE,
-    START_X_FIELD, START_Y_FIELD, TARGET, WEIGHT_OPTION, X_FIELD, Y_FIELD,
-    Z_FIELD)
+    AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD,
+    END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS,
+    GROUP_OPTION, LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
+    POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD, START_Y_FIELD, TARGET,
+    WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
-    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
+    AttributeSource, DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck,
+    GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
+    WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import (
-    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, XY_TOL)
+    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, SORT_FIELDS, XY_TOL)
 from spyops.shared.records import (
     extend_records, insert_many, select_and_transform_features)
 from spyops.validation import (
     validate_coordinate_system, validate_element, validate_feature_classes,
     validate_field, validate_geometry_group_option, validate_group_option,
     validate_int_flag_enumeration, validate_overwrite_input, validate_range,
-    validate_source_element, validate_source_numeric_field,
+    validate_sort_field, validate_source_element, validate_source_numeric_field,
     validate_str_enumeration, validate_feature_class,
     validate_geometry_attribute, validate_overwrite_source, validate_result,
     validate_source_feature_class, validate_supported_crs,
@@ -64,7 +66,8 @@ __all__ = [
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
     'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
-    'polygon_to_line', 'feature_to_polygon', 'feature_to_line']
+    'polygon_to_line', 'feature_to_polygon', 'feature_to_line',
+    'points_to_line']
 
 
 @validate_result()
@@ -847,6 +850,54 @@ def feature_to_line(source: FEATURE_CLASSES, target: 'FeatureClass', *,
         executor(sql=query.insert, data=records)
     return query.target
 # End feature_to_line function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=(ShapeType.point,))
+@validate_target_feature_class()
+@validate_field(GROUP_FIELDS, element_name=SOURCE)
+@validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE)
+@validate_str_enumeration(ATTRIBUTE_SOURCE, AttributeSource)
+@validate_overwrite_source()
+def points_to_line(source: 'FeatureClass', target: 'FeatureClass', *,
+                   group_fields: FIELDS | FIELD_NAMES,
+                   sort_fields: SORT_FIELDS = (),
+                   close_line: bool = False, construct_continuous: bool = True,
+                   attribute_source: AttributeSource = AttributeSource.NONE) \
+        -> 'FeatureClass':
+    """
+    Points to Line
+
+    Create a line feature class from the points in a feature class based on
+    specified grouping (one or more fields).  Optionally, sort the points by
+    one or more fields.  Add attributes to the line features using the
+    specified attribute source option.  Lines can be generated as segments
+    (two point) or continuous and be closed or open.
+
+    """
+    group_fields: FIELDS
+    if attribute_source == AttributeSource.START:
+        cls = QueryPointsToLineStart
+    elif attribute_source == AttributeSource.END:
+        cls = QueryPointsToLineEnd
+    elif attribute_source == AttributeSource.BOTH:
+        cls = QueryPointsToLineBoth
+    else:
+        cls = QueryPointsToLineNone
+    query = cls(source, target=target, group_fields=group_fields,
+                sort_fields=sort_fields, close_line=close_line,
+                is_continuous=construct_continuous)
+    records = []
+    insert_sql = query.insert
+    config = query.geometry_config
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        for results in query.line_features():
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End points_to_line function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart
