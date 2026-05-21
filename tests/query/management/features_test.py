@@ -10,6 +10,7 @@ from typing import Callable
 from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.geometry import Point, PointM, PointZ, PointZM
+from fudgeo.geometry.linestring import LineString
 from pyproj import CRS
 from pytest import approx, mark, raises
 
@@ -23,13 +24,17 @@ from spyops.query.management.features import (
     QueryFeatureToPolygon, QueryFeatureToPrepare, QueryFeatureVerticesToPoints,
     QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
     QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryPolygonToLine, QueryRepairGeometry, QuerySplitLineAtVertices,
+    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
+    QueryPointsToLineStart,
+    QueryPolygonToLine,
+    QueryRepairGeometry,
+    QuerySplitLineAtVertices,
     QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     ORIG_FID, ORIG_SEQ, POINT_M, POINT_X, POINT_Y, POINT_Z)
-
+from spyops.shared.sort import Ascending
 
 pytestmark = [mark.features, mark.query, mark.management]
 
@@ -1325,6 +1330,116 @@ class TestQueryFeatureToLine:
         assert all(line.has_m for line in lines)
     # End test_get_lines method
 # End TestQueryFeatureToLine class
+
+
+class TestQueryPointsToLine:
+    """
+    Test Query Points to Line
+    """
+    @mark.parametrize('cls', [
+        QueryPointsToLineNone,
+        QueryPointsToLineBoth,
+        QueryPointsToLineStart,
+        QueryPointsToLineEnd,
+    ])
+    def test_get_target_shape_type(self, cls):
+        """
+        Test get target shape type
+        """
+        query = cls(None, None, None, None, False, False)
+        assert query._get_target_shape_type() == ShapeType.linestring
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('cls, count, in_names, sel_names', [
+        (QueryPointsToLineNone, 3, 'geom, NAME, SYSTEM', 'geom "[Point]", NAME, SYSTEM'),
+        (QueryPointsToLineBoth, 15,
+         'geom, START_NAME, START_SYSTEM, START_vertex_index, START_vertex_part, START_vertex_part_index, START_distance, START_angle, END_NAME, END_SYSTEM, END_vertex_index, END_vertex_part, END_vertex_part_index, END_distance, END_angle',
+         'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
+        (QueryPointsToLineStart, 8,
+         'geom, NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle',
+         'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
+        (QueryPointsToLineEnd, 8,
+         'geom, NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle',
+         'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
+    ])
+    def test_field_names_and_count(self, inputs, cls, count, in_names, sel_names):
+        """
+        Test field names and count
+        """
+        source = inputs['river_p']
+        fields = (Field('NAME', data_type=FieldType.text), 
+                  Field('SYSTEM', data_type=FieldType.text)) 
+        sort_fields = [Ascending(Field('vertex_index', data_type=FieldType.integer))]
+        query = cls(source, target=None, group_fields=fields, 
+                    sort_fields=sort_fields, close_line=False, 
+                    is_continuous=False)
+        field_count, insert_names, select_names = query._field_names_and_count(source)
+        assert field_count == count
+        assert insert_names == in_names
+        assert select_names == sel_names
+    # End test_field_names_and_count method
+
+    @mark.parametrize('cls', [
+        QueryPointsToLineNone,
+        QueryPointsToLineBoth,
+        QueryPointsToLineStart,
+        QueryPointsToLineEnd,
+    ])
+    def test_line_class(self, inputs, cls):
+        """
+        Test line class
+        """
+        source = inputs['river_p']
+        query = cls(source, None, None, None, False, False)
+        assert query._line_class is LineString
+    # End test_line_class method
+
+    @mark.parametrize('cls, sel_names', [
+        (QueryPointsToLineNone, 'NAME, SYSTEM'),
+        (QueryPointsToLineBoth, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineStart, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineEnd, 'NAME, SYSTEM, vertex_index'),
+    ])
+    def test_select_geometry_sans_sort(self, inputs, cls, sel_names):
+        """
+        Test select geometry
+        """
+        source = inputs['river_p']
+        fields = (Field('NAME', data_type=FieldType.text),
+                  Field('SYSTEM', data_type=FieldType.text))
+        query = cls(source, target=None, group_fields=fields,
+                    sort_fields=None, close_line=False,
+                    is_continuous=False)
+        sql = query.select_geometry
+        assert 'SELECT geom "[Point]", dense_rank()' in sql
+        assert sel_names in sql
+        assert sql.count('ORDER BY') == 1
+    # End test_select_geometry_sans_sort method
+
+    @mark.parametrize('cls, sel_names', [
+        (QueryPointsToLineNone, 'NAME, SYSTEM'),
+        (QueryPointsToLineBoth, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineStart, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineEnd, 'NAME, SYSTEM, vertex_index'),
+    ])
+    def test_select_geometry_with_sort(self, inputs, cls, sel_names):
+        """
+        Test select geometry
+        """
+        source = inputs['river_p']
+        fields = (Field('NAME', data_type=FieldType.text),
+                  Field('SYSTEM', data_type=FieldType.text))
+        sort_fields = [Ascending(Field('vertex_index', data_type=FieldType.integer))]
+        query = cls(source, target=None, group_fields=fields,
+                    sort_fields=sort_fields, close_line=False,
+                    is_continuous=False)
+        sql = query.select_geometry
+        assert 'SELECT geom "[Point]", dense_rank()' in sql
+        assert sel_names in sql
+        assert sql.count('ORDER BY') == 2
+        assert 'ORDER BY __DRID__, vertex_index' in sql
+    # End test_select_geometry_with_sort method
+# End TestQueryPointsToLine class
 
 
 if __name__ == '__main__':  # pragma: no cover
