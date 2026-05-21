@@ -58,6 +58,7 @@ MIT
 - added `statistics` (Analysis - Statistics)
 - added `feature_to_line` (Management - Features)
 - added `feature_to_polygon` (Management - Features)
+- added `points_to_line` (Management - Features)
 
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 
