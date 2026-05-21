@@ -1351,7 +1351,7 @@ class TestQueryPointsToLine:
     # End test_get_target_shape_type method
 
     @mark.parametrize('cls, count, in_names, sel_names', [
-        (QueryPointsToLineNone, 3, 'geom, NAME, SYSTEM', 'geom "[Point]", NAME, SYSTEM'),
+        (QueryPointsToLineNone, 4, 'geom, NAME, SYSTEM, vertex_index', 'geom "[Point]", NAME, SYSTEM, vertex_index'),
         (QueryPointsToLineBoth, 15,
          'geom, START_NAME, START_SYSTEM, START_vertex_index, START_vertex_part, START_vertex_part_index, START_distance, START_angle, END_NAME, END_SYSTEM, END_vertex_index, END_vertex_part, END_vertex_part_index, END_distance, END_angle',
          'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
