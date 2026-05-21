@@ -12,7 +12,7 @@ from spyops.management.features import (
     copy_features, delete_features, explode, feature_envelope_to_polygon,
     feature_to_line, feature_to_point, feature_to_polygon,
     feature_vertices_to_points, minimum_bounding_geometry,
-    multipart_to_singlepart, polygon_to_line, repair_geometry,
+    multipart_to_singlepart, points_to_line, polygon_to_line, repair_geometry,
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
@@ -29,9 +29,10 @@ from spyops.management.table import (
 from spyops.management.workspace import (
     create_folder, create_geopackage, create_sqlite_database)
 from spyops.shared.enumeration import (
-    FieldProperty, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, PointTypeOption,
+    AttributeSource, FieldProperty, GeometryAttribute, GeometryCheck,
+    GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
     StatisticOutputOption, WeightOption)
+from spyops.shared.sort import Ascending, Descending
 from spyops.shared.stats import (
     Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
     CountNonNull, CountNull, CountOutlier, First, FirstQuartile, IQR,
@@ -58,6 +59,7 @@ __all__ = [
     'feature_vertices_to_points',
     'minimum_bounding_geometry',
     'multipart_to_singlepart',
+    'points_to_line',
     'polygon_to_line',
     'repair_geometry',
     'split_line_at_vertices',
@@ -100,6 +102,7 @@ __all__ = [
     'create_sqlite_database',
 
     'AreaUnit',
+    'AttributeSource',
     'FieldProperty',
     'GeometryAttribute',
     'GeometryCheck',
@@ -110,6 +113,9 @@ __all__ = [
     'PointTypeOption',
     'StatisticOutputOption',
     'WeightOption',
+
+    'Ascending',
+    'Descending',
 
     'Average',
     'Avg',

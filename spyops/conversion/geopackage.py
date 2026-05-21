@@ -80,7 +80,7 @@ def feature_class_to_geopackage(source: FEATURE_CLASSES,
 @validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE)
 @validate_overwrite_source()
 def export_table(source: 'Table', target: 'Table', *, where_clause: str = '',
-                 sort_fields: SORT_FIELDS | None = None) -> 'Table':
+                 sort_fields: SORT_FIELDS = ()) -> 'Table':
     """
     Export Table
 
@@ -110,7 +110,7 @@ def export_table(source: 'Table', target: 'Table', *, where_clause: str = '',
 @validate_overwrite_source()
 def export_features(source: 'FeatureClass', target: 'FeatureClass', *,
                     where_clause: str = '',
-                    sort_fields: SORT_FIELDS | None = None) -> 'FeatureClass':
+                    sort_fields: SORT_FIELDS = ()) -> 'FeatureClass':
     """
     Export Features
 

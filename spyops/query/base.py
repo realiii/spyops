@@ -980,7 +980,8 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
     Base Query Select Order By
     """
     def __init__(self, source: FeatureClass, target: ELEMENT,
-                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = None,
+                 where_clause: str = EMPTY,
+                 sort_fields: SORT_FIELDS = (),
                  xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the BaseQuerySelectOrderBy class
@@ -998,8 +999,8 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
         sql = super().select
         if not self._sort_fields:
             return sql
-        fields = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
-        return f'{sql} ORDER BY {fields}'
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {sorts}'
     # End select property
 # End BaseQuerySelectOrderBy class
 

@@ -58,6 +58,7 @@ MIT
 - added `statistics` (Analysis - Statistics)
 - added `feature_to_line` (Management - Features)
 - added `feature_to_polygon` (Management - Features)
+- added `points_to_line` (Management - Features)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
 
 ### v0.1.1

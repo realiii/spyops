@@ -11,7 +11,7 @@ from operator import itemgetter
 from typing import Callable, Generator, Optional, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
-from fudgeo.constant import FETCH_SIZE
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from fudgeo.geometry import Point
 from numpy import array
@@ -20,6 +20,7 @@ from shapely import (
     GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
     get_num_coordinates, get_num_geometries)
 from shapely.constructive import boundary
+from shapely.coordinates import get_coordinates
 from shapely.geometry.multilinestring import MultiLineString
 from shapely.set_operations import union_all
 from shapely.strtree import STRtree
@@ -54,10 +55,10 @@ from spyops.shared.enumeration import (
 from spyops.shared.field import (
     MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, ORIG_SEQ, POINT_M,
     POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
-    get_geometry_column_name, make_field_names, validate_fields)
+    clone_field, get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE,
-    XY_TOL)
+    SORT_FIELDS, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
 from spyops.shared.records import select_and_transform_features
 from spyops.shared.sql import SQL_ALL_ID
@@ -1835,6 +1836,361 @@ class QueryFeatureToLine(BaseQueryFeatureTo):
         return [(line, ()) for line in lines]
     # End build_features method
 # End QueryFeatureToLine class
+
+
+class AbstractQueryPointsToLine(AbstractQueryGroup):
+    """
+    Abstract Query Points to Line
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 group_fields: FIELDS, sort_fields: SORT_FIELDS,
+                 close_line: bool, is_continuous: bool) -> None:
+        """
+        Initialize the AbstractQueryPointsToLine class
+        """
+        super().__init__(
+            source, target=target, fields=group_fields or [], xy_tolerance=None)
+        self._sort_fields: SORT_FIELDS = sort_fields or []
+        self._close_line: bool = close_line
+        self._is_continuous: bool = is_continuous
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        fields, select_names = self._build_select_names(element, element.fields)
+        field_count, insert_names = self._build_insert_names(element, fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _build_insert_names(self, element: FeatureClass,
+                            fields: FIELDS) -> tuple[int, str]:
+        """
+        Build Insert Name and get Field Count
+        """
+        field_count = len(fields) + 1
+        insert_names = self._concatenate(
+            get_geometry_column_name(element), make_field_names(fields))
+        return field_count, insert_names
+    # End _build_insert_names method
+
+    def _build_select_names(self, element: FeatureClass,
+                            fields: FIELDS) -> tuple[FIELDS, str]:
+        """
+        Build Select Names
+        """
+        fields = validate_fields(element, fields=fields)
+        geom_type = get_geometry_column_name(element, include_geom_type=True)
+        return fields, self._concatenate(geom_type, make_field_names(fields))
+    # End _build_select_names method
+
+    @property
+    def _line_class(self) -> LINE_TYPE:
+        """
+        Line Class
+        """
+        has_z, has_m = self._has_zm
+        return FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
+    # End _line_class property
+
+    def _get_coordinates(self, points: defaultdict[int, list[ShapelyPoint]]) \
+            -> dict[int, 'ndarray'] | dict[int, list]:
+        """
+        Get Coordinates from Points
+        """
+        has_z, has_m = self._has_zm
+        coords = {id_: get_coordinates(pts, include_z=has_z, include_m=has_m)
+                  for id_, pts in points.items()}
+        coords = {id_: values for id_, values in coords.items()
+                  if len(values) > 1}
+        if self._close_line:
+            coords = {id_: [*values, values[0]]
+                      for id_, values in coords.items()}
+        return coords
+    # End _get_coordinates method
+
+    def _build_segments(self, points: defaultdict[int, list[ShapelyPoint]],
+                        attributes: defaultdict[int, list[tuple]]) \
+            -> list[tuple[LineString, tuple]]:
+        """
+        Segment Lines and Attributes (Two Point Lines)
+        """
+        features = []
+        cls = self._line_class
+        coords = self._get_coordinates(points)
+        # noinspection PyUnresolvedReferences
+        srs_id = self.spatial_reference_system.srs_id
+        attributes = self._get_segment_attrs(attributes)
+        for id_, coords in coords.items():
+            if id_ not in attributes:
+                continue
+            features.extend([
+                (cls([start, end], srs_id=srs_id), *attrs)
+                for start, end, attrs in
+                zip(coords[:-1], coords[1:], attributes[id_])])
+        features, geoms = to_shapely(features, transformer=None)
+        return [(g, attrs) for g, (_, *attrs) in zip(geoms, features)]
+    # End _build_segments method
+
+    def _build_lines(self, points: defaultdict[int, list[ShapelyPoint]],
+                     attributes: defaultdict[int, list[tuple]]) \
+            -> list[tuple[LineString, tuple]]:
+        """
+        Continuous Lines and Attributes
+        """
+        features = []
+        cls = self._line_class
+        coords = self._get_coordinates(points)
+        # noinspection PyUnresolvedReferences
+        srs_id = self.spatial_reference_system.srs_id
+        attributes = self._get_line_attrs(attributes)
+        for id_, coords in coords.items():
+            if id_ not in attributes:
+                continue
+            # noinspection PyTypeChecker
+            features.append((cls(coords, srs_id=srs_id), *attributes[id_]))
+        features, geoms = to_shapely(features, transformer=None)
+        return [(g, attrs) for g, (_, *attrs) in zip(geoms, features)]
+    # End _build_lines method
+
+    def _close_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) -> None:
+        """
+        Close Segment Attributes
+        """
+        if not self._close_line:
+            return
+        for id_, attrs in attributes.items():
+            attributes[id_].append(attrs[0])
+    # End _close_segment_attrs method
+
+    @abstractmethod
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:  # pragma: no cover
+        """
+        Get Segment Attributes
+        """
+        pass
+    # End _get_segment_attrs method
+
+    @abstractmethod
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:  # pragma: no cover
+        """
+        Get Continuous Line Attributes
+        """
+        pass
+    # End _get_line_attrs method
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        index_where = self._spatial_index_where(elm)
+        *_, select_names = self._field_names_and_count(elm)
+        sql = f"""
+            SELECT *  
+            FROM (SELECT {geom}, dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}, {select_names}
+                  FROM {elm.escaped_name} {index_where})
+            WHERE {DRID} BETWEEN ? AND ?
+        """
+        if not self._sort_fields:
+            return sql
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        sorts = self._concatenate(DRID, sorts)
+        return f'{sql} ORDER BY {sorts}'
+    # End select_geometry property
+
+    def line_features(self) -> Generator[list[tuple[LineString, tuple]], None, None]:
+        """
+        Line Features
+        """
+        results = []
+        size = FETCH_SIZE // 5
+        steps, remainder = divmod(self.group_count, size)
+        steps += bool(remainder)
+        sql = self.select_geometry
+        if self._is_continuous:
+            builder = self._build_lines
+        else:
+            builder = self._build_segments
+        with self.source.geopackage.connection as cin:
+            for step in range(steps):
+                start = 1 + (step * size)
+                end = (step + 1) * size
+                cursor = cin.execute(sql, (start, end))
+                features = filter_features(cursor.fetchall())
+                features, points = to_shapely(
+                    features, transformer=self.source_transformer)
+                if not features:
+                    continue
+                point_grouper = defaultdict(list)
+                attr_grouper = defaultdict(list)
+                for (_, id_, _, *attrs), pt in zip(features, points):
+                    point_grouper[id_].append(pt)
+                    attr_grouper[id_].append(attrs)
+                results.extend(builder(point_grouper, attr_grouper))
+                if len(results) >= FETCH_SIZE:
+                    yield results
+                    results.clear()
+        yield results
+    # End line_features method
+# End AbstractQueryPointsToLine class
+
+
+class QueryPointsToLineNone(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- No Atttributes (besides group fields)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        fields = [s.field for s in self._sort_fields]
+        return validate_fields(self.source, fields=[*self._fields, *fields])
+    # End _get_unique_fields method
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        fields = self._get_unique_fields()
+        fields, select_names = self._build_select_names(element, fields)
+        field_count, insert_names = self._build_insert_names(element, fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: attrs for id_, (attrs, *_) in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineNone class
+
+
+class QueryPointsToLineBoth(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- Both Start and End Atttributes
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        fields = []
+        validated = validate_fields(self.source, fields=self.source.fields)
+        for prefix in ('START', 'END'):
+            for field in validated:
+                fields.append(clone_field(
+                    field, name=f'{prefix}_{field.name}', allow_null=True))
+        return fields
+    # End _get_unique_fields method
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        _, select_names = self._build_select_names(element, element.fields)
+        fields = self._get_unique_fields()
+        field_count, insert_names = self._build_insert_names(element, fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        self._close_segment_attrs(attributes)
+        for id_, attrs in attributes.items():
+            attributes[id_] = [
+                (*start, *end) for start, end in zip(attrs[:-1], attrs[1:])]
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: (*attrs[0], *attrs[-1])
+                for id_, attrs in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineBoth class
+
+
+class QueryPointsToLineStart(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- Start Atttributes
+    """
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        self._close_segment_attrs(attributes)
+        for id_ in attributes:
+            # noinspection PyArgumentEqualDefault
+            attributes[id_].pop(-1)
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: attrs for id_, (attrs, *_) in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineStart class
+
+
+class QueryPointsToLineEnd(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- End Atttributes
+    """
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        self._close_segment_attrs(attributes)
+        for id_ in attributes:
+            attributes[id_].pop(0)
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: attrs for id_, (*_, attrs) in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineEnd class
 
 
 if __name__ == '__main__':  # pragma: no cover
