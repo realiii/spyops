@@ -17,7 +17,7 @@ from fudgeo.geometry import Point
 from numpy import array
 from pyproj import CRS
 from shapely import (
-    GeometryCollection, LineString, Point as ShapelyPoint, Point, Polygon,
+    GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
     get_num_coordinates, get_num_geometries)
 from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
