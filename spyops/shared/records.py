@@ -25,7 +25,7 @@ from spyops.shared.hint import GRID_SIZE
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Cursor
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, Table
     from fudgeo.geometry.base import AbstractGeometry
     from shapely import Polygon
     from spyops.geometry.config import GeometryConfig
@@ -33,9 +33,22 @@ if TYPE_CHECKING:  # pragma: no cover
     from spyops.shared.base import QueryConfig
 
 
-def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
-                executor: 'ExecuteMany', transformer: Callable | None,
-                insert_sql: str) -> None:
+def bulk_records(query: 'BaseQuerySelect') -> 'Table':
+    """
+    Bulk Load Records
+    """
+    insert_sql = query.insert
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while rows := cursor.fetchmany(FETCH_SIZE):
+            executor(sql=insert_sql, data=rows)
+    # noinspection PyTypeChecker
+    return query.target
+# End bulk_records function
+
+
     """
     Bulk Insert
     """

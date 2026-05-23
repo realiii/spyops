@@ -6,10 +6,10 @@ Statistics
 
 from typing import TYPE_CHECKING
 
-from spyops.analysis.util import _load_statistics
 from spyops.query.analysis.statistics import QueryFrequency, QueryStatistics
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, STATS_FIELDS
 from spyops.shared.keywords import GROUP_FIELDS, SOURCE, STATS_FIELDS_ARG
+from spyops.shared.records import bulk_records
 from spyops.validation import (
     validate_field, validate_overwrite_source, validate_result,
     validate_source_element, validate_statistic_field, validate_target_table)
@@ -44,7 +44,7 @@ def statistics(source: ELEMENT, target: 'Table', *,
     with QueryStatistics(
             source, target=target, statistics=stats_fields,
             fields=group_fields, where_clause=where_clause) as query:
-        table = _load_statistics(query)
+        table = bulk_records(query)
     return table
 # End statistics function
 
@@ -70,7 +70,7 @@ def frequency(source: ELEMENT, target: 'Table', *,
     with QueryFrequency(
             source, target=target, statistics=stats_fields,
             fields=group_fields, where_clause=where_clause) as query:
-        table = _load_statistics(query)
+        table = bulk_records(query)
     return table
 # End frequency function
 
