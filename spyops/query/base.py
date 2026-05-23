@@ -419,9 +419,13 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         # noinspection PyTypeChecker
         select_names = make_field_names(fields)
-        geom_type = get_geometry_column_name(
-            self.source, include_geom_type=True)
-        select_names = self._concatenate(geom_type, select_names)
+        try:
+            geom_type = get_geometry_column_name(
+                self.source, include_geom_type=True)
+        except AttributeError:
+            pass
+        else:
+            select_names = self._concatenate(geom_type, select_names)
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 self.source, field_names=select_names)
