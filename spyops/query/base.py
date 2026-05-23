@@ -62,7 +62,8 @@ class AbstractElementQuery(metaclass=ABCMeta):
         self._element: ELEMENT = element
     # End init built-in
 
-    def _make_select(self, element: ELEMENT, field_names: str,
+    @staticmethod
+    def _make_select(element: ELEMENT, field_names: str,
                      where_clause: str) -> str:
         """
         Make SQL statement for Select
