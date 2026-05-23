@@ -418,6 +418,18 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Build Select from a list of fields
         """
+        select_names = self._get_select_names(fields)
+        if ANALYSIS_SETTINGS.extent:
+            return self._make_intersection_query(
+                self.source, field_names=select_names)
+        return self._make_select(
+            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+    # End _build_select method
+
+    def _get_select_names(self, fields: FIELDS) -> str:
+        """
+        Get Select Names
+        """
         select_names = make_field_names(fields)
         try:
             geom_type = get_geometry_column_name(
@@ -426,12 +438,8 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
             pass
         else:
             select_names = self._concatenate(geom_type, select_names)
-        if ANALYSIS_SETTINGS.extent:
-            return self._make_intersection_query(
-                self.source, field_names=select_names)
-        return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
-    # End _build_select method
+        return select_names
+    # End _get_select_names method
 
     @cached_property
     def has_intersection(self) -> bool:
