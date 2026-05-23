@@ -13,18 +13,25 @@ from spyops.environment.context import Swap
 from spyops.geometry.compare import compare_feature_geometry
 from spyops.query.management.general import (
     QueryDeleteIdenticalFeatureClass, QueryDeleteIdenticalTable,
-    QueryFindIdenticalFeatureClass, QueryFindIdenticalTable)
-from spyops.shared.keywords import FIELDS_ARG, M_TOLERANCE, SOURCE, Z_TOLERANCE
+    QueryFindIdenticalFeatureClass, QueryFindIdenticalTable,
+    QuerySortFeatureClass, QuerySortTable)
+from spyops.shared.enumeration import SpatialSortOption
+from spyops.shared.keywords import (
+    FIELDS_ARG, M_TOLERANCE, SORT_FIELDS_ARG, SOURCE, SPATIAL_SORT_OPTION,
+    Z_TOLERANCE)
 from spyops.shared.element import copy_element
 from spyops.shared.hint import (
-    ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, M_TOL, XY_TOL, Z_TOL)
+    ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, M_TOL, SORT_FIELDS, XY_TOL, Z_TOL)
+from spyops.shared.records import bulk_records, select_and_transform_features
 from spyops.validation import (
     validate_element, validate_elements, validate_field,
-    validate_overwrite_source, validate_result, validate_source_element,
-    validate_target_element, validate_tolerance, validate_xy_tolerance)
+    validate_overwrite_source, validate_result, validate_sort_field,
+    validate_source_element, validate_str_enumeration, validate_target_element,
+    validate_tolerance, validate_xy_tolerance)
 
 
-__all__ = ['copy', 'delete', 'rename', 'find_identical', 'delete_identical']
+__all__ = ['copy', 'delete', 'rename', 'find_identical', 'delete_identical',
+           'sort']
 
 
 @validate_result()
@@ -196,6 +203,32 @@ def delete_identical(source: ELEMENT, fields: FIELDS | FIELD_NAMES,
             cin.execute(query.delete)
     return query.source
 # End delete_identical function
+
+
+@validate_result()
+@validate_source_element()
+@validate_target_element()
+@validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE)
+@validate_str_enumeration(SPATIAL_SORT_OPTION, SpatialSortOption)
+@validate_overwrite_source()
+def sort(source: ELEMENT, target: ELEMENT, *, sort_fields: SORT_FIELDS,
+         spatial_sort_option: SpatialSortOption = SpatialSortOption.NONE) \
+        -> ELEMENT:
+    """
+    Sort
+
+    Sort features or records in ascending or descending order, based on one or
+    more fields. Optionally sort feature classes by geometry.
+    """
+    kwargs = dict(source=source, target=target, sort_fields=sort_fields,
+                  spatial_sort_option=spatial_sort_option)
+    if isinstance(source, Table):
+        query = QuerySortTable(**kwargs)
+        return bulk_records(query)
+    else:
+        query = QuerySortFeatureClass(**kwargs)
+        return select_and_transform_features(query)
+# End sort function
 
 
 if __name__ == '__main__':  # pragma: no cover
