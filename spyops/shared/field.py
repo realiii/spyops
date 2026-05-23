@@ -226,12 +226,12 @@ def make_field_names(fields: FIELDS) -> str:
 # End make_field_names function
 
 
-def add_orig_fid(feature_class: FeatureClass) -> FIELDS:
+def add_orig_fid(element: ELEMENT) -> FIELDS:
     """
     Add Original FID
     """
     key = ORIG_FID.name.casefold()
-    fields = list(validate_fields(feature_class, fields=feature_class.fields))
+    fields = list(validate_fields(element, fields=element.fields))
     names = [f.name.casefold() for f in fields]
     if key not in names:
         return ORIG_FID, *fields
