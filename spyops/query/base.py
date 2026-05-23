@@ -992,16 +992,23 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
         self._sort_fields: SORT_FIELDS = sort_fields
     # End init built-in
 
+    def _add_order_by(self, sql: str) -> str:
+        """
+        Add Order By
+        """
+        if not self._sort_fields:
+            return sql
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {sorts}'
+    # End _add_order_by method
+
     @property
     def select(self) -> str:
         """
         Selection Query
         """
         sql = super().select
-        if not self._sort_fields:
-            return sql
-        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
-        return f'{sql} ORDER BY {sorts}'
+        return self._add_order_by(sql)
     # End select property
 # End BaseQuerySelectOrderBy class
 
