@@ -982,8 +982,7 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
     Base Query Select Order By
     """
     def __init__(self, source: FeatureClass, target: ELEMENT,
-                 where_clause: str = EMPTY,
-                 sort_fields: SORT_FIELDS = (),
+                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = (),
                  xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the BaseQuerySelectOrderBy class
