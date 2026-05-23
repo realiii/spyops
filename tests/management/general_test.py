@@ -8,12 +8,14 @@ from fudgeo import FeatureClass, Table
 from pyproj import CRS
 from pytest import mark
 
-from spyops.environment import Extent, Setting
+from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.management import (
     copy, delete, delete_identical, find_identical,
-    rename)
+    rename, sort)
+from spyops.shared.enumeration import SpatialSortOption
 from spyops.shared.field import ORIG_FID, REASON, REPEAT_FID
+from spyops.shared.sort import Ascending, Descending
 
 pytestmark = [mark.management, mark.general]
 
@@ -247,6 +249,98 @@ class TestDeleteIdentical:
         assert len(source) == count
     # End test_extent method
 # End TestDeleteIdentical class
+
+
+class TestSort:
+    """
+    Test sort
+    """
+    @mark.parametrize('sorts, orig_fid', [
+        ([], 1),
+        (Ascending('point_x'), 1475),
+        ([Descending('point_x'), Ascending('feature_id')], 11674),
+    ])
+    def test_table(self, inputs, mem_gpkg, sorts, orig_fid):
+        """
+        Test table
+        """
+        source = inputs['xyzm_table']
+        target = Table(mem_gpkg, name='xyzm_table_sort')
+        tbl = sort(source, target, sort_fields=sorts)
+        cursor = tbl.select([ORIG_FID], limit=1)
+        assert cursor.fetchone() == (orig_fid,)
+    # End test_table method
+
+    @mark.parametrize('sorts, spatial_order, orig_fid', [
+        ([], SpatialSortOption.NONE, 1),
+        (Ascending('NAME'), SpatialSortOption.NONE, 16424),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.NONE, 19839),
+        ([], SpatialSortOption.UPPER_RIGHT_ASCENDING, 17891),
+        ([], SpatialSortOption.LOWER_RIGHT_DESCENDING, 19650),
+        (Ascending('NAME'), SpatialSortOption.UPPER_LEFT_ASCENDING, 17891),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.LOWER_LEFT_DESCENDING, 19650),
+    ])
+    def test_feature_class(self, inputs, mem_gpkg, sorts, spatial_order, orig_fid):
+        """
+        Test feature class
+        """
+        source = inputs['river_p']
+        target = FeatureClass(mem_gpkg, name='river_p_sort')
+        fc = sort(source, target, sort_fields=sorts,
+                  spatial_sort_option=spatial_order)
+        cursor = fc.select([ORIG_FID], include_geometry=False, limit=1)
+        assert cursor.fetchone() == (orig_fid,)
+    # End test_feature_class method
+
+    @mark.parametrize('sorts, spatial_order, orig_fid', [
+        ([], SpatialSortOption.NONE, 1),
+        (Ascending('NAME'), SpatialSortOption.NONE, 16424),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.NONE, 19839),
+        ([], SpatialSortOption.UPPER_RIGHT_ASCENDING, 17891),
+        ([], SpatialSortOption.LOWER_RIGHT_DESCENDING, 19650),
+        (Ascending('NAME'), SpatialSortOption.UPPER_LEFT_ASCENDING, 17891),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.LOWER_LEFT_DESCENDING, 19650),
+    ])
+    def test_feature_class(self, inputs, mem_gpkg, sorts, spatial_order, orig_fid):
+        """
+        Test feature class
+        """
+        source = inputs['river_p']
+        target = FeatureClass(mem_gpkg, name='river_p_sort')
+
+        fc = sort(source, target, sort_fields=sorts,
+                  spatial_sort_option=spatial_order)
+        cursor = fc.select([ORIG_FID], include_geometry=False, limit=1)
+        assert cursor.fetchone() == (orig_fid,)
+    # End test_feature_class method
+
+    @mark.zm
+    @mark.parametrize('sorts, spatial_order, orig_fid', [
+        ([], SpatialSortOption.NONE, 768),
+        (Ascending('NAME'), SpatialSortOption.NONE, 6345),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.NONE, 5625),
+        ([], SpatialSortOption.UPPER_RIGHT_ASCENDING, 20055),
+        ([], SpatialSortOption.LOWER_RIGHT_DESCENDING, 873),
+        (Ascending('NAME'), SpatialSortOption.UPPER_LEFT_ASCENDING, 20055),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.LOWER_LEFT_DESCENDING, 873),
+    ])
+    def test_extent(self, inputs, mem_gpkg, sorts, spatial_order, orig_fid):
+        """
+        Test extent
+        """
+        source = inputs['river_p']
+        target = FeatureClass(mem_gpkg, name='river_p_sort')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED)):
+            fc = sort(source, target, sort_fields=sorts,
+                      spatial_sort_option=spatial_order)
+            cursor = fc.select([ORIG_FID], include_geometry=False, limit=1)
+            assert cursor.fetchone() == (orig_fid,)
+            assert fc.has_z
+            assert fc.has_m
+    # End test_extent method
+# End TestSort class
 
 
 if __name__ == '__main__':  # pragma: no cover

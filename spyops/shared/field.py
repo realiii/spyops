@@ -105,6 +105,10 @@ FIELD_ALIAS: Field = Field(
     'FIELD_ALIAS', data_type=FieldType.text, alias='Alias')
 FIELD_TYPE: Field = Field(
     'FIELD_TYPE', data_type=FieldType.text, alias='Field Type')
+MIN_X: Field = Field('minx', data_type=FieldType.real)
+MIN_Y: Field = Field('miny', data_type=FieldType.real)
+MAX_X: Field = Field('maxx', data_type=FieldType.real)
+MAX_Y: Field = Field('maxy', data_type=FieldType.real)
 
 
 GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(
@@ -222,12 +226,12 @@ def make_field_names(fields: FIELDS) -> str:
 # End make_field_names function
 
 
-def add_orig_fid(feature_class: FeatureClass) -> FIELDS:
+def add_orig_fid(element: ELEMENT) -> FIELDS:
     """
     Add Original FID
     """
     key = ORIG_FID.name.casefold()
-    fields = list(validate_fields(feature_class, fields=feature_class.fields))
+    fields = list(validate_fields(element, fields=element.fields))
     names = [f.name.casefold() for f in fields]
     if key not in names:
         return ORIG_FID, *fields

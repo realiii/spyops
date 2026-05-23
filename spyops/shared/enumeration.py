@@ -285,6 +285,22 @@ class AttributeSource(StrEnum):
 # End AttributeSource class
 
 
+class SpatialSortOption(StrEnum):
+    """
+    Spatial Sort Option
+    """
+    NONE = auto()
+    UPPER_LEFT_ASCENDING = auto()
+    LOWER_LEFT_ASCENDING = auto()
+    UPPER_RIGHT_ASCENDING = auto()
+    LOWER_RIGHT_ASCENDING = auto()
+    UPPER_LEFT_DESCENDING = auto()
+    LOWER_LEFT_DESCENDING = auto()
+    UPPER_RIGHT_DESCENDING = auto()
+    LOWER_RIGHT_DESCENDING = auto()
+# End SpatialSortOption class
+
+
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
     GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |

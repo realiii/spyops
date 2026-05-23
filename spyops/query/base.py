@@ -418,17 +418,28 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Build Select from a list of fields
         """
-        # noinspection PyTypeChecker
-        select_names = make_field_names(fields)
-        geom_type = get_geometry_column_name(
-            self.source, include_geom_type=True)
-        select_names = self._concatenate(geom_type, select_names)
+        select_names = self._get_select_names(fields)
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 self.source, field_names=select_names)
         return self._make_select(
             self.source, field_names=select_names, where_clause=SQL_ALL_ID)
     # End _build_select method
+
+    def _get_select_names(self, fields: FIELDS) -> str:
+        """
+        Get Select Names
+        """
+        select_names = make_field_names(fields)
+        try:
+            geom_type = get_geometry_column_name(
+                self.source, include_geom_type=True)
+        except AttributeError:
+            pass
+        else:
+            select_names = self._concatenate(geom_type, select_names)
+        return select_names
+    # End _get_select_names method
 
     @cached_property
     def has_intersection(self) -> bool:
@@ -980,8 +991,7 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
     Base Query Select Order By
     """
     def __init__(self, source: FeatureClass, target: ELEMENT,
-                 where_clause: str = EMPTY,
-                 sort_fields: SORT_FIELDS = (),
+                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = (),
                  xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the BaseQuerySelectOrderBy class
@@ -991,16 +1001,23 @@ class BaseQuerySelectOrderBy(BaseQuerySelect):
         self._sort_fields: SORT_FIELDS = sort_fields
     # End init built-in
 
+    def _add_order_by(self, sql: str) -> str:
+        """
+        Add Order By
+        """
+        if not self._sort_fields:
+            return sql
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {sorts}'
+    # End _add_order_by method
+
     @property
     def select(self) -> str:
         """
         Selection Query
         """
         sql = super().select
-        if not self._sort_fields:
-            return sql
-        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
-        return f'{sql} ORDER BY {sorts}'
+        return self._add_order_by(sql)
     # End select property
 # End BaseQuerySelectOrderBy class
 

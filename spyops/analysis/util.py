@@ -27,7 +27,7 @@ from spyops.query.analysis.extract import (
 from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG, GRID_SIZE, XY_TOL
-from spyops.shared.records import bulk_insert, extend_records
+from spyops.shared.records import bulk_features, extend_records
 from spyops.shared.sql import SQL_NO_ID
 from spyops.shared.util import element_names, make_unique_name, make_valid_name
 
@@ -38,27 +38,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from spyops.query.analysis.overlay import (
         QueryIntersectClassic, QueryIntersectPairwise,
         QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise)
-    from spyops.query.analysis.statistics import QueryFrequency, QueryStatistics
 
 
 QUERY_INT: TypeAlias = Union['QueryIntersectClassic', 'QueryIntersectPairwise']
 QUERY_SYM: TypeAlias = Union['QuerySymmetricalDifferenceClassic', 'QuerySymmetricalDifferencePairwise']
-QUERY_STAT: TypeAlias = Union['QueryStatistics', 'QueryFrequency']
-
-
-def _load_statistics(query: QUERY_STAT) -> Table:
-    """
-    Load Statistics
-    """
-    insert_sql = query.insert
-    with (query.source.geopackage.connection as cin,
-          query.target.geopackage.connection as cout,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.select)
-        while rows := cursor.fetchmany(FETCH_SIZE):
-            executor(sql=insert_sql, data=rows)
-    return query.target
-# End _load_statistics function
 
 
 def _clip(*, source: FeatureClass, operator: FeatureClass,
@@ -151,8 +134,9 @@ def _split_by_attributes(*, source: ELEMENT, group_fields: FIELDS,
                 if is_feature_class:
                     element: FeatureClass
                     config = geometry_config(element, cast_geom=is_different)
-                    bulk_insert(cursor, config=config, executor=executor,
-                                transformer=transformer, insert_sql=insert_sql)
+                    bulk_features(
+                        cursor, config=config, executor=executor,
+                        transformer=transformer, insert_sql=insert_sql)
                 else:
                     while records := cursor.fetchmany(FETCH_SIZE):
                         executor(sql=insert_sql, data=records)

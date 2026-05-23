@@ -87,7 +87,6 @@ def export_table(source: 'Table', target: 'Table', *, where_clause: str = '',
     Export rows from a table to a new table optionally using a where clause
     and sorting the rows.
     """
-    # noinspection PyTypeChecker
     query = QueryExportTable(
         source, target=target, where_clause=where_clause,
         sort_fields=sort_fields)
@@ -117,7 +116,6 @@ def export_features(source: 'FeatureClass', target: 'FeatureClass', *,
     Export features from a feature class to a new feature class optionally
     using a where clause and sorting the features.
     """
-    # noinspection PyTypeChecker
     query = QueryExportFeatures(
         source, target=target, where_clause=where_clause,
         sort_fields=sort_fields)

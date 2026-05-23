@@ -25,7 +25,7 @@ from spyops.shared.hint import GRID_SIZE
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Cursor
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, Table
     from fudgeo.geometry.base import AbstractGeometry
     from shapely import Polygon
     from spyops.geometry.config import GeometryConfig
@@ -33,27 +33,44 @@ if TYPE_CHECKING:  # pragma: no cover
     from spyops.shared.base import QueryConfig
 
 
-def bulk_insert(cursor: 'Cursor', config: 'GeometryConfig',
-                executor: 'ExecuteMany', transformer: Callable | None,
-                insert_sql: str) -> None:
+def bulk_records(query: 'BaseQuerySelect') -> 'Table':
     """
-    Bulk Insert
+    Bulk Load Records
+    """
+    insert_sql = query.insert
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while rows := cursor.fetchmany(FETCH_SIZE):
+            executor(sql=insert_sql, data=rows)
+    # noinspection PyTypeChecker
+    return query.target
+# End bulk_records function
+
+
+def bulk_features(cursor: 'Cursor', config: 'GeometryConfig',
+                  executor: 'ExecuteMany', transformer: Callable | None,
+                  insert_sql: str) -> None:
+    """
+    Bulk Load Features
     """
     records = []
     while features := cursor.fetchmany(FETCH_SIZE):
         if not (features := filter_features(features)):
             continue
-        insert_many(config, executor=executor, transformer=transformer,
-                    insert_sql=insert_sql, features=features, records=records)
-# End bulk_insert function
+        insert_many_features(
+            config, executor=executor, transformer=transformer,
+            insert_sql=insert_sql, features=features, records=records)
+# End bulk_features function
 
 
-def insert_many(config: 'GeometryConfig', executor: 'ExecuteMany',
-                transformer: Callable | None, insert_sql: str,
-                features: list[tuple], records: list[tuple],
-                extent: Optional['Polygon'] = None) -> None:
+def insert_many_features(config: 'GeometryConfig', executor: 'ExecuteMany',
+                         transformer: Callable | None, insert_sql: str,
+                         features: list[tuple], records: list[tuple],
+                         extent: Optional['Polygon'] = None) -> None:
     """
-    Insert Many
+    Insert Many Features
     """
     features, geometries = to_shapely(
         features, transformer=transformer, extent=extent)
@@ -61,7 +78,7 @@ def insert_many(config: 'GeometryConfig', executor: 'ExecuteMany',
     extend_records(results, records=records, config=config)
     executor(sql=insert_sql, data=records)
     records.clear()
-# End insert_many function
+# End insert_many_features function
 
 
 def extend_records(results: list[tuple], records: list[tuple],
@@ -173,7 +190,7 @@ def select_and_transform_features(query: 'BaseQuerySelect') -> 'FeatureClass':
           ExecuteMany(connection=cout, table=query.target) as executor):
         cursor = cin.execute(query_select)
         while features := cursor.fetchmany(FETCH_SIZE):
-            insert_many(
+            insert_many_features(
                 config, executor=executor, transformer=transformer,
                 insert_sql=query_insert, features=features, records=records)
     return query.target

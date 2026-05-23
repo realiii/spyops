@@ -50,6 +50,7 @@ MIT
 - added `field_statistics_to_table` (Management - Fields)
 - added `delete_identical` (Management - General)
 - added `find_identical` (Management - General)
+- added `sort` (Management - General)
 - added `export_features` (Conversion - GeoPackage)
 - added `export_table` (Conversion - GeoPackage)
 - added `feature_class_to_geopackage` (Conversion - GeoPackage)

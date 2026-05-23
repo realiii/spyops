@@ -44,7 +44,7 @@ from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, SORT_FIELDS, XY_TOL)
 from spyops.shared.records import (
-    extend_records, insert_many, select_and_transform_features)
+    extend_records, insert_many_features, select_and_transform_features)
 from spyops.validation import (
     validate_coordinate_system, validate_element, validate_feature_classes,
     validate_field, validate_geometry_group_option, validate_group_option,
@@ -98,8 +98,9 @@ def multipart_to_singlepart(source: 'FeatureClass',
                 continue
             for geom, *attrs in features:
                 parts.extend([(part, *attrs) for part in geom])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=parts, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=parts, records=records)
             parts.clear()
     return query.target
 # End multipart_to_singlepart function
@@ -453,9 +454,10 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
                         for row in rows]
             if not (features := filter_features(features)):
                 continue
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=features,
-                        records=records, extent=extent)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=features, records=records,
+                extent=extent)
     return query.target
 # End xy_table_to_point function
 
@@ -511,9 +513,9 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
             features = [(line, *row) for line, row in zip(lines, rows)]
             if not (features := filter_features(features)):
                 continue
-            insert_many(config, executor=executor, transformer=None,
-                        insert_sql=insert_sql, features=features,
-                        records=records)
+            insert_many_features(
+                config, executor=executor, transformer=None,
+                insert_sql=insert_sql, features=features, records=records)
     return query.target
 # End xy_to_line function
 
@@ -666,9 +668,9 @@ def feature_to_point(source: 'FeatureClass', target: 'FeatureClass',
             coordinates = getter(geometries)
             features = [(cls.from_tuple(coords, srs_id=srs_id), *attrs)
                         for coords, (_, *attrs) in zip(coordinates, features)]
-            insert_many(config, executor=executor, transformer=None,
-                        insert_sql=insert_sql, features=features,
-                        records=records)
+            insert_many_features(
+                config, executor=executor, transformer=None,
+                insert_sql=insert_sql, features=features, records=records)
     return query.target
 # End feature_to_point function
 
@@ -708,8 +710,9 @@ def feature_vertices_to_points(source: 'FeatureClass', target: 'FeatureClass',
             for _, *attrs in features:
                 fid, *_ = attrs
                 parts.extend([(point, *attrs) for point in points[fid]])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=parts, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=parts, records=records)
             parts.clear()
     return query.target
 # End feature_vertices_to_points function
@@ -745,8 +748,9 @@ def split_line_at_vertices(source: 'FeatureClass', target: 'FeatureClass') \
                 continue
             for geom, fid, *attrs in features:
                 lines.extend([(*rec, *attrs) for rec in getter([(geom, fid)])])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=lines, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=lines, records=records)
             lines.clear()
     return query.target
 # End split_line_at_vertices function
@@ -785,8 +789,9 @@ def polygon_to_line(source: 'FeatureClass', target: 'FeatureClass') \
                     lines.extend([
                         (cls(ring.coordinates, srs_id=srs_id), *attrs)
                         for ring in poly if len(ring.coordinates) >= 2])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=lines, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=lines, records=records)
             lines.clear()
     return query.target
 # End polygon_to_line function

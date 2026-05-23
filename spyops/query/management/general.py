@@ -7,15 +7,23 @@ Query Classes for management.general module
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+from fudgeo.constant import COMMA_SPACE
+
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM
 from spyops.query.base import (
-    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery)
+    AbstractElementGroupQuery, AbstractFeatureClassGroupQuery,
+    BaseQuerySelectOrderBy)
 from spyops.query.mixin import IntermediateTableContextMixin
-from spyops.shared.constant import DRID, EMPTY
+from spyops.shared.constant import DOT, DRID, EMPTY
+from spyops.shared.enumeration import SpatialSortOption
 from spyops.shared.field import (
-    ORIG_FID, REPEAT_FID, get_geometry_column_name, make_field_names)
-from spyops.shared.hint import FIELDS, GRID_SIZE, M_TOL, XY_TOL, Z_TOL
+    MAX_X, MAX_Y, MIN_X, MIN_Y, ORIG_FID, REPEAT_FID, add_orig_fid,
+    get_geometry_column_name, make_field_names)
+from spyops.shared.hint import (
+    FIELDS, GRID_SIZE, M_TOL, SORT_FIELDS, XY_TOL, Z_TOL)
+from spyops.shared.sort import AbstractSortField, Ascending, Descending
+from spyops.shared.sql import IN
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -264,6 +272,154 @@ class QueryFindIdenticalFeatureClass(BaseQueryIdenticalFeatureClass):
         self._target: 'Table' = target
     # End init built-in
 # End QueryFindIdenticalFeatureClass class
+
+
+class QuerySortTable(BaseQuerySelectOrderBy):
+    """
+    Query Sort Table
+    """
+    def __init__(self, source: 'Table', target: 'Table',
+                 sort_fields: SORT_FIELDS, **kwargs) -> None:
+        """
+        Initialize the QuerySortTable class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(source=source, target=target, sort_fields=sort_fields)
+    # End init built-in
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and add ORIG_FID
+        """
+        return add_orig_fid(self.source)
+    # End _get_unique_fields method
+
+    def _get_select_fields(self) -> FIELDS:
+        """
+        Get Select Fields
+        """
+        _, *fields = self._get_unique_fields()
+        # noinspection PyTypeChecker
+        return [self.source.primary_key_field, *fields]
+    # End _get_select_fields method
+
+    @property
+    def select(self) -> str:
+        """
+        Select
+        """
+        sql = self._build_select(self._get_select_fields())
+        return self._add_order_by(sql)
+    # End select property
+
+    @cached_property
+    def target_empty(self) -> 'Table':
+        """
+        Target Empty
+        """
+        return self._target.geopackage.create_table(
+            self._target.name, fields=self._get_unique_fields(),
+            overwrite=ANALYSIS_SETTINGS.overwrite)
+    # End target_empty property
+# End QuerySortTable class
+
+
+class QuerySortFeatureClass(QuerySortTable):
+    """
+    Query Sort Feature Class
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 sort_fields: SORT_FIELDS,
+                 spatial_sort_option: SpatialSortOption) -> None:
+        """
+        Initialize the QuerySortFeatureClass class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(source=source, target=target, sort_fields=sort_fields)
+        self._spatial_sort_option: SpatialSortOption = spatial_sort_option
+    # End init built-in
+
+    def _make_sort_subquery(self, feature_class: 'FeatureClass') -> str:
+        """
+        Make Spatial Sort Subquery
+        """
+        sorts = self._build_sorts(alias='A', sorters=self._sort_fields)
+        spatial_sorts = self._build_sorts(
+            alias='B', sorters=self._get_spatial_sorters())
+        sorts = self._concatenate(spatial_sorts, sorts)
+        name = feature_class.escaped_name
+        index_name = feature_class.spatial_index_name
+        # noinspection PyUnresolvedReferences
+        key_name = feature_class.primary_key_field.escaped_name
+        return f"""
+            SELECT A.* 
+            FROM {name} AS A JOIN {index_name} AS B ON A.{key_name} = B.id
+            ORDER BY {sorts}
+        """
+    # End _make_sort_subquery method
+
+    @staticmethod
+    def _build_sorts(alias: str, sorters: SORT_FIELDS) -> str:
+        """
+        Build Sorts
+        """
+        return COMMA_SPACE.join([f'{alias}{DOT}{field!r}' for field in sorters])
+    # End _build_sorts method
+
+    def _get_spatial_sorters(self) -> tuple[AbstractSortField, AbstractSortField]:
+        """
+        Get Sort Order for Spatial Sort
+        """
+        sorting = {
+            SpatialSortOption.UPPER_LEFT_ASCENDING: (
+                Descending(MAX_Y), Descending(MIN_X)),
+            SpatialSortOption.UPPER_LEFT_DESCENDING: (
+                Ascending(MAX_Y), Ascending(MIN_X)),
+            SpatialSortOption.UPPER_RIGHT_ASCENDING: (
+                Descending(MAX_Y), Descending(MAX_X)),
+            SpatialSortOption.UPPER_RIGHT_DESCENDING: (
+                Ascending(MAX_Y), Ascending(MAX_X)),
+            SpatialSortOption.LOWER_LEFT_ASCENDING: (
+                Descending(MIN_Y), Descending(MIN_X)),
+            SpatialSortOption.LOWER_LEFT_DESCENDING: (
+                Ascending(MIN_Y), Ascending(MIN_X)),
+            SpatialSortOption.LOWER_RIGHT_ASCENDING: (
+                Descending(MIN_Y), Descending(MAX_X)),
+            SpatialSortOption.LOWER_RIGHT_DESCENDING: (
+                Ascending(MIN_Y), Ascending(MAX_X))
+        }
+        return sorting.get(
+            self._spatial_sort_option, (Descending(MAX_Y), Descending(MAX_X)))
+    # End _get_spatial_sorters method
+
+    @property
+    def select(self) -> str:
+        """
+        Select
+        """
+        if self._spatial_sort_option == SpatialSortOption.NONE:
+            return super().select
+        element = self.source
+        field_names = self._get_select_names(self._get_select_fields())
+        subquery = self._make_sort_subquery(element)
+        sql = f"""SELECT {field_names} FROM ({subquery})"""
+        if not ANALYSIS_SETTINGS.extent:
+            return sql
+        if where := self._spatial_index_where(
+                element, extent=self._shared_extent(element)):
+            sql = f'{sql} WHERE {where.format(IN)}'
+        return sql
+    # End select property
+
+    @cached_property
+    def target_empty(self) -> FeatureClass:
+        """
+        Target Empty
+        """
+        shape_type = self._get_target_shape_type()
+        return self._create_feature_class(shape_type, has_zm=self._has_zm)
+    # End target_empty property
+# End QuerySortFeatureClass class
 
 
 if __name__ == '__main__':  # pragma: no cover
