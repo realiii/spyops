@@ -417,7 +417,6 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Build Select from a list of fields
         """
-        # noinspection PyTypeChecker
         select_names = make_field_names(fields)
         try:
             geom_type = get_geometry_column_name(
