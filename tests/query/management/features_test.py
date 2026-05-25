@@ -19,7 +19,8 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.geometry.config import GeometryConfig
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
+    QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
+    QueryCheckGeometry,
     QueryFeatureEnvelopeToPolygon, QueryFeatureToLine, QueryFeatureToPoint,
     QueryFeatureToPolygon, QueryFeatureToPrepare, QueryFeatureVerticesToPoints,
     QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
@@ -1440,6 +1441,85 @@ class TestQueryPointsToLine:
         assert 'ORDER BY __DRID__, vertex_index' in sql
     # End test_select_geometry_with_sort method
 # End TestQueryPointsToLine class
+
+
+class TestQueryAdjust3DZ:
+    """
+    Tests for QueryAdjust3DZ
+    """
+    def test_delete_intermediate(self, grid_index):
+        """
+        Test delete intermediate
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        with query.source.geopackage.connection as cin:
+            query._delete_intermediate()
+            name = query._intermediate_table
+            assert name.startswith('temp.tmp_grid_zm_a_adjust_z_')
+            sql = f"""SELECT * FROM {name}"""
+            cin.execute(sql)
+            query._delete_intermediate()
+            with raises(OperationalError):
+                cin.execute(sql)
+    # End test_delete_intermediate method
+
+    def test_intermediate_fields(self, grid_index):
+        """
+        Test intermediate fields
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        assert len(query._intermediate_fields) == 2
+    # End test_intermediate_fields method
+
+    def test_select(self, grid_index):
+        """
+        Test select statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        sql = query.select
+        assert 'SELECT geom "[PolygonZM]", fid' in sql
+        assert f'FROM grid_zm_a' in sql
+    # End test_select method
+
+    def test_select_extent(self, grid_index):
+        """
+        Test select statement with extent
+        """
+        source = grid_index['grid_zm_a']
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 50, -110, 52, CRS(4326))):
+            query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+            sql = query.select
+            assert 'SELECT geom "[PolygonZM]", fid' in sql
+            assert 'FROM grid_zm_a' in sql
+            assert 'WHERE minx <= -113.9999' in sql
+    # End test_select_extent method
+
+    def test_insert(self, grid_index):
+        """
+        Test insert statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        sql = query.insert
+        assert '(ORIG_FID, SHAPE) ' in sql
+        assert f'temp.tmp_grid_zm_a' in sql
+    # End test_insert method
+
+    def test_update(self, grid_index):
+        """
+        Test update statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        sql = query.update
+        assert 'UPDATE grid_zm_a ' in sql
+        assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
+    # End test_update method
+# End TestQueryAdjust3DZ class
 
 
 if __name__ == '__main__':  # pragma: no cover

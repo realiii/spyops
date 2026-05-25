@@ -557,11 +557,12 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
     """
     Abstract Source Update Query
     """
-    def __init__(self, source: FeatureClass) -> None:
+    def __init__(self, source: FeatureClass, where_clause: str = '') -> None:
         """
         Initialize the AbstractSourceQuery class
         """
         super().__init__(source, target=source, xy_tolerance=None)
+        self._where_clause: str = where_clause
     # End init built-in
 
     @property
@@ -633,11 +634,13 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         # noinspection PyUnresolvedReferences
         key_name = self.source.primary_key_field.escaped_name
         select_names = self._concatenate(geom_type, key_name)
+        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
-                self.source, field_names=select_names)
+                self.source, field_names=select_names,
+                where_clause=where_clause)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+            self.source, field_names=select_names, where_clause=where_clause)
     # End select property
 
     @property

@@ -11,8 +11,8 @@ from operator import itemgetter
 from typing import Callable, Generator, Optional, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
-from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
-from fudgeo.enumeration import ShapeType
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
+from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.geometry import Point
 from numpy import array
 from pyproj import CRS
@@ -31,6 +31,7 @@ from spyops.crs.util import get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import HasZM, ZMConfig, zm_config
+from spyops.geometry.adjust import GEOMETRY_ADJUST_Z
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
     length_planar, line_azimuth, line_end, line_start)
@@ -2191,6 +2192,61 @@ class QueryPointsToLineEnd(AbstractQueryPointsToLine):
         return {id_: attrs for id_, (*_, attrs) in attributes.items()}
     # End _get_line_attrs method
 # End QueryPointsToLineEnd class
+
+
+class QueryAdjust3DZ(AbstractSourceUpdateQuery):
+    """
+    Queries for Adjust 3D Z
+    """
+    def __init__(self, source: FeatureClass,
+                 adjuster: Callable[['ndarray'], 'ndarray'],
+                 where_clause: str) -> None:
+        """
+        Initialize the QueryAdjust3DZ class
+        """
+        super().__init__(source, where_clause=where_clause)
+        self._adjuster: Callable[['ndarray'], 'ndarray'] = adjuster
+    # End init built-in
+
+    def _get_field_names(self) -> NAMES:
+        """
+        Get Field Names
+        """
+        return self.source.geometry_column_name,
+    # End _get_field_names method
+
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'adjust_z'
+    # End _short_name property
+
+    def _prepare_source(self) -> None:
+        """
+        Override
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        return ORIG_FID, Field(SHAPE, data_type=FieldType.text)
+    # End _intermediate_fields property
+
+    @property
+    def z_adjuster(self) -> Callable:
+        """
+        Z Adjuster
+        """
+        adjust_z = GEOMETRY_ADJUST_Z[self.source.shape_type]
+        return partial(adjust_z, adjuster=self._adjuster)
+    # End z_adjuster property
+# End QueryAdjust3DZ class
 
 
 if __name__ == '__main__':  # pragma: no cover

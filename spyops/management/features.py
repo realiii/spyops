@@ -22,7 +22,8 @@ from spyops.geometry.repair import repair_feature_class_geometry
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
+    QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
+    QueryCheckGeometry,
     QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
     QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
     QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
@@ -58,6 +59,7 @@ from spyops.validation import (
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
 
 
 __all__ = [
@@ -67,7 +69,7 @@ __all__ = [
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
     'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
     'polygon_to_line', 'feature_to_polygon', 'feature_to_line',
-    'points_to_line']
+    'points_to_line', 'adjust_3d_z']
 
 
 @validate_result()
@@ -903,6 +905,31 @@ def points_to_line(source: 'FeatureClass', target: 'FeatureClass', *,
             records.clear()
     return query.target
 # End points_to_line function
+
+
+@validate_result()
+@validate_source_feature_class(has_z=True)
+def adjust_3d_z(source: 'FeatureClass',
+                adjuster: Callable[['ndarray'], 'ndarray'], *,
+                where_clause: str = '') -> 'FeatureClass':
+    """
+    Adjust 3D Z
+
+    Adjust the Z values in 3D features using the specified adjuster function.
+    """
+    with QueryAdjust3DZ(source, adjuster=adjuster,
+                        where_clause=where_clause) as query:
+        query_insert = query.insert
+        z_adjuster = query.z_adjuster
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                cin.executemany(query_insert, z_adjuster(features))
+            cin.execute(query.update)
+    return query.target
+# End adjust_3d_z function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

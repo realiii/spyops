@@ -57,6 +57,7 @@ MIT
 - added `table_to_geopackage` (Conversion - GeoPackage)
 - added `frequency` (Analysis - Statistics)
 - added `statistics` (Analysis - Statistics)
+- added `adjust_3d_z` (Management - Features)
 - added `feature_to_line` (Management - Features)
 - added `feature_to_polygon` (Management - Features)
 - added `points_to_line` (Management - Features)
