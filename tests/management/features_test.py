@@ -19,7 +19,8 @@ from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
-    add_xy_coordinates, calculate_geometry_attributes, copy_features,
+    add_xy_coordinates, adjust_3d_z, calculate_geometry_attributes,
+    copy_features,
     delete_features, feature_envelope_to_polygon, feature_to_line,
     feature_to_point,
     feature_vertices_to_points, multipart_to_singlepart, points_to_line,
@@ -2374,6 +2375,35 @@ class TestPointsToLine:
         assert fc.shape_type == ShapeType.linestring
     # End test_start_end method
 # End TestPointsToLine class
+
+
+class TestAdjust3DZ:
+    """
+    Test Adjust 3D Z
+    """
+    @mark.parametrize('fc_name, count', [
+        ('hydro_6654_z_a', 10),
+        ('hydro_6654_zm_a', 10),
+        ('structures_6654_z_ma', 10),
+        ('transmission_z_l', 10),
+        ('transmission_z_ml', 4),
+        ('transmission_z_p', 10),
+        ('transmission_z_mp', 2),
+    ])
+    def test_adder(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test adder example
+        """
+        def adder(zs):
+            return zs + 12.345
+
+        source = ntdb_zm_small[fc_name].copy(
+            name=fc_name, geopackage=mem_gpkg, where_clause=f"""FID <= 10""")
+        assert len(source) == count
+        adjust_3d_z(source, adder)
+        assert len(source) == count
+    # End test_adder method
+# End TestAdjust3DZ class
 
 
 if __name__ == '__main__':  # pragma: no cover

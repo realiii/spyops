@@ -8,10 +8,10 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.management.feature_class import (
     create_feature_class, recalculate_feature_class_extent)
 from spyops.management.features import (
-    add_xy_coordinates, calculate_geometry_attributes, check_geometry,
-    copy_features, delete_features, explode, feature_envelope_to_polygon,
-    feature_to_line, feature_to_point, feature_to_polygon,
-    feature_vertices_to_points, minimum_bounding_geometry,
+    add_xy_coordinates, adjust_3d_z, calculate_geometry_attributes,
+    check_geometry, copy_features, delete_features, explode,
+    feature_envelope_to_polygon, feature_to_line, feature_to_point,
+    feature_to_polygon, feature_vertices_to_points, minimum_bounding_geometry,
     multipart_to_singlepart, points_to_line, polygon_to_line, repair_geometry,
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
@@ -46,6 +46,7 @@ __all__ = [
     'create_feature_class',
     'recalculate_feature_class_extent',
 
+    'adjust_3d_z',
     'add_xy_coordinates',
     'calculate_geometry_attributes',
     'check_geometry',
