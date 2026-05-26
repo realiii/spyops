@@ -63,6 +63,13 @@ class AbstractElementQuery(metaclass=ABCMeta):
         self._where_clause: str = where_clause
     # End init built-in
 
+    def _get_where_clause(self) -> str:
+        """
+        Get Where Clause
+        """
+        return (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+    # End _get_where_clause method
+
     @staticmethod
     def _make_select(element: ELEMENT, field_names: str,
                      where_clause: str) -> str:
@@ -421,7 +428,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Build Select from a list of fields
         """
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+        where_clause = self._get_where_clause()
         select_names = self._get_select_names(fields)
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
@@ -638,7 +645,7 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         # noinspection PyUnresolvedReferences
         key_name = self.source.primary_key_field.escaped_name
         select_names = self._concatenate(geom_type, key_name)
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+        where_clause = self._get_where_clause()
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 self.source, field_names=select_names,
@@ -971,7 +978,7 @@ class BaseQuerySelect(AbstractSourceQuery):
         """
         elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+        where_clause = self._get_where_clause()
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 elm, field_names=select_field_names, where_clause=where_clause)

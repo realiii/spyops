@@ -122,7 +122,7 @@ class AbstractFieldStatisticsToTableQuery(StatisticsMixin,
         Selection Query
         """
         stub = '{}'
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+        where_clause = self._get_where_clause()
         if self._fields:
             field_names = self._concatenate(self._group_names, stub)
             sql = self._make_select(
