@@ -13,7 +13,7 @@ from fudgeo.constant import MEMORY
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.keywords import GEOPACKAGE
-from spyops.shared.hint import GPKG
+from spyops.shared.hint import GPKG, NUMBER
 from spyops.shared.util import safe_float, safe_int
 from spyops.validation.base import AbstractValidate, AbstractValidateTypeExists
 
@@ -71,7 +71,7 @@ class ValidateValues(AbstractValidate):
     """
     Validate Values
     """
-    def __init__(self, name: str, type_: Type[int | float] = float) -> None:
+    def __init__(self, name: str, type_: Type[NUMBER] = float) -> None:
         """
         Initialize the ValidateRange class
 
@@ -80,7 +80,7 @@ class ValidateValues(AbstractValidate):
         """
         super().__init__()
         self._name: str = name
-        self._type: Type[int | float] = type_
+        self._type: Type[NUMBER] = type_
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -102,7 +102,7 @@ class ValidateValues(AbstractValidate):
         return wrapper
     # End call built-in
 
-    def _get_object(self, kwargs: dict[str, Any]) -> list[float | int]:
+    def _get_object(self, kwargs: dict[str, Any]) -> list[NUMBER]:
         """
         Get Object from kwargs and optionally perform some checks
         """
@@ -115,7 +115,7 @@ class ValidateValues(AbstractValidate):
         return [v for v in values if v is not None]
     # End _get_object method
 
-    def _set_object(self, obj: list[float | int],
+    def _set_object(self, obj: list[NUMBER],
                     kwargs: dict[str, Any]) -> None:
         """
         Set Object into the kwargs
