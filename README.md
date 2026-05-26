@@ -48,6 +48,7 @@ MIT
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
 - added `field_statistics_to_table` (Management - Fields)
+- added `standardize_field` (Management - Fields)
 - added `delete_identical` (Management - General)
 - added `find_identical` (Management - General)
 - added `sort` (Management - General)
