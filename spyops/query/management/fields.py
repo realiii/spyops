@@ -8,7 +8,7 @@ from abc import abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING, Type
 
-from fudgeo import Field
+from fudgeo import Field, Table
 from fudgeo.constant import COMMA_SPACE
 
 from spyops.environment import ANALYSIS_SETTINGS
@@ -26,7 +26,6 @@ from spyops.shared.stats import (
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    from fudgeo import Table
 
 
 class QueryCalculateEndTime(AbstractSourceQuery):
@@ -85,14 +84,14 @@ class AbstractFieldStatisticsToTableQuery(StatisticsMixin,
     """
     Abstract Field Statistics to Table
     """
-    def __init__(self, source: ELEMENT, target: 'Table', fields: FIELDS,
+    def __init__(self, source: ELEMENT, target: Table, fields: FIELDS,
                  group_fields: FIELDS, where_clause: str, *, 
                  stat_classes: tuple[tuple[Type, str], ...]) -> None:
         """
         Initialize the AbstractFieldStatisticsToTableQuery class
         """
         super().__init__(element=source, fields=group_fields)
-        self._target: 'Table' = target
+        self._target: Table = target
         self._input_fields: FIELDS = fields
         self._where_clause: str = where_clause
         self._stat_classes: tuple[tuple[Type, str], ...] = stat_classes
@@ -145,7 +144,7 @@ class AbstractFieldStatisticsToTableQuery(StatisticsMixin,
     # End insert property
 
     @property
-    def target(self) -> 'Table':
+    def target(self) -> Table:
         """
         Target
         """
@@ -153,7 +152,7 @@ class AbstractFieldStatisticsToTableQuery(StatisticsMixin,
     # End target property
 
     @cached_property
-    def target_empty(self) -> 'Table':
+    def target_empty(self) -> Table:
         """
         Target Empty
         """
@@ -190,7 +189,7 @@ class QueryFieldStatisticsToTableNumeric(AbstractFieldStatisticsToTableQuery):
     """
     Query Field Statistics to Table for Numeric Fields
     """
-    def __init__(self, source: ELEMENT, target: 'Table', fields: FIELDS,
+    def __init__(self, source: ELEMENT, target: Table, fields: FIELDS,
                  group_fields: FIELDS, where_clause: str) -> None:
         """
         Initialize the QueryFieldStatisticsToTableNumeric class
@@ -206,7 +205,7 @@ class QueryFieldStatisticsToTableText(AbstractFieldStatisticsToTableQuery):
     """
     Query Field Statistics to Table for Text Fields
     """
-    def __init__(self, source: ELEMENT, target: 'Table', fields: FIELDS,
+    def __init__(self, source: ELEMENT, target: Table, fields: FIELDS,
                  group_fields: FIELDS, where_clause: str) -> None:
         """
         Initialize the QueryFieldStatisticsToTableText class
@@ -222,7 +221,7 @@ class QueryFieldStatisticsToTableDate(AbstractFieldStatisticsToTableQuery):
     """
     Query Field Statistics to Table for Date Fields
     """
-    def __init__(self, source: ELEMENT, target: 'Table', fields: FIELDS,
+    def __init__(self, source: ELEMENT, target: Table, fields: FIELDS,
                  group_fields: FIELDS, where_clause: str) -> None:
         """
         Initialize the QueryFieldStatisticsToTableDate class
