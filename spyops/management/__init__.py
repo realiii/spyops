@@ -16,7 +16,7 @@ from spyops.management.features import (
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
-    calculate_field, delete_field, field_statistics_to_table)
+    calculate_field, delete_field, field_statistics_to_table, standardize_field)
 from spyops.management.general import (
     copy, delete, delete_identical, find_identical, rename, sort)
 from spyops.management.generalization import dissolve
@@ -31,7 +31,8 @@ from spyops.management.workspace import (
 from spyops.shared.enumeration import (
     AttributeSource, FieldProperty, GeometryAttribute, GeometryCheck,
     GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
-    SpatialSortOption, StatisticOutputOption, WeightOption)
+    SpatialSortOption, StandardizationMethod, StatisticOutputOption,
+    WeightOption)
 from spyops.shared.sort import Ascending, Descending
 from spyops.shared.stats import (
     Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
@@ -75,6 +76,7 @@ __all__ = [
     'calculate_field',
     'delete_field',
     'field_statistics_to_table',
+    'standardize_field',
 
     'copy',
     'delete',
@@ -114,6 +116,7 @@ __all__ = [
     'MinimumGeometryOption',
     'PointTypeOption',
     'SpatialSortOption',
+    'StandardizationMethod',
     'StatisticOutputOption',
     'WeightOption',
 

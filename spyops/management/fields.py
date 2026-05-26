@@ -13,9 +13,10 @@ from fudgeo.enumeration import FieldPropertyType, ShapeType
 from fudgeo.extension.schema import EnumerationConstraint, RangeConstraint
 
 from spyops.query.management.fields import (
-    QueryCalculateEndTime,
-    QueryFieldStatisticsToTableDate, QueryFieldStatisticsToTableNumeric,
-    QueryFieldStatisticsToTableText)
+    QueryCalculateEndTime, QueryFieldStatisticsToTableDate,
+    QueryFieldStatisticsToTableNumeric, QueryFieldStatisticsToTableText,
+    QueryStandardizeFieldAbsoluteMax, QueryStandardizeFieldMinMax,
+    QueryStandardizeFieldRobust, QueryStandardizeFieldZScore)
 from spyops.shared.constant import EMPTY
 from spyops.shared.field import (
     DATES, GNSS_COMMON_FIELDS, GNSS_FIX_TYPE_FIELD, GNSS_NUM_SATS_FIELD,
@@ -23,9 +24,11 @@ from spyops.shared.field import (
     GNSS_WORST_FIX_TYPE_FIELD, NUMBERS, TEXTS, filter_by_data_type)
 from spyops.shared.keywords import (
     ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, GROUP_FIELDS,
-    OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG, SOURCE, START_FIELD)
-from spyops.shared.enumeration import FieldProperty, StatisticOutputOption
-from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES
+    OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG, SOURCE,
+    STANDARDIZATION_METHOD, START_FIELD)
+from spyops.shared.enumeration import (
+    FieldProperty, StandardizationMethod, StatisticOutputOption)
+from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER
 from spyops.validation import (
     validate_compatible_fields, validate_element, validate_elements,
     validate_feature_class, validate_overwrite_source, validate_result,
@@ -40,7 +43,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field',
            'add_gps_metadata_fields', 'calculate_end_time',
-           'field_statistics_to_table']
+           'field_statistics_to_table', 'standardize_field']
 
 
 @validate_result()
@@ -268,6 +271,47 @@ def field_statistics_to_table(source: ELEMENT, target: 'Table', *,
             executor(query.insert, records)
     return query.target
 # End field_statistics_to_table function
+
+
+@validate_result()
+@validate_source_element()
+@validate_field(FIELD, single=True, element_name=SOURCE, data_types=NUMBERS)
+@validate_field(OUTPUT_FIELD, single=True, element_name=SOURCE,
+                data_types=NUMBERS)
+@validate_compatible_fields(FIELD, OUTPUT_FIELD)
+@validate_str_enumeration(STANDARDIZATION_METHOD, StandardizationMethod)
+def standardize_field(source: ELEMENT, field: Field | str,
+                      output_field: Field | str, *,
+                      standardization_method: StandardizationMethod = (
+                              StandardizationMethod.Z_SCORE),
+                      min_value: NUMBER = 0, max_value: NUMBER = 0,
+                      where_clause: str = '') -> ELEMENT:
+    """
+    Standardize Field
+
+    Standardizes the values in a field by using one of the standardization
+    methods.  Resulting values are written to an output field in the same
+    feature class or table.  Optionally, provide a where clause to operate
+    on a subset of the data.
+    """
+    kwargs = dict(source=source, field=field, output_field=output_field,
+                  where_clause=where_clause)
+    if standardization_method == StandardizationMethod.MIN_MAX:
+        cls = QueryStandardizeFieldMinMax
+        # noinspection PyTypeChecker
+        kwargs.update(dict(min_value=min(min_value, max_value),
+                           max_value=max(min_value, max_value)))
+    elif standardization_method == StandardizationMethod.ABSOLUTE_MAX:
+        cls = QueryStandardizeFieldAbsoluteMax
+    elif standardization_method == StandardizationMethod.ROBUST:
+        cls = QueryStandardizeFieldRobust
+    else:
+        cls = QueryStandardizeFieldZScore
+    with cls(**kwargs) as query:
+        with query.source.geopackage.connection as cin:
+            cin.execute(query.update)
+    return query.source
+# End standardize_field function
 
 
 if __name__ == '__main__':  # pragma: no cover
