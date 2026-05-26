@@ -307,7 +307,7 @@ class StandardizationMethod(StrEnum):
     """
     Z_SCORE = auto()
     MIN_MAX = auto()
-    MAX_ABS = auto()
+    ABSOLUTE_MAX = auto()
     ROBUST = auto()
 # End StandardizationMethod class
 
