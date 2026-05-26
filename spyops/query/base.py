@@ -54,12 +54,13 @@ class AbstractElementQuery(metaclass=ABCMeta):
     """
     Abstract Query Support
     """
-    def __init__(self, element: ELEMENT) -> None:
+    def __init__(self, element: ELEMENT, *, where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractElementQuery class
         """
         super().__init__()
         self._element: ELEMENT = element
+        self._where_clause: str = where_clause
     # End init built-in
 
     @staticmethod
@@ -147,11 +148,12 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
     """
     Abstract Feature Class Query
     """
-    def __init__(self, element: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
+    def __init__(self, element: FeatureClass, *, where_clause: str = EMPTY,
+                 xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the AbstractFeatureClassQuery class
         """
-        super().__init__(element)
+        super().__init__(element, where_clause=where_clause)
         self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
@@ -299,11 +301,12 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
     Abstract Source Query
     """
     def __init__(self, source: FeatureClass, target: FeatureClass, *,
-                 xy_tolerance: XY_TOL) -> None:
+                 where_clause: str = EMPTY, xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source, xy_tolerance=xy_tolerance)
+        super().__init__(
+            source, where_clause=where_clause, xy_tolerance=xy_tolerance)
         self._target: FeatureClass = target
     # End init built-in
 
@@ -418,12 +421,14 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Build Select from a list of fields
         """
+        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
         select_names = self._get_select_names(fields)
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
-                self.source, field_names=select_names)
+                self.source, field_names=select_names,
+                where_clause=where_clause)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+            self.source, field_names=select_names, where_clause=where_clause)
     # End _build_select method
 
     def _get_select_names(self, fields: FIELDS) -> str:
@@ -557,12 +562,11 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
     """
     Abstract Source Update Query
     """
-    def __init__(self, source: FeatureClass, where_clause: str = '') -> None:
+    def __init__(self, source: FeatureClass, where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source, target=source, xy_tolerance=None)
-        self._where_clause: str = where_clause
+        super().__init__(source, target=source, where_clause=where_clause)
     # End init built-in
 
     @property
