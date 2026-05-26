@@ -37,7 +37,7 @@ class QueryCalculateEndTime(AbstractSourceQuery):
         Initialize the QueryCalculateEndTime class
         """
         # noinspection PyTypeChecker
-        super().__init__(source, target=source, xy_tolerance=None)
+        super().__init__(source, target=source)
         self._start_field: Field = start_field
         self._end_field: Field = end_field
         self._sort_fields: FIELDS = sort_fields
