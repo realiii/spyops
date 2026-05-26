@@ -205,6 +205,20 @@ class TestQueryStandardizeField:
                 output_field=output_field, where_clause='')
             assert 'maxx' in query.update
     # End test_extent method
+
+    def test_table(self, inputs, mem_gpkg):
+        """
+        Test extent on table
+        """
+        source = inputs['transmission_xy_4617'].copy(name='copy', geopackage=mem_gpkg)
+        output_field = Field('standard', data_type=FieldType.real)
+        source.add_fields(output_field)
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=CRS(4326))):
+            query = QueryStandardizeFieldAbsoluteMax(
+                source, field=Field('FEATURE_ID', data_type=FieldType.integer),
+                output_field=output_field, where_clause='')
+            assert 'maxx' not in query.update
+    # End test_table method
 # End TestQueryStandardizeField class
 
 

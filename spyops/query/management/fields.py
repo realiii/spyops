@@ -299,6 +299,8 @@ class AbstractQueryStandardizeField(AggregateContextMixin, AbstractSourceQuery):
         """
         element = self.source
         where_clause = self._get_where_clause()
+        if isinstance(element, Table):
+            return where_clause
         if ANALYSIS_SETTINGS.extent:
             if where := self._spatial_index_where(
                     element, extent=self._shared_extent(element)):
