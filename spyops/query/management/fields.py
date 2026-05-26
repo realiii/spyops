@@ -13,7 +13,7 @@ from fudgeo.constant import COMMA_SPACE
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import AbstractElementGroupQuery, AbstractSourceQuery
 from spyops.query.mixin import StatisticsMixin
-from spyops.shared.constant import EMPTY
+from spyops.shared.constant import EMPTY, VALUE
 from spyops.shared.field import (
     FIELD_ALIAS, FIELD_NAME, FIELD_TYPE, add_key_fields, make_field_names)
 from spyops.shared.hint import ELEMENT, FIELDS
@@ -48,7 +48,6 @@ class QueryCalculateEndTime(AbstractSourceQuery):
         """
         Update Query
         """
-        value = 'value'
         cte = 'lead_values'
         tbl = self.source.escaped_name
         # noinspection PyUnresolvedReferences
@@ -60,10 +59,10 @@ class QueryCalculateEndTime(AbstractSourceQuery):
         return f"""
             WITH {cte} AS (
                 SELECT {key_name}, LEAD({self._start_field.escaped_name}) OVER (
-                    ORDER BY {sort_names}) AS {value}
+                    ORDER BY {sort_names}) AS {VALUE}
                 FROM {tbl})
             UPDATE {tbl}
-            SET {self._end_field.escaped_name} = {cte}.{value}
+            SET {self._end_field.escaped_name} = {cte}.{VALUE}
             FROM {cte}
             WHERE {tbl}.{key_name} = {cte}.{key_name};
         """

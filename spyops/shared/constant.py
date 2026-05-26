@@ -28,7 +28,7 @@ SRS_ID_WKB: int = -1  # used where only need WKB
 
 SPYOPS: str = 'spyops'
 DRID: str = '__DRID__'
-
+VALUE: str = 'value'
 
 DEGREE: str = 'degree'
 METRE: str = 'metre'
