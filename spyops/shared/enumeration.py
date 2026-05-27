@@ -312,6 +312,20 @@ class StandardizationMethod(StrEnum):
 # End StandardizationMethod class
 
 
+class TransformationMethod(StrEnum):
+    """
+    Transformation Method
+    """
+    INVERSE = auto()
+    SQUARE_ROOT = auto()
+    SQUARE = auto()
+    LOGARITHM = auto()
+    EXPONENTIAL = auto()
+    BOX_COX = auto()
+    INVERSE_BOX_COX = auto()
+# End TransformationMethod class
+
+
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
     GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |

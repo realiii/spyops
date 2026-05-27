@@ -13,9 +13,10 @@ from pytest import mark, approx
 from spyops.management import (
     add_field, add_gps_metadata_fields,
     calculate_end_time, calculate_field, delete_field, alter_field,
-    field_statistics_to_table, standardize_field)
+    field_statistics_to_table, standardize_field, transform_field)
 from spyops.shared.enumeration import (
-    FieldProperty, StandardizationMethod, StatisticOutputOption)
+    FieldProperty, StandardizationMethod, StatisticOutputOption,
+    TransformationMethod)
 from spyops.shared.field import GNSS_COMMON_FIELDS
 
 pytestmark = [mark.management, mark.field]
@@ -467,7 +468,7 @@ class TestStandardizeField:
         source = inputs['river_p'].copy(name='copy', geopackage=mem_gpkg)
         output_field = Field('distance_standard', data_type=FieldType.real)
         source.add_fields(output_field)
-        kwargs = dict(source=source, standardization_method=method,
+        kwargs = dict(source=source, method=method,
                       field=Field('distance', data_type=FieldType.real),
                       output_field=output_field, where_clause="""distance > 0""")
         if method == StandardizationMethod.MIN_MAX:
@@ -485,6 +486,48 @@ class TestStandardizeField:
             assert approx(results, abs=0.001) == (min_, max_)
     # End test method
 # End TestStandardizeField class
+
+
+class TestTransformField:
+    """
+    Test Transform Field
+    """
+    @mark.parametrize('method, min_, max_', [
+        (TransformationMethod.INVERSE, 0.0188, 3815.5712),
+        (TransformationMethod.SQUARE_ROOT, 1, 7.3603),
+        (TransformationMethod.SQUARE, -1, 2826.5621),
+        (TransformationMethod.LOGARITHM, 0, 3.9922),
+        (TransformationMethod.EXPONENTIAL, 0, 1240.3197 * 10**20),
+        (TransformationMethod.BOX_COX, 0, 1466.9559),
+        (TransformationMethod.INVERSE_BOX_COX, 0, 9.3609),
+    ])
+    def test_method(self, inputs, mem_gpkg, method, min_, max_):
+        """
+        Test method
+        """
+        source = inputs['river_p'].copy(name='copy', geopackage=mem_gpkg)
+        output_field = Field('distance_standard', data_type=FieldType.real)
+        source.add_fields(output_field)
+        kwargs = dict(source=source, method=method,
+                      field=Field('distance', data_type=FieldType.real),
+                      output_field=output_field, shift=1, power=2,
+                      where_clause="""distance > -10""")
+        transform_field(**kwargs)
+        with source.geopackage.connection as cin:
+            name = source.escaped_name
+            field_name = output_field.escaped_name
+            cursor = cin.execute(f"""
+                SELECT MIN({field_name}), MAX({field_name}) 
+                FROM {name}
+            """)
+            results = cursor.fetchone()
+            if max_ > 10**23:
+                tol = 10**20
+            else:
+                tol = 10**-3
+            assert approx(results, abs=tol) == (min_, max_)
+    # End test method
+# End TestTransformField class
 
 
 if __name__ == '__main__':  # pragma: no cover
