@@ -4,7 +4,7 @@ Query classes for management.fields
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING, Type
 
@@ -15,6 +15,8 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import AbstractElementGroupQuery, AbstractSourceQuery
 from spyops.query.mixin import AggregateContextMixin, StatisticsMixin
 from spyops.shared.constant import EMPTY, VALUE
+from spyops.shared.enumeration import (
+    StandardizationMethod, TransformationMethod)
 from spyops.shared.field import (
     FIELD_ALIAS, FIELD_NAME, FIELD_TYPE, add_key_fields, make_field_names)
 from spyops.shared.hint import ELEMENT, FIELDS, NUMBER
@@ -233,14 +235,14 @@ class QueryFieldStatisticsToTableDate(AbstractFieldStatisticsToTableQuery):
 # End QueryFieldStatisticsToTableDate class
 
 
-class AbstractQueryStandardizeField(AggregateContextMixin, AbstractSourceQuery):
+class AbstractQueryFieldUpdater(AggregateContextMixin, AbstractSourceQuery):
     """
-    Abstract Query for Standardize Field
+    Abstract Query for Updating into an Output Field
     """
     def __init__(self, source: ELEMENT, field: Field, output_field: Field,
                  where_clause: str) -> None:
         """
-        Initialize the AbstractQueryStandardizeField class
+        Initialize the AbstractQueryFieldUpdater class
         """
         # noinspection PyTypeChecker
         super().__init__(source, target=source, where_clause=where_clause)
@@ -251,7 +253,7 @@ class AbstractQueryStandardizeField(AggregateContextMixin, AbstractSourceQuery):
     @abstractmethod
     def _get_expression(self) -> str:
         """
-        Get Standardization Expression
+        Get Expression
         """
         pass
     # End _get_expression method
@@ -274,7 +276,7 @@ class AbstractQueryStandardizeField(AggregateContextMixin, AbstractSourceQuery):
         Update Query
         """
         element = self.source
-        cte = 'standard_values'
+        cte = 'update_field_values'
         tbl = element.escaped_name
         # noinspection PyUnresolvedReferences
         key_name = element.primary_key_field.escaped_name
@@ -316,10 +318,10 @@ class AbstractQueryStandardizeField(AggregateContextMixin, AbstractSourceQuery):
         """
         return EMPTY
     # End insert property
-# End AbstractQueryStandardizeField class
+# End AbstractQueryFieldUpdater class
 
 
-class QueryStandardizeFieldZScore(AbstractQueryStandardizeField):
+class QueryStandardizeFieldZScore(AbstractQueryFieldUpdater):
     """
     Query Standardize Field Z Score
     """
@@ -334,7 +336,7 @@ class QueryStandardizeFieldZScore(AbstractQueryStandardizeField):
 # End QueryStandardizeFieldZScore class
 
 
-class QueryStandardizeFieldMinMax(AbstractQueryStandardizeField):
+class QueryStandardizeFieldMinMax(AbstractQueryFieldUpdater):
     """
     Query Standardize Field Min Max
     """
@@ -364,7 +366,7 @@ class QueryStandardizeFieldMinMax(AbstractQueryStandardizeField):
 # End QueryStandardizeFieldMinMax class
 
 
-class QueryStandardizeFieldAbsoluteMax(AbstractQueryStandardizeField):
+class QueryStandardizeFieldAbsoluteMax(AbstractQueryFieldUpdater):
     """
     Query Standardize Field Absolute Max
     """
@@ -379,7 +381,7 @@ class QueryStandardizeFieldAbsoluteMax(AbstractQueryStandardizeField):
 # End QueryStandardizeFieldAbsoluteMax class
 
 
-class QueryStandardizeFieldRobust(AbstractQueryStandardizeField):
+class QueryStandardizeFieldRobust(AbstractQueryFieldUpdater):
     """
     Query Standardized Field Robust Standardization
     """
@@ -392,6 +394,153 @@ class QueryStandardizeFieldRobust(AbstractQueryStandardizeField):
         return f'({self._field.escaped_name} - {med}) / {iqr}'
     # End _get_expression method
 # End QueryStandardizeFieldRobust class
+
+
+class AbstractQueryTransformField(AbstractQueryFieldUpdater, metaclass=ABCMeta):
+    """
+    Abstract Query Transform Field
+    """
+    def __init__(self, source: ELEMENT, field: Field, output_field: Field,
+                 power: NUMBER, shift: NUMBER, where_clause: str) -> None:
+        """
+        Initialize the AbstractQueryTransformField class
+        """
+        super().__init__(source, field=field, output_field=output_field,
+                         where_clause=where_clause)
+        self._power: NUMBER = power
+        self._shift: NUMBER = shift
+    # End init built-in
+# End AbstractQueryTransformField class
+
+
+class QueryTransformFieldInverse(AbstractQueryTransformField):
+    """
+    Query Transform Field Inverse
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        return f'(1.0 / {self._field.escaped_name})'
+    # End _get_expression method
+# End QueryTransformFieldInverse class
+
+
+class QueryTransformFieldSquareRoot(AbstractQueryTransformField):
+    """
+    Query Transform Field Square Root
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        return f'SQRT({self._shift} + {self._field.escaped_name})'
+    # End _get_expression method
+# End QueryTransformFieldSquareRoot class
+
+
+class QueryTransformFieldSquare(AbstractQueryTransformField):
+    """
+    Query Transform Field Square
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        return f'(POW({self._field.escaped_name}, 2) - {self._shift})'
+    # End _get_expression method
+# End QueryTransformFieldSquare class
+
+
+class QueryTransformFieldLogarithm(AbstractQueryTransformField):
+    """
+    Query Transform Field Logarithm
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        return f'LN({self._shift} + {self._field.escaped_name})'
+    # End _get_expression method
+# End QueryTransformFieldLogarithm class
+
+
+class QueryTransformFieldExponential(AbstractQueryTransformField):
+    """
+    Query Transform Field Exponential
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        return f'(EXP({self._field.escaped_name}) - {self._shift})'
+    # End _get_expression method
+# End QueryTransformFieldExponential class
+
+
+class QueryTransformFieldBoxCox(AbstractQueryTransformField):
+    """
+    Query Transform Field Box Cox
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        shift = self._shift
+        power = self._power
+        field_name = self._field.escaped_name
+        # Box-Cox: ((x + shift)^lambda - 1) / lambda for lambda != 0
+        #          ln(x + shift) for lambda = 0
+        return f"""
+            (CASE 
+                WHEN {power} = 0 
+                THEN LN({shift} + {field_name})
+                ELSE (POW({shift} + {field_name}, {power}) - 1) / {power} 
+            END)"""
+    # End _get_expression method
+# End QueryTransformFieldBoxCox class
+
+
+class QueryTransformFieldInverseBoxCox(AbstractQueryTransformField):
+    """
+    Query Transform Field Inverse Box Cox
+    """
+    def _get_expression(self) -> str:
+        """
+        Get Expression
+        """
+        shift = self._shift
+        power = self._power
+        field_name = self._field.escaped_name
+        # Inverse Box-Cox: exp(y) - shift for lambda = 0
+        #                  (y * lambda + 1)^(1/lambda) - shift for lambda != 0
+        return f"""
+            (CASE 
+                WHEN {power} = 0 
+                THEN EXP({field_name}) - {shift}
+                ELSE POW({field_name} * {power} + 1, 1.0 / {power}) - {shift}
+            END)"""
+    # End _get_expression method
+# End QueryTransformFieldInverseBoxCox class
+
+
+FIELD_STANDARDIZE_TYPE: dict[StandardizationMethod, Type[AbstractQueryFieldUpdater]] = {
+    StandardizationMethod.Z_SCORE: QueryStandardizeFieldZScore,
+    StandardizationMethod.MIN_MAX: QueryStandardizeFieldMinMax,
+    StandardizationMethod.ABSOLUTE_MAX: QueryStandardizeFieldAbsoluteMax,
+    StandardizationMethod.ROBUST: QueryStandardizeFieldRobust,
+}
+
+
+FIELD_TRANSFORM_TYPE: dict[TransformationMethod, Type[AbstractQueryTransformField]] = {
+    TransformationMethod.INVERSE: QueryTransformFieldInverse,
+    TransformationMethod.SQUARE_ROOT: QueryTransformFieldSquareRoot,
+    TransformationMethod.SQUARE: QueryTransformFieldSquare,
+    TransformationMethod.LOGARITHM: QueryTransformFieldLogarithm,
+    TransformationMethod.EXPONENTIAL: QueryTransformFieldExponential,
+    TransformationMethod.BOX_COX: QueryTransformFieldBoxCox,
+    TransformationMethod.INVERSE_BOX_COX: QueryTransformFieldInverseBoxCox,
+}
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -13,10 +13,9 @@ from fudgeo.enumeration import FieldPropertyType, ShapeType
 from fudgeo.extension.schema import EnumerationConstraint, RangeConstraint
 
 from spyops.query.management.fields import (
-    QueryCalculateEndTime, QueryFieldStatisticsToTableDate,
-    QueryFieldStatisticsToTableNumeric, QueryFieldStatisticsToTableText,
-    QueryStandardizeFieldAbsoluteMax, QueryStandardizeFieldMinMax,
-    QueryStandardizeFieldRobust, QueryStandardizeFieldZScore)
+    FIELD_STANDARDIZE_TYPE, FIELD_TRANSFORM_TYPE, QueryCalculateEndTime,
+    QueryFieldStatisticsToTableDate, QueryFieldStatisticsToTableNumeric,
+    QueryFieldStatisticsToTableText)
 from spyops.shared.constant import EMPTY
 from spyops.shared.field import (
     DATES, GNSS_COMMON_FIELDS, GNSS_FIX_TYPE_FIELD, GNSS_NUM_SATS_FIELD,
@@ -27,7 +26,8 @@ from spyops.shared.keywords import (
     METHOD, OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG, SOURCE,
     START_FIELD)
 from spyops.shared.enumeration import (
-    FieldProperty, StandardizationMethod, StatisticOutputOption)
+    FieldProperty, StandardizationMethod, StatisticOutputOption,
+    TransformationMethod)
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER
 from spyops.validation import (
     validate_compatible_fields, validate_element, validate_elements,
@@ -43,7 +43,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field',
            'add_gps_metadata_fields', 'calculate_end_time',
-           'field_statistics_to_table', 'standardize_field']
+           'field_statistics_to_table', 'standardize_field', 'transform_field']
 
 
 @validate_result()
@@ -294,24 +294,47 @@ def standardize_field(source: ELEMENT, field: Field | str,
     feature class or table.  Optionally, provide a where clause to operate
     on a subset of the data.
     """
+    cls = FIELD_STANDARDIZE_TYPE[method]
     kwargs = dict(source=source, field=field, output_field=output_field,
                   where_clause=where_clause)
-    if standardization_method == StandardizationMethod.MIN_MAX:
-        cls = QueryStandardizeFieldMinMax
+    if method == StandardizationMethod.MIN_MAX:
         # noinspection PyTypeChecker
         kwargs.update(dict(min_value=min(min_value, max_value),
                            max_value=max(min_value, max_value)))
-    elif standardization_method == StandardizationMethod.ABSOLUTE_MAX:
-        cls = QueryStandardizeFieldAbsoluteMax
-    elif standardization_method == StandardizationMethod.ROBUST:
-        cls = QueryStandardizeFieldRobust
-    else:
-        cls = QueryStandardizeFieldZScore
     with cls(**kwargs) as query:
         with query.source.geopackage.connection as cin:
             cin.execute(query.update)
     return query.source
 # End standardize_field function
+
+
+@validate_result()
+@validate_source_element()
+@validate_field(FIELD, single=True, element_name=SOURCE, data_types=NUMBERS)
+@validate_field(OUTPUT_FIELD, single=True, element_name=SOURCE,
+                data_types=NUMBERS)
+@validate_compatible_fields(FIELD, OUTPUT_FIELD)
+@validate_str_enumeration(METHOD, TransformationMethod)
+def transform_field(source: ELEMENT, field: Field | str,
+                    output_field: Field | str, *,
+                    method: TransformationMethod = TransformationMethod.BOX_COX,
+                    power: NUMBER = 0, shift: NUMBER = 0,
+                    where_clause: str = '') -> ELEMENT:
+    """
+    Transform Field
+
+    Transforms values in a field by applying a mathematical function.
+    Optionally, provide a where clause to operate on a subset of the data.
+    """
+    field: Field
+    output_field: Field
+    cls = FIELD_TRANSFORM_TYPE[method]
+    with cls(source=source, field=field, output_field=output_field,
+             power=power, shift=shift, where_clause=where_clause) as query:
+        with query.source.geopackage.connection as cin:
+            cin.execute(query.update)
+    return query.source
+# End transform_field function
 
 
 if __name__ == '__main__':  # pragma: no cover
