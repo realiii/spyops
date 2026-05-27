@@ -12,10 +12,8 @@ from fudgeo.constant import COMMA_SPACE
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import AbstractElementGroupQuery
 from spyops.query.mixin import StatisticsMixin
-from spyops.shared.constant import EMPTY
 from spyops.shared.field import FREQUENCY, add_key_fields, make_field_names
 from spyops.shared.hint import ELEMENT, FIELDS, STATS_FIELDS
-from spyops.shared.sql import SQL_ALL_ID
 from spyops.shared.stats import Frequency
 
 
@@ -73,7 +71,7 @@ class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
         elm = self.source
         # noinspection PyArgumentList
         *_, select_field_names = self._field_names_and_count(elm)
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+        where_clause = self._get_where_clause()
         if not self._group_names:
             return self._make_select(
                 elm, field_names=select_field_names, where_clause=where_clause)

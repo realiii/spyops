@@ -2,17 +2,20 @@
 """
 Tests for Fields
 """
+
+
 from datetime import datetime, timezone
 
 from fudgeo import Field, Table
 from fudgeo.enumeration import FieldType
-from pytest import mark
+from pytest import mark, approx
 
 from spyops.management import (
     add_field, add_gps_metadata_fields,
     calculate_end_time, calculate_field, delete_field, alter_field,
-    field_statistics_to_table)
-from spyops.shared.enumeration import FieldProperty, StatisticOutputOption
+    field_statistics_to_table, standardize_field)
+from spyops.shared.enumeration import (
+    FieldProperty, StandardizationMethod, StatisticOutputOption)
 from spyops.shared.field import GNSS_COMMON_FIELDS
 
 pytestmark = [mark.management, mark.field]
@@ -445,6 +448,43 @@ class TestFieldStatisticsToTable:
                 datetime(2026, 5, 7, 17, 19, 7, tzinfo=timezone.utc)]
     # End test_date_with_group method
 # End TestFieldStatisticsToTable class
+
+
+class TestStandardizeField:
+    """
+    Test Standardize Field
+    """
+    @mark.parametrize('method, min_, max_', [
+        (StandardizationMethod.Z_SCORE, -1.2091, 4.1793),
+        (StandardizationMethod.MIN_MAX, 0, 50),
+        (StandardizationMethod.ABSOLUTE_MAX, 0, 1),
+        (StandardizationMethod.ROBUST, -0.7611, 3.4305),
+    ])
+    def test_method(self, inputs, mem_gpkg, method, min_, max_):
+        """
+        Test method
+        """
+        source = inputs['river_p'].copy(name='copy', geopackage=mem_gpkg)
+        output_field = Field('distance_standard', data_type=FieldType.real)
+        source.add_fields(output_field)
+        kwargs = dict(source=source, standardization_method=method,
+                      field=Field('distance', data_type=FieldType.real),
+                      output_field=output_field, where_clause="""distance > 0""")
+        if method == StandardizationMethod.MIN_MAX:
+            kwargs['min_value'] = 0
+            kwargs['max_value'] = 50
+        standardize_field(**kwargs)
+        with source.geopackage.connection as cin:
+            name = source.escaped_name
+            field_name = output_field.escaped_name
+            cursor = cin.execute(f"""
+                SELECT MIN({field_name}), MAX({field_name}) 
+                FROM {name}
+            """)
+            results = cursor.fetchone()
+            assert approx(results, abs=0.001) == (min_, max_)
+    # End test method
+# End TestStandardizeField class
 
 
 if __name__ == '__main__':  # pragma: no cover

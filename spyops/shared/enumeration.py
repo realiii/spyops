@@ -301,6 +301,17 @@ class SpatialSortOption(StrEnum):
 # End SpatialSortOption class
 
 
+class StandardizationMethod(StrEnum):
+    """
+    Standardization Method
+    """
+    Z_SCORE = auto()
+    MIN_MAX = auto()
+    ABSOLUTE_MAX = auto()
+    ROBUST = auto()
+# End StandardizationMethod class
+
+
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
     GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |

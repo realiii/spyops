@@ -2,6 +2,8 @@
 """
 Mixins
 """
+
+
 from datetime import datetime
 from functools import cached_property
 from typing import Self
@@ -20,9 +22,9 @@ from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
 
-class StatisticsMixin:
+class AggregateContextMixin:
     """
-    Statistics Mixin
+    Aggregate Context Mixin
     """
     def __enter__(self) -> Self:
         """
@@ -41,7 +43,13 @@ class StatisticsMixin:
         remove_aggregates(self.source.geopackage.connection)
         return False
     # End exit built-in
+# End AggregateContextMixin class
 
+
+class StatisticsMixin(AggregateContextMixin):
+    """
+    Statistics Mixin
+    """
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields

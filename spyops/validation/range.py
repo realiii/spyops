@@ -7,6 +7,7 @@ Validate Range
 from functools import wraps
 from typing import Any, Callable, Type
 
+from spyops.shared.hint import NUMBER, OPT_NUMBER
 from spyops.shared.util import safe_float, safe_int
 from spyops.validation.base import AbstractValidate
 
@@ -18,7 +19,7 @@ class ValidateRange(AbstractValidate):
     def __init__(self, name: str, default: float,
                  min_value: float = 0, max_value: float = 1,
                  inclusive: bool = True, clamp: bool = True,
-                 type_: Type[int | float] = float) -> None:
+                 type_: Type[NUMBER] = float) -> None:
         """
         Initialize the ValidateRange class
 
@@ -39,7 +40,7 @@ class ValidateRange(AbstractValidate):
         self._max: float = max_
         self._inclusive: bool = inclusive
         self._clamp: bool = clamp
-        self._type: Type[int | float] = type_
+        self._type: Type[NUMBER] = type_
         self._check_inputs(
             name, min_value=min_, max_value=max_,
             default=default, inclusive=inclusive)
@@ -78,7 +79,7 @@ class ValidateRange(AbstractValidate):
                 raise ValueError(f'{msg} (exclusive)')
     # End _check_inputs method
 
-    def _get_object(self, kwargs: dict[str, Any]) -> float | int | None:
+    def _get_object(self, kwargs: dict[str, Any]) -> OPT_NUMBER:
         """
         Get Object from kwargs and optionally perform some checks
         """
@@ -88,14 +89,14 @@ class ValidateRange(AbstractValidate):
         return safe_float(value)
     # End _get_object method
 
-    def _set_object(self, obj: float | int, kwargs: dict[str, Any]) -> None:
+    def _set_object(self, obj: NUMBER, kwargs: dict[str, Any]) -> None:
         """
         Set Object into the kwargs
         """
         kwargs[self._name] = obj
     # End _set_object method
 
-    def _validate_value(self, value: float | int | None) -> float | int:
+    def _validate_value(self, value: OPT_NUMBER) -> NUMBER:
         """
         Validate Value against the range
         """

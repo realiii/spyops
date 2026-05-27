@@ -6,12 +6,16 @@ Test for Fields Query classes
 
 from fudgeo import Field, Table
 from fudgeo.enumeration import FieldType
+from pyproj import CRS
 from pytest import mark
 
+from spyops.environment import Extent, Setting
+from spyops.environment.context import Swap
 from spyops.query.management.fields import (
-    QueryCalculateEndTime,
-    QueryFieldStatisticsToTableDate, QueryFieldStatisticsToTableNumeric,
-    QueryFieldStatisticsToTableText)
+    QueryCalculateEndTime, QueryFieldStatisticsToTableDate,
+    QueryFieldStatisticsToTableNumeric, QueryFieldStatisticsToTableText,
+    QueryStandardizeFieldAbsoluteMax, QueryStandardizeFieldMinMax,
+    QueryStandardizeFieldRobust, QueryStandardizeFieldZScore)
 
 pytestmark = [mark.fields, mark.query, mark.management]
 
@@ -155,6 +159,67 @@ class TestQueryFieldStatisticsToTable:
         assert stub in query.insert
     # End test_insert method
 # End TestQueryFieldStatisticsToTable class
+
+
+class TestQueryStandardizeField:
+    """
+    Test Query Standardize Field
+    """
+    @mark.parametrize('cls, expected', [
+        (QueryStandardizeFieldZScore, ('AVG(distance)', 'spyops_stdev(distance)')),
+        (QueryStandardizeFieldMinMax, ('MIN(distance)', '(100 - 0)', 'MAX(distance)')),
+        (QueryStandardizeFieldAbsoluteMax, ('MAX(ABS(distance))',)),
+        (QueryStandardizeFieldRobust, ('spyops_median(distance)', 'spyops_interquartile_range(distance)')),
+    ])
+    def test_expression(self, inputs, mem_gpkg, cls, expected):
+        """
+        Test expression
+        """
+        source = inputs['river_p'].copy(
+            name='copy', geopackage=mem_gpkg, where_clause="""FID < 10""")
+        output_field = Field('distance_standard', data_type=FieldType.real)
+        source.add_fields(output_field)
+        if cls is QueryStandardizeFieldMinMax:
+            query = cls(source,
+                        field=Field('distance', data_type=FieldType.real),
+                        output_field=output_field, where_clause='',
+                        min_value=0, max_value=100)
+        else:
+            query = cls(source,
+                        field=Field('distance', data_type=FieldType.real),
+                        output_field=output_field, where_clause='')
+        expression = query._get_expression()
+        assert all(ex in expression for ex in expected)
+    # End test_expression method
+
+    def test_extent(self, inputs, mem_gpkg):
+        """
+        Test extent
+        """
+        source = inputs['river_p'].copy(name='copy', geopackage=mem_gpkg)
+        output_field = Field('distance_standard', data_type=FieldType.real)
+        source.add_fields(output_field)
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=CRS(4326))):
+            query = QueryStandardizeFieldAbsoluteMax(
+                source, field=Field('distance', data_type=FieldType.real),
+                output_field=output_field, where_clause='')
+            assert 'maxx' in query.update
+    # End test_extent method
+
+    def test_table(self, inputs, mem_gpkg):
+        """
+        Test extent on table
+        """
+        source = inputs['transmission_xy_4617'].copy(name='copy', geopackage=mem_gpkg)
+        output_field = Field('standard', data_type=FieldType.real)
+        source.add_fields(output_field)
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=CRS(4326))):
+            query = QueryStandardizeFieldAbsoluteMax(
+                source, field=Field('FEATURE_ID', data_type=FieldType.integer),
+                output_field=output_field, where_clause='')
+            assert 'maxx' not in query.update
+    # End test_table method
+# End TestQueryStandardizeField class
 
 
 if __name__ == '__main__':  # pragma: no cover
