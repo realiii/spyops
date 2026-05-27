@@ -467,7 +467,7 @@ class TestStandardizeField:
         source = inputs['river_p'].copy(name='copy', geopackage=mem_gpkg)
         output_field = Field('distance_standard', data_type=FieldType.real)
         source.add_fields(output_field)
-        kwargs = dict(source=source, standardization_method=method,
+        kwargs = dict(source=source, method=method,
                       field=Field('distance', data_type=FieldType.real),
                       output_field=output_field, where_clause="""distance > 0""")
         if method == StandardizationMethod.MIN_MAX:

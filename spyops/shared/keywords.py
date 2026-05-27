@@ -77,7 +77,7 @@ Z_TOLERANCE: str = 'z_tolerance'
 M_TOLERANCE: str = 'm_tolerance'
 ATTRIBUTE_SOURCE: str = 'attribute_source'
 SPATIAL_SORT_OPTION: str = 'spatial_sort_option'
-STANDARDIZATION_METHOD: str = 'standardization_method'
+METHOD: str = 'method'
 
 
 if __name__ == '__main__':  # pragma: no cover

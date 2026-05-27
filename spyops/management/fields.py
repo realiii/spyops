@@ -24,8 +24,8 @@ from spyops.shared.field import (
     GNSS_WORST_FIX_TYPE_FIELD, NUMBERS, TEXTS, filter_by_data_type)
 from spyops.shared.keywords import (
     ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, GROUP_FIELDS,
-    OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG, SOURCE,
-    STANDARDIZATION_METHOD, START_FIELD)
+    METHOD, OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG, SOURCE,
+    START_FIELD)
 from spyops.shared.enumeration import (
     FieldProperty, StandardizationMethod, StatisticOutputOption)
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER
@@ -279,10 +279,10 @@ def field_statistics_to_table(source: ELEMENT, target: 'Table', *,
 @validate_field(OUTPUT_FIELD, single=True, element_name=SOURCE,
                 data_types=NUMBERS)
 @validate_compatible_fields(FIELD, OUTPUT_FIELD)
-@validate_str_enumeration(STANDARDIZATION_METHOD, StandardizationMethod)
+@validate_str_enumeration(METHOD, StandardizationMethod)
 def standardize_field(source: ELEMENT, field: Field | str,
                       output_field: Field | str, *,
-                      standardization_method: StandardizationMethod = (
+                      method: StandardizationMethod = (
                               StandardizationMethod.Z_SCORE),
                       min_value: NUMBER = 0, max_value: NUMBER = 0,
                       where_clause: str = '') -> ELEMENT:
