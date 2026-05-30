@@ -26,6 +26,7 @@ DISTANCE: TypeAlias = Union[
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 NUMBER: TypeAlias = float | int
+RECLASS_PAIR: TypeAlias = tuple[NUMBER, NUMBER] | tuple[NUMBER, str]
 OPT_NUMBER: TypeAlias = NUMBER | None
 
 XY_TOL: TypeAlias = OPT_NUMBER
