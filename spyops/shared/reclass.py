@@ -376,8 +376,8 @@ class StandardDeviationReclass(AbstractReclass):
         Build Breaks
         """
         sized_dev = dev * size
-        low = avg - (sized_dev / 2.)
-        high = avg + (sized_dev / 2.)
+        low = avg - (sized_dev / 2)
+        high = avg + (sized_dev / 2)
         breaks = [low, high]
         breaks.extend([low - sized_dev * (i + 1) for i in range(half_count)])
         breaks.extend([high + sized_dev * (i + 1) for i in range(half_count)])
