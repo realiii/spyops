@@ -13,11 +13,17 @@ from pytest import mark, approx
 from spyops.management import (
     add_field, add_gps_metadata_fields,
     calculate_end_time, calculate_field, delete_field, alter_field,
-    field_statistics_to_table, standardize_field, transform_field)
+    field_statistics_to_table, reclassify_field, standardize_field,
+    transform_field)
 from spyops.shared.enumeration import (
-    FieldProperty, StandardizationMethod, StatisticOutputOption,
+    FieldProperty, StandardDeviationOptions, StandardizationMethod,
+    StatisticOutputOption,
     TransformationMethod)
 from spyops.shared.field import GNSS_COMMON_FIELDS
+from spyops.shared.reclass import (
+    DefinedIntervalReclass, EqualIntervalReclass,
+    ManualReclass, NaturalBreaksReclass, QuantileReclass,
+    StandardDeviationReclass, UniqueValuesReclass)
 
 pytestmark = [mark.management, mark.field]
 
@@ -528,6 +534,62 @@ class TestTransformField:
             assert approx(results, abs=tol) == (min_, max_)
     # End test method
 # End TestTransformField class
+
+
+class TestReclassifyField:
+    """
+    Test Reclassify Field
+    """
+    @mark.parametrize('reclass, count', [
+        (DefinedIntervalReclass(10), 4),
+        (EqualIntervalReclass(5), 5),
+        (ManualReclass([(5, 1), (20, 2), (100, 3)]), 3),
+        (NaturalBreaksReclass(7), 7),
+        (QuantileReclass(4), 4),
+        (StandardDeviationReclass(StandardDeviationOptions.THIRD), 11),
+    ])
+    def test_reclass(self, inputs, mem_gpkg, reclass, count):
+        """
+        Test reclass
+        """
+        where_clause = """FID < 500"""
+        source = inputs['river_p'].copy(
+            name='copy', geopackage=mem_gpkg, where_clause=where_clause)
+        field = Field('distance', data_type=FieldType.real)
+        code = Field('code', data_type=FieldType.integer)
+        label = Field('label', data_type=FieldType.text)
+        source.add_fields([code, label])
+        reclassify_field(
+            source, field=field, output_field=code, label_field=label,
+            reclass=reclass)
+        with source.geopackage.connection as cin:
+            name = source.escaped_name
+            for field in code, label:
+                cursor = cin.execute(
+                    f"""SELECT DISTINCT {field.escaped_name} FROM {name}""")
+                assert len(cursor.fetchall()) == count
+    # End test_reclass method
+
+    def test_unique_values(self, inputs, mem_gpkg):
+        """
+        Test unique values
+        """
+        where_clause = """FID < 500"""
+        source = inputs['river_p'].copy(
+            name='copy', geopackage=mem_gpkg, where_clause=where_clause)
+        field = Field('NAME', data_type=FieldType.text)
+        code = Field('code', data_type=FieldType.integer)
+        source.add_fields([code])
+        reclassify_field(
+            source, field=field, output_field=code,
+            reclass=UniqueValuesReclass())
+        with source.geopackage.connection as cin:
+            name = source.escaped_name
+            cursor = cin.execute(
+                f"""SELECT DISTINCT {code.escaped_name} FROM {name}""")
+            assert len(cursor.fetchall()) == 2
+    # End test_unique_values method
+# End TestReclassifyField class
 
 
 if __name__ == '__main__':  # pragma: no cover

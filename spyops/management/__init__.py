@@ -16,8 +16,8 @@ from spyops.management.features import (
     split_line_at_vertices, xy_table_to_line, xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
-    calculate_field, delete_field, field_statistics_to_table, standardize_field,
-    transform_field)
+    calculate_field, delete_field, field_statistics_to_table, reclassify_field,
+    standardize_field, transform_field)
 from spyops.management.general import (
     copy, delete, delete_identical, find_identical, rename, sort)
 from spyops.management.generalization import dissolve
@@ -34,6 +34,10 @@ from spyops.shared.enumeration import (
     GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
     SpatialSortOption, StandardizationMethod, StatisticOutputOption,
     TransformationMethod, WeightOption)
+from spyops.shared.reclass import (
+    DefinedIntervalReclass, EqualIntervalReclass, ManualReclass,
+    NaturalBreaksReclass, QuantileReclass, StandardDeviationReclass,
+    UniqueValuesReclass)
 from spyops.shared.sort import Ascending, Descending
 from spyops.shared.stats import (
     Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
@@ -77,6 +81,7 @@ __all__ = [
     'calculate_field',
     'delete_field',
     'field_statistics_to_table',
+    'reclassify_field',
     'standardize_field',
     'transform_field',
 
@@ -122,6 +127,14 @@ __all__ = [
     'StatisticOutputOption',
     'TransformationMethod',
     'WeightOption',
+
+    'DefinedIntervalReclass',
+    'EqualIntervalReclass',
+    'ManualReclass',
+    'NaturalBreaksReclass',
+    'QuantileReclass',
+    'StandardDeviationReclass',
+    'UniqueValuesReclass',
 
     'Ascending',
     'Descending',
