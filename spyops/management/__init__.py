@@ -32,8 +32,8 @@ from spyops.management.workspace import (
 from spyops.shared.enumeration import (
     AttributeSource, FieldProperty, GeometryAttribute, GeometryCheck,
     GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
-    SpatialSortOption, StandardizationMethod, StatisticOutputOption,
-    TransformationMethod, WeightOption)
+    SpatialSortOption, StandardDeviationOptions, StandardizationMethod,
+    StatisticOutputOption, TransformationMethod, WeightOption)
 from spyops.shared.reclass import (
     DefinedIntervalReclass, EqualIntervalReclass, ManualReclass,
     NaturalBreaksReclass, QuantileReclass, StandardDeviationReclass,
@@ -123,6 +123,7 @@ __all__ = [
     'MinimumGeometryOption',
     'PointTypeOption',
     'SpatialSortOption',
+    'StandardDeviationOptions',
     'StandardizationMethod',
     'StatisticOutputOption',
     'TransformationMethod',
