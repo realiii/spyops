@@ -65,6 +65,14 @@ class AbstractReclass(metaclass=ABCMeta):
     # End _build_labels method
 
     @property
+    def reverse(self) -> bool:
+        """
+        Reverse order for Identifiers
+        """
+        return self._reverse
+    # End reverse property
+
+    @property
     def method(self) -> ReclassificationMethod:
         """
         Reclassification Method
