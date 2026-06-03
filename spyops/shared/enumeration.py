@@ -326,6 +326,31 @@ class TransformationMethod(StrEnum):
 # End TransformationMethod class
 
 
+class ReclassificationMethod(StrEnum):
+    """
+    Reclassification Method
+    """
+    DEFINED_INTERVAL = auto()
+    EQUAL_INTERVAL = auto()
+    MANUAL = auto()
+    NATURAL_BREAKS = auto()
+    QUANTILE = auto()
+    STANDARD_DEVIATION = auto()
+    UNIQUE_VALUES = auto()
+# End ReclassificationMethod class
+
+
+class StandardDeviationOptions(StrEnum):
+    """
+    Standard Deviation Options
+    """
+    ONE = auto()
+    HALF = auto()
+    THIRD = auto()
+    QUARTER = auto()
+# End StandardDeviationOptions class
+
+
 DEFAULT_GEOM_CHECKS: GeometryCheck = (
     GeometryCheck.EXTENT | GeometryCheck.EMPTY | GeometryCheck.EMPTY_PART |
     GeometryCheck.EMPTY_RING | GeometryCheck.EMPTY_POINT |

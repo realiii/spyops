@@ -14,8 +14,14 @@ from spyops.environment.context import Swap
 from spyops.query.management.fields import (
     QueryCalculateEndTime, QueryFieldStatisticsToTableDate,
     QueryFieldStatisticsToTableNumeric, QueryFieldStatisticsToTableText,
-    QueryStandardizeFieldAbsoluteMax, QueryStandardizeFieldMinMax,
+    QueryReclassifyField, QueryReclassifyFieldUniqueValues,
+    QueryStandardizeFieldAbsoluteMax,
+    QueryStandardizeFieldMinMax,
     QueryStandardizeFieldRobust, QueryStandardizeFieldZScore)
+from spyops.shared.reclass import (
+    DefinedIntervalReclass, EqualIntervalReclass,
+    ManualReclass, NaturalBreaksReclass, QuantileReclass,
+    StandardDeviationReclass, UniqueValuesReclass)
 
 pytestmark = [mark.fields, mark.query, mark.management]
 
@@ -220,6 +226,69 @@ class TestQueryStandardizeField:
             assert 'maxx' not in query.update
     # End test_table method
 # End TestQueryStandardizeField class
+
+
+class TestQueryReclassifyField:
+    """
+    Test Query Reclassify Field
+    """
+    @mark.parametrize('reclass, code_expected, label_expected', [
+        (DefinedIntervalReclass(10),
+         'WHEN distance >= 30.0 AND distance < 40.0 THEN 4',
+         "WHEN distance >= 0.0 AND distance < 10.0 THEN '0.000000 - 10.000000'"),
+        (EqualIntervalReclass(5),
+         'WHEN distance >= 19.26157102004337 AND distance < 25.682094693391157 THEN 4',
+         "WHEN distance >= 6.420523673347789 AND distance < 12.841047346695579 THEN '6.420524 - 12.841047'"),
+        (ManualReclass([(0, 1), (5, 2), (20, 3), (100, 4)]),
+         'WHEN distance >= 20 AND distance < 100 THEN 3',
+         "WHEN distance >= 0 AND distance < 5 THEN '1'"),
+        (NaturalBreaksReclass(5),
+         'WHEN distance >= 7.0663979095461995 AND distance < 12.430954328686799 THEN 2',
+         "WHEN distance >= 7.0663979095461995 AND distance < 12.430954328686799 THEN '7.066398 - 12.430954'"),
+        (QuantileReclass(),
+         'WHEN distance >= 15.684172797265925 AND distance < 26.39776412757895 THEN 4',
+         "WHEN distance >= 11.439705557807049 AND distance < 15.684172797265925 THEN '11.439706 - 15.684173'"),
+        (StandardDeviationReclass(), 'WHEN distance >= 2.324878566728744 AND distance < 11.351562437704386 THEN 2',
+         "WHEN distance >= 2.324878566728744 AND distance < 11.351562437704386 THEN '2.324879 - 11.351562 (-1.500 - -0.500 Std. Dev.)'"),
+    ])
+    def test_expression(self, inputs, mem_gpkg, reclass, code_expected, label_expected):
+        """
+        Test expression
+        """
+        where_clause = """FID < 500"""
+        source = inputs['river_p'].copy(
+            name='copy', geopackage=mem_gpkg, where_clause=where_clause)
+        field = Field('distance', data_type=FieldType.real)
+        code = Field('distance_code', data_type=FieldType.integer)
+        label = Field('distance_label', data_type=FieldType.text)
+        source.add_fields([code, label])
+        with QueryReclassifyField(
+                source, field=field, output_field=code, label_field=label,
+                where_clause=where_clause, reclass=reclass) as query:
+            code_exp, lab_exp = query._get_expression()
+        assert code_expected in code_exp
+        assert label_expected in lab_exp
+    # End test_expression method
+
+    def test_unique_expression(self, inputs, mem_gpkg):
+        """
+        Test expression for unique values
+        """
+        where_clause = """FID < 500"""
+        source = inputs['river_p'].copy(
+            name='copy', geopackage=mem_gpkg, where_clause=where_clause)
+        field = Field('NAME', data_type=FieldType.text)
+        code = Field('code', data_type=FieldType.integer)
+        source.add_fields([code])
+        reclass = UniqueValuesReclass()
+        with QueryReclassifyFieldUniqueValues(
+                source, field=field, output_field=code, label_field=None,
+                where_clause=where_clause, reclass=reclass) as query:
+            code_exp, lab_exp = query._get_expression()
+        assert 'DENSE_RANK() OVER (ORDER BY NAME)' in code_exp
+        assert not lab_exp
+    # End test_unique_expression method
+# End TestQueryReclassifyField class
 
 
 if __name__ == '__main__':  # pragma: no cover
