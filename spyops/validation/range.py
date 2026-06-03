@@ -16,8 +16,8 @@ class ValidateRange(AbstractValidate):
     """
     Validate Range
     """
-    def __init__(self, name: str, default: float,
-                 min_value: float = 0, max_value: float = 1,
+    def __init__(self, name: str, default: NUMBER,
+                 min_value: NUMBER = 0, max_value: NUMBER = 1,
                  inclusive: bool = True, clamp: bool = True,
                  type_: Type[NUMBER] = float) -> None:
         """
@@ -33,11 +33,11 @@ class ValidateRange(AbstractValidate):
         """
         super().__init__()
         self._name: str = name
-        self._default: float = default
+        self._default: NUMBER = default
         min_ = min(min_value, max_value)
         max_ = max(min_value, max_value)
-        self._min: float = min_
-        self._max: float = max_
+        self._min: NUMBER = min_
+        self._max: NUMBER = max_
         self._inclusive: bool = inclusive
         self._clamp: bool = clamp
         self._type: Type[NUMBER] = type_
@@ -65,8 +65,8 @@ class ValidateRange(AbstractValidate):
         return wrapper
     # End call built-in
 
-    def _check_inputs(self, name: str, min_value: float, max_value: float,
-                      default: float, inclusive: bool) -> None:
+    def _check_inputs(self, name: str, min_value: NUMBER, max_value: NUMBER,
+                      default: NUMBER, inclusive: bool) -> None:
         """
         Check Inputs, rough check
         """

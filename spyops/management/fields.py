@@ -9,25 +9,28 @@ from typing import TYPE_CHECKING
 
 from fudgeo import Field
 from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import FieldPropertyType, ShapeType
+from fudgeo.enumeration import FieldPropertyType, FieldType, ShapeType
 from fudgeo.extension.schema import EnumerationConstraint, RangeConstraint
 
+from spyops.shared.reclass import AbstractReclass, EqualIntervalReclass
 from spyops.query.management.fields import (
     FIELD_STANDARDIZE_TYPE, FIELD_TRANSFORM_TYPE, QueryCalculateEndTime,
     QueryFieldStatisticsToTableDate, QueryFieldStatisticsToTableNumeric,
-    QueryFieldStatisticsToTableText)
+    QueryFieldStatisticsToTableText, QueryReclassifyField,
+    QueryReclassifyFieldUniqueValues)
 from spyops.shared.constant import EMPTY
 from spyops.shared.field import (
     DATES, GNSS_COMMON_FIELDS, GNSS_FIX_TYPE_FIELD, GNSS_NUM_SATS_FIELD,
     GNSS_POLY_LINE_FIELDS, GNSS_POSITION_SOURCE_TYPE_FIELD,
-    GNSS_WORST_FIX_TYPE_FIELD, NUMBERS, TEXTS, filter_by_data_type)
+    GNSS_WORST_FIX_TYPE_FIELD, NUMBERS, TEXTS, TEXT_AND_NUMBERS,
+    filter_by_data_type, get_data_type)
 from spyops.shared.keywords import (
     ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, GROUP_FIELDS,
-    METHOD, OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG, SOURCE,
-    START_FIELD)
+    LABEL_FIELD, METHOD, OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG,
+    SOURCE, START_FIELD)
 from spyops.shared.enumeration import (
-    FieldProperty, StandardizationMethod, StatisticOutputOption,
-    TransformationMethod)
+    FieldProperty, ReclassificationMethod, StandardizationMethod,
+    StatisticOutputOption, TransformationMethod)
 from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER
 from spyops.validation import (
     validate_compatible_fields, validate_element, validate_elements,
@@ -43,7 +46,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field',
            'add_gps_metadata_fields', 'calculate_end_time',
-           'field_statistics_to_table', 'standardize_field', 'transform_field']
+           'field_statistics_to_table', 'standardize_field', 'transform_field',
+           'reclassify_field']
 
 
 @validate_result()
@@ -335,6 +339,49 @@ def transform_field(source: ELEMENT, field: Field | str,
             cin.execute(query.update)
     return query.source
 # End transform_field function
+
+
+@validate_result()
+@validate_source_element()
+@validate_field(FIELD, single=True, element_name=SOURCE,
+                data_types=TEXT_AND_NUMBERS)
+@validate_field(OUTPUT_FIELD, single=True, element_name=SOURCE,
+                data_types=NUMBERS)
+@validate_field(LABEL_FIELD, single=True, element_name=SOURCE, data_types=TEXTS,
+                is_optional=True)
+def reclassify_field(source: ELEMENT, field: Field | str,
+                     output_field: Field | str,
+                     reclass: AbstractReclass = EqualIntervalReclass(), *,
+                     label_field: Field | str | None = None,
+                     where_clause: str = '') -> ELEMENT:
+    """
+    Reclassify Field
+
+    Reclassify values in a field by applying a reclassification methodology.
+    Generates a range label for the reclassified values.  Optionally,
+    provide a where clause to operate on a subset of the data.
+    """
+    field: Field
+    output_field: Field
+    label_field: Field | None
+    unique = ReclassificationMethod.UNIQUE_VALUES
+    if get_data_type(field) == FieldType.text:
+        if reclass.method != unique:
+            raise ValueError(
+                'Text fields only support the Unique Values method')
+    if reclass.method == unique:
+        cls = QueryReclassifyFieldUniqueValues
+    else:
+        cls = QueryReclassifyField
+    with cls(source=source, field=field, output_field=output_field,
+             label_field=label_field, reclass=reclass,
+             where_clause=where_clause) as query:
+        with query.source.geopackage.connection as cin:
+            cin.execute(query.update)
+            if sql := query.update_label:
+                cin.execute(sql)
+    return query.source
+# End reclassify_field function
 
 
 if __name__ == '__main__':  # pragma: no cover

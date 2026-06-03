@@ -28,6 +28,7 @@ from spyops.shared.stats import (
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
+    from spyops.shared.reclass import AbstractReclass
 
 
 class QueryCalculateEndTime(AbstractSourceQuery):
@@ -275,13 +276,21 @@ class AbstractQueryFieldUpdater(AggregateContextMixin, AbstractSourceQuery):
         """
         Update Query
         """
+        expression = self._get_expression()
+        output_field = self._output_field
+        return self._make_update(output_field, expression)
+    # End update property
+
+    def _make_update(self, output_field: Field, expression: str) -> str:
+        """
+        Make Update Query
+        """
         element = self.source
-        cte = 'update_field_values'
         tbl = element.escaped_name
+        cte = 'update_field_values'
         # noinspection PyUnresolvedReferences
         key_name = element.primary_key_field.escaped_name
         where_clause = self._build_where_clause()
-        expression = self._get_expression()
         return f"""
             WITH {cte} AS (
                 SELECT {key_name}, {expression} AS {VALUE}  
@@ -289,11 +298,11 @@ class AbstractQueryFieldUpdater(AggregateContextMixin, AbstractSourceQuery):
                 WHERE {where_clause}
             )
             UPDATE {tbl}
-            SET {self._output_field.escaped_name} = {cte}.{VALUE}
+            SET {output_field.escaped_name} = {cte}.{VALUE}
             FROM {cte}
             WHERE {tbl}.{key_name} = {cte}.{key_name};
         """
-    # End update property
+    # End _make_update method
 
     def _build_where_clause(self) -> str:
         """
@@ -356,10 +365,10 @@ class QueryStandardizeFieldMinMax(AbstractQueryFieldUpdater):
         """
         Get Standardization Expression
         """
-        min_ = self._cast_statistic(repr(Min(self._field)))
-        rng = self._cast_statistic(repr(Range(self._field)))
         a = self._min_value
         b = self._max_value
+        min_ = self._cast_statistic(repr(Min(self._field)))
+        rng = self._cast_statistic(repr(Range(self._field)))
         numerator = f'({self._field.escaped_name} - {min_}) * ({b} - {a})'
         return f'{a} + ({numerator} / {rng})'
     # End _get_expression method
@@ -522,6 +531,105 @@ class QueryTransformFieldInverseBoxCox(AbstractQueryTransformField):
             END)"""
     # End _get_expression method
 # End QueryTransformFieldInverseBoxCox class
+
+
+class QueryReclassifyField(AbstractQueryFieldUpdater):
+    """
+    Query Reclassify Field
+    """
+    def __init__(self, source: ELEMENT, field: Field, output_field: Field,
+                 label_field: Field | None, reclass: 'AbstractReclass',
+                 where_clause: str) -> None:
+        """
+        Initialize the QueryReclassifyField class
+        """
+        super().__init__(source, field=field, output_field=output_field,
+                         where_clause=where_clause)
+        self._reclass: 'AbstractReclass' = reclass
+        self._label_field: Field | None = label_field
+    # End init built-in
+
+    def _get_expression(self) -> tuple[str, str]:
+        """
+        Get Expression
+        """
+        where_clause = self._build_where_clause()
+        breaks, labels = self._reclass.get_breaks(
+            self.source, field=self._field, where_clause=where_clause)
+        ids = sorted(range(1, len(breaks)), reverse=self._reclass.reverse)
+        break_case = self._make_case(breaks, values=ids)
+        label_case = self._make_case(breaks, values=labels)
+        return break_case, label_case
+    # End _get_expression method
+
+    def _make_case(self, breaks: list, values: list) -> str:
+        """
+        Make Case Statement
+        """
+        sep = '\n'
+        name = self._field.escaped_name
+        if any(isinstance(v, str) for v in values):
+            values = [f"'{v}'" for v in values]
+        whens = [f"WHEN {name} < {breaks[0]} THEN {values[0]}"]
+        for start, end, value in zip(breaks[:-1], breaks[1:], values):
+            whens.append(
+                f"WHEN {name} >= {start} AND {name} < {end} THEN {value}")
+        return f"""
+            CASE
+               {sep.join(whens)} 
+               ELSE {values[-1]}
+            END 
+        """
+    # End _make_case method
+
+    @property
+    def update(self) -> str:
+        """
+        Update Query
+        """
+        expression, _ = self._get_expression()
+        output_field = self._output_field
+        return self._make_update(output_field, expression)
+    # End update property
+
+    @property
+    def update_label(self) -> str:
+        """
+        Update Label
+        """
+        if not (output_field := self._label_field):
+            return EMPTY
+        _, expression = self._get_expression()
+        if not expression:
+            return EMPTY
+        return self._make_update(output_field, expression)
+    # End update_label property
+# End QueryReclassifyField class
+
+
+class QueryReclassifyFieldUniqueValues(QueryReclassifyField):
+    """
+    Query Reclassify Field Unique Values
+    """
+    def __init__(self, source: ELEMENT, field: Field, output_field: Field,
+                 reclass: 'AbstractReclass',
+                 where_clause: str, **kwargs) -> None:
+        """
+        Initialize the QueryReclassifyFieldUniqueValues class
+        """
+        super().__init__(source, field=field, output_field=output_field,
+                         label_field=None, reclass=reclass,
+                         where_clause=where_clause)
+    # End init built-in
+
+    def _get_expression(self) -> tuple[str, str]:
+        """
+        Get Expression
+        """
+        breaks = f'DENSE_RANK() OVER (ORDER BY {self._field.escaped_name})'
+        return breaks, EMPTY
+    # End _get_expression method
+# End QueryReclassifyFieldUniqueValues class
 
 
 FIELD_STANDARDIZE_TYPE: dict[StandardizationMethod, Type[AbstractQueryFieldUpdater]] = {
