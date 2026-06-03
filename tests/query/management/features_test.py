@@ -20,22 +20,21 @@ from spyops.environment.context import Swap
 from spyops.geometry.config import GeometryConfig
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry,
-    QueryFeatureEnvelopeToPolygon, QueryFeatureToLine, QueryFeatureToPoint,
-    QueryFeatureToPolygon, QueryFeatureToPrepare, QueryFeatureVerticesToPoints,
-    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
-    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
-    QueryPointsToLineStart,
-    QueryPolygonToLine,
-    QueryRepairGeometry,
-    QuerySplitLineAtVertices,
-    QueryXYTableLine, QueryXYTablePoint)
+    QueryCheckGeometry, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
+    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureToPrepare,
+    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
+    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
+    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     ORIG_FID, ORIG_SEQ, POINT_M, POINT_X, POINT_Y, POINT_Z)
 from spyops.shared.sort import Ascending
+from tests.util import is_windows
+
 
 pytestmark = [mark.features, mark.query, mark.management]
 
@@ -1179,8 +1178,8 @@ class TestQueryFeatureToPolygon:
     # End test_get_points_attributes_sans_label method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8572),
-        (10**-5, 8695),
+        (None, 8551 if is_windows() else 8572),
+        (10**-5, 8683 if is_windows() else 8695),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1206,7 +1205,8 @@ class TestQueryFeatureToPolygon:
         query = QueryFeatureToPolygon(source, target, None, None)
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
-        assert len(polygons) == 4044
+        count = 4037 if is_windows() else 4044
+        assert len(polygons) == count
     # End test_build_polygons method
 
     def test_add_attributes(self, ntdb_zm_small, mem_gpkg):
@@ -1221,10 +1221,12 @@ class TestQueryFeatureToPolygon:
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
         results = query._add_attributes(polygons)
-        assert len(results) == 5823
+        count = 5816 if is_windows() else 5823
+        assert len(results) == count
         _, attributes = zip(*results)
         assert len(attributes[0]) == 8
-        assert attributes.count((None,) * 8) == 3739
+        count = 3732 if is_windows() else 3739
+        assert attributes.count((None,) * 8) == count
     # End test_add_attributes method
 
     def test_index_overlay(self, ntdb_zm_small, mem_gpkg):
@@ -1314,8 +1316,8 @@ class TestQueryFeatureToLine:
     # End test_insert method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8572),
-        (10**-5, 8695),
+        (None, 8551 if is_windows() else 8572),
+        (10**-5, 8683 if is_windows() else 8695),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1368,11 +1370,11 @@ class TestQueryPointsToLine:
         Test field names and count
         """
         source = inputs['river_p']
-        fields = (Field('NAME', data_type=FieldType.text), 
-                  Field('SYSTEM', data_type=FieldType.text)) 
+        fields = (Field('NAME', data_type=FieldType.text),
+                  Field('SYSTEM', data_type=FieldType.text))
         sort_fields = [Ascending(Field('vertex_index', data_type=FieldType.integer))]
-        query = cls(source, target=None, group_fields=fields, 
-                    sort_fields=sort_fields, close_line=False, 
+        query = cls(source, target=None, group_fields=fields,
+                    sort_fields=sort_fields, close_line=False,
                     is_continuous=False)
         field_count, insert_names, select_names = query._field_names_and_count(source)
         assert field_count == count

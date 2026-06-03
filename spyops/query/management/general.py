@@ -412,7 +412,7 @@ class QuerySortFeatureClass(QuerySortTable):
     # End select property
 
     @cached_property
-    def target_empty(self) -> FeatureClass:
+    def target_empty(self) -> 'FeatureClass':
         """
         Target Empty
         """
