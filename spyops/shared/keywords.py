@@ -27,7 +27,7 @@ TRANSFORMER_KEY: str = 'transformer'
 
 FIELD: str = 'field'
 OUTPUT_FIELD: str = 'output_field'
-RANGE_FIELD: str = 'range_field'
+LABEL_FIELD: str = 'label_field'
 FIELD_PROPERTY: str = 'field_property'
 FIELDS_ARG: str = 'fields'
 ELEMENTS_ARG: str = 'elements'
