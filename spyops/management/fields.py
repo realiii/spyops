@@ -31,7 +31,8 @@ from spyops.shared.keywords import (
 from spyops.shared.enumeration import (
     FieldProperty, ReclassificationMethod, StandardizationMethod,
     StatisticOutputOption, TransformationMethod)
-from spyops.shared.hint import ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER
+from spyops.shared.hint import (
+    ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER, OPT_FIELD)
 from spyops.validation import (
     validate_compatible_fields, validate_element, validate_elements,
     validate_feature_class, validate_overwrite_source, validate_result,
@@ -352,7 +353,7 @@ def transform_field(source: ELEMENT, field: Field | str,
 def reclassify_field(source: ELEMENT, field: Field | str,
                      output_field: Field | str,
                      reclass: AbstractReclass = EqualIntervalReclass(), *,
-                     label_field: Field | str | None = None,
+                     label_field: OPT_FIELD = None,
                      where_clause: str = '') -> ELEMENT:
     """
     Reclassify Field
