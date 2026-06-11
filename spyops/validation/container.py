@@ -73,7 +73,7 @@ class ValidateValues(AbstractValidate):
     """
     def __init__(self, name: str, type_: Type[NUMBER] = float) -> None:
         """
-        Initialize the ValidateRange class
+        Initialize the ValidateValues class
 
         :param name: Name of the argument to validate
         :param type_: Type of the value to validate
