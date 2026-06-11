@@ -25,6 +25,7 @@ INCLUDE_VERTICAL_KEY: str = 'include_vertical'
 TRANSFORMER_KEY: str = 'transformer'
 
 
+EXT_GPX: str = 'gpx'
 FIELD: str = 'field'
 OUTPUT_FIELD: str = 'output_field'
 LABEL_FIELD: str = 'label_field'
