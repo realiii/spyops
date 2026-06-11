@@ -23,14 +23,14 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry,
-    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
-    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
-    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
-    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
-    QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
-    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+    QueryCheckGeometry, QueryCopyFeatures, QueryFeatureEnvelopeToPolygon,
+    QueryFeatureToLine, QueryFeatureToPoint, QueryFeatureToPolygon,
+    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
+    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
+    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD,
     END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS,
