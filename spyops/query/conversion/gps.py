@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Type
 from xml.etree.ElementTree import Element, tostring
 
-from fudgeo.constant import COMMA_SPACE, EMPTY, FETCH_SIZE
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from numpy import isfinite
 from pyproj import CRS
@@ -23,6 +23,7 @@ from spyops.geometry.util import (
     get_geoms_iter, to_shapely)
 from spyops.query.base import AbstractSourceQuery
 from spyops.query.conversion.exchange import GPX, Track, TrackPoint, Waypoint
+from spyops.shared.constant import EMPTY
 from spyops.shared.field import get_geometry_column_name
 from spyops.shared.hint import OPT_FIELD
 
