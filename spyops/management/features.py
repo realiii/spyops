@@ -43,7 +43,7 @@ from spyops.shared.enumeration import (
     WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import (
-    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD, SORT_FIELDS,
+    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD_STR, SORT_FIELDS,
     XY_TOL)
 from spyops.shared.records import (
     extend_records, insert_many_features, select_and_transform_features)
@@ -422,8 +422,8 @@ def repair_geometry(source: 'FeatureClass', drop_empty: bool = False) \
 def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
                       coordinate_system: CRS | SpatialReferenceSystem, *,
                       x_field: Field | str, y_field: Field | str,
-                      z_field: OPT_FIELD = None,
-                      m_field: OPT_FIELD = None) -> 'FeatureClass':
+                      z_field: OPT_FIELD_STR = None,
+                      m_field: OPT_FIELD_STR = None) -> 'FeatureClass':
     """
     XY Table to Point
 
