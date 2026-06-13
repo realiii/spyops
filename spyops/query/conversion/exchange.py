@@ -131,7 +131,7 @@ class TrackPoint(BaseGPXElement):
             elevation = Elevation(z)
         else:
             elevation = None
-        if isinstance(time_, datetime):
+        if isinstance(time_, (datetime, date, time)):
             dt = Date(time_)
         else:
             dt = None
@@ -177,7 +177,7 @@ class Waypoint(BaseGPXElement):
             elevation = Elevation(z)
         else:
             elevation = None
-        if isinstance(time_, datetime):
+        if isinstance(time_, (datetime, date, time)):
             dt = Date(time_)
         else:
             dt = None
