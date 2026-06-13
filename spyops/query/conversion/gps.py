@@ -250,10 +250,11 @@ class QueryFeaturesToGPXMultiPoint(QueryFeaturesToGPXPoint):
         Build Records
         """
         waypoints = []
-        for geom in geometries:
+        for geom, attrs in zip(geometries, attributes):
             geoms = get_geoms_iter(geom)
+            attrs = [attrs] * len(geoms)
             # noinspection PyTypeChecker
-            waypoints.extend(super()._build_records(geoms, attributes))
+            waypoints.extend(super()._build_records(geoms, attrs))
         return waypoints
     # End _build_records method
 # End QueryFeaturesToGPXMultiPoint class
