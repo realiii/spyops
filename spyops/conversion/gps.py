@@ -18,6 +18,9 @@ from spyops.validation import (
     validate_feature_class, validate_field, validate_file)
 
 
+__all__ = ['features_to_gpx']
+
+
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
