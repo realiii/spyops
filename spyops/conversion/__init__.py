@@ -7,6 +7,7 @@ Package Initialization
 from spyops.conversion.geopackage import (
     export_features, export_table, feature_class_to_geopackage,
     table_to_geopackage)
+from spyops.conversion.gps import features_to_gpx
 from spyops.shared.sort import Ascending, Descending
 
 
@@ -15,6 +16,8 @@ __all__ = [
     'export_table',
     'feature_class_to_geopackage',
     'table_to_geopackage',
+
+    'features_to_gpx',
 
     'Ascending',
     'Descending',

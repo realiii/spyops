@@ -10,19 +10,18 @@ from spyops.shared.keywords import OPERATOR, SOURCE, TARGET
 from spyops.shared.field import NUMBERS
 from spyops.validation.container import ValidateGeopackage, ValidateValues
 from spyops.validation.crs import (
-    ValidateSupportedCRS,
-    ValidateCoordinateSystem, ValidateTransform)
+    ValidateSupportedCRS, ValidateCoordinateSystem, ValidateTransform)
 from spyops.validation.element import (
     ValidateElement, ValidateElements, ValidateFeatureClass,
     ValidateFeatureClasses, ValidateOverwriteInput, ValidateTable)
 from spyops.validation.enumish import (
     ValidateDissolveOption, ValidateGeometryGroupOption, ValidateGroupOption,
-    ValidateIntFlagEnumeration,
-    ValidateSideOption, ValidateStrEnumeration, ValidateGeometryAttribute,
-    ValidateOutputType)
+    ValidateIntFlagEnumeration, ValidateSideOption, ValidateStrEnumeration,
+    ValidateGeometryAttribute, ValidateOutputType)
 from spyops.validation.field import (
     ValidateCompatibleFields, ValidateDistance, ValidateField,
     ValidateGeometryDimension, ValidateSortField, ValidateStatisticField)
+from spyops.validation.file import ValidateFile
 from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
 from spyops.validation.setting import ValidateTolerance, ValidateXYTolerance
@@ -38,6 +37,7 @@ validate_elements = ValidateElements
 validate_feature_class = ValidateFeatureClass
 validate_feature_classes = ValidateFeatureClasses
 validate_field = ValidateField
+validate_file = ValidateFile
 validate_geometry_attribute = ValidateGeometryAttribute
 validate_geometry_dimension = ValidateGeometryDimension
 validate_geometry_group_option = ValidateGeometryGroupOption
@@ -54,10 +54,10 @@ validate_statistic_field = ValidateStatisticField
 validate_str_enumeration = ValidateStrEnumeration
 validate_supported_crs = ValidateSupportedCRS
 validate_table = ValidateTable
+validate_tolerance = ValidateTolerance
 validate_transform = ValidateTransform
 validate_values = ValidateValues
 validate_xy_tolerance = ValidateXYTolerance
-validate_tolerance = ValidateTolerance
 
 
 # NOTE commonly used configurations

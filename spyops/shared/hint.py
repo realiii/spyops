@@ -4,7 +4,7 @@ Type Hints
 """
 
 
-from typing import TYPE_CHECKING, Type, TypeAlias, Union
+from typing import Optional, TYPE_CHECKING, Type, TypeAlias, Union
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -41,6 +41,8 @@ ELEMENTS: TypeAlias = list[ELEMENT] | tuple[ELEMENT, ...]
 FEATURE_CLASSES: TypeAlias = list['FeatureClass'] | tuple['FeatureClass', ...]
 EXTENT: TypeAlias = tuple[NUMBER, NUMBER, NUMBER, NUMBER]
 FIELD_NAMES: TypeAlias = NAMES
+OPT_FIELD_STR: TypeAlias = Optional[Union['Field', str]]
+OPT_FIELD: TypeAlias = Optional['Field']
 FIELDS: TypeAlias = list['Field'] | tuple['Field', ...]
 STATS_FIELDS: TypeAlias = list['AbstractStatisticField'] | tuple['AbstractStatisticField', ...]
 SORT_FIELDS: TypeAlias = list['AbstractSortField'] | tuple['AbstractSortField', ...]

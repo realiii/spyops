@@ -23,14 +23,14 @@ from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
-    QueryCheckGeometry,
-    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
-    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
-    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
-    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
-    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
-    QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
-    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+    QueryCheckGeometry, QueryCopyFeatures, QueryFeatureEnvelopeToPolygon,
+    QueryFeatureToLine, QueryFeatureToPoint, QueryFeatureToPolygon,
+    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
+    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
+    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
+    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
+    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD,
     END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS,
@@ -43,7 +43,8 @@ from spyops.shared.enumeration import (
     WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
 from spyops.shared.hint import (
-    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, SORT_FIELDS, XY_TOL)
+    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD_STR, SORT_FIELDS,
+    XY_TOL)
 from spyops.shared.records import (
     extend_records, insert_many_features, select_and_transform_features)
 from spyops.validation import (
@@ -421,8 +422,8 @@ def repair_geometry(source: 'FeatureClass', drop_empty: bool = False) \
 def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
                       coordinate_system: CRS | SpatialReferenceSystem, *,
                       x_field: Field | str, y_field: Field | str,
-                      z_field: Field | str | None = None,
-                      m_field: Field | str | None = None) -> 'FeatureClass':
+                      z_field: OPT_FIELD_STR = None,
+                      m_field: OPT_FIELD_STR = None) -> 'FeatureClass':
     """
     XY Table to Point
 
