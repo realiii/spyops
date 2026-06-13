@@ -2,6 +2,8 @@
 """
 Test GPS Exchange
 """
+
+
 from datetime import date, datetime, time, timezone
 from math import nan
 from xml.etree.ElementTree import tostring
@@ -12,7 +14,8 @@ from spyops.query.conversion.exchange import (
     Date, Description, Elevation, GPX, Name,
     Segment, Track, TrackPoint, Waypoint)
 
-pytestmark = [mark.conversion, mark.gps, mark.query]
+
+pytestmark = [mark.conversion, mark.gps]
 
 
 @mark.parametrize('value, expected', [
