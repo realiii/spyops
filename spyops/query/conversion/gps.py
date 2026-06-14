@@ -19,8 +19,7 @@ from shapely.coordinates import get_coordinates
 from spyops.crs.util import srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.util import (
-    filter_features, find_slice_indexes,
-    get_geoms_iter, to_shapely)
+from spyops.gpx.export import GPX, Track, TrackPoint, Waypoint
 from spyops.query.base import AbstractSourceQuery
 from spyops.query.conversion.exchange import GPX, Track, TrackPoint, Waypoint
 from spyops.shared.constant import EMPTY

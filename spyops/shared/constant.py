@@ -34,5 +34,9 @@ DEGREE: str = 'degree'
 METRE: str = 'metre'
 
 
+LAT: str = 'lat'
+LON: str = 'lon'
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
