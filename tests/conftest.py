@@ -31,6 +31,15 @@ def data_path() -> Path:
 
 
 @fixture(scope='session')
+def gpx_path(data_path) -> Path:
+    """
+    GPX Path
+    """
+    return data_path.joinpath('gpx')
+# End gpx_path function
+
+
+@fixture(scope='session')
 def inputs(data_path) -> Generator[GeoPackage, None, None]:
     """
     Inputs
