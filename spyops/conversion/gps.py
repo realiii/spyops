@@ -7,18 +7,22 @@ GPS
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import GeometryType
 
-from spyops.query.conversion.gps import TO_GPX
+from spyops.geometry.util import validated_transform
+from spyops.query.conversion.gps import FROM_GPX, TO_GPX
 from spyops.shared.field import DATES, NUMBERS, TEXTS
 from spyops.shared.hint import OPT_FIELD, OPT_FIELD_STR
 from spyops.shared.keywords import (
     DATE_FIELD, DESCRIPTION_FIELD, EXT_GPX, NAME_FIELD, SOURCE, TARGET, Z_FIELD)
+from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_feature_class, validate_field, validate_file)
+    validate_feature_class, validate_field, validate_file,
+    validate_result, validate_target_feature_class)
 
 
-__all__ = ['features_to_gpx']
+__all__ = ['features_to_gpx', 'gpx_to_features']
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -61,6 +65,35 @@ def features_to_gpx(source: 'FeatureClass', target: Path | str, *,
                 where_clause=where_clause)
     return query.export(target)
 # End features_to_gpx function
+
+
+@validate_result()
+@validate_file(SOURCE, is_output=False)
+@validate_target_feature_class()
+def gpx_to_features(source: Path | str, target: 'FeatureClass', *,
+                    as_points: bool = True) -> 'FeatureClass':
+    """
+    GPX to Features
+    """
+    source: Path
+    records = []
+    cls = FROM_GPX[as_points]
+    query = cls(target=target)
+    insert_sql = query.insert
+    config = query.geometry_config
+    transformer = query.source_transformer
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        if not (features := query.features(source)):
+            return query.target
+        geometries, *_ = zip(*features)
+        features, geometries = validated_transform(
+            transformer, features=features, geometries=geometries)
+        results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
+        extend_records(results, records=records, config=config)
+        executor(sql=insert_sql, data=records)
+    return query.target
+# End gpx_to_features function
 
 
 if __name__ == '__main__':  # pragma: no cover
