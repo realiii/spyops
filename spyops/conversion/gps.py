@@ -74,6 +74,10 @@ def gpx_to_features(source: Path | str, target: 'FeatureClass', *,
                     as_points: bool = True) -> 'FeatureClass':
     """
     GPX to Features
+
+    Convert a GPX file to point features or line features.  The point option
+    converts waypoints and trackpoints, the line option (as_points=False)
+    converts tracks.
     """
     source: Path
     records = []
