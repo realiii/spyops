@@ -7,25 +7,30 @@ Query Classes for conversion.gps module
 from abc import abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Type
+from typing import Callable, TYPE_CHECKING, Type
 from xml.etree.ElementTree import Element, tostring
 
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
-from fudgeo.enumeration import ShapeType
+from fudgeo.enumeration import GeometryType, ShapeType
 from numpy import isfinite
 from pyproj import CRS
 from shapely.coordinates import get_coordinates
 
-from spyops.crs.util import srs_from_crs
+from spyops.crs.transform import make_transformer_function
+from spyops.crs.util import crs_from_srs, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.util import (
-    filter_features, find_slice_indexes,
-    get_geoms_iter, to_shapely)
+    filter_features, find_slice_indexes, get_geoms_iter, to_shapely)
+from spyops.gpx.export import GPX, Track, TrackPoint, Waypoint
+from spyops.gpx.parse import (
+    get_trackpoints, get_tracks, get_root, get_waypoints)
 from spyops.query.base import AbstractSourceQuery
-from spyops.query.conversion.exchange import GPX, Track, TrackPoint, Waypoint
 from spyops.shared.constant import EMPTY
-from spyops.shared.field import get_geometry_column_name
-from spyops.shared.hint import OPT_FIELD
+from spyops.shared.field import (
+    COMMENT, DESCRIPTION, DT, ELEVATION, NAME, SYMBOL, TYPE,
+    get_geometry_column_name)
+from spyops.shared.hint import FIELDS, OPT_FIELD
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -260,11 +265,162 @@ class QueryFeaturesToGPXMultiPoint(QueryFeaturesToGPXPoint):
 # End QueryFeaturesToGPXMultiPoint class
 
 
+class AbstractQueryGPXToFeatures(AbstractSourceQuery):
+    """
+    Abstract Query GPX to Features
+    """
+    def __init__(self, target: 'FeatureClass') -> None:
+        """
+        Initialize the AbstractQueryGPXToFeatures class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(source=None, target=target)
+    # End init built-in
+
+    @cached_property
+    def source_crs(self) -> CRS:
+        """
+        Source CRS
+        """
+        return CRS(4326)
+    # End source_crs property
+
+    @cached_property
+    def source_transformer(self) -> Callable | None:
+        """
+        Source Transformer
+        """
+        has_z, has_m = self._has_zm
+        crs = crs_from_srs(self.spatial_reference_system)
+        transformer = self._get_transformer_or_guess(self.source_crs, crs)
+        return make_transformer_function(
+            self._get_target_shape_type(), has_z=has_z, has_m=has_m,
+            transformer=transformer)
+    # End source_transformer property
+
+    @cached_property
+    def spatial_reference_system(self) -> 'SpatialReferenceSystem':
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the source.
+        """
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        return srs_from_crs(self.source_crs)
+    # End spatial_reference_system property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        return HasZM(has_z=True, has_m=False)
+    # End _has_zm property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert
+        """
+        elm = self.target
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End insert property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+        """
+        return ZMConfig(is_different=False, z_enabled=True, m_enabled=False)
+    # End zm_config property
+
+    @abstractmethod
+    def features(self, path: Path) -> list[tuple]:
+        """
+        Features from GPX File
+        """
+        pass
+    # End features method
+# End AbstractQueryGPXToFeatures class
+
+
+class QueryGPXToFeaturesPoint(AbstractQueryGPXToFeatures):
+    """
+    Query GPX to Features Point
+    """
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return GeometryType.point
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return NAME, DESCRIPTION, TYPE, COMMENT, SYMBOL, ELEVATION, DT
+    # End _get_unique_fields method
+
+    def features(self, path: Path) -> list[tuple]:
+        """
+        Features from GPX File
+        """
+        root = get_root(path)
+        points = [*get_waypoints(root), *get_trackpoints(root)]
+        return [pt.as_record() for pt in points]
+    # End features method
+# End QueryGPXToFeaturesPoint class
+
+
+class QueryGPXToFeaturesLineString(AbstractQueryGPXToFeatures):
+    """
+    Query GPX to Features Line String
+    """
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return GeometryType.linestring
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return NAME, DESCRIPTION, TYPE
+    # End _get_unique_fields method
+
+    def features(self, path: Path) -> list[tuple]:
+        """
+        Features from GPX File
+        """
+        lines = []
+        root = get_root(path)
+        segments = get_tracks(root)
+        for segment in segments:
+            parts, *attrs = segment.as_record()
+            lines.extend([(part, *attrs) for part in parts])
+        return lines
+    # End features method
+# End QueryGPXToFeaturesLineString class
+
+
 TO_GPX: dict[str, Type[AbstractQueryFeaturesToGPX]] = {
     ShapeType.point: QueryFeaturesToGPXPoint,
     ShapeType.multi_point: QueryFeaturesToGPXMultiPoint,
     ShapeType.linestring: QueryFeaturesToGPXLineString,
     ShapeType.multi_linestring: QueryFeaturesToGPXMultiLineString,
+}
+
+FROM_GPX: dict[bool, Type[AbstractQueryGPXToFeatures]] = {
+    True: QueryGPXToFeaturesPoint,
+    False: QueryGPXToFeaturesLineString,
 }
 
 

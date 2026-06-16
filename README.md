@@ -60,6 +60,7 @@ MIT
 - added `feature_class_to_geopackage` (Conversion - GeoPackage)
 - added `table_to_geopackage` (Conversion - GeoPackage)
 - added `features_to_gpx` (Conversion - GPS)
+- added `gpx_to_features` (Conversion - GPS)
 - added `frequency` (Analysis - Statistics)
 - added `statistics` (Analysis - Statistics)
 - added `adjust_3d_z` (Management - Features)

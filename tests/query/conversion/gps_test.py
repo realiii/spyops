@@ -2,14 +2,18 @@
 """
 Tests for GPS Conversion Classes
 """
-from fudgeo import Field
-from fudgeo.enumeration import FieldType
+
+
+from fudgeo import FeatureClass, Field
+from fudgeo.enumeration import FieldType, GeometryType
 from pyproj import CRS
 from pytest import mark
 
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
-from spyops.query.conversion.gps import QueryFeaturesToGPXPoint
+from spyops.query.conversion.gps import (
+    QueryFeaturesToGPXPoint,
+    QueryGPXToFeaturesLineString, QueryGPXToFeaturesPoint)
 
 pytestmark = [mark.conversion, mark.gps, mark.query]
 
@@ -98,6 +102,100 @@ class TestQueryFeaturesToGPXPoint:
         assert 'minx <= -71.2' in sql
     # End test_select_extent method
 # End TestQueryFeaturesToGPXPoint class
+
+
+class TestQueryGPXToFeaturesPoint:
+    """
+    Test Query GPX to Features Point
+    """
+    def test_source_crs(self):
+        """
+        Test source crs
+        """
+        query = QueryGPXToFeaturesPoint(None)
+        assert query.source_crs == CRS(4326)
+    # End test_source_crs method
+
+    @mark.parametrize('crs, expected', [
+        (CRS(4326), True),
+        (CRS(4617), False),
+    ])
+    def test_source_transformer(self, crs, expected):
+        """
+        Test source transformer
+        """
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
+            query = QueryGPXToFeaturesPoint(None)
+            assert (query.source_transformer is None) == expected
+    # End test_source_transformer method
+
+    def test_has_zm(self):
+        """
+        Test Has ZM
+        """
+        query = QueryGPXToFeaturesPoint(None)
+        assert query._has_zm == (True, False)
+    # End test_has_zm method
+
+    def test_insert(self, mem_gpkg):
+        """
+        Test insert
+        """
+        fc = FeatureClass(geopackage=mem_gpkg, name='points_p')
+        query = QueryGPXToFeaturesPoint(fc)
+        sql = query.insert
+        assert 'INTO points_p(SHAPE, NAME, DESCRIPTION, TYPE, COMMENT,' in sql
+    # End test_insert method
+
+    def test_zm_config(self):
+        """
+        Test ZM Config
+        """
+        query = QueryGPXToFeaturesPoint(None)
+        assert query.zm_config == (False, True, False)
+    # End test_zm_config method
+
+    def test_get_target_shape_type(self):
+        """
+        Test get target shape type
+        """
+        query = QueryGPXToFeaturesPoint(None)
+        assert query._get_target_shape_type() == GeometryType.point
+    # End test_get_target_shape_type method
+
+    def test_get_unique_fields(self):
+        """
+        Test _get_unique_fields
+        """
+        query = QueryGPXToFeaturesPoint(None)
+        assert [f.name for f in query._get_unique_fields()] == [
+            'NAME', 'DESCRIPTION', 'TYPE', 'COMMENT', 'SYMBOL',
+            'ELEVATION', 'DT']
+    # End test_get_unique_fields method
+# End TestQueryGPXToFeaturesPoint class
+
+
+class TestQueryGPXToFeaturesLineString:
+    """
+    Test Query GPX to Features Line String
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test get target shape type
+        """
+        query = QueryGPXToFeaturesLineString(None)
+        assert query._get_target_shape_type() == GeometryType.linestring
+    # End test_get_target_shape_type method
+
+    def test_get_unique_fields(self):
+        """
+        Test _get_unique_fields
+        """
+        query = QueryGPXToFeaturesLineString(None)
+        assert [f.name for f in query._get_unique_fields()] == [
+            'NAME', 'DESCRIPTION', 'TYPE']
+    # End test_get_unique_fields method
+# End TestQueryGPXToFeaturesLineString class
 
 
 if __name__ == '__main__':  # pragma: no cover

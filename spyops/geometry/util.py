@@ -93,17 +93,28 @@ def to_shapely(features: list[tuple], transformer: Callable | None,
         mask = extent.intersects(geometries)
         geometries = geometries[mask]
         features = [feature for feature, v in zip(features, mask) if v]
-    if transformer:
-        geometries = transformer(geometries)
-        validity = get_validity(geometries, transformer=transformer)
-        features = [feature for feature, v in zip(features, validity) if v]
-        geometries = geometries[validity]
+    features, geometries = validated_transform(
+        transformer, features=features, geometries=geometries)
     if option == DimensionOption.TWO_D:
         geometries = force_2d(geometries)
     elif option == DimensionOption.THREE_D:
         geometries = force_3d(geometries)
     return features, geometries
 # End to_shapely function
+
+
+def validated_transform(transformer: Callable | None, features: list[tuple],
+                        geometries: 'ndarray') -> tuple[list[tuple], 'ndarray']:
+    """
+    Transform Geometries and Filter Invalid
+    """
+    if not transformer:
+        return features, geometries
+    geometries = transformer(geometries)
+    validity = get_validity(geometries, transformer=transformer)
+    features = [feature for feature, v in zip(features, validity) if v]
+    return features, geometries[validity]
+# End validated_transform function
 
 
 def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':

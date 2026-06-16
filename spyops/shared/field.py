@@ -111,6 +111,15 @@ MAX_X: Field = Field('maxx', data_type=FieldType.real)
 MAX_Y: Field = Field('maxy', data_type=FieldType.real)
 
 
+NAME: Field = Field('NAME', data_type=FieldType.text)
+DESCRIPTION: Field = Field('DESCRIPTION', data_type=FieldType.text)
+TYPE: Field = Field('TYPE', data_type=FieldType.text)
+COMMENT: Field = Field('COMMENT', data_type=FieldType.text)
+SYMBOL: Field = Field('SYMBOL', data_type=FieldType.text)
+ELEVATION: Field = Field('ELEVATION', data_type=FieldType.real)
+DT: Field = Field('DT', data_type=FieldType.datetime)
+
+
 GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(
     'GNSS_POSITIONSOURCETYPE', data_type=FieldType.text,
     alias='Position Source Type')

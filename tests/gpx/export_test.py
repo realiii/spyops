@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Test GPS Exchange
+Test GPS Exchange Export
 """
 
 
@@ -10,7 +10,7 @@ from xml.etree.ElementTree import tostring
 
 from pytest import mark
 
-from spyops.query.conversion.exchange import (
+from spyops.gpx.export import (
     Date, Description, Elevation, GPX, Name,
     Segment, Track, TrackPoint, Waypoint)
 
