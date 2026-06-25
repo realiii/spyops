@@ -332,7 +332,7 @@ class AbstractQueryGPXToFeatures(AbstractSourceQuery):
     # End insert property
 
     @cached_property
-    def zm_config(self) -> 'ZMConfig':
+    def zm_config(self) -> ZMConfig:
         """
         ZM Configuration
         """
