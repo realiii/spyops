@@ -16,6 +16,7 @@ from numpy import isfinite
 from pyproj import CRS
 from shapely.coordinates import get_coordinates
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.util import crs_from_srs, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
@@ -117,7 +118,7 @@ class AbstractQueryFeaturesToGPX(AbstractSourceQuery):
         Spatial Reference System
         """
         # NOTE GPX format requires WGS84
-        return srs_from_crs(CRS(4326))
+        return srs_from_crs(WGS84)
     # End spatial_reference_system property
 
     @property
@@ -282,7 +283,7 @@ class AbstractQueryGPXToFeatures(AbstractSourceQuery):
         """
         Source CRS
         """
-        return CRS(4326)
+        return WGS84
     # End source_crs property
 
     @cached_property
