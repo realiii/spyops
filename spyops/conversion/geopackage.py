@@ -18,7 +18,7 @@ from spyops.query.conversion.geopackage import (
 from spyops.shared.hint import (
     ELEMENT, ELEMENTS, FEATURE_CLASSES, GPKG, SORT_FIELDS)
 from spyops.shared.keywords import SORT_FIELDS_ARG, SOURCE
-from spyops.shared.records import select_and_transform_features
+from spyops.shared.records import select_transform_insert
 from spyops.validation import (
     validate_elements, validate_feature_classes, validate_geopackage,
     validate_overwrite_source, validate_result, validate_sort_field,
@@ -119,7 +119,7 @@ def export_features(source: 'FeatureClass', target: 'FeatureClass', *,
     query = QueryExportFeatures(
         source, target=target, where_clause=where_clause,
         sort_fields=sort_fields)
-    return select_and_transform_features(query)
+    return select_transform_insert(query)
 # End export_features function
 
 

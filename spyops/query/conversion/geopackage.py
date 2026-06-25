@@ -12,7 +12,7 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.query.base import BaseQuerySelect, BaseQuerySelectOrderBy
 from spyops.shared.element import copy_element
 from spyops.shared.hint import ELEMENT, GPKG, SORT_FIELDS
-from spyops.shared.records import select_and_transform_features
+from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import SQL_NO_ID
 from spyops.shared.util import element_names, make_unique_name
 
@@ -92,7 +92,7 @@ class QueryFeatureClassToGeoPackage(AbstractQueryElementToGeoPackage):
         """
         Copy
         """
-        return select_and_transform_features(self)
+        return select_transform_insert(self)
     # End copy method
 # End QueryFeatureClassToGeoPackage class
 

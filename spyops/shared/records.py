@@ -176,9 +176,9 @@ def process_disjoint(query: 'QueryConfig', grid_size: GRID_SIZE) -> None:
 # End process_disjoint function
 
 
-def select_and_transform_features(query: 'BaseQuerySelect') -> 'FeatureClass':
+def select_transform_insert(query: 'BaseQuerySelect') -> 'FeatureClass':
     """
-    Select and Transform Features
+    Select, Transform, and Insert Features
     """
     records = []
     query_select = query.select
@@ -194,7 +194,9 @@ def select_and_transform_features(query: 'BaseQuerySelect') -> 'FeatureClass':
                 config, executor=executor, transformer=transformer,
                 insert_sql=query_insert, features=features, records=records)
     return query.target
-# End select_and_transform_features function
+# End select_transform_insert function
+
+
 
 
 if __name__ == '__main__':  # pragma: no cover
