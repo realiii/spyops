@@ -18,16 +18,17 @@ HAS_Z_KEY: str = 'has_z'
 HAS_M_KEY: str = 'has_m'
 SRS_ID_KEY: str = 'srs_id'
 CRS_KEY: str = 'crs'
+TYPE_KEY: str = 'type'
+FEATURES_KEY: str = 'features'
 SHAPE_TYPE_KEY: str = 'shape_type'
+
+
+LAT_KEY: str = 'lat'
+LON_KEY: str = 'lon'
 
 
 INCLUDE_VERTICAL_KEY: str = 'include_vertical'
 TRANSFORMER_KEY: str = 'transformer'
-
-
-EXT_GPX: str = 'gpx'
-EXT_JSON: str = 'json'
-EXT_GEOJSON: str = 'geojson'
 
 
 FIELD: str = 'field'

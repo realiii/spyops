@@ -15,7 +15,8 @@ from spyops.query.conversion.gps import FROM_GPX, TO_GPX
 from spyops.shared.field import DATES, NUMBERS, TEXTS
 from spyops.shared.hint import OPT_FIELD, OPT_FIELD_STR
 from spyops.shared.keywords import (
-    DATE_FIELD, DESCRIPTION_FIELD, EXT_GPX, NAME_FIELD, SOURCE, TARGET, Z_FIELD)
+    DATE_FIELD, DESCRIPTION_FIELD, NAME_FIELD, SOURCE, TARGET, Z_FIELD)
+from spyops.shared.constant import EXT_GPX
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_feature_class, validate_field, validate_file,

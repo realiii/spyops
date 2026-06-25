@@ -33,9 +33,9 @@ VALUE: str = 'value'
 DEGREE: str = 'degree'
 METRE: str = 'metre'
 
-
-LAT: str = 'lat'
-LON: str = 'lon'
+EXT_GPX: str = 'gpx'
+EXT_JSON: str = 'json'
+EXT_GEOJSON: str = 'geojson'
 
 
 if __name__ == '__main__':  # pragma: no cover

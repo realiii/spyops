@@ -15,7 +15,7 @@ from xml.etree.ElementTree import Element, ParseError, iterparse
 
 from shapely import LineString as ShapelyLineString, Point as ShapelyPoint
 
-from spyops.shared.constant import LAT, LON
+from spyops.shared.keywords import LAT_KEY, LON_KEY
 from spyops.shared.hint import NUMBER
 from spyops.shared.util import safe_float
 
@@ -149,8 +149,11 @@ class Point(BaseParse):
         """
         Geometry
         """
-        x = safe_float(self._element.attrib[LON])
-        y = safe_float(self._element.attrib[LAT])
+        try:
+            x = safe_float(self._element.attrib[LON_KEY])
+            y = safe_float(self._element.attrib[LAT_KEY])
+        except KeyError:
+            x = y = None
         if x is None or y is None:
             x = y = nan
         if (z := self.elevation) is None:

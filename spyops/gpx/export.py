@@ -10,7 +10,8 @@ from xml.etree.ElementTree import Element
 
 from numpy import isfinite, ndarray
 
-from spyops.shared.constant import LAT, LON, SPYOPS
+from spyops.shared.constant import SPYOPS
+from spyops.shared.keywords import LAT_KEY, LON_KEY
 from spyops.shared.hint import NUMBER
 
 
@@ -114,7 +115,7 @@ class TrackPoint(BaseGPXElement):
         """
         Initialize the TrackPoint class
         """
-        super().__init__(attributes={LON: f'{lon}', LAT: f'{lat}'})
+        super().__init__(attributes={LON_KEY: f'{lon}', LAT_KEY: f'{lat}'})
         if elevation is not None:
             self.append(elevation)
         if dt is not None:
@@ -154,7 +155,7 @@ class Waypoint(BaseGPXElement):
         """
         Initialize the Waypoint class
         """
-        super().__init__(attributes={LON: f'{lon}', LAT: f'{lat}'})
+        super().__init__(attributes={LON_KEY: f'{lon}', LAT_KEY: f'{lat}'})
         if elevation is not None:
             self.append(elevation)
         if dt is not None:
