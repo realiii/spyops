@@ -26,6 +26,10 @@ TRANSFORMER_KEY: str = 'transformer'
 
 
 EXT_GPX: str = 'gpx'
+EXT_JSON: str = 'json'
+EXT_GEOJSON: str = 'geojson'
+
+
 FIELD: str = 'field'
 OUTPUT_FIELD: str = 'output_field'
 LABEL_FIELD: str = 'label_field'
