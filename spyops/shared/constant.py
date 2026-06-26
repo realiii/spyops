@@ -34,8 +34,11 @@ DEGREE: str = 'degree'
 METRE: str = 'metre'
 
 EXT_GPX: str = 'gpx'
-EXT_JSON: str = 'json'
 EXT_GEOJSON: str = 'geojson'
+
+
+FEATURE: str = 'feature'
+FEATURE_COLLECTION: str = 'FeatureCollection'
 
 
 if __name__ == '__main__':  # pragma: no cover
