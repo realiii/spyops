@@ -61,7 +61,7 @@ from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE,
     SORT_FIELDS, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
-from spyops.shared.records import select_and_transform_features
+from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import SQL_ALL_ID
 
 
@@ -1631,7 +1631,7 @@ class BaseQueryFeatureTo(AbstractSourceQuery):
                     source, target=FeatureClass(scratch, name=f'fc_{i}'),
                     xy_tolerance=xy_tol)
                 queries.append(query)
-                fc = select_and_transform_features(query)
+                fc = select_transform_insert(query)
                 if not len(fc):
                     continue
                 self._fetch_lines_sizes(query, lines=lines, sizes=sizes)

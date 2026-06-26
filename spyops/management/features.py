@@ -46,7 +46,7 @@ from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD_STR, SORT_FIELDS,
     XY_TOL)
 from spyops.shared.records import (
-    extend_records, insert_many_features, select_and_transform_features)
+    extend_records, insert_many_features, select_transform_insert)
 from spyops.validation import (
     validate_coordinate_system, validate_element, validate_feature_classes,
     validate_field, validate_geometry_group_option, validate_group_option,
@@ -135,7 +135,7 @@ def copy_features(source: 'FeatureClass', target: 'FeatureClass', *,
     features using a where clause.
     """
     query = QueryCopyFeatures(source, target=target, where_clause=where_clause)
-    return select_and_transform_features(query)
+    return select_transform_insert(query)
 # End copy_features function
 
 

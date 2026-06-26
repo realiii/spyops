@@ -15,7 +15,7 @@ from spyops.shared.keywords import FIELD, GROUP_FIELDS, OPERATOR, SOURCE, TARGET
 from spyops.shared.element import copy_element
 from spyops.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
-from spyops.shared.records import select_and_transform_features
+from spyops.shared.records import select_transform_insert
 from spyops.shared.util import make_valid_name
 from spyops.validation import (
     validate_feature_class, validate_field, validate_geometry_dimension,
@@ -64,7 +64,7 @@ def select(source: FeatureClass, target: FeatureClass, *,
     write results to a target feature class.
     """
     query = QuerySelect(source, target=target, where_clause=where_clause)
-    return select_and_transform_features(query)
+    return select_transform_insert(query)
 # End select function
 
 

@@ -26,6 +26,7 @@ from shapely.io import from_wkb, from_wkt
 from shapely.linear import line_merge
 from shapely.ops import transform
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transforms
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
@@ -223,7 +224,7 @@ class _UseWorkarounds:
         set_coordinates does not support Z and M)
         """
         a = from_wkt('Point (0 0 0 0)')
-        _, best, _ = get_transforms(source_crs=CRS(4326), target_crs=CRS(3857))
+        _, best, _ = get_transforms(source_crs=WGS84, target_crs=CRS(3857))
         try:
             transform(best.transform, a)
             return False

@@ -22,7 +22,7 @@ from spyops.shared.keywords import (
 from spyops.shared.element import copy_element
 from spyops.shared.hint import (
     ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, M_TOL, SORT_FIELDS, XY_TOL, Z_TOL)
-from spyops.shared.records import bulk_records, select_and_transform_features
+from spyops.shared.records import bulk_records, select_transform_insert
 from spyops.validation import (
     validate_element, validate_elements, validate_field,
     validate_overwrite_source, validate_result, validate_sort_field,
@@ -227,7 +227,7 @@ def sort(source: ELEMENT, target: ELEMENT, *, sort_fields: SORT_FIELDS,
         return bulk_records(query)
     else:
         query = QuerySortFeatureClass(**kwargs)
-        return select_and_transform_features(query)
+        return select_transform_insert(query)
 # End sort function
 
 

@@ -4,6 +4,9 @@ Constants
 """
 
 
+from pyproj import CRS
+
+
 UNKNOWN: str = 'Unknown'
 UNDEFINED: str = 'Undefined'
 BAD_SRS_DEFINITIONS: tuple[str, str] = UNDEFINED.casefold(), UNKNOWN.casefold()
@@ -19,6 +22,9 @@ ESRI: str = 'ESRI'
 ID_KEY: str = 'id'
 AUTHORITY_KEY: str = 'authority'
 CODE_KEY: str = 'code'
+
+
+WGS84: CRS = CRS(4326)
 
 
 if __name__ == '__main__':  # pragma: no cover
