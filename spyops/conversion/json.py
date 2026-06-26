@@ -35,11 +35,14 @@ def features_to_geojson(source: 'FeatureClass', target: Path | str, *,
 
     The following options are supported:
 
-    * Convert coordinates to WGS84 (recommended for GeoJSON)
+    * Convert coordinates to WGS84 (default and recommended for GeoJSON)
     * Use formatted JSON output (default is compact)
     * Include Z values in the target if present in the source
+      (default is to exclude Z)
     * Include M values in the target if present in the source
+      (default is to exclude M)
     * Use aliases instead of field names for attributes in the target
+      (default is use field names)
     * Subset the features to be included in the target using a where clause
     """
     target: Path
