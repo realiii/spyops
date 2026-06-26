@@ -17,11 +17,16 @@ INCLUDE_M: str = 'include_m'
 HAS_Z_KEY: str = 'has_z'
 HAS_M_KEY: str = 'has_m'
 SRS_ID_KEY: str = 'srs_id'
+SHAPE_TYPE_KEY: str = 'shape_type'
+
 CRS_KEY: str = 'crs'
 TYPE_KEY: str = 'type'
 FEATURES_KEY: str = 'features'
-SHAPE_TYPE_KEY: str = 'shape_type'
-
+ID_KEY: str = 'id'
+HASZ_KEY: str = 'hasZ'
+HASM_KEY: str = 'hasM'
+PROPERTIES_KEY: str = 'properties'
+GEOMETRY_KEY: str = 'geometry'
 
 LAT_KEY: str = 'lat'
 LON_KEY: str = 'lon'
