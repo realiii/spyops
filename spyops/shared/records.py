@@ -5,7 +5,7 @@ Records / Features Helper Functions
 
 
 from math import nan
-from typing import Callable, Optional, TYPE_CHECKING, Type
+from typing import Callable, Generator, Optional, TYPE_CHECKING, Type
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
@@ -197,6 +197,26 @@ def select_transform_insert(query: 'BaseQuerySelect') -> 'FeatureClass':
 # End select_transform_insert function
 
 
+def select_transform(query: 'BaseQuerySelect') -> Generator[list[tuple]]:
+    """
+    Select and Transform Features
+    """
+    records = []
+    query_select = query.select
+    config = query.geometry_config
+    transformer = query.source_transformer
+    with query.source.geopackage.connection as cin:
+        cursor = cin.execute(query_select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            features, geometries = to_shapely(features, transformer=transformer)
+            if not features:
+                continue
+            results = [(g, attrs) for g, (_, *attrs) in
+                       zip(geometries, features)]
+            extend_records(results, records=records, config=config)
+            yield records
+            records.clear()
+# End select_transform function
 
 
 if __name__ == '__main__':  # pragma: no cover
