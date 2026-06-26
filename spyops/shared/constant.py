@@ -37,7 +37,7 @@ EXT_GPX: str = 'gpx'
 EXT_GEOJSON: str = 'geojson'
 
 
-FEATURE: str = 'feature'
+FEATURE: str = 'Feature'
 FEATURE_COLLECTION: str = 'FeatureCollection'
 
 
