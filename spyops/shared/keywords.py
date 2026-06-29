@@ -27,6 +27,8 @@ HASZ_KEY: str = 'hasZ'
 HASM_KEY: str = 'hasM'
 PROPERTIES_KEY: str = 'properties'
 GEOMETRY_KEY: str = 'geometry'
+COORDINATES_KEY: str = 'coordinates'
+
 
 LAT_KEY: str = 'lat'
 LON_KEY: str = 'lon'
