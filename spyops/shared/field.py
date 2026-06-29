@@ -6,7 +6,7 @@ Field
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.enumeration import ShapeType, FieldType
+from fudgeo.enumeration import FieldType, ShapeType
 
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
 from spyops.shared.util import make_unique_name
