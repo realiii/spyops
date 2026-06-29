@@ -23,11 +23,11 @@ from spyops.validation import (
     validate_result, validate_target_feature_class)
 
 
-__all__ = ['features_to_gpx', 'gpx_to_features']
-
-
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+
+
+__all__ = ['features_to_gpx', 'gpx_to_features']
 
 
 @validate_feature_class(SOURCE, geometry_types=(
