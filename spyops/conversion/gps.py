@@ -7,8 +7,7 @@ GPS
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.util import validated_transform
 from spyops.query.conversion.gps import FROM_GPX, TO_GPX
@@ -31,8 +30,8 @@ __all__ = ['features_to_gpx', 'gpx_to_features']
 
 
 @validate_feature_class(SOURCE, geometry_types=(
-        GeometryType.point, GeometryType.multi_point,
-        GeometryType.linestring, GeometryType.multi_linestring))
+        ShapeType.point, ShapeType.multi_point,
+        ShapeType.linestring, ShapeType.multi_linestring))
 @validate_file(TARGET, extension=EXT_GPX)
 @validate_field(NAME_FIELD, element_name=SOURCE, single=True,
                 is_optional=True, data_types=TEXTS)
