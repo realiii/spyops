@@ -147,5 +147,25 @@ def test_check_int_flag_enum(value, enum, expected, throws):
 # End test_check_int_flag_enum function
 
 
+@mark.parametrize('name, expected', [
+    ('HAPPY_PATH', 'HAPPY_PATH'),
+    ('CONSTRAINT', 'FIELD_CONSTRAINT'),
+    ('', 'FIELD'),
+    ('_', 'FIELD'),
+    ('__', 'FIELD'),
+    ('___', 'FIELD'),
+    ('123', 'FIELD_123'),
+    ('_123_', 'FIELD_123'),
+    ('##$_999', 'FIELD_999'),
+    ('FID', 'FID_1'),
+])
+def test_make_valid_field_name(name, expected):
+    """
+    Test make valid field name
+    """
+    assert make_valid_field_name(name) == expected
+# End test_make_valid_field_name function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
