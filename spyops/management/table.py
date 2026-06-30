@@ -4,7 +4,7 @@ Data Management for Tables
 """
 
 
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.constant import EMPTY
