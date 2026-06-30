@@ -12,7 +12,7 @@ from numpy import isfinite
 from spyops.geometry.extent import extent_from_index_or_geometry
 from spyops.shared.element import create_feature_class as _create_feature_class
 from spyops.shared.hint import FIELDS, GPKG
-from spyops.shared.util import make_valid_name
+from spyops.shared.util import make_valid_table_name
 from spyops.validation import validate_geopackage, validate_source_feature_class
 
 
@@ -51,7 +51,7 @@ def create_feature_class(geopackage: GPKG, name: str,
     Create a new feature class in a geopackage with the specified shape type,
     spatial reference, fields, and optional description.
     """
-    name = make_valid_name(name, prefix='fc')
+    name = make_valid_table_name(name, prefix='fc')
     return _create_feature_class(
         geopackage, name=name, srs=srs, fields=fields, description=description,
         shape_type=shape_type, z_enabled=z_enabled, m_enabled=m_enabled)

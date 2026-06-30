@@ -11,7 +11,7 @@ from spyops.shared.constant import EMPTY
 from spyops.shared.element import copy_element
 from spyops.shared.keywords import SOURCE
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
-from spyops.shared.util import make_valid_name
+from spyops.shared.util import make_valid_table_name
 from spyops.validation import (
     validate_element, validate_geopackage, validate_overwrite_source,
     validate_result, validate_source_table, validate_target_table)
@@ -47,7 +47,7 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
     optional description.
     """
     overwrite = ANALYSIS_SETTINGS.overwrite
-    name = make_valid_name(name, prefix='tbl')
+    name = make_valid_table_name(name, prefix='tbl')
     return geopackage.create_table(
         name, fields=fields, description=description, overwrite=overwrite)
 # End create_table function
