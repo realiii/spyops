@@ -13,6 +13,7 @@ from spyops.shared.constant import FEATURE_COLLECTION
 from spyops.shared.keywords import (
     CRS_KEY, FEATURES_KEY, HASM_KEY, HASZ_KEY, TYPE_KEY)
 
+
 pytestmark = [mark.conversion, mark.json, mark.query]
 
 
