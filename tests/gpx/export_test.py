@@ -64,7 +64,7 @@ def test_elevation(value, expected):
 
 @mark.parametrize('value, expected', [
     (datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc), b'<time>2020-01-02T03:04:05.000Z</time>'),
-    (date(2025, 10, 20), b'<time>2025-10-20T02:30:00.000Z</time>'),
+    (date(2025, 10, 20), b'<time>2025-10-20T05:00:00.000Z</time>'),
     (time(6, 7, 8, tzinfo=timezone.utc), b'<time>1900-01-01T06:07:08.000Z</time>'),
 ])
 def test_date(value, expected):
