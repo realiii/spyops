@@ -130,8 +130,8 @@ def test_make_unique_fields(existing_names, new_names, expected):
 
 
 @mark.parametrize('values, expected', [
-    (['123', '234', '', None, '345', '456', '567', '678', '1000', '10000'], FieldType.integer),
-    (['123.', '234', '', None, '345.', '456', '567', '678', '1000.', '10000'], FieldType.real),
+    ([123, 234, None, 345, 456, 567, 678, 1000, 10000], FieldType.integer),
+    ([123., 234.5, None, 345.6, 456.7, 567.8, 678.9, 1000., 10000], FieldType.real),
     (['A123.', '234', '', None, 'B345.', '456', 'C567', '678', '1000.', 'D10000'], FieldType.text),
     (['3/9/2023 12:15', '2/10/2024', '8-Oct-22', 'May-23', '7/1/1960', '1960.7.1', '1960.07.01', '1960-07-01', '1960-7-1'], FieldType.text),
     (['A', 'B', 'C', '1', '2', '3', '4'], FieldType.text),
