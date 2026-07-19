@@ -6,9 +6,10 @@ Tests for JSON Conversion
 
 from json import load
 
+from fudgeo import FeatureClass
 from pytest import mark
 
-from spyops.conversion import features_to_geojson
+from spyops.conversion import features_to_geojson, geojson_to_features
 from spyops.shared.keywords import CRS_KEY, FEATURES_KEY, HASM_KEY, HASZ_KEY
 
 
@@ -120,6 +121,64 @@ class TestFeaturesToGeoJSON:
             assert CRS_KEY not in data
     # End test_geometry_types method
 # End TestFeaturesToGeoJSON class
+
+
+class TestGeoJSONToFeatures:
+    """
+    Test GeoJSON to Features
+    """
+    @mark.parametrize('name, count, srs_id', [
+        ('point.geojson', 11, 4617),
+        ('point_alias_formatted.geojson', 11, 4617),
+        ('point_formatted.geojson', 11, 4617),
+        ('point_wgs84.geojson', 11, 4326),
+        ('point_wgs84_formatted.geojson', 11, 4326),
+        ('point_zm.geojson', 11, 4617),
+        ('point_zm_formatted.geojson', 11, 4617),
+        ('point_zm_wgs84.geojson', 11, 4326),
+        ('point_zm_wgs84_formatted.geojson', 11, 4326),
+        ('line_formatted.geojson', 66, 2955),
+        ('line_wgs84_formatted.geojson', 66, 4326),
+        ('line_zm.geojson', 66, 2955),
+        ('line_zm_formatted.geojson', 66, 2955),
+        ('line_zm_wgs84_formatted.geojson', 66, 4326),
+        ('polygon.geojson', 382, 4617),
+        ('polygon_wgs84.geojson', 382, 4326),
+        ('polygon_wgs84_formatted.geojson', 382, 4326),
+        ('polygon_zm_formatted.geojson', 382, 4617),
+        ('polygon_zm_wgs84_formatted.geojson', 382, 4326),
+        ('multipoint_formatted.geojson', 1, 2955),
+        ('multipoint_wgs84.geojson', 1, 4326),
+        ('multipoint_wgs84_formatted.geojson', 1, 4326),
+        ('multipoint_zm.geojson', 1, 2955),
+        ('multipoint_zm_formatted.geojson', 1, 2955),
+        ('multipoint_zm_wgs84.geojson', 1, 4326),
+        ('multipoint_zm_wgs84_formatted.geojson', 1, 4326),
+        ('multiline.geojson', 4, 4617),
+        ('multiline_formatted.geojson', 4, 4617),
+        ('multiline_wgs84.geojson', 4, 4326),
+        ('multiline_wgs84_formatted.geojson', 4, 4326),
+        ('multipolygon.geojson', 18, 102179),
+        ('multipolygon_formatted.geojson', 18, 102179),
+        ('multipolygon_wgs84.geojson', 18, 4326),
+        ('multipolygon_wgs84_formatted.geojson', 18, 4326),
+        ('multipolygon_zm.geojson', 18, 102179),
+        ('multipolygon_zm_formatted.geojson', 18, 102179),
+        ('multipolygon_zm_wgs84.geojson', 18, 4326),
+        ('multipolygon_zm_wgs84_formatted.geojson', 18, 4326),
+    ])
+    def test_function(self, mem_gpkg, geojson_path, name, count, srs_id):
+        """
+        Test function
+        """
+        source = geojson_path.joinpath(name)
+        assert source.is_file()
+        target = FeatureClass(mem_gpkg, name=source.stem)
+        result = geojson_to_features(source, target=target)
+        assert result.spatial_reference_system.srs_id == srs_id
+        assert len(result) == count
+    # End test_function method
+# End TestGeoJSONToFeatures class
 
 
 if __name__ == '__main__':  # pragma: no cover
