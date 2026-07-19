@@ -7,17 +7,22 @@ JSON
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from spyops.query.conversion.json import QueryFeaturesToGeoJSON
-from spyops.shared.keywords import TARGET
+from spyops.conversion.util import _to_features
+from spyops.query.conversion.json import (
+    QueryFeaturesToGeoJSON, geojson_query_factory)
+from spyops.shared.enumeration import GeoJSONGeometryType
+from spyops.shared.keywords import GEOMETRY_TYPE, SOURCE, TARGET
 from spyops.shared.constant import EXT_GEOJSON
-from spyops.validation import validate_file, validate_source_feature_class
+from spyops.validation import (
+    validate_file, validate_result, validate_source_feature_class,
+    validate_str_enumeration, validate_target_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['features_to_geojson']
+__all__ = ['features_to_geojson', 'geojson_to_features']
 
 
 @validate_source_feature_class()
@@ -51,6 +56,27 @@ def features_to_geojson(source: 'FeatureClass', target: Path | str, *,
         use_aliases=use_aliases, where_clause=where_clause)
     return query.export(target, formatted=formatted)
 # End features_to_geojson function
+
+
+@validate_result()
+@validate_file(SOURCE, is_output=False)
+@validate_target_feature_class()
+@validate_str_enumeration(GEOMETRY_TYPE, GeoJSONGeometryType)
+def geojson_to_features(source: Path | str, target: 'FeatureClass', *,
+                        geometry_type: GeoJSONGeometryType = (
+                                GeoJSONGeometryType.AUTO)) -> 'FeatureClass':
+    """
+    GeoJSON to Features
+
+    Convert a GeoJSON file to a feature class.  Use the geometry_type option
+    to specify the geometry type of the target feature class.  The default
+    is to automatically determine the geometry type from the GeoJSON file.
+    """
+    source: Path
+    cls = geojson_query_factory(source, geometry_type=geometry_type)
+    query = cls(source, target=target)
+    return _to_features(source, query=query)
+# End geojson_to_features function
 
 
 if __name__ == '__main__':  # pragma: no cover
