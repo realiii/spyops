@@ -202,6 +202,20 @@ class GeometryAttribute(StrEnum):
 # End GeometryAttribute class
 
 
+class GeoJSONGeometryType(StrEnum):
+    """
+    GeoJSON Geometry Type
+    """
+    AUTO = auto()
+    POINT = auto()
+    MULTI_POINT = auto()
+    LINESTRING = auto()
+    MULTI_LINESTRING = auto()
+    POLYGON = auto()
+    MULTI_POLYGON = auto()
+# End GeoJSONGeometryType class
+
+
 class GeometryCheck(IntFlag, boundary=STRICT):
     """
     Geometry Check Options

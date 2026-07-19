@@ -6,7 +6,7 @@ Field
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.enumeration import ShapeType, FieldType
+from fudgeo.enumeration import FieldType, ShapeType
 
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
 from spyops.shared.util import make_unique_name
@@ -348,6 +348,41 @@ def make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
     return [clone_field(f, name=make_unique_name(f.name, names=names))
             for f in others]
 # End make_unique_fields function
+
+
+def find_field_data_type(field_names: NAMES, data: dict[str, list]) -> NAMES:
+    """
+    Find Field Data Types for each column
+    """
+    if not field_names:
+        return ()
+    if not data:
+        return tuple(FieldType.text for _ in field_names)
+    # noinspection PyTypeChecker
+    return tuple(_guess_data_type(data.get(name)) for name in field_names)
+# End find_field_definitions function
+
+
+def _guess_data_type(values: list) -> str:
+    """
+    Guess the underlying data type in the strings
+    """
+    default = FieldType.text
+    if not values:  # pragma: no cover
+        return default
+    majority = len(values) * 0.7
+    numbers = [type(v) for v in values if isinstance(v, (int, float))]
+    int_count = numbers.count(int)
+    float_count = numbers.count(float)
+    if max(int_count, float_count) < majority:
+        return default
+    if float_count >= int_count:
+        return FieldType.real
+    elif float_count < int_count:
+        return FieldType.integer
+    else:
+        return default
+# End _guess_data_type function
 
 
 if __name__ == '__main__':  # pragma: no cover

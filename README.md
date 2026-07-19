@@ -63,6 +63,7 @@ MIT
 - added `features_to_gpx` (Conversion - GPS)
 - added `gpx_to_features` (Conversion - GPS)
 - added `features_to_geojson` (Conversion - JSON)
+- added `geojson_to_features` (Conversion - JSON)
 - added `frequency` (Analysis - Statistics)
 - added `statistics` (Analysis - Statistics)
 - added `adjust_3d_z` (Management - Features)

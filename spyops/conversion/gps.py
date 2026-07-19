@@ -7,32 +7,30 @@ GPS
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 
-from spyops.geometry.util import validated_transform
+from spyops.conversion.util import _to_features
 from spyops.query.conversion.gps import FROM_GPX, TO_GPX
 from spyops.shared.field import DATES, NUMBERS, TEXTS
 from spyops.shared.hint import OPT_FIELD, OPT_FIELD_STR
 from spyops.shared.keywords import (
     DATE_FIELD, DESCRIPTION_FIELD, NAME_FIELD, SOURCE, TARGET, Z_FIELD)
 from spyops.shared.constant import EXT_GPX
-from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_feature_class, validate_field, validate_file,
     validate_result, validate_target_feature_class)
-
-
-__all__ = ['features_to_gpx', 'gpx_to_features']
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
+__all__ = ['features_to_gpx', 'gpx_to_features']
+
+
 @validate_feature_class(SOURCE, geometry_types=(
-        GeometryType.point, GeometryType.multi_point,
-        GeometryType.linestring, GeometryType.multi_linestring))
+        ShapeType.point, ShapeType.multi_point,
+        ShapeType.linestring, ShapeType.multi_linestring))
 @validate_file(TARGET, extension=EXT_GPX)
 @validate_field(NAME_FIELD, element_name=SOURCE, single=True,
                 is_optional=True, data_types=TEXTS)
@@ -81,23 +79,8 @@ def gpx_to_features(source: Path | str, target: 'FeatureClass', *,
     converts tracks.
     """
     source: Path
-    records = []
-    cls = FROM_GPX[as_points]
-    query = cls(target=target)
-    insert_sql = query.insert
-    config = query.geometry_config
-    transformer = query.source_transformer
-    with (query.target.geopackage.connection as cout,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        if not (features := query.features(source)):
-            return query.target
-        geometries, *_ = zip(*features)
-        features, geometries = validated_transform(
-            transformer, features=features, geometries=geometries)
-        results = [(g, attrs) for g, (_, *attrs) in zip(geometries, features)]
-        extend_records(results, records=records, config=config)
-        executor(sql=insert_sql, data=records)
-    return query.target
+    query = FROM_GPX[as_points](target=target)
+    return _to_features(source, query=query)
 # End gpx_to_features function
 
 

@@ -10,7 +10,8 @@ from spyops.environment.enumeration import OutputMOption
 from spyops.shared.enumeration import DEFAULT_GEOM_CHECKS, GeometryCheck
 from spyops.shared.util import (
     check_int_flag_enum, check_str_enum, element_names, expand_extent,
-    make_unique_name, make_valid_name, _replace_double_under, safe_float,
+    make_unique_name, make_valid_field_name, make_valid_table_name,
+    _replace_double_under, safe_float,
     safe_int)
 
 
@@ -42,12 +43,12 @@ def test_make_unique_name(world_tables, name, expected1, expected2):
     ('1234_asdf', 'fc_1234_asdf'),
     ('q_group 1', 'q_group_1'),
 ])
-def test_make_valid_name(name, expected):
+def test_make_valid_table_name(name, expected):
     """
-    Test make_valid_name
+    Test make_valid_table_name
     """
-    assert make_valid_name(name, prefix='fc') == expected
-# End test_make_valid_name function
+    assert make_valid_table_name(name, prefix='fc') == expected
+# End test_make_valid_table_name function
 
 
 def test_replace_double_under():
@@ -144,6 +145,26 @@ def test_check_int_flag_enum(value, enum, expected, throws):
     else:
         assert check_int_flag_enum(value, enum) == expected
 # End test_check_int_flag_enum function
+
+
+@mark.parametrize('name, expected', [
+    ('HAPPY_PATH', 'HAPPY_PATH'),
+    ('CONSTRAINT', 'FIELD_CONSTRAINT'),
+    ('', 'FIELD'),
+    ('_', 'FIELD'),
+    ('__', 'FIELD'),
+    ('___', 'FIELD'),
+    ('123', 'FIELD_123'),
+    ('_123_', 'FIELD_123'),
+    ('##$_999', 'FIELD_999'),
+    ('FID', 'FID_1'),
+])
+def test_make_valid_field_name(name, expected):
+    """
+    Test make valid field name
+    """
+    assert make_valid_field_name(name) == expected
+# End test_make_valid_field_name function
 
 
 if __name__ == '__main__':  # pragma: no cover

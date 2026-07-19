@@ -11,7 +11,7 @@ from typing import Callable, TYPE_CHECKING, Type
 from xml.etree.ElementTree import Element, tostring
 
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
-from fudgeo.enumeration import GeometryType, ShapeType
+from fudgeo.enumeration import ShapeType
 from numpy import isfinite
 from pyproj import CRS
 from shapely.coordinates import get_coordinates
@@ -358,7 +358,7 @@ class QueryGPXToFeaturesPoint(AbstractQueryGPXToFeatures):
         """
         Get Target Shape Type
         """
-        return GeometryType.point
+        return ShapeType.point
     # End _get_target_shape_type method
 
     def _get_unique_fields(self) -> FIELDS:
@@ -387,7 +387,7 @@ class QueryGPXToFeaturesLineString(AbstractQueryGPXToFeatures):
         """
         Get Target Shape Type
         """
-        return GeometryType.linestring
+        return ShapeType.linestring
     # End _get_target_shape_type method
 
     def _get_unique_fields(self) -> FIELDS:

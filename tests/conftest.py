@@ -40,6 +40,15 @@ def gpx_path(data_path) -> Path:
 
 
 @fixture(scope='session')
+def geojson_path(data_path) -> Path:
+    """
+    GeoJSON Path
+    """
+    return data_path.joinpath('geojson')
+# End geojson_path function
+
+
+@fixture(scope='session')
 def inputs(data_path) -> Generator[GeoPackage, None, None]:
     """
     Inputs

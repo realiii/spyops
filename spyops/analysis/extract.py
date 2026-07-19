@@ -16,7 +16,7 @@ from spyops.shared.element import copy_element
 from spyops.shared.field import GEOM_TYPE_POLYGONS, TEXTS, TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from spyops.shared.records import select_transform_insert
-from spyops.shared.util import make_valid_name
+from spyops.shared.util import make_valid_table_name
 from spyops.validation import (
     validate_feature_class, validate_field, validate_geometry_dimension,
     validate_geopackage, validate_operator_feature_class,
@@ -136,7 +136,7 @@ def split(source: FeatureClass, operator: FeatureClass,
         source=operator, group_fields=[field], geopackage=scratch,
         ignore_zm_settings=True)
     for (value,), s in splitters.items():
-        name = make_valid_name(
+        name = make_valid_table_name(
             f'{source.name}{UNDERSCORE}{value}', prefix='split')
         # NOTE raw xy_tolerance used, avoid repeated conversion
         # noinspection PyTypeChecker

@@ -8,6 +8,7 @@ from enum import IntFlag, StrEnum
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
+from fudgeo.constant import FID
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 
@@ -15,6 +16,7 @@ from spyops.shared.constant import DOUBLE_UNDER, UNDERSCORE
 from spyops.shared.hint import EXTENT, GPKG
 
 
+FIELD_NAME_MATCHER: Callable = recompile(r'^[a-zA-Z]\w*$', IGNORECASE).match
 NON_WORD_REPLACER: Callable = recompile(r'\W+', IGNORECASE).sub
 
 
@@ -45,9 +47,9 @@ def element_names(geopackage: GPKG) -> set[str]:
 # End element_names function
 
 
-def make_valid_name(name: str, prefix: str) -> str:
+def make_valid_table_name(name: str, prefix: str) -> str:
     """
-    Make Valid Name
+    Make Valid Table Name
     """
     if name is None:
         return 'none'
@@ -60,8 +62,26 @@ def make_valid_name(name: str, prefix: str) -> str:
     if NAME_MATCHER(name):
         return name
     else:  # pragma: no cover
-        return make_valid_name(name, prefix=prefix)
-# End _make_valid_name function
+        return make_valid_table_name(name, prefix=prefix)
+# End make_valid_table_name function
+
+
+def make_valid_field_name(name: str) -> str:
+    """
+    Make Valid Name, assumption that name is already upper case
+    """
+    if not name:
+        return 'FIELD'
+    if name == FID.upper():
+        name = f'{name}_1'
+    if name in KEYWORDS or not FIELD_NAME_MATCHER(name):
+        name = f'FIELD_{name}'
+    name = _replace_double_under(name).rstrip(UNDERSCORE)
+    if FIELD_NAME_MATCHER(name):
+        return name
+    name = NON_WORD_REPLACER(UNDERSCORE, name).rstrip(UNDERSCORE)
+    return make_valid_field_name(_replace_double_under(name))
+# End make_valid_field_name function
 
 
 def _replace_double_under(name: str) -> str:
