@@ -21,7 +21,7 @@ from spyops.geometry.constant import (
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_geoms_iter, make_none_mask, to_shapely
 from spyops.geometry.wa import make_valid_structure
-from spyops.shared.hint import UPDATES
+from spyops.shared.hint import UPDATES_FUDGEO, UPDATES_SHAPELY
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -34,7 +34,7 @@ EMPTIES: TypeAlias = list[int]
 
 
 def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
-        -> tuple[UPDATES, IDENTIFIERS]:
+        -> tuple[UPDATES_FUDGEO, IDENTIFIERS]:
     """
     Repair Feature Class Geometry, addresses geometry issues but not the
     feature class extent.
@@ -93,8 +93,8 @@ def _repair_points(geoms: 'ndarray', ids: 'ndarray', *,
 
 
 def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                         updates: UPDATES, empties: EMPTIES, has_m: bool,
-                         **kwargs) -> None:
+                         updates: UPDATES_SHAPELY, empties: EMPTIES,
+                         has_m: bool, **kwargs) -> None:
     """
     Repair Multi Points, removes empty points
     """
@@ -114,7 +114,7 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                        updates: UPDATES, empties: EMPTIES, has_m: bool,
+                        updates: UPDATES_SHAPELY, empties: EMPTIES, has_m: bool,
                         **kwargs) -> None:
     """
     Repair LineStrings, removes empty points and changes lines with incorrect
@@ -144,7 +144,7 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                     updates: UPDATES, empties: EMPTIES, has_m: bool,
+                     updates: UPDATES_SHAPELY, empties: EMPTIES, has_m: bool,
                      **kwargs) -> None:
     """
     Repair Polygons, removes empty points, removes empty rings, closes rings,
@@ -182,7 +182,7 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
-                              deletes: DELETES, updates: UPDATES,
+                              deletes: DELETES, updates: UPDATES_SHAPELY,
                               empties: EMPTIES, **kwargs) -> None:
     """
     Repair MultiLineStrings
@@ -200,7 +200,7 @@ def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
 
 
 def _repair_multi_polygons(geoms: 'ndarray', ids: 'ndarray', *,
-                           deletes: DELETES, updates: UPDATES,
+                           deletes: DELETES, updates: UPDATES_SHAPELY,
                            empties: EMPTIES, **kwargs) -> None:
     """
     Repair MultiPolygons
@@ -261,7 +261,7 @@ def _fix_linestring_parts(geoms: list[LineString]) -> list[LineString]:
 
 
 def _linestring_point_count(geoms: 'ndarray', *, ids: 'ndarray',
-                            updates: UPDATES, empties: EMPTIES,
+                            updates: UPDATES_SHAPELY, empties: EMPTIES,
                             reasons: 'ndarray') -> None:
     """
     Handle LineString Point Count
@@ -284,8 +284,8 @@ def _make_valid(geoms: 'ndarray') -> 'ndarray':
 
 
 def _capture_valid_and_empty(geoms: 'ndarray', *, ids: 'ndarray',
-                             deletes: DELETES, updates: UPDATES,
-                             empties: EMPTIES,  fixer: Optional[Callable]) \
+                             deletes: DELETES, updates: UPDATES_SHAPELY,
+                             empties: EMPTIES, fixer: Optional[Callable]) \
         -> tuple['ndarray', 'ndarray', 'ndarray']:
     """
     Capture Valid and Empty Geometries
@@ -322,7 +322,7 @@ def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
 
 
 def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
-                           updates: UPDATES, empties: DELETES) -> None:
+                           updates: UPDATES_SHAPELY, empties: DELETES) -> None:
     """
     Track Updates and Empties
     """

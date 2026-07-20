@@ -27,8 +27,9 @@ DISTANCE: TypeAlias = Union[
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
 UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
 
-UPDATES: TypeAlias = list[tuple[
+UPDATES_SHAPELY: TypeAlias = list[tuple[
     int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
+UPDATES_FUDGEO: TypeAlias = list[tuple[int, AbstractGeometry]]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 NUMBER: TypeAlias = float | int
