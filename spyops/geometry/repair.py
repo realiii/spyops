@@ -4,7 +4,7 @@ Repair Geometry
 """
 
 
-from typing import Callable, Optional, TYPE_CHECKING, TypeAlias, Union
+from typing import Callable, Optional, TYPE_CHECKING, TypeAlias
 
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
@@ -21,18 +21,16 @@ from spyops.geometry.constant import (
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_geoms_iter, make_none_mask, to_shapely
 from spyops.geometry.wa import make_valid_structure
+from spyops.shared.hint import UPDATES
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
-    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
 IDENTIFIERS: TypeAlias = list[tuple[int]]
 DELETES: TypeAlias = list[int]
 EMPTIES: TypeAlias = list[int]
-UPDATES: TypeAlias = list[tuple[
-    int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
 
 
 def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \

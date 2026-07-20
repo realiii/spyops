@@ -17,12 +17,16 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry import (
         LineString as ShapelyLineString, MultiLineString, MultiPoint,
         MultiPolygon, Point as ShapelyPoint, Polygon)
+    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
     from spyops.shared.sort import AbstractSortField
     from spyops.shared.stats import AbstractStatisticField
 
 
 DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
+
+UPDATES: TypeAlias = list[tuple[
+    int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 NUMBER: TypeAlias = float | int
