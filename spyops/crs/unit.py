@@ -16,6 +16,7 @@ from spyops.crs.constant import EPSG
 from spyops.crs.enumeration import AreaUnit, DistanceUnit, LengthUnit
 from spyops.crs.util import get_crs_horizontal_component, xy_to_dd
 from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
+from spyops.shared.hint import NUMBER, UNIT
 from spyops.shared.util import safe_float
 
 
@@ -119,7 +120,7 @@ def get_conv_factor(value: str | float):
 # End get_conv_factor function
 
 
-def unit_factory(value: str) -> Optional[Union['LinearUnit', 'DecimalDegrees']]:
+def unit_factory(value: str) -> Optional[UNIT]:
     """
     Unit Factory for Linear Units or Decimal Degrees
     """
