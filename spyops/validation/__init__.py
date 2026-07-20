@@ -25,6 +25,7 @@ from spyops.validation.file import ValidateFile
 from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
 from spyops.validation.setting import ValidateTolerance, ValidateXYTolerance
+from spyops.validation.unit import ValidateLinearUnit
 
 
 # NOTE aliases, decorators look better as snake case
@@ -44,6 +45,7 @@ validate_geometry_group_option = ValidateGeometryGroupOption
 validate_geopackage = ValidateGeopackage
 validate_group_option = ValidateGroupOption
 validate_int_flag_enumeration = ValidateIntFlagEnumeration
+validate_linear_unit = ValidateLinearUnit
 validate_output_type = ValidateOutputType
 validate_overwrite_input = ValidateOverwriteInput
 validate_range = ValidateRange
