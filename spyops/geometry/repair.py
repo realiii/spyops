@@ -45,9 +45,9 @@ def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
     the `updates` list is for features that have been made valid and must be
     updated in the feature class.
 
-    When the option to drop empty features is True the `empties` and `deletes`
+    When the option to drop empty features is True, the `empties` and `deletes`
     lists are combined, when False fudgeo empty geometries are generated for
-    each identifier in the `empties` list and included into the `updates` list.
+    each identifier in the `empties` list and included in the `updates` list.
     """
     updates = []
     deletes = []
