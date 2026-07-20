@@ -223,6 +223,10 @@ class LinearUnit:
         Value
         """
         return self._value
+
+    @value.setter
+    def value(self, value: float | None) -> None:
+        self._value = value
     # End value property
 
     @property
@@ -418,6 +422,10 @@ class DecimalDegrees:
         Value
         """
         return self._value
+
+    @value.setter
+    def value(self, value: float | None) -> None:
+        self._value = value
     # End value property
 # End DecimalDegrees class
 
