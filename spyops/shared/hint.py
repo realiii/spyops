@@ -24,6 +24,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
+UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
+UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
 
 UPDATES: TypeAlias = list[tuple[
     int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
