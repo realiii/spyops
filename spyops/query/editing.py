@@ -4,6 +4,9 @@ Query Classes for editing
 """
 
 
+from functools import cached_property
+from typing import TYPE_CHECKING
+
 from fudgeo import Field
 
 from spyops.query.base import AbstractSourceUpdateQuery
@@ -11,10 +14,22 @@ from spyops.shared.field import ORIG_FID
 from spyops.shared.hint import FIELDS, NAMES
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from spyops.geometry.config import GeometryConfig, geometry_config
+
+
 class QueryGeneralize(AbstractSourceUpdateQuery):
     """
     Query for Generalize
     """
+    @cached_property
+    def geometry_config(self) -> 'GeometryConfig':
+        """
+        Geometry Configuration
+        """
+        return geometry_config(self.source, cast_geom=False)
+    # End geometry_config property
+
     @property
     def _short_name(self) -> str:
         """
