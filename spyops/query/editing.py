@@ -9,13 +9,14 @@ from typing import TYPE_CHECKING
 
 from fudgeo import Field
 
+from spyops.geometry.config import geometry_config
 from spyops.query.base import AbstractSourceUpdateQuery
 from spyops.shared.field import ORIG_FID
 from spyops.shared.hint import FIELDS, NAMES
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from spyops.geometry.config import GeometryConfig, geometry_config
+    from spyops.geometry.config import GeometryConfig
 
 
 class QueryGeneralize(AbstractSourceUpdateQuery):
