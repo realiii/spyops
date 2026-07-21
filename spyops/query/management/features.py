@@ -356,11 +356,12 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     def __init__(self, source: FeatureClass, field: Field,
                  geometry_attribute: GeometryAttribute, *,
                  weight_option: WeightOption,
-                 length_unit: LengthUnit, area_unit: AreaUnit) -> None:
+                 length_unit: LengthUnit, area_unit: AreaUnit,
+                 where_clause: str) -> None:
         """
         Initialize the QueryCalculateGeometryAttributes class
         """
-        super().__init__(source)
+        super().__init__(source, where_clause=where_clause)
         self._field: Field = field
         self._attribute: GeometryAttribute = geometry_attribute
         self._option: WeightOption = weight_option

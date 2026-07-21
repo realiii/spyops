@@ -187,8 +187,8 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
                                   geometry_attribute: GeometryAttribute, *,
                                   weight_option: WeightOption = WeightOption.TWO_D,
                                   length_unit: LengthUnit = LengthUnit.METERS,
-                                  area_unit: AreaUnit = AreaUnit.SQUARE_METERS) \
-        -> 'FeatureClass':
+                                  area_unit: AreaUnit = AreaUnit.SQUARE_METERS,
+                                  where_clause: str = '') -> 'FeatureClass':
     """
     Calculate Geometry Attributes
 
@@ -280,7 +280,7 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     with QueryCalculateGeometryAttributes(
             source, field=field, geometry_attribute=geometry_attribute,
             weight_option=weight_option, length_unit=length_unit,
-            area_unit=area_unit) as query:
+            area_unit=area_unit, where_clause=where_clause) as query:
         query_insert = query.insert
         item_getter = query.item_getter
         attr_getter = query.attribute_getter
