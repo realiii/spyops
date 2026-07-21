@@ -29,7 +29,7 @@ UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
 
 UPDATES_SHAPELY: TypeAlias = list[tuple[
     int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
-UPDATES_FUDGEO: TypeAlias = list[tuple[int, AbstractGeometry]]
+UPDATES_FUDGEO: TypeAlias = list[tuple[int, 'AbstractGeometry']]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 NUMBER: TypeAlias = float | int
