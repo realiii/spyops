@@ -4,23 +4,23 @@ Workarounds for Shapely / GEOS
 """
 
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import cache, cached_property
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING, Union
+from typing import Callable, TYPE_CHECKING, Type, Union
 from warnings import warn
 from math import nan
 
 from bottleneck import nanmean
 from fudgeo.enumeration import ShapeType
-from numpy import isnan, ndarray
+from numpy import arange, isnan, ndarray
 from pyproj import CRS
 from shapely import (
     GeometryCollection, LineString, LinearRing, MultiLineString, MultiPoint,
-    MultiPolygon, Polygon, coverage_simplify, get_rings,
+    MultiPolygon, Point, Polygon, coverage_simplify, get_rings,
     set_precision as _set_precision)
 from shapely.constructive import (
-    make_valid as _make_valid, polygonize as _polygonize)
+    make_valid as _make_valid, polygonize as _polygonize, simplify as _simplify)
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb, from_wkt
 from shapely.linear import line_merge
@@ -29,13 +29,221 @@ from shapely.ops import transform
 from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transforms
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_geoms, get_geoms_iter
+from spyops.geometry.util import (
+    find_slice_indexes, get_geoms, get_geoms_iter, nada)
 from spyops.shared.constant import SKIP_FILE_PREFIXES, SRS_ID_WKB
 from spyops.shared.exception import ShapelyWarning
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+
+
+def simplify(geometry, tolerance, preserve_topology=True, **kwargs):
+    """
+    Simplify Workaround -- ensures measures are present
+    """
+    func = _simplify
+    if USE_WORKAROUNDS.simplify:
+        types = Point, MultiPoint
+        if isinstance(geometry, (list, tuple, ndarray)):
+            if not len(geometry):
+                has_m = False
+                is_point = True
+            else:
+                geoms = geometry[:(min(25, len(geometry)))]
+                has_m = any(g.has_m for g in geoms)
+                is_point = any(isinstance(g, types) for g in geoms)
+        else:
+            has_m = geometry.has_m
+            is_point = isinstance(geometry, types)
+        if not is_point and has_m:
+            func = _simplify_with_measures
+    return func(geometry, tolerance=tolerance,
+                preserve_topology=preserve_topology, **kwargs)
+# End simplify function
+
+
+def _simplify_with_measures(geometry, *, tolerance: float,
+                            preserve_topology: bool = True, **kwargs):
+    """
+    Simplify Workaround -- ensures measures are present
+    """
+    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
+        geometry = [geometry]
+    geoms = geometry[:(min(25, len(geometry)))]
+    has_z = any(g.has_z for g in geoms)
+    (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
+    shape_type = geom_type.upper()
+    if shape_type not in GEOMETRY_SIMPLIFY:
+        result = geometry
+    else:
+        func = GEOMETRY_SIMPLIFY[shape_type]
+        result = func(
+            geometry, tolerance=tolerance, preserve_topology=preserve_topology,
+            has_z=has_z, **kwargs)
+    if not is_iterable:
+        return result[0]
+    return result
+# End _simplify_with_measures function
+
+
+def _simplify_config(shape_type: str, has_z: bool) \
+        -> tuple[tuple[float, ...], Type, Type]:
+    """
+    Common Config Steps for Simplify
+    """
+    if has_z:
+        missing = nan, nan
+    else:
+        missing = nan,
+    cls_idx = FUDGEO_GEOMETRY_LOOKUP[shape_type][True, False]
+    cls_geom = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, True]
+    return missing, cls_geom, cls_idx
+# End _simplify_config function
+
+
+def _build_xy_and_lookup(geoms: list, has_z: bool, max_id: int,
+                         getter: Callable) \
+        -> tuple[tuple[int, ...], dict[float, 'ndarray'], 'ndarray']:
+    """
+    Build XY and Lookup, also return identifier indexes
+    """
+    coords, indexes = get_coordinates(
+        getter(geoms), include_z=has_z, include_m=True, return_index=True)
+    xy_index = coords[:, :3].copy()
+    xy_index[:, 2] = arange(len(xy_index), dtype=float) + max_id
+    lookup = dict(zip(xy_index[:, 2], coords[:, 2:]))
+    return find_slice_indexes(indexes), lookup, xy_index
+# End _build_xy_and_lookup function
+
+
+def _rebuild_coordinates(geoms: 'ndarray', lookup: dict[float, 'ndarray'],
+                         missing: tuple[float, ...], getter: Callable) \
+        -> tuple[list, tuple[int, ...]]:
+    """
+    Rebuild Coordinates by using lookup to add back measures and z values
+    """
+    coords, indexes = get_coordinates(
+        getter(geoms), include_z=True, return_index=True)
+    coords = [(x, y, *lookup.get(idx, missing)) for x, y, idx in coords]
+    return coords, find_slice_indexes(indexes)
+# End _rebuild_coordinates function
+
+
+def _simplify_linestrings(geoms: list, *, tolerance: float,
+                          preserve_topology: bool, has_z: bool,
+                          **kwargs) -> 'ndarray':
+    """
+    Simplify LineStrings that have Measures
+    """
+    getter = nada
+    missing, cls_geom, cls_idx = _simplify_config(ShapeType.linestring, has_z)
+    ids, lookup, xy_index = _build_xy_and_lookup(
+        geoms, has_z=has_z, max_id=0, getter=getter)
+    wkb = [cls_idx(xy_index[b:e], srs_id=SRS_ID_WKB).wkb
+           for b, e in zip(ids[:-1], ids[1:])]
+    geoms = _simplify(from_wkb(wkb, on_invalid='fix'), tolerance=tolerance,
+                      preserve_topology=preserve_topology, **kwargs)
+    coords, ids = _rebuild_coordinates(
+        geoms, lookup=lookup, missing=missing, getter=getter)
+    wkb = [cls_geom(coords[b:e], srs_id=SRS_ID_WKB).wkb
+           for b, e in zip(ids[:-1], ids[1:])]
+    return from_wkb(wkb, on_invalid='fix')
+# End _simplify_linestrings function
+
+
+def _simplify_multi_linestrings(geoms: list, *, tolerance: float,
+                                preserve_topology: bool, has_z: bool,
+                                **kwargs) -> 'ndarray':
+    """
+    Simplify MultiLineStrings that have Measures
+    """
+    return _simplify_groups(
+        geoms, tolerance=tolerance, preserve_topology=preserve_topology,
+        shape_type=ShapeType.multi_linestring, has_z=has_z,
+        getter=get_geoms_iter, **kwargs)
+# End _simplify_multi_linestrings function
+
+
+def _simplify_polygons(geoms: list, *, tolerance: float,
+                       preserve_topology: bool, has_z: bool,
+                       **kwargs) -> 'ndarray':
+    """
+    Simplify Polygons that have Measures
+    """
+    return _simplify_groups(
+        geoms, tolerance=tolerance, preserve_topology=preserve_topology,
+        shape_type=ShapeType.polygon, has_z=has_z, getter=get_rings,
+        **kwargs)
+# End _simplify_polygons function
+
+
+def _simplify_multi_polygons(geoms: list, *, tolerance: float,
+                             preserve_topology: bool, has_z: bool,
+                             **kwargs) -> 'ndarray':
+    """
+    Simplify MultiPolygons that have Measures
+    """
+    wkb = []
+    max_id = 0
+    lookup = {}
+    poly_coords = []
+    getter = get_rings
+    missing, cls_geom, cls_idx = _simplify_config(
+        ShapeType.multi_polygon, has_z)
+    for geom in geoms:
+        for poly in get_geoms_iter(geom):
+            ids, lut, xy_index = _build_xy_and_lookup(
+                poly, has_z=has_z, max_id=max_id, getter=getter)
+            lookup.update(lut)
+            max_id += max(ids)
+            poly_coords.append(
+                [xy_index[b:e] for b, e in zip(ids[:-1], ids[1:])])
+        wkb.append(cls_idx(poly_coords, srs_id=SRS_ID_WKB).wkb)
+        poly_coords.clear()
+    geoms = _simplify(from_wkb(wkb, on_invalid='fix'), tolerance=tolerance,
+                      preserve_topology=preserve_topology, **kwargs)
+    wkb = []
+    for geom in geoms:
+        for poly in get_geoms_iter(geom):
+            coords, ids = _rebuild_coordinates(
+                poly, lookup=lookup, missing=missing, getter=getter)
+            poly_coords.append(
+                [coords[b:e] for b, e in zip(ids[:-1], ids[1:])])
+        wkb.append(cls_geom(poly_coords, srs_id=SRS_ID_WKB).wkb)
+        poly_coords.clear()
+    return from_wkb(wkb, on_invalid='fix')
+# End _simplify_multi_polygons function
+
+
+def _simplify_groups(geoms: list, *, tolerance: float,
+                     preserve_topology: bool, shape_type: str,
+                     has_z: bool, getter: Callable, **kwargs) -> 'ndarray':
+    """
+    Simplify Groups (Multi LineStrings and Polygons) that have Measures
+    """
+    wkb = []
+    max_id = 0
+    lookup = {}
+    missing, cls_geom, cls_idx = _simplify_config(shape_type, has_z)
+    for geom in geoms:
+        ids, lut, xy_index = _build_xy_and_lookup(
+            geom, has_z=has_z, max_id=max_id, getter=getter)
+        lookup.update(lut)
+        max_id += max(ids)
+        wkb.append(cls_idx([xy_index[b:e] for b, e in
+                            zip(ids[:-1], ids[1:])], srs_id=SRS_ID_WKB).wkb)
+    geoms = _simplify(from_wkb(wkb, on_invalid='fix'), tolerance=tolerance,
+                      preserve_topology=preserve_topology, **kwargs)
+    wkb = []
+    for geom in geoms:
+        coords, ids = _rebuild_coordinates(
+            geom, lookup=lookup, missing=missing, getter=getter)
+        wkb.append(cls_geom([coords[b:e] for b, e in zip(ids[:-1], ids[1:])],
+                            srs_id=SRS_ID_WKB).wkb)
+    return from_wkb(wkb, on_invalid='fix')
+# End _simplify_groups function
 
 
 def polygonize(geometries, **kwargs) -> GeometryCollection:
@@ -81,16 +289,16 @@ def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
     Set Precision Workaround -- just a warning
     """
     if USE_WORKAROUNDS.set_precision and grid_size > 0:
+        types = Polygon, MultiPolygon
         if isinstance(geometry, (list, tuple, ndarray)):
             if not len(geometry):
                 is_polygon = has_m = False
             else:
-                sniff = min(25, len(geometry))
-                is_polygon = any(isinstance(g, (Polygon, MultiPolygon))
-                                 for g in geometry[:sniff])
-                has_m = any(g.has_m for g in geometry[:sniff])
+                geoms = geometry[:(min(25, len(geometry)))]
+                is_polygon = any(isinstance(g, types) for g in geoms)
+                has_m = any(g.has_m for g in geoms)
         else:
-            is_polygon = isinstance(geometry, (Polygon, MultiPolygon))
+            is_polygon = isinstance(geometry, types)
             has_m = geometry.has_m
         if is_polygon and has_m:
             warn(f'Setting precision on measured polygons changes the '
@@ -261,7 +469,7 @@ class _UseWorkarounds:
         Use workaround for simplify?
         """
         a = from_wkt('LINESTRING (0 0 0 0, 0 2 2 2, 0 1 1 1)')
-        result = a.simplify(0)
+        result = _simplify(a, tolerance=0)
         return not result.has_m
     # End simplify property
 
@@ -378,6 +586,14 @@ class _UseWorkarounds:
 
 
 USE_WORKAROUNDS: _UseWorkarounds = _UseWorkarounds()
+
+
+GEOMETRY_SIMPLIFY: dict[str, Callable] = {
+    ShapeType.linestring: _simplify_linestrings,
+    ShapeType.multi_linestring: _simplify_multi_linestrings,
+    ShapeType.polygon: _simplify_polygons,
+    ShapeType.multi_polygon: _simplify_multi_polygons,
+}
 
 
 if __name__ == '__main__':  # pragma: no cover
