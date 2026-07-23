@@ -679,12 +679,14 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     Abstract Spatial Query Support
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
+                 operator: FeatureClass, *, xy_tolerance: XY_TOL,
+                 where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSpatialQuery class
         """
         # noinspection PyTypeChecker
-        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance,
+                         where_clause=where_clause)
         self._operator: FeatureClass = operator
     # End init built-in
 
@@ -819,12 +821,12 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass, attribute_option: AttributeOption, *,
-                 xy_tolerance: XY_TOL) -> None:
+                 xy_tolerance: XY_TOL, where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
         super().__init__(source, target=target, operator=operator,
-                         xy_tolerance=xy_tolerance)
+                         xy_tolerance=xy_tolerance, where_clause=where_clause)
         self._attr_option: AttributeOption = attribute_option
     # End init built-in
 
