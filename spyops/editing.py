@@ -11,6 +11,12 @@ from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import ShapeType
 from fudgeo.util import get_extent
 
+from spyops.crs.unit import (
+    DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
+    Kilometres, Meters, Metres, Miles, MilesInternational, MilesUS,
+    NauticalMiles, NauticalMilesInternational, NauticalMilesUS, StatuteMiles,
+    USNauticalMiles, USSurveyFeet, USSurveyMiles, USSurveyYards, Yards,
+    YardsInternational, YardsUS)
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.wa import simplify
 from spyops.query.editing import QueryGeneralize
@@ -25,7 +31,33 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['generalize']
+__all__ = [
+    'generalize',
+
+    'DecimalDegrees',
+    'Degrees',
+    'Feet',
+    'FeetInternational',
+    'FeetUS',
+    'Kilometers',
+    'Kilometres',
+    'Meters',
+    'Metres',
+    'Miles',
+    'MilesInternational',
+    'MilesUS',
+    'NauticalMiles',
+    'NauticalMilesInternational',
+    'NauticalMilesUS',
+    'StatuteMiles',
+    'USNauticalMiles',
+    'USSurveyFeet',
+    'USSurveyMiles',
+    'USSurveyYards',
+    'Yards',
+    'YardsInternational',
+    'YardsUS',
+]
 
 
 @validate_result()
