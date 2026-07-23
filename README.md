@@ -32,6 +32,7 @@ MIT
 - [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage) (v0.2.0)
 - [Conversion - GPS](https://github.com/realiii/spyops/wiki/Conversion#gps) (v0.2.0)
 - [Conversion - JSON](https://github.com/realiii/spyops/wiki/Conversion#json) (v0.2.0)
+- [Editing](https://github.com/realiii/spyops/wiki/Editing) (v0.2.0)
 - [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
 - [Management - Feature Class](https://github.com/realiii/spyops/wiki/Data-Management#feature-class)
 - [Management - Fields](https://github.com/realiii/spyops/wiki/Data-Management#fields)
@@ -70,6 +71,7 @@ MIT
 - added `feature_to_line` (Management - Features)
 - added `feature_to_polygon` (Management - Features)
 - added `points_to_line` (Management - Features)
+- added `generalize` (Editing)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
 
 ### v0.1.1

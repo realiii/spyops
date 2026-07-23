@@ -14,12 +14,16 @@ from pyproj.database import get_units_map
 
 from spyops.crs.constant import EPSG
 from spyops.crs.enumeration import AreaUnit, DistanceUnit, LengthUnit
-from spyops.crs.util import get_crs_horizontal_component, xy_to_dd
+from spyops.crs.util import (
+    get_crs_from_source, get_crs_horizontal_component, xy_to_dd)
 from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
+from spyops.shared.exception import CoordinateSystemNotSupportedError
+from spyops.shared.hint import NUMBER, UNIT
 from spyops.shared.util import safe_float
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
     from numpy import ndarray
     from pyproj import CRS
     from pyproj.database import Unit
@@ -119,7 +123,7 @@ def get_conv_factor(value: str | float):
 # End get_conv_factor function
 
 
-def unit_factory(value: str) -> Optional[Union['LinearUnit', 'DecimalDegrees']]:
+def unit_factory(value: str) -> Optional[UNIT]:
     """
     Unit Factory for Linear Units or Decimal Degrees
     """
@@ -136,6 +140,22 @@ def unit_factory(value: str) -> Optional[Union['LinearUnit', 'DecimalDegrees']]:
         return None
     return unit_class(value)
 # End unit_factory function
+
+
+def unit_from_number(value: NUMBER, feature_class: 'FeatureClass',
+                     name: str) -> UNIT:
+    """
+    Build a Linear Unit or Decimal Degrees from a number and the unit of
+    the spatial reference system of the feature class
+    """
+    # noinspection PyTypeChecker
+    unit_name: str = get_unit_name(get_crs_from_source(feature_class))
+    if cls := UNIT_CLASS_MAP.get(unit_name.casefold()):
+        return cls(value)
+    raise CoordinateSystemNotSupportedError(
+        f'{feature_class.name} has unsupported CRS axis units {unit_name}, '
+        f'use a LinearUnit object instead of a number for {name}')
+# End unit_from_number function
 
 
 @cache
@@ -203,6 +223,10 @@ class LinearUnit:
         Value
         """
         return self._value
+
+    @value.setter
+    def value(self, value: float | None) -> None:
+        self._value = value
     # End value property
 
     @property
@@ -398,6 +422,10 @@ class DecimalDegrees:
         Value
         """
         return self._value
+
+    @value.setter
+    def value(self, value: float | None) -> None:
+        self._value = value
     # End value property
 # End DecimalDegrees class
 

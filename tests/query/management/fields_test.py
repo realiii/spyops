@@ -23,7 +23,7 @@ from spyops.shared.reclass import (
     ManualReclass, NaturalBreaksReclass, QuantileReclass,
     StandardDeviationReclass, UniqueValuesReclass)
 
-pytestmark = [mark.fields, mark.query, mark.management]
+pytestmark = [mark.field, mark.query, mark.management]
 
 
 class TestQueryCalculateEndTime:

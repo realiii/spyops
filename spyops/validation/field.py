@@ -10,12 +10,10 @@ from typing import Any, Callable, ClassVar
 from fudgeo import Field
 
 from spyops.crs.unit import (
-    DecimalDegrees, LinearUnit, UNIT_CLASS_MAP, get_unit_name, unit_factory)
-from spyops.crs.util import get_crs_from_source
+    DecimalDegrees, LinearUnit, unit_factory, unit_from_number)
 from spyops.geometry.validate import (
     check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
 from spyops.shared.constant import PADDED_PIPE
-from spyops.shared.exception import CoordinateSystemNotSupportedError
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import (
     COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, get_data_type,
@@ -221,15 +219,8 @@ class ValidateDistance(ValidateField):
             self._validate_type(obj)
             element = self._get_element(kwargs)
             if isinstance(obj, (float, int)):
-                # noinspection PyTypeChecker
-                unit_name: str = get_unit_name(get_crs_from_source(element))
-                if cls := UNIT_CLASS_MAP.get(unit_name.casefold()):
-                    obj = cls(obj)
-                else:
-                    raise CoordinateSystemNotSupportedError(
-                        f'{self._element_name} has unsupported CRS axis units '
-                        f'{unit_name}, use a LinearUnit object instead of a '
-                        f'number for {self._name}')
+                obj = unit_from_number(
+                    obj, feature_class=element, name=self._name)
             if isinstance(obj, str):
                 if unit := unit_factory(obj):
                     obj = unit

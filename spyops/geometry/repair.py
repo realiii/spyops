@@ -4,7 +4,7 @@ Repair Geometry
 """
 
 
-from typing import Callable, Optional, TYPE_CHECKING, TypeAlias, Union
+from typing import Callable, Optional, TYPE_CHECKING, TypeAlias
 
 from fudgeo import FeatureClass
 from fudgeo.constant import FETCH_SIZE
@@ -21,22 +21,20 @@ from spyops.geometry.constant import (
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_geoms_iter, make_none_mask, to_shapely
 from spyops.geometry.wa import make_valid_structure
+from spyops.shared.hint import UPDATES_FUDGEO, UPDATES_SHAPELY
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
-    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 
 IDENTIFIERS: TypeAlias = list[tuple[int]]
 DELETES: TypeAlias = list[int]
 EMPTIES: TypeAlias = list[int]
-UPDATES: TypeAlias = list[tuple[
-    int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
 
 
 def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
-        -> tuple[UPDATES, IDENTIFIERS]:
+        -> tuple[UPDATES_FUDGEO, IDENTIFIERS]:
     """
     Repair Feature Class Geometry, addresses geometry issues but not the
     feature class extent.
@@ -47,9 +45,9 @@ def repair_feature_class_geometry(source: 'FeatureClass', drop_empty: bool) \
     the `updates` list is for features that have been made valid and must be
     updated in the feature class.
 
-    When the option to drop empty features is True the `empties` and `deletes`
+    When the option to drop empty features is True, the `empties` and `deletes`
     lists are combined, when False fudgeo empty geometries are generated for
-    each identifier in the `empties` list and included into the `updates` list.
+    each identifier in the `empties` list and included in the `updates` list.
     """
     updates = []
     deletes = []
@@ -95,8 +93,8 @@ def _repair_points(geoms: 'ndarray', ids: 'ndarray', *,
 
 
 def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                         updates: UPDATES, empties: EMPTIES, has_m: bool,
-                         **kwargs) -> None:
+                         updates: UPDATES_SHAPELY, empties: EMPTIES,
+                         has_m: bool, **kwargs) -> None:
     """
     Repair Multi Points, removes empty points
     """
@@ -116,7 +114,7 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                        updates: UPDATES, empties: EMPTIES, has_m: bool,
+                        updates: UPDATES_SHAPELY, empties: EMPTIES, has_m: bool,
                         **kwargs) -> None:
     """
     Repair LineStrings, removes empty points and changes lines with incorrect
@@ -146,7 +144,7 @@ def _repair_linestrings(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
-                     updates: UPDATES, empties: EMPTIES, has_m: bool,
+                     updates: UPDATES_SHAPELY, empties: EMPTIES, has_m: bool,
                      **kwargs) -> None:
     """
     Repair Polygons, removes empty points, removes empty rings, closes rings,
@@ -184,7 +182,7 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
 
 
 def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
-                              deletes: DELETES, updates: UPDATES,
+                              deletes: DELETES, updates: UPDATES_SHAPELY,
                               empties: EMPTIES, **kwargs) -> None:
     """
     Repair MultiLineStrings
@@ -202,7 +200,7 @@ def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
 
 
 def _repair_multi_polygons(geoms: 'ndarray', ids: 'ndarray', *,
-                           deletes: DELETES, updates: UPDATES,
+                           deletes: DELETES, updates: UPDATES_SHAPELY,
                            empties: EMPTIES, **kwargs) -> None:
     """
     Repair MultiPolygons
@@ -263,7 +261,7 @@ def _fix_linestring_parts(geoms: list[LineString]) -> list[LineString]:
 
 
 def _linestring_point_count(geoms: 'ndarray', *, ids: 'ndarray',
-                            updates: UPDATES, empties: EMPTIES,
+                            updates: UPDATES_SHAPELY, empties: EMPTIES,
                             reasons: 'ndarray') -> None:
     """
     Handle LineString Point Count
@@ -286,8 +284,8 @@ def _make_valid(geoms: 'ndarray') -> 'ndarray':
 
 
 def _capture_valid_and_empty(geoms: 'ndarray', *, ids: 'ndarray',
-                             deletes: DELETES, updates: UPDATES,
-                             empties: EMPTIES,  fixer: Optional[Callable]) \
+                             deletes: DELETES, updates: UPDATES_SHAPELY,
+                             empties: EMPTIES, fixer: Optional[Callable]) \
         -> tuple['ndarray', 'ndarray', 'ndarray']:
     """
     Capture Valid and Empty Geometries
@@ -324,7 +322,7 @@ def _filter_empty_none(geoms: 'ndarray', *, ids: 'ndarray', deletes: DELETES,
 
 
 def _track_updates_empties(geoms: 'ndarray', *, ids: 'ndarray',
-                           updates: UPDATES, empties: DELETES) -> None:
+                           updates: UPDATES_SHAPELY, empties: DELETES) -> None:
     """
     Track Updates and Empties
     """

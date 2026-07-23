@@ -212,7 +212,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         with query.source.geopackage.connection as cin:
             query._delete_intermediate()
             name = query._intermediate_table
@@ -239,7 +239,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         assert len(query._intermediate_fields) == count
     # End test_intermediate_fields method
 
@@ -254,7 +254,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         query._prepare_source()
         assert len(source.fields) == 10
     # End test_prepare_source method
@@ -269,7 +269,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         sql = query.select
         assert 'SELECT geom "[PolygonZM]", fid' in sql
         assert f'FROM {name}' in sql
@@ -285,7 +285,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         sql = query.insert
         assert '(ORIG_FID, VALUE) ' in sql
         assert f'temp.tmp_{name}' in sql
@@ -301,7 +301,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         sql = query.update
         assert 'UPDATE grid_zm_a ' in sql
         assert 'SET "left" = temp.tmp_grid_zm_a_' in sql
