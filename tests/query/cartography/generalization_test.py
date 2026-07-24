@@ -29,8 +29,7 @@ class TestQuerySimplifyLine:
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
             where = """PART_ID = 1"""
             query = QuerySimplifyLine(
-                source, target=None, tolerance=0.0001,
-                where_clause=where,
+                source, target=None, where_clause=where,
                 algorithm_option=SimplifyAlgorithmOption.POINT_REMOVE,
                 xy_tolerance=None)
             sql = query.select
@@ -49,7 +48,7 @@ class TestQuerySimplifyLine:
         source = ntdb_zm_small['hydro_a']
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
             query = QuerySimplifyLine(
-                source, target=None, tolerance=0.0001, where_clause='',
+                source, target=None, where_clause='',
                 algorithm_option=SimplifyAlgorithmOption.POINT_REMOVE,
                 xy_tolerance=None)
             assert query.source_transformer is not None
@@ -62,7 +61,7 @@ class TestQuerySimplifyLine:
         source = ntdb_zm_small['hydro_a']
         target = FeatureClass(mem_gpkg, 'output_fc')
         query = QuerySimplifyLine(
-            source, target=target, tolerance=0.0001, where_clause='',
+            source, target=target, where_clause='',
             algorithm_option=SimplifyAlgorithmOption.POINT_REMOVE,
             xy_tolerance=None)
         sql = query.insert
