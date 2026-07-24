@@ -25,7 +25,11 @@ class TestSimplifyLine:
         Meters(50),
         0.0001
     ])
-    def test_xy_tolerance(self, mem_gpkg, ntdb_zm_small, tolerance):
+    @mark.parametrize('xy_tolerance', [
+        None,
+        0.0001
+    ])
+    def test_xy_tolerance(self, mem_gpkg, ntdb_zm_small, tolerance, xy_tolerance):
         """
         Test simplify line using xy tolerance
         """
@@ -41,7 +45,7 @@ class TestSimplifyLine:
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql.format(source.name))
             start_count, = cursor.fetchone()
-        simplify_line(source, target=target, tolerance=tolerance)
+        simplify_line(source, target=target, tolerance=tolerance, xy_tolerance=xy_tolerance)
         calculate_geometry_attributes(
             target, field=field, geometry_attribute=attr)
         with source.geopackage.connection as cin:
