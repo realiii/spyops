@@ -109,6 +109,14 @@ class AlgorithmOption(StrEnum):
 # End AlgorithmOption class
 
 
+class SimplifyAlgorithmOption(StrEnum):
+    """
+    Simplify Algorithm Option
+    """
+    POINT_REMOVE = auto()
+# End SimplifyAlgorithmOption class
+
+
 class OutputTypeOption(StrEnum):
     """
     Output Type Options

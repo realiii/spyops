@@ -29,6 +29,7 @@ MIT
 - [Analysis - Overlay](https://github.com/realiii/spyops/wiki/Analysis#overlay)
 - [Analysis - Proximity](https://github.com/realiii/spyops/wiki/Analysis#proximity)
 - [Analysis - Statistics](https://github.com/realiii/spyops/wiki/Analysis#statistics) (v0.2.0)
+- [Cartography - Generalization](https://github.com/realiii/spyops/wiki/Cartography#generalization) (v0.2.0)
 - [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage) (v0.2.0)
 - [Conversion - GPS](https://github.com/realiii/spyops/wiki/Conversion#gps) (v0.2.0)
 - [Conversion - JSON](https://github.com/realiii/spyops/wiki/Conversion#json) (v0.2.0)
@@ -72,6 +73,7 @@ MIT
 - added `feature_to_polygon` (Management - Features)
 - added `points_to_line` (Management - Features)
 - added `generalize` (Editing)
+- added `simplify_line` (Cartography - Generalization)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
 
 ### v0.1.1
