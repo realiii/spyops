@@ -497,7 +497,9 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         elm = self.source
         *_, field_names = self._field_names_and_count(elm)
-        return self._make_intersection_query(elm, field_names=field_names)
+        return self._make_intersection_query(
+            elm, field_names=field_names,
+            where_clause=self._get_where_clause())
     # End select_intersect property
 
     @property
