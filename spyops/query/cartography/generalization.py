@@ -6,7 +6,6 @@ Query Classes for cartography.generalization module
 
 from typing import Callable, TYPE_CHECKING
 
-from spyops.environment.util import get_grid_size
 from spyops.geometry.wa import simplify
 from spyops.query.base import AbstractSourceQuery
 from spyops.shared.enumeration import SimplifyAlgorithmOption
@@ -41,17 +40,6 @@ class QuerySimplifyLine(AbstractSourceQuery):
         """
         return simplify
     # End simplifier property
-
-    @property
-    def tolerance(self) -> float:
-        """
-        Tolerance in output coordinate system or source coordinate system
-        """
-        # noinspection bad-return
-        return get_grid_size(
-            source=self.source, xy_tolerance=self._tolerance,
-            target_srs=self.spatial_reference_system)
-    # End tolerance property
 
     @property
     def insert(self) -> str:

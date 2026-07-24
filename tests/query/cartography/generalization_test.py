@@ -38,11 +38,11 @@ class TestQuerySimplifyLine:
             assert 'WHERE minx <= -113.' in sql
     # End test_extent_where_clause method
 
-    @mark.parametrize('crs, expected', [
-        (CRS(4326), 0.0001),
-        (CRS(6654), 8.379625),
+    @mark.parametrize('crs', [
+        CRS(4326),
+        CRS(6654),
     ])
-    def test_output_coordinate_system(self, ntdb_zm_small, crs, expected):
+    def test_output_coordinate_system(self, ntdb_zm_small, crs):
         """
         Test output coordinate system and tolerance
         """
@@ -53,7 +53,6 @@ class TestQuerySimplifyLine:
                 algorithm_option=SimplifyAlgorithmOption.POINT_REMOVE,
                 xy_tolerance=None)
             assert query.source_transformer is not None
-            assert approx(query.tolerance, abs=0.00001) == expected
     # End test_output_coordinate_system method
 
     def test_insert(self, mem_gpkg, ntdb_zm_small):
