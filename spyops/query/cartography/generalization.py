@@ -16,12 +16,11 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-class QuerySimplifyLine(AbstractSourceQuery):
+class BaseQuerySimplify(AbstractSourceQuery):
     """
-    Query Simplify Line
+    Base Query Simplify
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
-                 tolerance: float,
                  algorithm_option: SimplifyAlgorithmOption,
                  where_clause: str, xy_tolerance: XY_TOL) -> None:
         """
@@ -30,7 +29,6 @@ class QuerySimplifyLine(AbstractSourceQuery):
         super().__init__(source, target=target, where_clause=where_clause,
                          xy_tolerance=xy_tolerance)
         self._option: SimplifyAlgorithmOption = algorithm_option
-        self._tolerance: float = tolerance or 0
     # End init built-in
 
     @property
@@ -52,7 +50,21 @@ class QuerySimplifyLine(AbstractSourceQuery):
             elm.escaped_name, field_names=insert_field_names,
             field_count=field_count)
     # End insert property
+# End BaseQuerySimplify class
+
+
+class QuerySimplifyLine(BaseQuerySimplify):
+    """
+    Query Simplify Line
+    """
 # End QuerySimplifyLine class
+
+
+class QuerySimplifyPolygon(BaseQuerySimplify):
+    """
+    Query Simplify Polygon
+    """
+# End QuerySimplifyPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover
