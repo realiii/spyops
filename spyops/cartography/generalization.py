@@ -24,7 +24,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['simplify_line']
+__all__ = ['simplify_line', 'simplify_polygon']
 
 
 @validate_result()
@@ -55,6 +55,36 @@ def simplify_line(source: 'FeatureClass', target: 'FeatureClass',
     return _simplify(
         query, tolerance=tolerance, preserve_topology=preserve_topology)
 # End simplify_line function
+
+
+@validate_result()
+@validate_feature_class(SOURCE, geometry_types=(
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_linear_unit(TOLERANCE, feature_class_name=SOURCE,
+                      as_number=True, use_source_crs=False)
+@validate_str_enumeration(ALGORITHM_OPTION, SimplifyAlgorithmOption)
+@validate_xy_tolerance()
+@validate_overwrite_source()
+def simplify_polygon(source: 'FeatureClass', target: 'FeatureClass',
+                     tolerance: UNIT_TOLERANCE, *,
+                     preserve_topology: bool = True,
+                     algorithm_option: SimplifyAlgorithmOption = (
+                             SimplifyAlgorithmOption.POINT_REMOVE),
+                     xy_tolerance: XY_TOL = None,
+                     where_clause: str = '') -> 'FeatureClass':
+    """
+    Simplify Polygon
+
+    Removes vertices from polygon features while retaining overall polygon
+    shape based on the specified tolerance.
+    """
+    query = QuerySimplifyPolygon(
+        source, target=target, where_clause=where_clause,
+        xy_tolerance=xy_tolerance, algorithm_option=algorithm_option)
+    return _simplify(
+        query, tolerance=tolerance, preserve_topology=preserve_topology)
+# End simplify_polygon function
 
 
 if __name__ == '__main__':  # pragma: no cover
