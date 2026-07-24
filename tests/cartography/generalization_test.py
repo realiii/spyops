@@ -51,12 +51,17 @@ class TestSimplifyLine:
     # End test_xy_tolerance method
 
     @mark.zm
-    def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small):
+    @mark.parametrize('fc_name', [
+        'topography_l',
+        'topography_m_l',
+        'topography_z_l',
+        'topography_zm_l',
+    ])
+    def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small, fc_name):
         """
         Test output CRS and ZM
         """
-        name = 'topography_l'
-        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        source = ntdb_zm_small[fc_name].copy(fc_name, geopackage=mem_gpkg)
         target = FeatureClass(mem_gpkg, 'output_fc')
         epsg_code = 6654
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(epsg_code)),
