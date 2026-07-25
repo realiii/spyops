@@ -10,19 +10,15 @@ from numpy import (
     array, asarray, clip, column_stack, exp, linspace, ndarray, 
     ones_like, zeros_like)
 from numpy.linalg import lstsq, norm
-from shapely import LineString, MultiLineString, get_coordinates
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from numpy import ndarray
-    from shapely.geometry.base import BaseGeometry
+from shapely.coordinates import get_coordinates
+from shapely.geometry import LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString
+from shapely.geometry.base import BaseGeometry
 
 
 # TODO add support for LineString and LinearRing, Polygon and MultiPolygon
 
-
-def smooth_polyline_bezier(geometry: 'BaseGeometry',
-                           points_per_segment: int = 8) -> 'BaseGeometry':
+def smooth_bezier(geometry: ndarray | list | BaseGeometry,
+                  density: int = 8) -> ndarray | BaseGeometry:
     """
     Smooth Polyline using cubic Bezier interpolation.
 
@@ -33,11 +29,7 @@ def smooth_polyline_bezier(geometry: 'BaseGeometry',
     The resulting polyline passes through all input vertices, and the original
     start and end coordinates of each line part are retained exactly.
     """
-
-    if points_per_segment < 0:
-        raise ValueError('points_per_segment must be greater than or equal to 0')
-
-    if geometry.is_empty:
+    if density <= 0:
         return geometry
 
     if isinstance(geometry, LineString):
@@ -77,12 +69,12 @@ def smooth_polyline_paek(geometry: 'BaseGeometry',
     if geometry.is_empty:
         return geometry
 
-    if isinstance(geometry, LineString):
+    if isinstance(geometry, ShapelyLineString):
         return _smooth_paek(
             geometry, tolerance=tolerance)
 
-    if isinstance(geometry, MultiLineString):
-        return MultiLineString([
+    if isinstance(geometry, ShapelyMultiLineString):
+        return ShapelyMultiLineString([
             _smooth_paek(
                 line, tolerance=tolerance)
             for line in geometry.geoms
@@ -195,8 +187,8 @@ def _cubic_bezier_point(step: float, *, start: 'ndarray',
 # End _cubic_bezier_point function
 
 
-def _smooth_paek(geom: LineString, *,
-                 tolerance: float) -> LineString:
+def _smooth_paek(geom: ShapelyLineString, *,
+                 tolerance: float) -> ShapelyLineString:
     """
     Smooth Linear Geometry Coordinates using PAEK.
     """
@@ -218,7 +210,7 @@ def _smooth_paek(geom: LineString, *,
 
     smoothed[0] = coords[0]
     smoothed[-1] = coords[-1]
-    return LineString(smoothed)
+    return ShapelyLineString(smoothed)
 # End _smooth_paek function
 
 
