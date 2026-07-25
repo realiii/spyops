@@ -20,7 +20,7 @@ from shapely.geometry.base import BaseGeometry
 def smooth_bezier(geometry: ndarray | list | BaseGeometry,
                   density: int = 8) -> ndarray | BaseGeometry:
     """
-    Smooth Polyline using cubic Bezier interpolation.
+    Smooth Polyline using cubic Bezier interpolation
 
     Fits a cubic Bezier curve through every original line segment.  Adjacent
     curves are joined smoothly at input vertices using Bessel tangents as
@@ -52,7 +52,7 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
 def smooth_polyline_paek(geometry: 'BaseGeometry',
                          tolerance: float) -> 'BaseGeometry':
     """
-    Smooth Polyline using Polynomial Approximation with Exponential Kernel.
+    Smooth Polyline using Polynomial Approximation with Exponential Kernel
 
     Implements the PAEK technique described by Bodansky, Gribov, and Pilouk
     (2002), using an exponentially weighted local polynomial approximation over
@@ -89,7 +89,7 @@ def smooth_polyline_paek(geometry: 'BaseGeometry',
 def _smooth_bezier(geom: LineString, *,
                    points_per_segment: int) -> LineString:
     """
-    Smooth Linear Geometry Coordinates using cubic Bezier interpolation.
+    Smooth Linear Geometry Coordinates using cubic Bezier interpolation
     """
     # TODO vectorize this
     coords = get_coordinates(
@@ -149,7 +149,7 @@ def _bessel_tangents(coordinates: ndarray, distances: ndarray) -> ndarray:
 def _bezier_coordinates(coordinates: ndarray, distances: ndarray, *,
                         tangents: ndarray, density: int) -> ndarray:
     """
-    Evaluate cubic Bezier segments between consecutive input vertices.
+    Evaluate cubic Bezier segments between consecutive input vertices
     """
     smoothed = [coordinates[0]]
     for idx in range(len(coordinates) - 1):
@@ -175,7 +175,7 @@ def _cubic_bezier_point(step: float, *, start: 'ndarray',
                         control_1: 'ndarray', control_2: 'ndarray',
                         end: 'ndarray') -> 'ndarray':
     """
-    Evaluate one cubic Bezier point.
+    Evaluate cubic Bezier points
     """
     inverse = 1.0 - step
     return (
@@ -190,7 +190,7 @@ def _cubic_bezier_point(step: float, *, start: 'ndarray',
 def _smooth_paek(geom: ShapelyLineString, *,
                  tolerance: float) -> ShapelyLineString:
     """
-    Smooth Linear Geometry Coordinates using PAEK.
+    Smooth Linear Geometry Coordinates using PAEK
     """
     # TODO vectorize this
     coords = get_coordinates(
@@ -216,7 +216,7 @@ def _smooth_paek(geom: ShapelyLineString, *,
 
 def _cumulative_distances(coordinates: ndarray) -> ndarray:
     """
-    Calculate cumulative 2D distances along coordinates.
+    Calculate cumulative 2D distances along coordinates
     """
     deltas = coordinates[1:] - coordinates[:-1]
     segment_lengths = norm(deltas, axis=1)
@@ -230,7 +230,7 @@ def _paek_coordinates(coordinates: ndarray, distances: ndarray, *,
                       tolerance: float) -> ndarray:
     """
     Smooth coordinates with local polynomial approximation and exponential
-    kernel weighting.
+    kernel weighting
     """
     smoothed = coordinates.copy()
     polynomial_order = min(2, len(coordinates) - 1)
@@ -252,7 +252,7 @@ def _paek_coordinates(coordinates: ndarray, distances: ndarray, *,
 
 def _polynomial_design_matrix(values: ndarray, *, order: int) -> ndarray:
     """
-    Build polynomial design matrix.
+    Build polynomial design matrix
     """
     columns = [ones_like(values, dtype=float)]
     columns.extend(values ** power for power in range(1, order + 1))
@@ -263,7 +263,7 @@ def _polynomial_design_matrix(values: ndarray, *, order: int) -> ndarray:
 def _weighted_polynomial_fit(design: ndarray, values: ndarray,
                              weights: ndarray) -> ndarray:
     """
-    Fit weighted polynomial coefficients.
+    Fit weighted polynomial coefficients
     """
     weights = clip(asarray(weights, dtype=float), 1e-12, None)
     weighted_design = design * weights[:, None]
