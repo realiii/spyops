@@ -57,8 +57,9 @@ def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
         for geom in geometry]
 # End _smooth_bezier_multi_linestring function
 
-def smooth_polyline_paek(geometry: 'BaseGeometry',
-                         tolerance: float) -> 'BaseGeometry':
+
+def smooth_paek(geometry: 'BaseGeometry',
+                tolerance: float) -> 'BaseGeometry':
     """
     Smooth Polyline using Polynomial Approximation with Exponential Kernel
 
@@ -91,7 +92,7 @@ def smooth_polyline_paek(geometry: 'BaseGeometry',
     raise TypeError(
         f'PAEK smoothing requires LineString or MultiLineString geometry, '
         f'not {geometry.geom_type}')
-# End smooth_polyline_paek function
+# End smooth_paek function
 
 
 def _smooth_bezier(geometry: ndarray | list, *, density: int,
