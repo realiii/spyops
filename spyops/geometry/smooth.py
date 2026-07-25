@@ -16,9 +16,9 @@ from shapely.coordinates import get_coordinates
 from shapely.geometry import LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString
 from shapely.geometry.base import BaseGeometry
 
+from spyops.geometry.util import find_slice_indexes, get_geoms_iter
 from spyops.shared.constant import EMPTY
 
-# TODO add support for LineString and LinearRing, Polygon and MultiPolygon
 
 def smooth_bezier(geometry: ndarray | list | BaseGeometry,
                   density: int = 8) -> ndarray | BaseGeometry:
@@ -34,6 +34,27 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
     """
     if density <= 0:
         return geometry
+    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
+        geometry = [geometry]
+    if not len(geometry):
+        shape_type = EMPTY
+        has_z = has_m = False
+    else:
+        geoms = geometry[:(min(25, len(geometry)))]
+        has_z = any(g.has_z for g in geoms)
+        has_m = any(g.has_m for g in geoms)
+        (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
+        shape_type = geom_type.upper()
+    if shape_type not in GEOMETRY_SMOOTH_BEZIER:
+        if is_iterable:
+            return asarray(geometry)
+        return geometry[0]
+    func = GEOMETRY_SMOOTH_BEZIER[shape_type]
+    result = func(geometry, density=density, has_z=has_z, has_m=has_m)
+    if is_iterable:
+        return asarray(result)
+    return result[0]
+# End smooth_bezier function
 
 
 def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
@@ -168,38 +189,36 @@ def _bezier_coordinates(coordinates: ndarray, distances: ndarray, *,
     """
     smoothed = [coordinates[0]]
     for idx in range(len(coordinates) - 1):
-        segment_length = distances[idx + 1] - distances[idx]
-        if segment_length <= 0:
+        if (length := distances[idx + 1] - distances[idx]) <= 0:
             continue
         start = coordinates[idx]
         end = coordinates[idx + 1]
-        control_1 = start + (segment_length * tangents[idx] / 3.0)
-        control_2 = end - (segment_length * tangents[idx + 1] / 3.0)
-        steps = linspace(start=0.0, stop=1.0, num=points_per_segment + 2)[1:]
-
-        # TODO vectorize this
-        for step in steps:
-            smoothed.append(_cubic_bezier_point(
-                step, start=start, control_1=control_1,
-                control_2=control_2, end=end))
+        control_1 = start + (length * tangents[idx] / 3)
+        control_2 = end - (length * tangents[idx + 1] / 3)
+        steps = linspace(start=0, stop=1, num=density + 2, dtype=float)
+        smoothed.extend(_cubic_bezier_points(
+            steps[1:], start=start, control_1=control_1,
+            control_2=control_2, end=end))
     return array(smoothed, dtype=float)
 # End _bezier_coordinates function
 
 
-def _cubic_bezier_point(step: float, *, start: 'ndarray',
-                        control_1: 'ndarray', control_2: 'ndarray',
-                        end: 'ndarray') -> 'ndarray':
+def _cubic_bezier_points(steps: ndarray, *, start: ndarray,
+                         control_1: ndarray, control_2: ndarray,
+                         end: ndarray) -> list:
     """
     Evaluate cubic Bezier points
     """
-    inverse = 1.0 - step
-    return (
-        (inverse ** 3) * start +
-        (3.0 * inverse ** 2 * step) * control_1 +
-        (3.0 * inverse * step ** 2) * control_2 +
-        (step ** 3) * end
-    )
-# End _cubic_bezier_point function
+    points = []
+    for step in steps:
+        inverse = 1 - step
+        points.append(
+            (inverse ** 3) * start +
+            (3 * inverse ** 2 * step) * control_1 +
+            (3 * inverse * step ** 2) * control_2 +
+            (step ** 3) * end)
+    return points
+# End _cubic_bezier_points function
 
 
 def _smooth_paek(geom: ShapelyLineString, *,
