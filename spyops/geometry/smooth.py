@@ -4,8 +4,10 @@ Smoothing
 """
 
 
-from typing import TYPE_CHECKING
+from collections import Counter
+from typing import Callable
 
+from fudgeo.enumeration import ShapeType
 from numpy import (
     array, asarray, clip, column_stack, exp, linspace, ndarray, 
     ones_like, zeros_like)
@@ -14,6 +16,7 @@ from shapely.coordinates import get_coordinates
 from shapely.geometry import LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString
 from shapely.geometry.base import BaseGeometry
 
+from spyops.shared.constant import EMPTY
 
 # TODO add support for LineString and LinearRing, Polygon and MultiPolygon
 
@@ -32,22 +35,27 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
     if density <= 0:
         return geometry
 
-    if isinstance(geometry, LineString):
-        return _smooth_bezier(
-            geometry, points_per_segment=points_per_segment)
 
-    if isinstance(geometry, MultiLineString):
-        return MultiLineString([
-            _smooth_bezier(
-                line, points_per_segment=points_per_segment)
-            for line in geometry.geoms
-        ])
+def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
+                              has_z: bool, has_m: bool) -> list:
+    """
+    Smooth LineString using Bezier curves
+    """
+    coordinates = _smooth_bezier(
+        geometry, density=density, has_z=has_z, has_m=has_m)
+    return [ShapelyLineString(coords) for coords in coordinates]
+# End _smooth_bezier_linestring function
 
-    raise TypeError(
-        f'Bezier smoothing requires LineString or MultiLineString geometry, '
-        f'not {geometry.geom_type}')
-# End smooth_polyline_bezier function
 
+def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
+                                    has_z: bool, has_m: bool) -> list:
+    """
+    Smooth MultiLineString using Bezier curves
+    """
+    return [ShapelyMultiLineString(_smooth_bezier(
+        get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m))
+        for geom in geometry]
+# End _smooth_bezier_multi_linestring function
 
 def smooth_polyline_paek(geometry: 'BaseGeometry',
                          tolerance: float) -> 'BaseGeometry':
@@ -86,26 +94,32 @@ def smooth_polyline_paek(geometry: 'BaseGeometry',
 # End smooth_polyline_paek function
 
 
-def _smooth_bezier(geom: LineString, *,
-                   points_per_segment: int) -> LineString:
+def _smooth_bezier(geometry: ndarray | list, *, density: int,
+                   has_z: bool, has_m: bool) -> list[ndarray]:
     """
     Smooth Linear Geometry Coordinates using cubic Bezier interpolation
     """
-    # TODO vectorize this
-    coords = get_coordinates(
-        geom, include_z=geom.has_z, include_m=geom.has_m)
-    if len(coords) <= 2 or points_per_segment == 0:
-        return LineString(coords)
-    distances = _cumulative_distances(coords[:, :2])
-    if distances[-1] == 0:
-        return geom
-    tangents = _bessel_tangents(coords, distances=distances)
-    smoothed = _bezier_coordinates(
-        coords, distances=distances, tangents=tangents,
-        points_per_segment=points_per_segment)
-    smoothed[0] = coords[0]
-    smoothed[-1] = coords[-1]
-    return LineString(smoothed)
+    coords, indexes = get_coordinates(
+        geometry, include_z=has_z, include_m=has_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    smoothed_coords = []
+    for begin, end in zip(ids[:-1], ids[1:]):
+        subset = coords[begin:end]
+        if len(subset) <= 2:
+            smoothed_coords.append(subset)
+            continue
+        distances = _cumulative_distances(subset[:, :2])
+        if distances[-1] == 0:
+            smoothed_coords.append(subset)
+            continue
+        tangents = _bessel_tangents(subset, distances=distances)
+        smoothed = _bezier_coordinates(
+            subset, distances=distances, tangents=tangents,
+            density=density)
+        smoothed[0] = subset[0]
+        smoothed[-1] = subset[-1]
+        smoothed_coords.append(smoothed)
+    return smoothed_coords
 # End _smooth_bezier function
 
 
@@ -271,6 +285,12 @@ def _weighted_polynomial_fit(design: ndarray, values: ndarray,
     coefficients, *_ = lstsq(weighted_design, weighted_values, rcond=None)
     return coefficients
 # End _weighted_polynomial_fit function
+
+
+GEOMETRY_SMOOTH_BEZIER: dict[str, Callable] = {
+    ShapeType.linestring: _smooth_bezier_linestring,
+    ShapeType.multi_linestring: _smooth_bezier_multi_linestring,
+}
 
 
 if __name__ == '__main__':  # pragma: no cover
