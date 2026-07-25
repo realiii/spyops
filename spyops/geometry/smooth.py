@@ -147,7 +147,7 @@ def _smooth_bezier(geometry: ndarray | list, *, density: int,
 
 def _bessel_tangents(coordinates: ndarray, distances: ndarray) -> ndarray:
     """
-    Calculate Bessel tangents for cubic Bezier interpolation.
+    Calculate Bessel tangents for cubic Bezier interpolation
 
     Interior tangents are computed from the derivative of the local quadratic
     interpolant through three consecutive vertices using chord-length
