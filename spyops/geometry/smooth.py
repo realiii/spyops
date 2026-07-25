@@ -7,7 +7,8 @@ Smoothing
 from typing import TYPE_CHECKING
 
 from numpy import (
-    array, asarray, clip, column_stack, exp, linspace, ones_like, zeros_like)
+    array, asarray, clip, column_stack, exp, linspace, ndarray, 
+    ones_like, zeros_like)
 from numpy.linalg import lstsq, norm
 from shapely import LineString, MultiLineString, get_coordinates
 
@@ -116,7 +117,7 @@ def _smooth_bezier(geom: LineString, *,
 # End _smooth_bezier function
 
 
-def _bessel_tangents(coordinates: 'ndarray', distances: 'ndarray') -> 'ndarray':
+def _bessel_tangents(coordinates: ndarray, distances: ndarray) -> ndarray:
     """
     Calculate Bessel tangents for cubic Bezier interpolation.
 
@@ -153,9 +154,8 @@ def _bessel_tangents(coordinates: 'ndarray', distances: 'ndarray') -> 'ndarray':
 # End _bessel_tangents function
 
 
-def _bezier_coordinates(coordinates: 'ndarray', distances: 'ndarray', *,
-                        tangents: 'ndarray',
-                        points_per_segment: int) -> 'ndarray':
+def _bezier_coordinates(coordinates: ndarray, distances: ndarray, *,
+                        tangents: ndarray, density: int) -> ndarray:
     """
     Evaluate cubic Bezier segments between consecutive input vertices.
     """
@@ -222,7 +222,7 @@ def _smooth_paek(geom: LineString, *,
 # End _smooth_paek function
 
 
-def _cumulative_distances(coordinates: 'ndarray') -> 'ndarray':
+def _cumulative_distances(coordinates: ndarray) -> ndarray:
     """
     Calculate cumulative 2D distances along coordinates.
     """
@@ -234,8 +234,8 @@ def _cumulative_distances(coordinates: 'ndarray') -> 'ndarray':
 # End _cumulative_distances function
 
 
-def _paek_coordinates(coordinates: 'ndarray', distances: 'ndarray', *,
-                      tolerance: float) -> 'ndarray':
+def _paek_coordinates(coordinates: ndarray, distances: ndarray, *,
+                      tolerance: float) -> ndarray:
     """
     Smooth coordinates with local polynomial approximation and exponential
     kernel weighting.
@@ -258,7 +258,7 @@ def _paek_coordinates(coordinates: 'ndarray', distances: 'ndarray', *,
 # End _paek_coordinates function
 
 
-def _polynomial_design_matrix(values: 'ndarray', *, order: int) -> 'ndarray':
+def _polynomial_design_matrix(values: ndarray, *, order: int) -> ndarray:
     """
     Build polynomial design matrix.
     """
@@ -268,8 +268,8 @@ def _polynomial_design_matrix(values: 'ndarray', *, order: int) -> 'ndarray':
 # End _polynomial_design_matrix function
 
 
-def _weighted_polynomial_fit(design: 'ndarray', values: 'ndarray',
-                             weights: 'ndarray') -> 'ndarray':
+def _weighted_polynomial_fit(design: ndarray, values: ndarray,
+                             weights: ndarray) -> ndarray:
     """
     Fit weighted polynomial coefficients.
     """
