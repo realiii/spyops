@@ -25,7 +25,7 @@ class TestQuerySimplifyLine:
         """
         Test extent and where clause
         """
-        source = ntdb_zm_small['hydro_a']
+        source = ntdb_zm_small['topography_l']
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
             where = """PART_ID = 1"""
             query = QuerySimplifyLine(
@@ -45,7 +45,7 @@ class TestQuerySimplifyLine:
         """
         Test output coordinate system and tolerance
         """
-        source = ntdb_zm_small['hydro_a']
+        source = ntdb_zm_small['topography_l']
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
             query = QuerySimplifyLine(
                 source, target=None, where_clause='',
@@ -58,7 +58,7 @@ class TestQuerySimplifyLine:
         """
         Test insert
         """
-        source = ntdb_zm_small['hydro_a']
+        source = ntdb_zm_small['topography_l']
         target = FeatureClass(mem_gpkg, 'output_fc')
         query = QuerySimplifyLine(
             source, target=target, where_clause='',
