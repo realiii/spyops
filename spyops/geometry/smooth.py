@@ -57,28 +57,6 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
 # End smooth_bezier function
 
 
-def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
-                              has_z: bool, has_m: bool) -> list:
-    """
-    Smooth LineString using Bezier curves
-    """
-    coordinates = _smooth_bezier(
-        geometry, density=density, has_z=has_z, has_m=has_m)
-    return [ShapelyLineString(coords) for coords in coordinates]
-# End _smooth_bezier_linestring function
-
-
-def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
-                                    has_z: bool, has_m: bool) -> list:
-    """
-    Smooth MultiLineString using Bezier curves
-    """
-    return [ShapelyMultiLineString(_smooth_bezier(
-        get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m))
-        for geom in geometry]
-# End _smooth_bezier_multi_linestring function
-
-
 def smooth_paek(geometry: 'BaseGeometry',
                 tolerance: float) -> 'BaseGeometry':
     """
@@ -114,6 +92,28 @@ def smooth_paek(geometry: 'BaseGeometry',
         f'PAEK smoothing requires LineString or MultiLineString geometry, '
         f'not {geometry.geom_type}')
 # End smooth_paek function
+
+
+def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
+                              has_z: bool, has_m: bool) -> list:
+    """
+    Smooth LineString using Bezier curves
+    """
+    coordinates = _smooth_bezier(
+        geometry, density=density, has_z=has_z, has_m=has_m)
+    return [ShapelyLineString(coords) for coords in coordinates]
+# End _smooth_bezier_linestring function
+
+
+def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
+                                    has_z: bool, has_m: bool) -> list:
+    """
+    Smooth MultiLineString using Bezier curves
+    """
+    return [ShapelyMultiLineString(_smooth_bezier(
+        get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m))
+        for geom in geometry]
+# End _smooth_bezier_multi_linestring function
 
 
 def _smooth_bezier(geometry: ndarray | list, *, density: int,
