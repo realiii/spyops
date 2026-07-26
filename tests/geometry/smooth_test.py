@@ -6,9 +6,9 @@ Smooth Tests
 
 from pytest import mark, approx
 from shapely import LineString, MultiLineString
+from shapely.io import from_wkt
 
-from spyops.geometry.smooth import (
-    smooth_bezier, smooth_paek)
+from spyops.geometry.smooth import smooth_bezier, smooth_paek
 
 
 pytestmark = [mark.geometry]
@@ -25,7 +25,7 @@ class TestSmoothPAEK:
          [[0.0, 0.0, 0.0], [1.019, 1.888, 9.480], [1.982, 1.123, 5.548],
           [3.001, 2.968, 11.879], [4.0, 0.0, 0.0]]),
     ])
-    def test_smooth(self, line, expected):
+    def test_smooth_line(self, line, expected):
         """
         Test Smooth Polyline PAEK LineString
         """
@@ -37,9 +37,35 @@ class TestSmoothPAEK:
         assert smoothed.coords[-1] == line.coords[-1]
         assert approx(smoothed.coords, abs=0.001) == expected
         assert smoothed != line
-    # End test_smooth function
+    # End test_smooth_line function
 
-    def test_smooth_multi(self):
+    @mark.zm
+    @mark.parametrize('line, expected', [
+        ('LineString M (0 0 0, 1 2 10, 2 1 5, 3 3 12, 4 0 0)',
+         [[0.0, 0.0, 0.0], [1.019, 1.888, 9.480], [1.982, 1.123, 5.548], 
+          [3.001, 2.968, 11.879], [4.0, 0.0, 0.0]]),
+        ('LineString (0 0 0 0, 1 2 10 123, 2 1 5 456, 3 3 12 789, 4 0 0 1011)',
+         [[0.0, 0.0, 0.0, 0.0], [1.019, 1.888, 9.480, 133.156],
+          [1.982, 1.123, 5.548, 447.788], [3.001, 2.968, 11.879, 788.766],
+          [4.0, 0.0, 0.0, 1011.0]]),
+    ])
+    def test_smooth_line_zm(self, line, expected):
+        """
+        Test Smooth Polyline PAEK LineString with measures
+        """
+        line = from_wkt(line)
+        smoothed = smooth_paek(line, tolerance=1.5)
+        assert isinstance(smoothed, LineString)
+        assert smoothed.has_z == line.has_z
+        assert smoothed.has_m
+        assert len(smoothed.coords) == len(line.coords)
+        assert smoothed.coords[0] == line.coords[0]
+        assert smoothed.coords[-1] == line.coords[-1]
+        assert approx(smoothed.coords, abs=0.001) == expected
+        assert smoothed != line
+    # End test_smooth_line_zm function
+
+    def test_smooth_multiline(self):
         """
         Test Smooth Polyline PAEK MultiLineString
         """
@@ -51,9 +77,7 @@ class TestSmoothPAEK:
             [[0.0, 0.0], [1.006, 1.961], [1.990, 1.061], [3.0, 0.0]],
             [[10.0, 0.0], [10.998, 2.987], [12.002, 1.024], [13.0, 0.0]],
         )
-
         smoothed = smooth_paek(multiline, tolerance=1.5)
-
         assert isinstance(smoothed, MultiLineString)
         assert len(smoothed.geoms) == len(multiline.geoms)
         for original, result, coords in zip(multiline.geoms, smoothed.geoms, expected):
@@ -62,7 +86,7 @@ class TestSmoothPAEK:
             assert result.coords[-1] == original.coords[-1]
             assert approx(result.coords, abs=0.001) == coords
             assert result != original
-    # End test_smooth_multi function
+    # End test_smooth_multiline function
 # End TestSmoothPAEK class
 
 
