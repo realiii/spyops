@@ -9,8 +9,8 @@ from typing import Callable
 
 from fudgeo.enumeration import ShapeType
 from numpy import (
-    array, asarray, clip, column_stack, exp, linspace, ndarray, 
-    ones_like, zeros_like)
+    array, asarray, clip, column_stack, exp, linspace, ndarray, ones_like,
+    zeros_like)
 from numpy.linalg import lstsq, norm
 from shapely.coordinates import get_coordinates
 from shapely.geometry import LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString
@@ -162,22 +162,21 @@ def _bessel_tangents(coordinates: ndarray, distances: ndarray) -> ndarray:
         tangents[0] = (coordinates[1] - coordinates[0]) / lengths[0]
     if lengths[-1] > 0:
         tangents[-1] = (coordinates[-1] - coordinates[-2]) / lengths[-1]
-    for idx in range(1, len(coordinates) - 1):
-        prev_length = lengths[idx - 1]
-        next_length = lengths[idx]
-        if prev_length <= 0 and next_length <= 0:
-            tangents[idx] = 0
+    for idx in range(1, len(lengths)):
+        prev_len = lengths[idx - 1]
+        next_len = lengths[idx]
+        if prev_len <= 0 and next_len <= 0:
             continue
-        if prev_length <= 0:
-            tangents[idx] = (coordinates[idx + 1] - coordinates[idx]) / next_length
+        if prev_len <= 0:
+            tangents[idx] = (coordinates[idx + 1] - coordinates[idx]) / next_len
             continue
-        if next_length <= 0:
-            tangents[idx] = (coordinates[idx] - coordinates[idx - 1]) / prev_length
+        if next_len <= 0:
+            tangents[idx] = (coordinates[idx] - coordinates[idx - 1]) / prev_len
             continue
-        previous_slope = (coordinates[idx] - coordinates[idx - 1]) / prev_length
-        next_slope = (coordinates[idx + 1] - coordinates[idx]) / next_length
-        tangents[idx] = ((next_length * previous_slope) + (
-                prev_length * next_slope)) / (prev_length + next_length)
+        prev_slope = (coordinates[idx] - coordinates[idx - 1]) / prev_len
+        next_slope = (coordinates[idx + 1] - coordinates[idx]) / next_len
+        tangents[idx] = ((next_len * prev_slope) + (
+                prev_len * next_slope)) / (prev_len + next_len)
     return tangents
 # End _bessel_tangents function
 
