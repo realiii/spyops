@@ -133,6 +133,37 @@ class TestSmoothBezier:
         assert approx(smoothed.coords, abs=0.001) == expected
     # End test_smooth function
 
+    @mark.zm
+    @mark.parametrize('line, count, expected', [
+        ('LineString M (0 0 5, 5 10 11, 10 0 23, 15 5 29)', 3,
+         [[0.0, 0.0, 5.0], [1.25, 2.968, 6.359], [2.5, 6.25, 7.625],
+          [3.75, 8.906, 9.078], [5.0, 10.0, 11.0], [6.166, 8.392, 13.650],
+          [7.277, 4.878, 16.817], [8.499, 1.426, 20.075], [10.0, 0.0, 23.0],
+          [11.149, 0.633, 24.586], [12.411, 1.951, 26.076],
+          [13.716, 3.544, 27.528], [15.0, 5.0, 29.0]]),
+        ('LineString (0 0 5 123, 5 10 11 456, 10 0 23 789, 15 5 29 1011)', 3,
+         [[0.0, 0.0, 5.0, 123.0], [1.25, 2.968, 6.359, 206.25],
+          [2.5, 6.25, 7.625, 289.5], [3.75, 8.906, 9.078, 372.75],
+          [5.0, 10.0, 11.0, 456.0], [6.166, 8.392, 13.650, 538.732],
+          [7.277, 4.878, 16.817, 621.120], [8.499, 1.426, 20.075, 704.198],
+          [10.0, 0.0, 23.0, 789.0], [11.149, 0.633, 24.586, 843.879],
+          [12.411, 1.951, 26.076, 899.448], [13.716, 3.544, 27.528, 955.293],
+          [15.0, 5.0, 29.0, 1011.0]]),
+    ])
+    def test_smooth_zm(self, line, count, expected):
+        """
+        Test Bezier smoothing with measures
+        """
+        line = from_wkt(line)
+        smoothed = smooth_bezier(line, density=count)
+        smoothed_coords = list(smoothed.coords)
+        assert smoothed.has_z == line.has_z
+        assert smoothed.has_m
+        for coord in line.coords:
+            assert coord in smoothed_coords
+        assert approx(smoothed.coords, abs=0.001) == expected
+    # End test_smooth_zm function
+
     def test_smooth_multiline(self):
         """
         Test Bezier smoothing supports MultiLineString.
