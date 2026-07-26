@@ -67,6 +67,18 @@ class TestQuerySimplifyLine:
         sql = query.insert
         assert 'INTO output_fc(SHAPE, FEATURE_ID, PART_ID, ENTITY, ' in sql
     # End test_insert method
+
+    def test_simplifier(self, ntdb_zm_small):
+        """
+        Test simplifier
+        """
+        source = ntdb_zm_small['topography_l']
+        query = QuerySimplifyLine(
+            source, target=None, where_clause='',
+            algorithm_option=SimplifyAlgorithmOption.POINT_REMOVE,
+            xy_tolerance=None)
+        assert query.simplifier is simplify
+    # End test_simplifier method
 # End TestQuerySimplifyLine class
 
 
