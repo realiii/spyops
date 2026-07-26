@@ -33,32 +33,20 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
     start and end coordinates of each line part are retained exactly.
     """
     if density <= 0:
+        # noinspection bad-return
         return geometry
-    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
-        geometry = [geometry]
-    if not len(geometry):
-        shape_type = EMPTY
-        has_z = has_m = False
-    else:
-        geoms = geometry[:(min(25, len(geometry)))]
-        has_z = any(g.has_z for g in geoms)
-        has_m = any(g.has_m for g in geoms)
-        (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
-        shape_type = geom_type.upper()
-    if shape_type not in GEOMETRY_SMOOTH_BEZIER:
-        if is_iterable:
-            return asarray(geometry)
-        return geometry[0]
-    func = GEOMETRY_SMOOTH_BEZIER[shape_type]
-    result = func(geometry, density=density, has_z=has_z, has_m=has_m)
+    geometry, has_m, has_z, is_iterable, shape_type = _smooth_config(geometry)
+    if shape_type in GEOMETRY_SMOOTH_BEZIER:
+        func = GEOMETRY_SMOOTH_BEZIER[shape_type]
+        geometry = func(geometry, density=density, has_z=has_z, has_m=has_m)
     if is_iterable:
-        return asarray(result)
-    return result[0]
+        return asarray(geometry)
+    return geometry[0]
 # End smooth_bezier function
 
 
-def smooth_paek(geometry: 'BaseGeometry',
-                tolerance: float) -> 'BaseGeometry':
+def smooth_paek(geometry: ndarray | list | BaseGeometry,
+                tolerance: float) -> ndarray | BaseGeometry:
     """
     Smooth Polyline using Polynomial Approximation with Exponential Kernel
 
@@ -70,28 +58,37 @@ def smooth_paek(geometry: 'BaseGeometry',
     be greater than 0.  The original start and end coordinates of each line part
     are retained exactly.
     """
-
     if tolerance <= 0:
-        raise ValueError('tolerance must be greater than 0')
-
-    if geometry.is_empty:
+        # noinspection bad-return
         return geometry
-
-    if isinstance(geometry, ShapelyLineString):
-        return _smooth_paek(
-            geometry, tolerance=tolerance)
-
-    if isinstance(geometry, ShapelyMultiLineString):
-        return ShapelyMultiLineString([
-            _smooth_paek(
-                line, tolerance=tolerance)
-            for line in geometry.geoms
-        ])
-
-    raise TypeError(
-        f'PAEK smoothing requires LineString or MultiLineString geometry, '
-        f'not {geometry.geom_type}')
+    geometry, has_m, has_z, is_iterable, shape_type = _smooth_config(geometry)
+    if shape_type in GEOMETRY_SMOOTH_PAEK:
+        func = GEOMETRY_SMOOTH_PAEK[shape_type]
+        geometry = func(geometry, tolerance=tolerance, has_z=has_z, has_m=has_m)
+    if is_iterable:
+        return asarray(geometry)
+    return geometry[0]
 # End smooth_paek function
+
+
+def _smooth_config(geometry: ndarray | list | BaseGeometry) \
+        -> tuple[ndarray| list, bool, bool, bool, str]:
+    """
+    Shared Configuration
+    """
+    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
+        geometry = [geometry]
+    if not len(geometry):
+        shape_type = EMPTY
+        has_z = has_m = False
+    else:
+        geoms = geometry[:(min(25, len(geometry)))]
+        has_z = any(g.has_z for g in geoms)
+        has_m = any(g.has_m for g in geoms)
+        (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
+        shape_type = geom_type.upper()
+    return geometry, has_m, has_z, is_iterable, shape_type
+# End _smooth_config function
 
 
 def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
@@ -110,10 +107,34 @@ def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
     """
     Smooth MultiLineString using Bezier curves
     """
+    # noinspection bad-argument-type
     return [ShapelyMultiLineString(_smooth_bezier(
         get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m))
         for geom in geometry]
 # End _smooth_bezier_multi_linestring function
+
+
+def _smooth_paek_linestring(geometry: ndarray | list, *, tolerance: float,
+                            has_z: bool, has_m: bool) -> list:
+    """
+    Smooth LineString using PAEK
+    """
+    coordinates = _smooth_paek(
+        geometry, tolerance=tolerance, has_z=has_z, has_m=has_m)
+    return [ShapelyLineString(coords) for coords in coordinates]
+# End _smooth_paek_linestring function
+
+
+def _smooth_paek_multi_linestring(geometry: ndarray | list, *, tolerance: float,
+                                  has_z: bool, has_m: bool) -> list:
+    """
+    Smooth MultiLineString using PAEK
+    """
+    # noinspection bad-argument-type
+    return [ShapelyMultiLineString(_smooth_paek(
+        get_geoms_iter(geom), tolerance=tolerance, has_z=has_z, has_m=has_m))
+        for geom in geometry]
+# End _smooth_paek_multi_linestring function
 
 
 def _smooth_bezier(geometry: ndarray | list, *, density: int,
@@ -220,30 +241,30 @@ def _cubic_bezier_points(steps: ndarray, *, start: ndarray,
 # End _cubic_bezier_points function
 
 
-def _smooth_paek(geom: ShapelyLineString, *,
-                 tolerance: float) -> ShapelyLineString:
+def _smooth_paek(geometry: ndarray | list, *, tolerance: float,
+                 has_z: bool, has_m: bool) -> list[ndarray]:
     """
     Smooth Linear Geometry Coordinates using PAEK
     """
-    # TODO vectorize this
-    coords = get_coordinates(
-        geom, include_z=geom.has_z, include_m=geom.has_m)
-
-    if len(coords) <= 2:
-        return geom
-
-    distances = _cumulative_distances(coords[:, :2])
-    if distances[-1] == 0:
-        return geom
-
-    smoothed = _paek_coordinates(
-        coordinates=coords,
-        distances=distances,
-        tolerance=tolerance)
-
-    smoothed[0] = coords[0]
-    smoothed[-1] = coords[-1]
-    return ShapelyLineString(smoothed)
+    coords, indexes = get_coordinates(
+        geometry, include_z=has_z, include_m=has_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    smoothed_coords = []
+    for begin, end in zip(ids[:-1], ids[1:]):
+        subset = coords[begin:end]
+        if len(subset) <= 2:
+            smoothed_coords.append(subset)
+            continue
+        distances = _cumulative_distances(subset[:, :2])
+        if distances[-1] == 0:
+            smoothed_coords.append(subset)
+            continue
+        smoothed = _paek_coordinates(
+            subset, distances=distances, tolerance=tolerance)
+        smoothed[0] = subset[0]
+        smoothed[-1] = subset[-1]
+        smoothed_coords.append(smoothed)
+    return smoothed_coords
 # End _smooth_paek function
 
 
@@ -259,7 +280,7 @@ def _cumulative_distances(coordinates: ndarray) -> ndarray:
 # End _cumulative_distances function
 
 
-def _paek_coordinates(coordinates: ndarray, distances: ndarray, *,
+def _paek_coordinates(coordinates: ndarray, *, distances: ndarray,
                       tolerance: float) -> ndarray:
     """
     Smooth coordinates with local polynomial approximation and exponential
@@ -309,6 +330,11 @@ def _weighted_polynomial_fit(design: ndarray, values: ndarray,
 GEOMETRY_SMOOTH_BEZIER: dict[str, Callable] = {
     ShapeType.linestring: _smooth_bezier_linestring,
     ShapeType.multi_linestring: _smooth_bezier_multi_linestring,
+}
+
+GEOMETRY_SMOOTH_PAEK: dict[str, Callable] = {
+    ShapeType.linestring: _smooth_paek_linestring,
+    ShapeType.multi_linestring: _smooth_paek_multi_linestring,
 }
 
 
