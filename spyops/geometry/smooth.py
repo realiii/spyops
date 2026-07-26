@@ -13,11 +13,12 @@ from numpy import (
     zeros_like)
 from numpy.linalg import lstsq, norm
 from shapely.coordinates import get_coordinates
-from shapely.geometry import LineString as ShapelyLineString, MultiLineString as ShapelyMultiLineString
 from shapely.geometry.base import BaseGeometry
+from shapely.io import from_wkb
 
+from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms_iter
-from spyops.shared.constant import EMPTY
+from spyops.shared.constant import EMPTY, SRS_ID_WKB
 
 
 def smooth_bezier(geometry: ndarray | list | BaseGeometry,
@@ -92,48 +93,54 @@ def _smooth_config(geometry: ndarray | list | BaseGeometry) \
 
 
 def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
-                              has_z: bool, has_m: bool) -> list:
+                              has_z: bool, has_m: bool) -> ndarray:
     """
     Smooth LineString using Bezier curves
     """
     coordinates = _smooth_bezier(
         geometry, density=density, has_z=has_z, has_m=has_m)
-    return [ShapelyLineString(coords) for coords in coordinates]
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
+    return from_wkb([cls(coords, srs_id=SRS_ID_WKB).wkb
+                     for coords in coordinates], on_invalid='fix')
 # End _smooth_bezier_linestring function
 
 
 def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
-                                    has_z: bool, has_m: bool) -> list:
+                                    has_z: bool, has_m: bool) -> ndarray:
     """
     Smooth MultiLineString using Bezier curves
     """
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_linestring][has_z, has_m]
     # noinspection bad-argument-type
-    return [ShapelyMultiLineString(_smooth_bezier(
-        get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m))
-        for geom in geometry]
+    return from_wkb([cls(_smooth_bezier(
+        get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m),
+        srs_id=SRS_ID_WKB).wkb for geom in geometry], on_invalid='fix')
 # End _smooth_bezier_multi_linestring function
 
 
 def _smooth_paek_linestring(geometry: ndarray | list, *, tolerance: float,
-                            has_z: bool, has_m: bool) -> list:
+                            has_z: bool, has_m: bool) -> ndarray:
     """
     Smooth LineString using PAEK
     """
     coordinates = _smooth_paek(
         geometry, tolerance=tolerance, has_z=has_z, has_m=has_m)
-    return [ShapelyLineString(coords) for coords in coordinates]
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
+    return from_wkb([cls(coords, srs_id=SRS_ID_WKB).wkb
+                     for coords in coordinates], on_invalid='fix')
 # End _smooth_paek_linestring function
 
 
 def _smooth_paek_multi_linestring(geometry: ndarray | list, *, tolerance: float,
-                                  has_z: bool, has_m: bool) -> list:
+                                  has_z: bool, has_m: bool) -> ndarray:
     """
     Smooth MultiLineString using PAEK
     """
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_linestring][has_z, has_m]
     # noinspection bad-argument-type
-    return [ShapelyMultiLineString(_smooth_paek(
-        get_geoms_iter(geom), tolerance=tolerance, has_z=has_z, has_m=has_m))
-        for geom in geometry]
+    return from_wkb([cls(_smooth_paek(
+        get_geoms_iter(geom), tolerance=tolerance, has_z=has_z, has_m=has_m),
+        srs_id=SRS_ID_WKB).wkb for geom in geometry], on_invalid='fix')
 # End _smooth_paek_multi_linestring function
 
 
