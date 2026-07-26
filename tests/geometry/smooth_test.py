@@ -122,18 +122,18 @@ class TestSmoothBezier:
           [12.699, 2.296, 26.400], [13.280, 3.008, 27.045],
           [13.861, 3.720, 27.690], [14.436, 4.396, 28.340], [15.0, 5.0, 29.0]]),
     ])
-    def test_smooth_bezier_retains_endpoints(self, line, count, expected):
+    def test_smooth(self, line, count, expected):
         """
-        Test Bezier smoothing retains points
+        Test Bezier smoothing
         """
         smoothed = smooth_bezier(line, density=count)
         smoothed_coords = list(smoothed.coords)
         for coord in line.coords:
             assert coord in smoothed_coords
         assert approx(smoothed.coords, abs=0.001) == expected
-    # End test_smooth_bezier_retains_endpoints function
+    # End test_smooth function
 
-    def test_smooth_bezier_multiline(self):
+    def test_smooth_multiline(self):
         """
         Test Bezier smoothing supports MultiLineString.
         """
@@ -141,7 +141,6 @@ class TestSmoothBezier:
             [(0, 0), (5, 10), (10, 0)],
             [(20, 0), (25, 5), (30, 0)],
         ])
-
         expected = (
             [[0.0, 0.0], [1.000, 2.320], [2.0, 4.960], [3.000, 7.440],
              [4.0, 9.280], [5.0, 10.0], [6.000, 9.280], [7.0, 7.44],
@@ -150,15 +149,13 @@ class TestSmoothBezier:
              [24.0, 4.640], [25.0, 5.0], [26.000, 4.640], [27.000, 3.72],
              [28.0, 2.479], [29.0, 1.159], [30.0, 0.0]]
         )
-
         smoothed = smooth_bezier(geometry, density=4)
         assert len(smoothed.geoms) == 2
-
         for original, result, coords in zip(geometry.geoms, smoothed.geoms, expected):
             assert approx(result.coords, abs=0.001) == coords
             assert result.coords[0] == original.coords[0]
             assert result.coords[-1] == original.coords[-1]
-    # End test_smooth_bezier_multiline function
+    # End test_smooth_multiline function
 # End TestSmoothBezier class
 
 
