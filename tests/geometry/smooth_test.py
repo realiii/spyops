@@ -8,7 +8,7 @@ from pytest import mark, approx
 from shapely import LineString, MultiLineString
 
 from spyops.geometry.smooth import (
-    smooth_polyline_bezier, smooth_polyline_paek)
+    smooth_bezier, smooth_paek)
 
 
 pytestmark = [mark.geometry]
@@ -29,7 +29,7 @@ class TestSmoothPAEK:
         """
         Test Smooth Polyline PAEK LineString
         """
-        smoothed = smooth_polyline_paek(line, tolerance=1.5)
+        smoothed = smooth_paek(line, tolerance=1.5)
         assert isinstance(smoothed, LineString)
         assert smoothed.has_z == line.has_z
         assert len(smoothed.coords) == len(line.coords)
@@ -52,7 +52,7 @@ class TestSmoothPAEK:
             [[10.0, 0.0], [10.998, 2.987], [12.002, 1.024], [13.0, 0.0]],
         )
 
-        smoothed = smooth_polyline_paek(multiline, tolerance=1.5)
+        smoothed = smooth_paek(multiline, tolerance=1.5)
 
         assert isinstance(smoothed, MultiLineString)
         assert len(smoothed.geoms) == len(multiline.geoms)
@@ -102,7 +102,7 @@ class TestSmoothBezier:
         """
         Test Bezier smoothing retains points
         """
-        smoothed = smooth_polyline_bezier(line, points_per_segment=count)
+        smoothed = smooth_bezier(line, density=count)
         smoothed_coords = list(smoothed.coords)
         for coord in line.coords:
             assert coord in smoothed_coords
@@ -127,7 +127,7 @@ class TestSmoothBezier:
              [28.0, 2.479], [29.0, 1.159], [30.0, 0.0]]
         )
 
-        smoothed = smooth_polyline_bezier(geometry, points_per_segment=4)
+        smoothed = smooth_bezier(geometry, density=4)
         assert len(smoothed.geoms) == 2
 
         for original, result, coords in zip(geometry.geoms, smoothed.geoms, expected):
