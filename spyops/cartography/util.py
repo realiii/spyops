@@ -14,7 +14,8 @@ from spyops.shared.records import extend_records
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
-    from spyops.query.cartography.generalization import BaseQuerySimplify
+    from spyops.query.cartography.generalization import (
+        BaseQuerySimplify, BaseQuerySmooth)
 
 
 def _simplify(query: 'BaseQuerySimplify', tolerance: float,
@@ -48,6 +49,36 @@ def _simplify(query: 'BaseQuerySimplify', tolerance: float,
             records.clear()
     return query.target
 # End _simplify function
+
+
+def _smooth(query: 'BaseQuerySmooth', tolerance: float) -> 'FeatureClass':
+    """
+    Smooth Line or Polygon Features
+    """
+    records = []
+    insert_sql = query.insert
+    grid_size = query.grid_size
+    smoother = query.smoother
+    config = query.geometry_config
+    transformer = query.source_transformer
+    with (query.target.geopackage.connection as cout,
+          query.source.geopackage.connection as cin,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            features, geometries = to_shapely(features, transformer=transformer)
+            if grid_size is not None:
+                geometries = set_precision(geometries, grid_size=grid_size)
+            geometries = smoother(geometries, tolerance=tolerance)
+            results = [(g, attrs) for g, (_, *attrs) in
+                       zip(geometries, features)]
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End _smooth function
 
 
 if __name__ == '__main__':  # pragma: no cover
