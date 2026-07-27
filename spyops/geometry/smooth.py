@@ -11,7 +11,7 @@ from fudgeo.enumeration import ShapeType
 from numpy import (
     array, asarray, clip, column_stack, exp, linspace, ndarray, ones_like,
     zeros_like)
-from numpy.linalg import lstsq, norm
+from numpy.linalg import norm, solve
 from shapely.coordinates import get_coordinates
 from shapely.geometry.base import BaseGeometry
 from shapely.io import from_wkb
@@ -329,8 +329,8 @@ def _weighted_polynomial_fit(design: ndarray, values: ndarray,
     weights = clip(asarray(weights, dtype=float), 1e-12, None)
     weighted_design = design * weights[:, None]
     weighted_values = values * weights[:, None]
-    coefficients, *_ = lstsq(weighted_design, weighted_values, rcond=None)
-    return coefficients
+    return solve(weighted_design.T @ weighted_design,
+                 weighted_design.T @ weighted_values)
 # End _weighted_polynomial_fit function
 
 
