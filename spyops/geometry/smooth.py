@@ -22,7 +22,7 @@ from spyops.shared.constant import EMPTY, SRS_ID_WKB
 
 
 def smooth_bezier(geometry: ndarray | list | BaseGeometry,
-                  density: int = 8) -> ndarray | BaseGeometry:
+                  density: int = 8, **kwargs) -> ndarray | BaseGeometry:
     """
     Smooth Polyline using cubic Bezier interpolation
 
@@ -47,7 +47,7 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
 
 
 def smooth_paek(geometry: ndarray | list | BaseGeometry,
-                tolerance: float) -> ndarray | BaseGeometry:
+                tolerance: float, **kwargs) -> ndarray | BaseGeometry:
     """
     Smooth Polyline using Polynomial Approximation with Exponential Kernel
 
