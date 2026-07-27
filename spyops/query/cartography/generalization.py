@@ -116,5 +116,12 @@ class QuerySmoothLine(BaseQuerySmooth):
 # End QuerySmoothLine class
 
 
+class QuerySmoothPolygon(BaseQuerySmooth):
+    """
+    Query Smooth Polygon
+    """
+# End QuerySmoothPolygon class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
