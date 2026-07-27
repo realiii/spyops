@@ -63,6 +63,10 @@ class TestSimplifyLine:
         'topography_m_l',
         'topography_z_l',
         'topography_zm_l',
+        'transmission_10tm_m_ml',
+        'transmission_10tm_ml',
+        'transmission_10tm_zm_ml',
+        'transmission_10tm_z_ml',
     ])
     def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small, fc_name):
         """
@@ -125,6 +129,7 @@ class TestSimplifyPolygon:
         'hydro_6654_zm_a',
         'hydro_lcc_z_a',
         'hydro_utm11_m_a',
+        'structures_6654_zm_ma',
     ])
     def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small, fc_name):
         """
@@ -191,6 +196,10 @@ class TestSmoothLine:
         'topography_m_l',
         'topography_z_l',
         'topography_zm_l',
+        'transmission_10tm_m_ml',
+        'transmission_10tm_ml',
+        'transmission_10tm_zm_ml',
+        'transmission_10tm_z_ml',
     ])
     def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small, fc_name):
         """
