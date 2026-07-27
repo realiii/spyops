@@ -107,7 +107,7 @@ def smooth_line(source: 'FeatureClass', target: 'FeatureClass',
     Smooth Line
 
     Smooth line features to give a more aesthetically pleasing shape while
-    retaining overall line shape.  Algorithm options in include Polynomial
+    retaining overall line shape.  Algorithm options include Polynomial
     Approximation with Exponential Kernel (PAEK) and Cubic Bezier
     Curves (BEZIER).  The tolerance specified applies to PAEK only.
     """
