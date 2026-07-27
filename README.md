@@ -75,6 +75,7 @@ MIT
 - added `generalize` (Editing)
 - added `simplify_line` (Cartography - Generalization)
 - added `simplify_polygon` (Cartography - Generalization)
+- added `smooth_line` (Cartography - Generalization)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
 
 ### v0.1.1
