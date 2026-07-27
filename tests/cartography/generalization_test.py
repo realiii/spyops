@@ -86,6 +86,7 @@ class TestSimplifyPolygon:
     Test Simplify Polygon
     """
     @mark.parametrize('tolerance', [
+        0,
         Meters(50),
         0.0001
     ])
