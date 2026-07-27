@@ -6,7 +6,7 @@ Tests for Generalization Cartography Classes
 
 from fudgeo import FeatureClass
 from pyproj import CRS
-from pytest import mark, approx
+from pytest import mark
 
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
