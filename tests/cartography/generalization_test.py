@@ -47,7 +47,8 @@ class TestSimplifyLine:
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql.format(source.name))
             start_count, = cursor.fetchone()
-        simplify_line(source, target=target, tolerance=tolerance, xy_tolerance=xy_tolerance)
+        simplify_line(source, target=target, tolerance=tolerance,
+                      xy_tolerance=xy_tolerance)
         calculate_geometry_attributes(
             target, field=field, geometry_attribute=attr)
         with source.geopackage.connection as cin:
