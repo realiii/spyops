@@ -22,10 +22,12 @@ class TestSimplifyLine:
     Test Simplify Line
     """
     @mark.parametrize('tolerance', [
+        0,
         Meters(50),
         0.0001
     ])
     @mark.parametrize('xy_tolerance', [
+        0,
         None,
         0.0001
     ])
