@@ -117,6 +117,15 @@ class SimplifyAlgorithmOption(StrEnum):
 # End SimplifyAlgorithmOption class
 
 
+class SmoothAlgorithmOption(StrEnum):
+    """
+    Smooth Algorithm Option
+    """
+    PAEK = auto()
+    BEZIER = auto()
+# End SmoothAlgorithmOption class
+
+
 class OutputTypeOption(StrEnum):
     """
     Output Type Options
