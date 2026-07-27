@@ -24,7 +24,7 @@ class BaseQuerySimplify(AbstractSourceQuery):
                  algorithm_option: SimplifyAlgorithmOption,
                  where_clause: str, xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QuerySimplifyLine class
+        Initialize the BaseQuerySimplify class
         """
         super().__init__(source, target=target, where_clause=where_clause,
                          xy_tolerance=xy_tolerance)
