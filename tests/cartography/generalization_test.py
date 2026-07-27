@@ -112,7 +112,10 @@ class TestSimplifyPolygon:
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql.format(target.name))
             end_count, = cursor.fetchone()
-        assert start_count > end_count
+        if not tolerance:
+            assert start_count == end_count
+        else:
+            assert start_count > end_count
     # End test_xy_tolerance method
 
     @mark.zm
