@@ -5,7 +5,7 @@ Package Initialization
 
 
 from spyops.cartography.generalization import (
-    simplify_line, simplify_polygon, smooth_line)
+    simplify_line, simplify_polygon, smooth_line, smooth_polygon)
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
     Kilometres, Meters, Metres, Miles, MilesInternational, MilesUS,
@@ -20,6 +20,7 @@ __all__ = [
     'simplify_line',
     'simplify_polygon',
     'smooth_line',
+    'smooth_polygon',
 
     'SimplifyAlgorithmOption',
     'SmoothAlgorithmOption',

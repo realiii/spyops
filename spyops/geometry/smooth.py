@@ -12,6 +12,7 @@ from numpy import (
     array, asarray, clip, column_stack, exp, linspace, ndarray, ones_like,
     zeros_like)
 from numpy.linalg import norm, solve
+from shapely import get_rings
 from shapely.coordinates import get_coordinates
 from shapely.geometry.base import BaseGeometry
 from shapely.io import from_wkb
@@ -97,11 +98,11 @@ def _smooth_bezier_linestring(geometry: ndarray | list, *, density: int,
     """
     Smooth LineString using Bezier curves
     """
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
     coordinates = _smooth_bezier(
         geometry, density=density, has_z=has_z, has_m=has_m)
-    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
-    return from_wkb([cls(coords, srs_id=SRS_ID_WKB).wkb
-                     for coords in coordinates], on_invalid='fix')
+    wkb = [cls(coords, srs_id=SRS_ID_WKB).wkb for coords in coordinates]
+    return from_wkb(wkb, on_invalid='fix')
 # End _smooth_bezier_linestring function
 
 
@@ -112,10 +113,42 @@ def _smooth_bezier_multi_linestring(geometry: ndarray | list, *, density: int,
     """
     cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_linestring][has_z, has_m]
     # noinspection bad-argument-type
-    return from_wkb([cls(_smooth_bezier(
+    wkb = [cls(_smooth_bezier(
         get_geoms_iter(geom), density=density, has_z=has_z, has_m=has_m),
-        srs_id=SRS_ID_WKB).wkb for geom in geometry], on_invalid='fix')
+        srs_id=SRS_ID_WKB).wkb for geom in geometry]
+    return from_wkb(wkb, on_invalid='fix')
 # End _smooth_bezier_multi_linestring function
+
+
+def _smooth_bezier_polygon(geometry: ndarray | list, *, density: int,
+                           has_z: bool, has_m: bool) -> ndarray:
+    """
+    Smooth Polygon using Bezier curves
+    """
+    wkb = []
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.polygon][has_z, has_m]
+    for poly in geometry:
+        coordinates = _smooth_bezier(
+            get_rings(poly), density=density, has_z=has_z, has_m=has_m)
+        wkb.append(cls(coordinates, srs_id=SRS_ID_WKB).wkb)
+    return from_wkb(wkb, on_invalid='fix')
+# End _smooth_bezier_polygon function
+
+
+def _smooth_bezier_multi_polygon(geometry: ndarray | list, *, density: int,
+                                 has_z: bool, has_m: bool) -> ndarray:
+    """
+    Smooth MultiPolygon using Bezier curves
+    """
+    wkb = []
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_polygon][has_z, has_m]
+    for geom in geometry:
+        coordinates = [_smooth_bezier(
+            get_rings(poly), density=density, has_z=has_z, has_m=has_m)
+            for poly in get_geoms_iter(geom)]
+        wkb.append(cls(coordinates, srs_id=SRS_ID_WKB).wkb)
+    return from_wkb(wkb, on_invalid='fix')
+# End _smooth_bezier_multi_polygon function
 
 
 def _smooth_paek_linestring(geometry: ndarray | list, *, tolerance: float,
@@ -123,11 +156,11 @@ def _smooth_paek_linestring(geometry: ndarray | list, *, tolerance: float,
     """
     Smooth LineString using PAEK
     """
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
     coordinates = _smooth_paek(
         geometry, tolerance=tolerance, has_z=has_z, has_m=has_m)
-    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
-    return from_wkb([cls(coords, srs_id=SRS_ID_WKB).wkb
-                     for coords in coordinates], on_invalid='fix')
+    wkb = [cls(coords, srs_id=SRS_ID_WKB).wkb for coords in coordinates]
+    return from_wkb(wkb, on_invalid='fix')
 # End _smooth_paek_linestring function
 
 
@@ -138,10 +171,42 @@ def _smooth_paek_multi_linestring(geometry: ndarray | list, *, tolerance: float,
     """
     cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_linestring][has_z, has_m]
     # noinspection bad-argument-type
-    return from_wkb([cls(_smooth_paek(
+    wkb = [cls(_smooth_paek(
         get_geoms_iter(geom), tolerance=tolerance, has_z=has_z, has_m=has_m),
-        srs_id=SRS_ID_WKB).wkb for geom in geometry], on_invalid='fix')
+        srs_id=SRS_ID_WKB).wkb for geom in geometry]
+    return from_wkb(wkb, on_invalid='fix')
 # End _smooth_paek_multi_linestring function
+
+
+def _smooth_paek_polygon(geometry: ndarray | list, *, tolerance: float,
+                         has_z: bool, has_m: bool) -> ndarray:
+    """
+    Smooth Polygon using PAEK
+    """
+    wkb = []
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.polygon][has_z, has_m]
+    for poly in geometry:
+        coordinates = _smooth_paek(
+            get_rings(poly), tolerance=tolerance, has_z=has_z, has_m=has_m)
+        wkb.append(cls(coordinates, srs_id=SRS_ID_WKB).wkb)
+    return from_wkb(wkb, on_invalid='fix')
+# End _smooth_paek_polygon function
+
+
+def _smooth_paek_multi_polygon(geometry: ndarray | list, *, tolerance: float,
+                               has_z: bool, has_m: bool) -> ndarray:
+    """
+    Smooth MultiPolygon using PAEK
+    """
+    wkb = []
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.multi_polygon][has_z, has_m]
+    for geom in geometry:
+        coordinates = [_smooth_paek(
+            get_rings(poly), tolerance=tolerance, has_z=has_z, has_m=has_m)
+            for poly in get_geoms_iter(geom)]
+        wkb.append(cls(coordinates, srs_id=SRS_ID_WKB).wkb)
+    return from_wkb(wkb, on_invalid='fix')
+# End _smooth_paek_multi_polygon function
 
 
 def _smooth_bezier(geometry: ndarray | list, *, density: int,
@@ -337,11 +402,15 @@ def _weighted_polynomial_fit(design: ndarray, values: ndarray,
 GEOMETRY_SMOOTH_BEZIER: dict[str, Callable] = {
     ShapeType.linestring: _smooth_bezier_linestring,
     ShapeType.multi_linestring: _smooth_bezier_multi_linestring,
+    ShapeType.polygon: _smooth_bezier_polygon,
+    ShapeType.multi_polygon: _smooth_bezier_multi_polygon,
 }
 
 GEOMETRY_SMOOTH_PAEK: dict[str, Callable] = {
     ShapeType.linestring: _smooth_paek_linestring,
     ShapeType.multi_linestring: _smooth_paek_multi_linestring,
+    ShapeType.polygon: _smooth_paek_polygon,
+    ShapeType.multi_polygon: _smooth_paek_multi_polygon,
 }
 
 
