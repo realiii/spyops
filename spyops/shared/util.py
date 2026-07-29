@@ -8,7 +8,7 @@ from enum import IntFlag, StrEnum
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
-from fudgeo.constant import FID
+from fudgeo.constant import FID, SHAPE
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
 
@@ -68,11 +68,11 @@ def make_valid_table_name(name: str, prefix: str) -> str:
 
 def make_valid_field_name(name: str) -> str:
     """
-    Make Valid Name, assumption that name is already upper case
+    Make Valid Field Name, assumption that name is already upper case
     """
     if not name:
         return 'FIELD'
-    if name == FID.upper():
+    if name in (FID.upper(), SHAPE.upper()):
         name = f'{name}_1'
     if name in KEYWORDS or not FIELD_NAME_MATCHER(name):
         name = f'FIELD_{name}'
