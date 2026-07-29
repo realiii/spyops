@@ -24,6 +24,7 @@ from spyops.query.conversion.json import (
     QueryGeoJSONToFeaturesMultiLineString, QueryGeoJSONToFeaturesMultiPoint,
     QueryGeoJSONToFeaturesMultiPolygon, QueryGeoJSONToFeaturesPoint,
     QueryGeoJSONToFeaturesPolygon, geojson_query_factory)
+from spyops.query.conversion.util import _make_unique_fields
 from spyops.shared.constant import FEATURE_COLLECTION
 from spyops.shared.enumeration import GeoJSONGeometryType
 from spyops.shared.keywords import (
@@ -226,8 +227,7 @@ class TestQueryGeoJSONToFeaturesPoint:
         Test make unique fields
         """
         fields = [Field(name, data_type=FieldType.text) for name in field_names]
-        names = [n.casefold() for n in field_names]
-        result = QueryGeoJSONToFeaturesPoint._make_unique_fields(fields, names)
+        result = _make_unique_fields(fields)
         assert [f.name for f in result] == expected
     # End test_make_unique_fields method
     

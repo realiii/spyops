@@ -25,12 +25,13 @@ from spyops.environment.core import ZMConfig
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import to_shapely
 from spyops.query.base import AbstractSourceQuery, BaseQuerySelect
+from spyops.query.conversion.util import _make_unique_fields
 from spyops.shared.constant import (
     COLON, EMPTY, FEATURE, FEATURE_COLLECTION, UNDERSCORE)
 from spyops.shared.enumeration import GeoJSONGeometryType
 from spyops.shared.field import (
     find_field_data_type, get_geometry_column_name, make_field_names,
-    make_unique_fields, validate_fields)
+    validate_fields)
 from spyops.shared.hint import FIELDS, NAMES, POINT_TYPE
 from spyops.shared.keywords import (
     COORDINATES_KEY, CRS_KEY, FEATURES_KEY, GEOMETRY_KEY, HASM_KEY, HASZ_KEY,
@@ -235,31 +236,8 @@ class AbstractQueryGeoJSONToFeatures(AbstractSourceQuery):
         FIELDS
         """
         fields = self._get_fields_from_source()
-        names = [f.name.casefold() for f in fields]
-        if len(names) == len(set(names)):
-            return tuple(fields)
-        return self._make_unique_fields(fields, names)
+        return _make_unique_fields(fields)
     # End _fields property
-
-    @staticmethod
-    def _make_unique_fields(fields: list[Field], names: list[str]) -> FIELDS:
-        """
-        Make Unique Fields
-        """
-        visited = set()
-        names = [n for n, count in Counter(names).items() if count > 1]
-        for i, field in enumerate(fields):
-            lower = field.name.casefold()
-            if lower not in names:
-                continue
-            if lower not in visited:
-                visited.add(lower)
-                continue
-            field, = make_unique_fields(fields, [field])
-            # noinspection PyTypeChecker
-            fields[i] = field
-        return tuple(fields)
-    # End _make_unique_fields method
 
     def _get_fields_from_source(self) -> list[Field]:
         """
