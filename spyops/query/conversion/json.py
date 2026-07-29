@@ -47,8 +47,9 @@ class QueryFeaturesToGeoJSON(BaseQuerySelect):
     """
     Query Features to GeoJSON
     """
-    def __init__(self, source: FeatureClass, as_wgs84: bool, include_z: bool,
-                 include_m: bool, use_aliases: bool, where_clause: str) -> None:
+    def __init__(self, source: FeatureClass, as_wgs84: bool = True,
+                 include_z: bool = False, include_m: bool = False,
+                 use_aliases: bool = False, where_clause: str = EMPTY) -> None:
         """
         Initialize the QueryFeaturesToGeoJSON class
         """
