@@ -33,8 +33,8 @@ class TestTableToDelimitedFile:
         True,
         False,
     ])
-    def test_table_to_delimited_file(self, inputs, tmp_path, fc_name,
-                                     approx_size, delimiter, use_aliases):
+    def test_function(self, inputs, tmp_path, fc_name,
+                      approx_size, delimiter, use_aliases):
         """
         Test table to delimited file
         """
@@ -45,7 +45,7 @@ class TestTableToDelimitedFile:
             where_clause="""fid > 2""", sort_fields=Descending('fid'))
         assert output.is_file()
         assert output.stat().st_size > approx_size
-    # End test_table_to_delimited_file method
+    # End test_function method
 # End TestTableToDelimitedFile class
 
 
