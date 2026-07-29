@@ -9,7 +9,7 @@ from fudgeo.constant import COMMA_SPACE
 from fudgeo.enumeration import FieldType, ShapeType
 
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
-from spyops.shared.util import make_unique_name
+from spyops.shared.util import make_unique_name, safe_float, safe_int
 
 
 GEOM_TYPE_POINTS: NAMES = ShapeType.point, ShapeType.multi_point
@@ -350,7 +350,8 @@ def make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
 # End make_unique_fields function
 
 
-def find_field_data_type(field_names: NAMES, data: dict[str, list]) -> NAMES:
+def find_field_data_type(field_names: NAMES, data: dict[str, list],
+                         str_source: bool) -> NAMES:
     """
     Find Field Data Types for each column
     """
@@ -359,22 +360,27 @@ def find_field_data_type(field_names: NAMES, data: dict[str, list]) -> NAMES:
     if not data:
         return tuple(FieldType.text for _ in field_names)
     # noinspection PyTypeChecker
-    return tuple(_guess_data_type(data.get(name)) for name in field_names)
-# End find_field_definitions function
+    return tuple(_guess_data_type(data.get(name), str_source=str_source)
+                 for name in field_names)
+# End find_field_data_type function
 
 
-def _guess_data_type(values: list) -> str:
+def _guess_data_type(values: list, str_source: bool) -> str:
     """
-    Guess the underlying data type in the strings
+    Guess the underlying data type values or from string data that needs to be
+    inspected as being numeric.
     """
     default = FieldType.text
     if not values:  # pragma: no cover
         return default
-    majority = len(values) * 0.7
-    numbers = [type(v) for v in values if isinstance(v, (int, float))]
-    int_count = numbers.count(int)
-    float_count = numbers.count(float)
-    if max(int_count, float_count) < majority:
+    if str_source:
+        int_count = [safe_int(v) is not None for v in values].count(True)
+        float_count = [safe_float(v) is not None for v in values].count(True)
+    else:
+        types = [type(v) for v in values if isinstance(v, (int, float))]
+        int_count = types.count(int)
+        float_count = types.count(float)
+    if max(int_count, float_count) < (len(values) * 0.7):
         return default
     if float_count >= int_count:
         return FieldType.real

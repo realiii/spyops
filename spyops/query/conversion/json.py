@@ -252,7 +252,8 @@ class AbstractQueryGeoJSONToFeatures(AbstractSourceQuery):
         if not data:
             return []
         field_names = list(data)
-        data_types = find_field_data_type(field_names, data=data)
+        data_types = find_field_data_type(
+            field_names, data=data, str_source=False)
         field_names = [make_valid_field_name(name.upper())
                        for name in field_names]
         return [Field(name=name, data_type=data_type)
