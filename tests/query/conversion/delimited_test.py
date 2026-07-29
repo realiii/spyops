@@ -12,6 +12,7 @@ from spyops.crs.constant import WGS84
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.conversion.delimited import QueryTableToDelimitedFile
+from spyops.shared.constant import COMMA, PIPE
 from spyops.shared.sort import Ascending, Descending
 
 
@@ -64,6 +65,24 @@ class TestQueryTableToDelimitedFile:
         srs = query.spatial_reference_system
         assert srs is not None
         assert query.spatial_reference_system.srs_id == 6654
+    # End test_spatial_reference_system method
+
+    @mark.parametrize('delimiter, expected', [
+        (None, COMMA),
+        (',\n', COMMA),
+        (' ; ', ';'),
+        ('\t', '\t'),
+        ('\n', COMMA),
+        ('|', PIPE),
+    ])
+    def test_get_dialect(self, ntdb_zm_small, delimiter, expected):
+        """
+        Test get dialect
+        """
+        source = ntdb_zm_small['hydro_6654_zm_a']
+        query = QueryTableToDelimitedFile(source, delimiter=delimiter)
+        excel = query._get_dialect()
+        assert excel.delimiter == expected
     # End test_spatial_reference_system method
 
     @mark.parametrize('use_aliases, expected', [

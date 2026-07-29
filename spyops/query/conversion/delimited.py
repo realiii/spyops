@@ -82,10 +82,14 @@ class QueryTableToDelimitedFile(BaseQuerySelectOrderBy):
         dialect.lineterminator = '\n'
         d = self._delimiter
         if isinstance(d, str):
-            if d := d.strip():
-                dialect.delimiter = d[0]
+            if stripped := d.strip():
+                dialect.delimiter = stripped[0]
             else:
-                dialect.delimiter = COMMA
+                tab = '\t'
+                if tab in d:
+                    dialect.delimiter = tab
+                else:
+                    dialect.delimiter = COMMA
         return dialect
     # End _get_dialect method
 # End QueryTableToDelimitedFile class
