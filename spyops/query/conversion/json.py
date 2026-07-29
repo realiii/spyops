@@ -273,9 +273,10 @@ class AbstractQueryGeoJSONToFeatures(AbstractSourceQuery):
                 data[key].append(value)
         if not data:
             return []
-        _, *field_names = data
+        field_names = list(data)
         data_types = find_field_data_type(field_names, data=data)
-        field_names = [make_valid_field_name(name) for name in field_names]
+        field_names = [make_valid_field_name(name.upper())
+                       for name in field_names]
         return [Field(name=name, data_type=data_type)
                 for name, data_type in zip(field_names, data_types)]
     # End _get_fields_from_source method
@@ -406,7 +407,7 @@ class AbstractQueryGeoJSONToFeatures(AbstractSourceQuery):
             coords = feature[GEOMETRY_KEY][COORDINATES_KEY]
             coords = self._adjust_coordinates(coords, count)
             geom = cls(coords, srs_id=srs_id)
-            _, *attrs = feature[PROPERTIES_KEY].values()
+            attrs = feature[PROPERTIES_KEY].values()
             records.append((geom, *attrs))
         return self._make_shapely_records(records)
     # End features method
@@ -477,7 +478,7 @@ class AbstractQueryGeoJSONToFeaturesMulti(AbstractQueryGeoJSONToFeatures):
                 coords = [coords]
             coords = self._adjust_coordinates(coords, count)
             geom = cls(coords, srs_id=srs_id)
-            _, *attrs = feature[PROPERTIES_KEY].values()
+            attrs = feature[PROPERTIES_KEY].values()
             records.append((geom, *attrs))
         return self._make_shapely_records(records)
     # End features method
@@ -521,7 +522,7 @@ class QueryGeoJSONToFeaturesPoint(AbstractQueryGeoJSONToFeatures):
         for feature in features:
             coords = feature[GEOMETRY_KEY][COORDINATES_KEY]
             coords = self._adjust_coordinates(coords, count)
-            _, *attrs = feature[PROPERTIES_KEY].values()
+            attrs = feature[PROPERTIES_KEY].values()
             # noinspection PyTypeChecker
             geom = cls.from_tuple(coords, srs_id=srs_id)
             records.append((geom, *attrs))

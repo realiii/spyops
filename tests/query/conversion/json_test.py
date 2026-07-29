@@ -202,6 +202,7 @@ class TestQueryGeoJSONToFeaturesPoint:
         """
         query = self._get_query(geojson_path)
         assert query._fields == (
+            Field('OBJECTID', data_type=FieldType.integer),
             Field('ENTITY', data_type=FieldType.text),
             Field('ENTITY_NAME', data_type=FieldType.text),
             Field('VALDATE', data_type=FieldType.text),
@@ -236,6 +237,7 @@ class TestQueryGeoJSONToFeaturesPoint:
         """
         query = self._get_query(geojson_path)
         assert query._get_fields_from_source() == [
+            Field('OBJECTID', data_type=FieldType.integer),
             Field('ENTITY', data_type=FieldType.text),
             Field('ENTITY_NAME', data_type=FieldType.text),
             Field('VALDATE', data_type=FieldType.text),
@@ -253,6 +255,7 @@ class TestQueryGeoJSONToFeaturesPoint:
         """
         query = self._get_query(geojson_path)
         assert query._get_unique_fields() == (
+            Field('OBJECTID', data_type=FieldType.integer),
             Field('ENTITY', data_type=FieldType.text),
             Field('ENTITY_NAME', data_type=FieldType.text),
             Field('VALDATE', data_type=FieldType.text),
@@ -344,7 +347,7 @@ class TestQueryGeoJSONToFeaturesPoint:
         target = FeatureClass(mem_gpkg, 'test')
         query = QueryGeoJSONToFeaturesPoint(source, target=target)
         sql = query.insert
-        assert 'INTO test(SHAPE, ENTITY, ENTITY_NAME, VALDATE, PROVIDER' in sql
+        assert 'INTO test(SHAPE, OBJECTID, ENTITY, ENTITY_NAME, VALDATE, PROVIDER' in sql
     # End test_insert method
 
     @mark.parametrize('name, zm', [
