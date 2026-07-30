@@ -79,6 +79,7 @@ MIT
 - added `smooth_line` (Cartography - Generalization)
 - added `smooth_polygon` (Cartography - Generalization)
 - added `table_to_delimited_file` (Conversion - Delimited File)
+- added `delimited_file_to_table` (Conversion - Delimited File)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
 
 ### v0.1.1
