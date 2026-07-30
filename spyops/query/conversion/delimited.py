@@ -11,6 +11,7 @@ from pathlib import Path
 from fudgeo.constant import FETCH_SIZE
 
 from spyops.query.base import BaseQuerySelectOrderBy
+from spyops.query.conversion.util import _make_unique_fields, _get_dialect
 from spyops.shared.constant import COMMA, EMPTY
 from spyops.shared.field import make_field_names, validate_fields
 from spyops.shared.hint import ELEMENT, FIELDS, SORT_FIELDS
@@ -63,7 +64,7 @@ class QueryTableToDelimitedFile(BaseQuerySelectOrderBy):
         """
         Export the query results to a delimited file.
         """
-        dialect = self._get_dialect()
+        dialect = _get_dialect(self._delimiter)
         with self.source.geopackage.connection as cin:
             cursor = cin.execute(self.select)
             with path.open('w') as fout:
@@ -73,25 +74,6 @@ class QueryTableToDelimitedFile(BaseQuerySelectOrderBy):
                     csv.writerows(records)
         return path
     # End export method
-
-    def _get_dialect(self) -> excel:
-        """
-        Get Excel dialect
-        """
-        dialect = excel()
-        dialect.lineterminator = '\n'
-        d = self._delimiter
-        if isinstance(d, str):
-            if stripped := d.strip():
-                dialect.delimiter = stripped[0]
-            else:
-                tab = '\t'
-                if tab in d:
-                    dialect.delimiter = tab
-                else:
-                    dialect.delimiter = COMMA
-        return dialect
-    # End _get_dialect method
 # End QueryTableToDelimitedFile class
 
 

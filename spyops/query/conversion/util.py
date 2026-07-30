@@ -4,10 +4,12 @@ Conversion Utilities
 """
 
 
+from csv import Dialect, excel
 from typing import Counter
 
 from fudgeo import Field
 
+from spyops.shared.constant import COMMA
 from spyops.shared.field import make_unique_fields
 from spyops.shared.hint import FIELDS
 
@@ -33,6 +35,27 @@ def _make_unique_fields(fields: list[Field]) -> FIELDS:
         fields[i] = field
     return tuple(fields)
 # End _make_unique_fields method
+
+
+def _get_dialect(delimiter: str) -> Dialect:
+    """
+    Get Dialect
+    """
+    dialect = excel()
+    dialect.lineterminator = '\n'
+    if isinstance(delimiter, str):
+        if stripped := delimiter.strip():
+            dialect.delimiter = stripped[0]
+        else:
+            tab = '\t'
+            if tab in delimiter:
+                dialect.delimiter = tab
+            else:
+                dialect.delimiter = COMMA
+    else:
+        dialect.delimiter = COMMA
+    return dialect
+# End _get_dialect function
 
 
 if __name__ == '__main__':  # pragma: no cover
