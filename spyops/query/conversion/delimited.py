@@ -181,12 +181,13 @@ class QueryDelimitedFileToTable(AbstractSourceQuery):
         """
         Rows from Delimited File
         """
+        field_count = len(self._fields)
         dialect = _get_dialect(self._delimiter)
         with self._source.open() as fin:
             csv_reader = reader(fin, dialect=dialect)
             # NOTE skip over the header row
             next(csv_reader)
-            records = list(csv_reader)
+            records = [row[:field_count] for row in csv_reader]
         return self._replace_nulls(records)
     # End rows method
 
