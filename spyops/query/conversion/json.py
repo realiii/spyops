@@ -233,7 +233,7 @@ class AbstractQueryGeoJSONToFeatures(AbstractSourceQuery):
     @cached_property
     def _fields(self) -> FIELDS:
         """
-        FIELDS
+        Fields
         """
         fields = self._get_fields_from_source()
         return _make_unique_fields(fields)
