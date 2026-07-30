@@ -55,7 +55,9 @@ def delimited_file_to_table(source: Path | str, target: 'Table', *,
     """
     Delimited File to Table
 
-    Convert a delimited file to a table.
+    Convert a delimited file to a table. Field names are derived from the file
+    header.  Field data types are automatically guessed by sampling values
+    in the file.
     """
     source: Path
     query = QueryDelimitedFileToTable(
