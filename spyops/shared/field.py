@@ -374,7 +374,8 @@ def _guess_data_type(values: list, str_source: bool) -> str:
     if not values:  # pragma: no cover
         return default
     if str_source:
-        int_count = [safe_int(v) is not None for v in values].count(True)
+        int_count = [safe_int(v, strict=True) is not None
+                     for v in values].count(True)
         float_count = [safe_float(v) is not None for v in values].count(True)
     else:
         types = [type(v) for v in values if isinstance(v, (int, float))]
