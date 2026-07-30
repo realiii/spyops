@@ -40,6 +40,15 @@ def gpx_path(data_path) -> Path:
 
 
 @fixture(scope='session')
+def csv_path(data_path) -> Path:
+    """
+    CSV Path
+    """
+    return data_path.joinpath('csv')
+# End csv_path function
+
+
+@fixture(scope='session')
 def geojson_path(data_path) -> Path:
     """
     GeoJSON Path

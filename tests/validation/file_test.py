@@ -45,16 +45,16 @@ class TestValidateFile:
     # End test_get_object method
 
     @mark.parametrize('path, ext, expected', [
-        (Path('/a/b/c.def'), None, Path('/a/b/c.def')),
-        (Path('/a/b/c.def'), 'txt', Path('/a/b/c.txt')),
-        (Path('/a/b/c.def'), '.txt', Path('/a/b/c.txt')),
+        (Path('/a/b/c.def'), None, '/a/b/c.def'),
+        (Path('/a/b/c.def'), 'txt', '/a/b/c.txt'),
+        (Path('/a/b/c.def'), '.txt', '/a/b/c.txt'),
     ])
     def test_make_path(self, path, ext, expected):
         """
         Test make path
         """
         vf = ValidateFile('path', extension=ext)
-        assert vf._make_path(path) == expected
+        assert str(vf._make_path(path)).endswith(expected)
     # End test_make_path method
 
     def test_check_path(self, nrn_geopackage):

@@ -129,22 +129,31 @@ def test_make_unique_fields(existing_names, new_names, expected):
 # End test_make_unique_fields function
 
 
-@mark.parametrize('values, expected', [
-    ([123, 234, None, 345, 456, 567, 678, 1000, 10000], FieldType.integer),
-    ([123., 234.5, None, 345.6, 456.7, 567.8, 678.9, 1000., 10000], FieldType.real),
-    (['A123.', '234', '', None, 'B345.', '456', 'C567', '678', '1000.', 'D10000'], FieldType.text),
-    (['3/9/2023 12:15', '2/10/2024', '8-Oct-22', 'May-23', '7/1/1960', '1960.7.1', '1960.07.01', '1960-07-01', '1960-7-1'], FieldType.text),
-    (['A', 'B', 'C', '1', '2', '3', '4'], FieldType.text),
+@mark.parametrize('str_source, values, expected', [
+    (False, [123, 234, None, 345, 456, 567, 678, 1000, 10000], FieldType.integer),
+    (False, [123., 234.5, None, 345.6, 456.7, 567.8, 678.9, 1000., 10000], FieldType.real),
+    (False, ['A123.', '234', '', None, 'B345.', '456', 'C567', '678', '1000.', 'D10000'], FieldType.text),
+    (False, ['3/9/2023 12:15', '2/10/2024', '8-Oct-22', 'May-23', '7/1/1960', '1960.7.1', '1960.07.01', '1960-07-01', '1960-7-1'], FieldType.text),
+    (False, ['A', 'B', 'C', '1', '2', '3', '4'], FieldType.text),
+    (True, [123, 234, None, 345, 456, 567, 678, 1000, 10000], FieldType.real),
+    (True, [123., 234.5, None, 345.6, 456.7, 567.8, 678.9, 1000., 10000], FieldType.real),
+    (True, ['A123.', '234', '', None, 'B345.', '456', 'C567', '678', '1000.', 'D10000'], FieldType.text),
+    (True, ['3/9/2023 12:15', '2/10/2024', '8-Oct-22', 'May-23', '7/1/1960', '1960.7.1', '1960.07.01', '1960-07-01', '1960-7-1'], FieldType.text),
+    (True, ['A', 'B', 'C', '1', '2', '3', '4'], FieldType.text),
 ])
-def test_guess_data_type(values, expected):
+def test_guess_data_type(str_source, values, expected):
     """
     Test guess_data_type
     """
-    assert _guess_data_type(values) == expected
+    assert _guess_data_type(values, str_source) == expected
 # End test_guess_data_type function
 
 
-def test_find_field_data_type():
+@mark.parametrize('str_source, expected', [
+    (True, (FieldType.real, FieldType.text, FieldType.real)),
+    (False, (FieldType.integer, FieldType.text, FieldType.real)),
+])
+def test_find_field_data_type(str_source, expected):
     """
     Test find_field_data_type
     """
@@ -153,8 +162,8 @@ def test_find_field_data_type():
         'lmnop': ['a', 'b', 'c', 'd', 'e', None, None],
         'xyz': [1.1, 2.2, 3.3, 4.4, 5.5, None, None],
     }
-    types = find_field_data_type(list(data), data)
-    assert types == (FieldType.integer, FieldType.text, FieldType.real)
+    types = find_field_data_type(list(data), data, str_source=str_source)
+    assert types == expected
 # End test_find_field_data_type function
 
 

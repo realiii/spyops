@@ -3,8 +3,8 @@
 Package Initialization
 """
 
-
-from spyops.conversion.delimited import table_to_delimited_file
+from spyops.conversion.delimited import (
+    delimited_file_to_table, table_to_delimited_file)
 from spyops.conversion.geopackage import (
     export_features, export_table, feature_class_to_geopackage,
     table_to_geopackage)
@@ -15,6 +15,7 @@ from spyops.shared.sort import Ascending, Descending
 
 
 __all__ = [
+    'delimited_file_to_table',
     'table_to_delimited_file',
 
     'export_features',
