@@ -30,7 +30,7 @@ class ValidateField(AbstractValidateType):
     """
     _types: ClassVar[tuple[type, ...]] = Field,
 
-    def __init__(self, name: str, *, data_types: NAMES = (),
+    def __init__(self, name: str, *, data_types: NAMES | str = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
                  exclude_primary: bool = True,
@@ -48,7 +48,7 @@ class ValidateField(AbstractValidateType):
         :param is_optional: Field argument is not required
         """
         super().__init__(name=name)
-        self._data_types: NAMES = data_types
+        self._data_types: NAMES | str = data_types
         self._element_name: str = element_name
         self._exists: bool = exists
         self._single: bool = single
