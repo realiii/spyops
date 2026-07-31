@@ -313,6 +313,9 @@ def simplify_type(field: Field) -> str:
     Simplify Data Type to SQLite / fudgeo expected Data Type
     """
     data_type = field.data_type.casefold()
+    dt = FieldType.datetime
+    if data_type.startswith(dt.casefold()):
+        return dt
     return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
                  if data_type.startswith(aliases)), data_type)
 # End get_data_type function
