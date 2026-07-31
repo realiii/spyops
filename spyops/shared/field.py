@@ -317,8 +317,7 @@ def simplify_type(field: Field) -> str:
     if data_type.startswith(dt.casefold()):
         return dt
     return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
-                 if data_type.startswith(aliases)), data_type)
-# End get_data_type function
+                 if data_type.startswith(aliases)), field.data_type)
 # End simplify_type function
 
 
