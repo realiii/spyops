@@ -8,6 +8,7 @@ from functools import wraps
 from typing import Any, Callable, ClassVar
 
 from fudgeo import Field
+from fudgeo.enumeration import FieldType
 
 from spyops.crs.unit import (
     DecimalDegrees, LinearUnit, unit_factory, unit_from_number)
@@ -16,7 +17,7 @@ from spyops.geometry.validate import (
 from spyops.shared.constant import PADDED_PIPE
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import (
-    COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, get_data_type,
+    COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, simplify_type,
     validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.shared.sort import AbstractSortField
@@ -30,7 +31,7 @@ class ValidateField(AbstractValidateType):
     """
     _types: ClassVar[tuple[type, ...]] = Field,
 
-    def __init__(self, name: str, *, data_types: NAMES = (),
+    def __init__(self, name: str, *, data_types: NAMES | str = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
                  exclude_primary: bool = True,
@@ -48,7 +49,7 @@ class ValidateField(AbstractValidateType):
         :param is_optional: Field argument is not required
         """
         super().__init__(name=name)
-        self._data_types: NAMES = data_types
+        self._data_types: NAMES | str = data_types
         self._element_name: str = element_name
         self._exists: bool = exists
         self._single: bool = single
@@ -151,14 +152,30 @@ class ValidateField(AbstractValidateType):
         if self._single:
             if self._is_optional and obj is None:
                 return
-            if obj.data_type.casefold().startswith(aliases):
+            if self._check_data_type([obj], aliases):
                 return
         else:
-            if all(i.data_type.casefold().startswith(aliases) for i in obj):
+            if self._check_data_type(obj, aliases):
                 return
         types = PADDED_PIPE.join(data_types)
         raise ValueError(f'{self._name} must have data type of {types}')
     # End _validate_data_type method
+    
+    @staticmethod
+    def _check_data_type(fields: list[Field],
+                         aliases: tuple[str, ...]) -> bool:
+        """
+        Check Data Type
+        """
+        dt = FieldType.datetime.casefold()
+        has_datetime = dt in aliases
+        has_date = FieldType.date.casefold() in aliases
+        valid_types = [f.data_type.casefold() for f in fields
+                       if f.data_type.casefold().startswith(aliases)]
+        if has_date and not has_datetime:
+            valid_types = [t for t in valid_types if t != dt]
+        return bool(valid_types)
+    # End _check_data_type method
 
     def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
         """
@@ -429,8 +446,8 @@ class ValidateCompatibleFields(AbstractValidate):
             raise ValueError(
                 f'{self._from_name} and {self._to_name} cannot be the '
                 f'same field')
-        from_type = get_data_type(from_field)
-        to_type = get_data_type(to_field)
+        from_type = simplify_type(from_field)
+        to_type = simplify_type(to_field)
         compatible_types = COMPATIBILITY_LUT.get(from_type, ())
         if to_type not in compatible_types:
             raise TypeError(

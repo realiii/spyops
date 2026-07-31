@@ -308,7 +308,7 @@ class TestStatisticField:
             assert obj.aggregate == stub.format(field.escaped_name)
             assert obj.prefix == prefix
             assert obj.output_name == f'{prefix}_asdf'
-            assert obj.data_type == FieldType.date
+            assert obj.data_type == FieldType.datetime
     # End test_configuration_datetime method
 
     @mark.parametrize('cls, throws, stat, stub, prefix', [
