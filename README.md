@@ -48,7 +48,7 @@ MIT
 
 
 ## Release History
-### v0.2.0 (in flight)
+### v0.2.0
 - avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
