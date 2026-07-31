@@ -10,8 +10,8 @@ from pytest import mark
 
 from spyops.shared.field import (
     clone_field, common_fields, find_field_data_type, get_geometry_column_name,
-    make_field_names,
-    make_unique_fields, validate_fields, _guess_data_type)
+    make_field_names, make_unique_fields, simplify_type, validate_fields,
+    _guess_data_type)
 
 
 pytestmark = [mark.field]
@@ -165,6 +165,23 @@ def test_find_field_data_type(str_source, expected):
     types = find_field_data_type(list(data), data, str_source=str_source)
     assert types == expected
 # End test_find_field_data_type function
+
+
+@mark.parametrize('data_type, expected', [
+    ('int32', FieldType.integer),
+    ('mediumint', FieldType.mediumint),
+    ('char', FieldType.text),
+    ('date', FieldType.date),
+    ('datetime', FieldType.datetime),
+    ('time', FieldType.timestamp),
+])
+def test_simplify_type(data_type, expected):
+    """
+    Test simplify_type
+    """
+    field = Field('asdf', data_type)
+    assert simplify_type(field) == expected
+# End test_simplify_type function
 
 
 if __name__ == '__main__':  # pragma: no cover

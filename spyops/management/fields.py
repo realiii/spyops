@@ -23,7 +23,7 @@ from spyops.shared.field import (
     DATES, GNSS_COMMON_FIELDS, GNSS_FIX_TYPE_FIELD, GNSS_NUM_SATS_FIELD,
     GNSS_POLY_LINE_FIELDS, GNSS_POSITION_SOURCE_TYPE_FIELD,
     GNSS_WORST_FIX_TYPE_FIELD, NUMBERS, TEXTS, TEXT_AND_NUMBERS,
-    filter_by_data_type, get_data_type)
+    filter_by_data_type, simplify_type)
 from spyops.shared.keywords import (
     ELEMENTS_ARG, END_FIELD, FIELD, FIELDS_ARG, FIELD_PROPERTY, GROUP_FIELDS,
     LABEL_FIELD, METHOD, OUTPUT_FIELD, OUTPUT_TYPE_OPTION, SORT_FIELDS_ARG,
@@ -366,7 +366,7 @@ def reclassify_field(source: ELEMENT, field: Field | str,
     output_field: Field
     label_field: Field | None
     unique = ReclassificationMethod.UNIQUE_VALUES
-    if get_data_type(field) == FieldType.text:
+    if simplify_type(field) == FieldType.text:
         if reclass.method != unique:
             raise ValueError(
                 'Text fields only support the Unique Values method')

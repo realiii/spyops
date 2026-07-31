@@ -16,7 +16,7 @@ from spyops.geometry.validate import (
 from spyops.shared.constant import PADDED_PIPE
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import (
-    COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, get_data_type,
+    COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, simplify_type,
     validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.shared.sort import AbstractSortField
@@ -429,8 +429,8 @@ class ValidateCompatibleFields(AbstractValidate):
             raise ValueError(
                 f'{self._from_name} and {self._to_name} cannot be the '
                 f'same field')
-        from_type = get_data_type(from_field)
-        to_type = get_data_type(to_field)
+        from_type = simplify_type(from_field)
+        to_type = simplify_type(to_field)
         compatible_types = COMPATIBILITY_LUT.get(from_type, ())
         if to_type not in compatible_types:
             raise TypeError(

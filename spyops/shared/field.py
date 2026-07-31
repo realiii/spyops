@@ -303,26 +303,27 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
     """
     lookup = {}
     for field in fields:
-        lookup[field.name.casefold(), get_data_type(field)] = field
+        lookup[field.name.casefold(), simplify_type(field)] = field
     return lookup
 # End _field_name_type function
 
 
-def get_data_type(field: Field) -> str:
+def simplify_type(field: Field) -> str:
     """
-    Get Data Type
+    Simplify Data Type to SQLite / fudgeo expected Data Type
     """
     data_type = field.data_type.casefold()
     return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
                  if data_type.startswith(aliases)), data_type)
 # End get_data_type function
+# End simplify_type function
 
 
 def filter_by_data_type(fields: FIELDS, data_types: NAMES) -> FIELDS:
     """
     Filter by Data Type
     """
-    return [fld for fld in fields if get_data_type(fld) in data_types]
+    return [fld for fld in fields if simplify_type(fld) in data_types]
 # End filter_by_data_type function
 
 

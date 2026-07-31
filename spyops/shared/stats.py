@@ -18,7 +18,7 @@ from fudgeo.enumeration import FieldType
 
 from spyops.shared.constant import COMMA, SPYOPS, UNDERSCORE
 from spyops.shared.enumeration import Statistic
-from spyops.shared.field import DATES, FREQUENCY, NUMBERS, get_data_type
+from spyops.shared.field import DATES, FREQUENCY, NUMBERS, simplify_type
 from spyops.shared.sql import ROWID
 
 
@@ -650,7 +650,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         Get Data Type
         """
         # noinspection PyTypeChecker
-        return get_data_type(self.field)
+        return simplify_type(self.field)
     # End _get_data_type method
 
     def validate(self) -> None:
