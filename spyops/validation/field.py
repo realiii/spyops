@@ -8,6 +8,7 @@ from functools import wraps
 from typing import Any, Callable, ClassVar
 
 from fudgeo import Field
+from fudgeo.enumeration import FieldType
 
 from spyops.crs.unit import (
     DecimalDegrees, LinearUnit, unit_factory, unit_from_number)
@@ -151,14 +152,30 @@ class ValidateField(AbstractValidateType):
         if self._single:
             if self._is_optional and obj is None:
                 return
-            if obj.data_type.casefold().startswith(aliases):
+            if self._check_data_type([obj], aliases):
                 return
         else:
-            if all(i.data_type.casefold().startswith(aliases) for i in obj):
+            if self._check_data_type(obj, aliases):
                 return
         types = PADDED_PIPE.join(data_types)
         raise ValueError(f'{self._name} must have data type of {types}')
     # End _validate_data_type method
+    
+    @staticmethod
+    def _check_data_type(fields: list[Field],
+                         aliases: tuple[str, ...]) -> bool:
+        """
+        Check Data Type
+        """
+        dt = FieldType.datetime.casefold()
+        has_datetime = dt in aliases
+        has_date = FieldType.date.casefold() in aliases
+        valid_types = [f.data_type.casefold() for f in fields
+                       if f.data_type.casefold().startswith(aliases)]
+        if has_date and not has_datetime:
+            valid_types = [t for t in valid_types if t != dt]
+        return bool(valid_types)
+    # End _check_data_type method
 
     def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
         """
