@@ -31,12 +31,12 @@ MIT
 - [Analysis - Statistics](https://github.com/realiii/spyops/wiki/Analysis#statistics)
 - [Cartography - Generalization](https://github.com/realiii/spyops/wiki/Cartography#generalization)
 - [Conversion - Delimited File](https://github.com/realiii/spyops/wiki/Conversion#delimited-file)
-- [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage)
 - [Conversion - GPS](https://github.com/realiii/spyops/wiki/Conversion#gps)
+- [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage)
 - [Conversion - JSON](https://github.com/realiii/spyops/wiki/Conversion#json)
 - [Editing](https://github.com/realiii/spyops/wiki/Editing)
-- [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
 - [Management - Feature Class](https://github.com/realiii/spyops/wiki/Data-Management#feature-class)
+- [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
 - [Management - Fields](https://github.com/realiii/spyops/wiki/Data-Management#fields)
 - [Management - General](https://github.com/realiii/spyops/wiki/Data-Management#general)
 - [Management - Generalization](https://github.com/realiii/spyops/wiki/Data-Management#generalization)
@@ -49,7 +49,6 @@ MIT
 
 ## Release History
 ### v0.2.0
-- avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
 - added `field_statistics_to_table` (Management - Fields)
@@ -81,6 +80,8 @@ MIT
 - added `table_to_delimited_file` (Conversion - Delimited File)
 - added `delimited_file_to_table` (Conversion - Delimited File)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
+- avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
+- distinguish between `DATE` and `DATETIME` when filtering by field type
 
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 
