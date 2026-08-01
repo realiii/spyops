@@ -124,7 +124,7 @@ class TestErase:
         ('airports_p', 3464),
         ('airports_mp_p', 191),
     ])
-    @mark.parametrize('xy_tolerance,', [
+    @mark.parametrize('xy_tolerance', [
         None,
         0.001,
     ])
