@@ -21,7 +21,8 @@ from spyops.shared.field import (
 from spyops.shared.util import element_names, make_unique_name
 from spyops.validation import (
     validate_element, validate_elements, validate_feature_class,
-    validate_geometry_dimension, validate_overwrite_input, validate_table)
+    validate_feature_classes, validate_geometry_dimension,
+    validate_overwrite_input, validate_table)
 from spyops.validation.result import _check_output
 
 
@@ -223,6 +224,57 @@ def test_validate_feature_class_zm(world_features, name, has_z, has_m):
     else:
         assert fc_function(fc) is fc
 # End test_validate_feature_class_zm function
+
+
+@mark.parametrize('name, geometry_types, throws', [
+    ('admin_a', (), False),
+    ('roads_l', (), False),
+    ('airports_p', (), False),
+    ('admin_a', GEOM_TYPE_POLYGONS, False),
+    ('roads_l', GEOM_TYPE_LINES, False),
+    ('airports_p', GEOM_TYPE_POINTS, False),
+    ('admin_a', ShapeType.polygon, False),
+    ('roads_l', ShapeType.linestring, False),
+    ('airports_p', ShapeType.point, False),
+    ('cities_p', GEOM_TYPE_POLYGONS, True),
+    (None, GEOM_TYPE_POLYGONS, True),
+])
+def test_validate_feature_classes_geometry(world_features, name, geometry_types, throws):
+    """
+    Test validate feature classes geometry
+    """
+    @validate_feature_classes('feature_class', geometry_types=geometry_types)
+    def fc_function(feature_class):
+        return feature_class
+    fc = world_features[name]
+    if throws:
+        with raises((ValueError, TypeError)):
+            fc_function(fc)
+    else:
+        assert fc_function(fc) == [fc]
+# End test_validate_feature_classes_geometry function
+
+
+@mark.parametrize('name, has_z, has_m', [
+    ('admin_a', False, False),
+    ('admin_a', True, False),
+    ('admin_a', True, True),
+    ('admin_a', False, True),
+])
+def test_validate_feature_classes_zm(world_features, name, has_z, has_m):
+    """
+    Test validate feature class ZM
+    """
+    @validate_feature_classes('feature_class', has_z=has_z, has_m=has_m)
+    def fc_function(feature_class):
+        return feature_class
+    fc = world_features[name]
+    if has_z or has_m:
+        with raises(ValueError):
+            fc_function(fc)
+    else:
+        assert fc_function(fc) == [fc]
+# End test_validate_feature_classes_zm function
 
 
 def test_validate_table_with_setting(world_tables, world_features):

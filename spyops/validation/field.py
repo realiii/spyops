@@ -8,18 +8,19 @@ from functools import wraps
 from typing import Any, Callable, ClassVar
 
 from fudgeo import Field
+from fudgeo.enumeration import FieldType
 
 from spyops.crs.unit import (
-    DecimalDegrees, LinearUnit, UNIT_CLASS_MAP, get_unit_name, unit_factory)
-from spyops.crs.util import get_crs_from_source
+    DecimalDegrees, LinearUnit, unit_factory, unit_from_number)
 from spyops.geometry.validate import (
     check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
 from spyops.shared.constant import PADDED_PIPE
-from spyops.shared.exception import CoordinateSystemNotSupportedError
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import (
-    TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, validate_fields)
+    COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, simplify_type,
+    validate_fields)
 from spyops.shared.hint import ELEMENT, NAMES
+from spyops.shared.sort import AbstractSortField
 from spyops.shared.stats import AbstractStatisticField
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
@@ -30,7 +31,7 @@ class ValidateField(AbstractValidateType):
     """
     _types: ClassVar[tuple[type, ...]] = Field,
 
-    def __init__(self, name: str, *, data_types: NAMES = (),
+    def __init__(self, name: str, *, data_types: NAMES | str = (),
                  element_name: str = '', exists: bool = True,
                  single: bool = False, exclude_geometry: bool = True,
                  exclude_primary: bool = True,
@@ -48,7 +49,7 @@ class ValidateField(AbstractValidateType):
         :param is_optional: Field argument is not required
         """
         super().__init__(name=name)
-        self._data_types: NAMES = data_types
+        self._data_types: NAMES | str = data_types
         self._element_name: str = element_name
         self._exists: bool = exists
         self._single: bool = single
@@ -151,14 +152,30 @@ class ValidateField(AbstractValidateType):
         if self._single:
             if self._is_optional and obj is None:
                 return
-            if obj.data_type.casefold().startswith(aliases):
+            if self._check_data_type([obj], aliases):
                 return
         else:
-            if all(i.data_type.casefold().startswith(aliases) for i in obj):
+            if self._check_data_type(obj, aliases):
                 return
         types = PADDED_PIPE.join(data_types)
         raise ValueError(f'{self._name} must have data type of {types}')
     # End _validate_data_type method
+    
+    @staticmethod
+    def _check_data_type(fields: list[Field],
+                         aliases: tuple[str, ...]) -> bool:
+        """
+        Check Data Type
+        """
+        dt = FieldType.datetime.casefold()
+        has_datetime = dt in aliases
+        has_date = FieldType.date.casefold() in aliases
+        valid_types = [f.data_type.casefold() for f in fields
+                       if f.data_type.casefold().startswith(aliases)]
+        if has_date and not has_datetime:
+            valid_types = [t for t in valid_types if t != dt]
+        return bool(valid_types)
+    # End _check_data_type method
 
     def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
         """
@@ -219,15 +236,8 @@ class ValidateDistance(ValidateField):
             self._validate_type(obj)
             element = self._get_element(kwargs)
             if isinstance(obj, (float, int)):
-                # noinspection PyTypeChecker
-                unit_name: str = get_unit_name(get_crs_from_source(element))
-                if cls := UNIT_CLASS_MAP.get(unit_name.casefold()):
-                    obj = cls(obj)
-                else:
-                    raise CoordinateSystemNotSupportedError(
-                        f'{self._element_name} has unsupported CRS axis units '
-                        f'{unit_name}, use a LinearUnit object instead of a '
-                        f'number for {self._name}')
+                obj = unit_from_number(
+                    obj, feature_class=element, name=self._name)
             if isinstance(obj, str):
                 if unit := unit_factory(obj):
                     obj = unit
@@ -291,41 +301,49 @@ class ValidateStatisticField(ValidateField):
 
     def _find_field(self, obj: Any, element: ELEMENT) -> Any:
         """
-        Find Fields and set them onto the statistics objects
+        Find Fields and set them onto the objects
         """
         obj = self._make_iterable(obj)
         fields = {}
-        for stat in obj:
-            field = stat.field
+        for o in obj:
+            field = o.field
             if not isinstance(field, (Field, str)):
                 continue
             # noinspection PyUnresolvedReferences
             fields[getattr(field, NAME_ATTR, field).casefold()] = field
         fields = super()._find_field(list(fields.values()), element=element)
         fields = {field.name.casefold(): field for field in fields}
-        for stat in obj:
-            field = stat.field
+        for o in obj:
+            field = o.field
             # noinspection PyUnresolvedReferences
-            stat.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
-        return [stat for stat in obj if stat.field]
+            o.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
+        return [o for o in obj if o.field]
     # End _find_field method
 
     def _validate_data_type(self, obj: Any) -> None:
         """
         Validate Data Type
         """
-        for stat in obj:
-            stat.validate()
+        for o in obj:
+            o.validate()
     # End _validate_data_type method
 
     def _validate_exists(self, obj: Any, element: ELEMENT) -> None:
         """
         Validate Exists
         """
-        obj = [stat.field for stat in obj if stat.field]
+        obj = [o.field for o in obj if o.field]
         super()._validate_exists(obj, element=element)
     # End _validate_exists method
 # End ValidateStatisticField class
+
+
+class ValidateSortField(ValidateStatisticField):
+    """
+    Validate Sort Field
+    """
+    _types: ClassVar[tuple[type, ...]] = AbstractSortField,
+# End ValidateSortField class
 
 
 class ValidateGeometryDimension(AbstractValidate):
@@ -386,6 +404,57 @@ class ValidateGeometryDimension(AbstractValidate):
             check_zm(a=a, name_a=first, b=b, name_b=other)
     # End _validate_extended method
 # End ValidateGeometryDimension class
+
+
+class ValidateCompatibleFields(AbstractValidate):
+    """
+    Validate Compatible Fields
+    """
+    def __init__(self, from_name: str, to_name: str) -> None:
+        """
+        Initialize the ValidateCompatibleFields class
+        """
+        super().__init__()
+        self._from_name: str = from_name
+        self._to_name: str = to_name
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(
+                func=func, args=args, kwargs=kwargs)
+            self._validate_compatibility(kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _validate_compatibility(self, kwargs: dict[str, Any]) -> None:
+        """
+        Validate Compatibility
+        """
+        from_field = kwargs[self._from_name]
+        to_field = kwargs[self._to_name]
+        if from_field.name == to_field.name:
+            raise ValueError(
+                f'{self._from_name} and {self._to_name} cannot be the '
+                f'same field')
+        from_type = simplify_type(from_field)
+        to_type = simplify_type(to_field)
+        compatible_types = COMPATIBILITY_LUT.get(from_type, ())
+        if to_type not in compatible_types:
+            raise TypeError(
+                f'{self._from_name} and {self._to_name} must be of the same or '
+                f'compatible data type')
+    # End _validate_compatibility method
+# End ValidateCompatibleFields class
 
 
 if __name__ == '__main__':  # pragma: no cover

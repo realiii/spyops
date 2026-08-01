@@ -41,7 +41,7 @@ def test_as_title(value, expected):
 @mark.parametrize('fc_name, expected', [
     ('hydro_4617_a', 1.1933707531202796e-05),
     ('hydro_6654_a', 1.1933719123988563e-05),
-    ('hydro_lcc_a', 1.1933696981032446e-05 ),
+    ('hydro_lcc_a', 1.1933696981032446e-05),
     ('hydro_utm11_a', 1.1933719123988563e-05),
     ('toponymy_10tm_p', 1.1933488384570633e-05),
 ])

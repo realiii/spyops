@@ -4,12 +4,18 @@ Tests for General Data Management
 """
 
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Table
+from pyproj import CRS
 from pytest import mark
 
-from spyops.environment import Setting
+from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
-from spyops.management import copy, delete, rename
+from spyops.management import (
+    copy, delete, delete_identical, find_identical,
+    rename, sort)
+from spyops.shared.enumeration import SpatialSortOption
+from spyops.shared.field import ORIG_FID, REASON, REPEAT_FID
+from spyops.shared.sort import Ascending, Descending
 
 pytestmark = [mark.management, mark.general]
 
@@ -62,6 +68,279 @@ def test_rename(ntdb_zm_small, mem_gpkg):
         rename(target_name, name)
         assert isinstance(mem_gpkg[name], FeatureClass)
 # End test_rename function
+
+
+class TestFindIdentical:
+    """
+    Test Find Identical
+    """
+    @mark.parametrize('fc_name, include, expected', [
+        ('point_p', True, [
+            (2, 3),
+            (4, 5), (4, 6),
+            (7, 8), (7, 9), (7, 10),
+            (11, 12), (11, 13), (11, 14), (11, 15)]),
+        ('point_p', False, [
+            (16, 17), (16, 18), (16, 19), (16, 20),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+            (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15)]),
+        ('multipoint_mp', True, [
+            (34, 35),  (34, 36), (34, 37), (34, 38),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+            (9, 10), (9, 11), (9, 12), (9, 13), (9, 14), (9, 15),
+            (16, 17), (16, 18), (16, 19), (16, 20), (16, 21),
+            (22, 23), (22, 24), (22, 25), (22, 26),
+            (27, 28), (27, 29), (27, 30)]),
+        ('multipoint_mp', False, [
+            (34, 35),  (34, 36), (34, 37), (34, 38),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+            (9, 10), (9, 11), (9, 12), (9, 13), (9, 14), (9, 15),
+            (16, 17), (16, 18), (16, 19), (16, 20), (16, 21),
+            (22, 23), (22, 24), (22, 25), (22, 26),
+            (27, 28), (27, 29), (27, 30)]),
+        ('linestring_l', True, [
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+            (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 18), (11, 19),
+            (20, 21), (20, 22), (20, 23), (20, 24), (20, 25), (20, 26), (20, 27),
+            (28, 29), (28, 30), (28, 31), (28, 32), (28, 33), (28, 34),
+            (35, 36), (35, 37), (35, 38), (35, 39), (35, 40)]),
+        ('linestring_l', False, [
+            (41, 42),
+            (47, 50),
+            (44, 45), (44, 46),
+            (51, 52), (51, 53), (51, 54), (51, 55),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+            (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 18), (11, 19),
+            (20, 21), (20, 22), (20, 23), (20, 24), (20, 25), (20, 26), (20, 27),
+            (28, 29), (28, 30), (28, 31), (28, 32), (28, 33), (28, 34),
+            (35, 36), (35, 37), (35, 38), (35, 39), (35, 40)]),
+        ('multilinestring_ml', True, [
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+            (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 18), (11, 19),
+            (20, 21), (20, 22), (20, 23), (20, 24), (20, 25), (20, 26), (20, 27),
+            (28, 29), (28, 30), (28, 31), (28, 32), (28, 33), (28, 34),
+            (35, 36), (35, 37), (35, 38), (35, 39), (35, 40)]),
+        ('multilinestring_ml', False, [
+            (43, 46),
+            (47, 48), (47, 49), (47, 50), (47, 51),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9),
+            (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16),
+            (1, 17), (1, 18), (1, 19), (1, 20), (1, 21), (1, 22), (1, 23),
+            (1, 24), (1, 25), (1, 26), (1, 27), (1, 28), (1, 29), (1, 30),
+            (1, 31), (1, 32), (1, 33), (1, 34), (1, 35), (1, 36), (1, 37),
+            (1, 38), (1, 39), (1, 40)]),
+        ('polygon_a', True, [
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
+            (8, 9), (8, 10), (8, 11)]),
+        ('polygon_a', False, [
+            (18, 19), (18, 20), (18, 21), (18, 22), (18, 23), (18, 24), (18, 25), (18, 26), (18, 27),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11)]),
+        ('multipolygon_ma', True, [
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
+            (8, 9), (8, 10), (8, 11),
+            (33, 34), (33, 35)]),
+        ('multipolygon_ma', False, [
+            (18, 19), (18, 20), (18, 21), (18, 22), (18, 23), (18, 24), (18, 25), (18, 26), (18, 27),
+            (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11),
+            (33, 34), (33, 35)]),
+    ])
+    def test_2d(self, identical, mem_gpkg, fc_name, include, expected):
+        """
+        Test find identical
+        """
+        source = identical[fc_name]
+        target = Table(mem_gpkg, name='repeats')
+        find_identical(source, target, fields=[REASON], include_geometry=include)
+        cursor = target.select([ORIG_FID, REPEAT_FID])
+        assert cursor.fetchall() == expected
+    # End test_2d method
+
+    @mark.parametrize('include, expected', [
+        (True, 0),
+        (False, 373),
+    ])
+    def test_multiple_columns(self, ntdb_zm_small, mem_gpkg, include, expected):
+        """
+        Test multiple fields
+        """
+        source = ntdb_zm_small['hydro_zm_a']
+        target = Table(mem_gpkg, name='repeats')
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        find_identical(source, target, fields=names, include_geometry=include)
+        assert len(target) == expected
+    # End test_multiple_columns method
+
+    @mark.parametrize('include, expected', [
+        (True, 0),
+        (False, 231),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, include, expected):
+        """
+        Test extent
+        """
+        source = ntdb_zm_small['hydro_zm_a']
+        target = Table(mem_gpkg, name='repeats')
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=CRS(4326))):
+            find_identical(source, target, fields=names, include_geometry=include)
+        assert len(target) == expected
+    # End test_extent method
+# End TestFindIdentical class
+
+
+class TestDeleteIdentical:
+    """
+    Test Delete Identical
+    """
+    @mark.parametrize('fc_name, include, pre_count, post_count', [
+        ('point_p', True, 20, 10),
+        ('point_p', False, 20, 2),
+        ('multipoint_mp', True, 38, 9),
+        ('multipoint_mp', False, 38, 9),
+        ('linestring_l', True, 55, 20),
+        ('linestring_l', False, 55, 12),
+        ('multilinestring_ml', True, 54, 19),
+        ('multilinestring_ml', False, 54, 10),
+        ('polygon_a', True, 30, 21),
+        ('polygon_a', False, 30, 11),
+        ('multipolygon_ma', True, 36, 25),
+        ('multipolygon_ma', False, 36, 15),
+    ])
+    def test_2d(self, identical, mem_gpkg, fc_name, include, pre_count, post_count):
+        """
+        Test delete identical
+        """
+        source = identical[fc_name].copy(fc_name, geopackage=mem_gpkg)
+        assert len(source) == pre_count
+        delete_identical(source, fields=[REASON], include_geometry=include)
+        assert len(source) == post_count
+    # End test_2d method
+
+    @mark.parametrize('include, count', [
+        (True, 382),
+        (False, 9),
+    ])
+    def test_multiple_columns(self, ntdb_zm_small, mem_gpkg, include, count):
+        """
+        Test multiple fields
+        """
+        name = 'hydro_zm_a'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        assert len(source) == 382
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        delete_identical(source, fields=names, include_geometry=include)
+        assert len(source) == count
+    # End test_multiple_columns method
+
+    @mark.parametrize('include, count', [
+        (True, 382),
+        (False, 151),
+    ])
+    def test_extent(self, ntdb_zm_small, mem_gpkg, include, count):
+        """
+        Test extent
+        """
+        name = 'hydro_zm_a'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        assert len(source) == 382
+        names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=CRS(4326))):
+            delete_identical(source, fields=names, include_geometry=include)
+        assert len(source) == count
+    # End test_extent method
+# End TestDeleteIdentical class
+
+
+class TestSort:
+    """
+    Test sort
+    """
+    @mark.parametrize('sorts, orig_fid', [
+        ([], 1),
+        (Ascending('point_x'), 1475),
+        ([Descending('point_x'), Ascending('feature_id')], 11674),
+    ])
+    def test_table(self, inputs, mem_gpkg, sorts, orig_fid):
+        """
+        Test table
+        """
+        source = inputs['xyzm_table']
+        target = Table(mem_gpkg, name='xyzm_table_sort')
+        tbl = sort(source, target, sort_fields=sorts)
+        cursor = tbl.select([ORIG_FID], limit=1)
+        assert cursor.fetchone() == (orig_fid,)
+    # End test_table method
+
+    @mark.parametrize('sorts, spatial_order, orig_fid', [
+        ([], SpatialSortOption.NONE, 1),
+        (Ascending('NAME'), SpatialSortOption.NONE, 16424),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.NONE, 19839),
+        ([], SpatialSortOption.UPPER_RIGHT_ASCENDING, 17891),
+        ([], SpatialSortOption.LOWER_RIGHT_DESCENDING, 19650),
+        (Ascending('NAME'), SpatialSortOption.UPPER_LEFT_ASCENDING, 17891),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.LOWER_LEFT_DESCENDING, 19650),
+    ])
+    def test_feature_class(self, inputs, mem_gpkg, sorts, spatial_order, orig_fid):
+        """
+        Test feature class
+        """
+        source = inputs['river_p']
+        target = FeatureClass(mem_gpkg, name='river_p_sort')
+        fc = sort(source, target, sort_fields=sorts,
+                  spatial_sort_option=spatial_order)
+        cursor = fc.select([ORIG_FID], include_geometry=False, limit=1)
+        assert cursor.fetchone() == (orig_fid,)
+    # End test_feature_class method
+
+    @mark.parametrize('sorts, spatial_order, orig_fid', [
+        ([], SpatialSortOption.NONE, 1),
+        (Ascending('NAME'), SpatialSortOption.NONE, 16424),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.NONE, 19839),
+        ([], SpatialSortOption.UPPER_RIGHT_ASCENDING, 17891),
+        ([], SpatialSortOption.LOWER_RIGHT_DESCENDING, 19650),
+        (Ascending('NAME'), SpatialSortOption.UPPER_LEFT_ASCENDING, 17891),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.LOWER_LEFT_DESCENDING, 19650),
+    ])
+    def test_feature_class(self, inputs, mem_gpkg, sorts, spatial_order, orig_fid):
+        """
+        Test feature class
+        """
+        source = inputs['river_p']
+        target = FeatureClass(mem_gpkg, name='river_p_sort')
+
+        fc = sort(source, target, sort_fields=sorts,
+                  spatial_sort_option=spatial_order)
+        cursor = fc.select([ORIG_FID], include_geometry=False, limit=1)
+        assert cursor.fetchone() == (orig_fid,)
+    # End test_feature_class method
+
+    @mark.zm
+    @mark.parametrize('sorts, spatial_order, orig_fid', [
+        ([], SpatialSortOption.NONE, 768),
+        (Ascending('NAME'), SpatialSortOption.NONE, 6345),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.NONE, 5625),
+        ([], SpatialSortOption.UPPER_RIGHT_ASCENDING, 20055),
+        ([], SpatialSortOption.LOWER_RIGHT_DESCENDING, 873),
+        (Ascending('NAME'), SpatialSortOption.UPPER_LEFT_ASCENDING, 20055),
+        ([Descending('NAME'), Ascending('SYSTEM')], SpatialSortOption.LOWER_LEFT_DESCENDING, 873),
+    ])
+    def test_extent(self, inputs, mem_gpkg, sorts, spatial_order, orig_fid):
+        """
+        Test extent
+        """
+        source = inputs['river_p']
+        target = FeatureClass(mem_gpkg, name='river_p_sort')
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED)):
+            fc = sort(source, target, sort_fields=sorts,
+                      spatial_sort_option=spatial_order)
+            cursor = fc.select([ORIG_FID], include_geometry=False, limit=1)
+            assert cursor.fetchone() == (orig_fid,)
+            assert fc.has_z
+            assert fc.has_m
+    # End test_extent method
+# End TestSort class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -31,6 +31,33 @@ def data_path() -> Path:
 
 
 @fixture(scope='session')
+def gpx_path(data_path) -> Path:
+    """
+    GPX Path
+    """
+    return data_path.joinpath('gpx')
+# End gpx_path function
+
+
+@fixture(scope='session')
+def csv_path(data_path) -> Path:
+    """
+    CSV Path
+    """
+    return data_path.joinpath('csv')
+# End csv_path function
+
+
+@fixture(scope='session')
+def geojson_path(data_path) -> Path:
+    """
+    GeoJSON Path
+    """
+    return data_path.joinpath('geojson')
+# End geojson_path function
+
+
+@fixture(scope='session')
 def inputs(data_path) -> Generator[GeoPackage, None, None]:
     """
     Inputs
@@ -55,6 +82,15 @@ def check_repair(data_path) -> Generator[GeoPackage, None, None]:
     """
     yield from _open_geopackage(data_path.joinpath('check_repair.gpkg'))
 # End check_repair function
+
+
+@fixture(scope='session')
+def identical(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    Identical
+    """
+    yield from _open_geopackage(data_path.joinpath('identical.gpkg'))
+# End identical function
 
 
 @fixture(scope='session')

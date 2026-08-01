@@ -17,7 +17,7 @@ from spyops.environment.context import Swap
 from spyops.query.management.projections import (
     QueryDefineProjection, QueryProject)
 from spyops.shared.keywords import COORDINATE_SYSTEM, TRANSFORM
-from spyops.shared.records import insert_many, select_and_transform_features
+from spyops.shared.records import insert_many_features, select_transform_insert
 from spyops.validation import (
     validate_coordinate_system, validate_overwrite_source, validate_result,
     validate_source_feature_class, validate_target_feature_class,
@@ -59,7 +59,7 @@ def project(source: 'FeatureClass', target: 'FeatureClass', *,
           Swap(Setting.OUTPUT_COORDINATE_SYSTEM, coordinate_system),
           Swap(Setting.GEOGRAPHIC_TRANSFORMATIONS, transform)):
         query = QueryProject(source, target=target)
-        target = select_and_transform_features(query)
+        target = select_transform_insert(query)
     return target
 # End project function
 
@@ -99,9 +99,9 @@ def define_projection(source: 'FeatureClass', target: 'FeatureClass', *,
             while features := cursor.fetchmany(FETCH_SIZE):
                 for geom, *_ in features:
                     geom.srs_id = srs_id
-                insert_many(config, executor=executor, transformer=transformer,
-                            insert_sql=insert_sql, features=features,
-                            records=records)
+                insert_many_features(
+                    config, executor=executor, transformer=transformer,
+                    insert_sql=insert_sql, features=features, records=records)
                 records.clear()
     return query.target
 # End define_projection function

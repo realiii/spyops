@@ -39,7 +39,7 @@ def as_title(setting: Setting | str | None) -> str:
 def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
     """
     Scale Factor approximation for 1 metre of XY Tolerance in Decimal Degrees,
-    if the CRS is geographic or the extent is invalid then return 1, that is,
+    if the extent is invalid or there is not geod then return 1, that is,
     no scaling will occur.  Results of this function are intended for use with
     relatively small values of XY Tolerance.
     """

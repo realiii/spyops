@@ -4,6 +4,7 @@ Utility functions for testing
 """
 
 
+import sys
 from os.path import pathsep
 from pathlib import Path
 
@@ -11,6 +12,14 @@ from pyproj.datadir import append_data_dir, get_data_dir, set_data_dir
 
 
 GRID_DIR: Path = Path(__file__).parent.parent / 'grids'
+
+
+def is_windows() -> bool:
+    """
+    Is Windows
+    """
+    return sys.platform.casefold().startswith('win')
+# End is_windows function
 
 
 def use_grids(flag: bool) -> None:

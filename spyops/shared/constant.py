@@ -28,10 +28,17 @@ SRS_ID_WKB: int = -1  # used where only need WKB
 
 SPYOPS: str = 'spyops'
 DRID: str = '__DRID__'
-
+VALUE: str = 'value'
 
 DEGREE: str = 'degree'
 METRE: str = 'metre'
+
+EXT_GPX: str = 'gpx'
+EXT_GEOJSON: str = 'geojson'
+
+
+FEATURE: str = 'Feature'
+FEATURE_COLLECTION: str = 'FeatureCollection'
 
 
 if __name__ == '__main__':  # pragma: no cover

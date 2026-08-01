@@ -29,7 +29,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj import CRS
 
 
-def build_voronoi(geometries: 'ndarray', ids: Union['ndarray', list[int]], *,
+def build_voronoi(geoms: 'ndarray', ids: Union['ndarray', list[int]], *,
                   extent: Polygon | None, grid_size: GRID_SIZE) \
         -> tuple[list, defaultdict[int, list[int]]]:
     """
@@ -37,11 +37,11 @@ def build_voronoi(geometries: 'ndarray', ids: Union['ndarray', list[int]], *,
     for feature identifiers, from feature id to polygon index.
     """
     collection = voronoi_polygons(
-        GeometryCollection(geometries), tolerance=grid_size or 0,
+        GeometryCollection(geoms), tolerance=grid_size or 0,
         extend_to=extent)
     polygons = list(get_geoms_iter(collection))
     tree = STRtree(polygons)
-    geom_indexes, poly_indexes = tree.query(geometries, predicate='intersects')
+    geom_indexes, poly_indexes = tree.query(geoms, predicate='intersects')
     visited = set()
     xref = defaultdict(list)
     for geom_idx, poly_idx in zip(geom_indexes, poly_indexes):
@@ -53,7 +53,7 @@ def build_voronoi(geometries: 'ndarray', ids: Union['ndarray', list[int]], *,
 # End build_voronoi function
 
 
-def planar_buffer(geometries: 'ndarray', distances: 'ndarray', *,
+def planar_buffer(geoms: 'ndarray', distances: 'ndarray', *,
                   side_option: SideOption, end_option: EndOption,
                   resolution: int, xy_tolerance: XY_TOL, **kwargs) -> 'ndarray':
     """
@@ -67,15 +67,15 @@ def planar_buffer(geometries: 'ndarray', distances: 'ndarray', *,
     factor, single_sided = _get_side_settings(side_option)
     kwargs = dict(quad_segs=resolution, single_sided=single_sided,
                   cap_style=str(end_option).casefold())
-    polygons = buffer(geometries, distance=distances * factor, **kwargs)
+    polygons = buffer(geoms, distance=distances * factor, **kwargs)
     polygons = _outside_only(
-        geometries, polygons=polygons, distances=distances,
+        geoms, polygons=polygons, distances=distances,
         side_option=side_option, xy_tolerance=xy_tolerance)
     return _dissolve_polygons(polygons, xy_tolerance=xy_tolerance)
 # End planar_buffer function
 
 
-def geodesic_buffer(geometries: 'ndarray', distances: 'ndarray', *,
+def geodesic_buffer(geoms: 'ndarray', distances: 'ndarray', *,
                     shape_type: str, crs: 'CRS', side_option: SideOption,
                     end_option: EndOption, resolution: int,
                     xy_tolerance: XY_TOL) -> 'ndarray':
@@ -87,7 +87,7 @@ def geodesic_buffer(geometries: 'ndarray', distances: 'ndarray', *,
     XY tolerance needs to be in units of the geometries which, in the buffer
     usage case, will be the Source CRS units.
     """
-    coords = get_coordinates(centroid(geometries))
+    coords = get_coordinates(centroid(geoms))
     projections = get_equidistant_projections(crs, coordinates=coords)
     grouped = defaultdict(list)
     for i, prj in enumerate(projections):
@@ -95,28 +95,28 @@ def geodesic_buffer(geometries: 'ndarray', distances: 'ndarray', *,
     factor, single_sided = _get_side_settings(side_option)
     kwargs = dict(quad_segs=resolution, single_sided=single_sided,
                   cap_style=str(end_option).casefold())
-    polygons = full_like(geometries, fill_value=None, dtype=object)
+    polygons = full_like(geoms, fill_value=None, dtype=object)
     for prj, indexes in grouped.items():
         if prj is None:
             continue
-        geoms = geometries[indexes]
+        gs = geoms[indexes]
         dists = distances[indexes] * factor
         transformers = _equidistant_transformers(
             crs, equidistant_crs=prj, shape_type=shape_type)
         if None in transformers:
-            polygons[indexes] = buffer(geoms, distance=dists, **kwargs)
+            polygons[indexes] = buffer(gs, distance=dists, **kwargs)
             continue
         to_eqd, from_eqd = transformers
         polygons[indexes] = from_eqd(_to_multi(buffer(
-            to_eqd(geoms), distance=dists, **kwargs)))
+            to_eqd(gs), distance=dists, **kwargs)))
     polygons = _outside_only(
-        geometries, polygons=polygons, distances=distances,
+        geoms, polygons=polygons, distances=distances,
         side_option=side_option, xy_tolerance=xy_tolerance)
     return _dissolve_polygons(polygons, xy_tolerance=xy_tolerance)
 # End geodesic_buffer function
 
 
-def _outside_only(geometries: 'ndarray', polygons: 'ndarray',
+def _outside_only(geoms: 'ndarray', polygons: 'ndarray',
                   distances: 'ndarray', side_option: SideOption,
                   xy_tolerance: XY_TOL) -> 'ndarray':
     """
@@ -135,10 +135,10 @@ def _outside_only(geometries: 'ndarray', polygons: 'ndarray',
         return polygons
     is_positive = distances > 0
     polygons[is_positive] = difference(
-        polygons[is_positive], geometries[is_positive], grid_size=xy_tolerance)
+        polygons[is_positive], geoms[is_positive], grid_size=xy_tolerance)
     is_negative = distances < 0
     polygons[is_negative] = difference(
-        geometries[is_negative], polygons[is_negative], grid_size=xy_tolerance)
+        geoms[is_negative], polygons[is_negative], grid_size=xy_tolerance)
     return polygons
 # End _outside_only function
 

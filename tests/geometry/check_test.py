@@ -26,7 +26,7 @@ class TestCheckFeatureClassGeometry:
         ('polygon_a',
          {'EMPTY': 3, 'EMPTY_POINT': 4, 'EMPTY_RING': 1, 'EXTENT': 1,
           'ORIENTATION': 15, 'OUTSIDE_RING': 1, 'OVERLAP_RING': 1,
-          'POINT_COUNT': 5, 'REPEATED_XY': 7, 'SELF_INTERSECTION': 4,
+          'POINT_COUNT': 5, 'REPEATED_XY': 5, 'SELF_INTERSECTION': 4,
           'UNCLOSED': 7}),
         ('multipoint_mp', {'EXTENT': 1, 'EMPTY': 1, 'EMPTY_POINT': 3}),
         ('multilinestring_ml',
@@ -35,7 +35,7 @@ class TestCheckFeatureClassGeometry:
         ('multipolygon_ma',
          {'EMPTY': 5, 'EMPTY_PART': 1, 'EMPTY_POINT': 5, 'EMPTY_RING': 1,
           'EXTENT': 1, 'ORIENTATION': 17, 'OUTSIDE_RING': 1, 'OVERLAP_RING': 1,
-          'POINT_COUNT': 5, 'REPEATED_XY': 8, 'SELF_INTERSECTION': 4,
+          'POINT_COUNT': 5, 'REPEATED_XY': 6, 'SELF_INTERSECTION': 4,
           'UNCLOSED': 7}),
     ])
     def test_check_repair(self, check_repair, fc_name, counts):
@@ -317,12 +317,12 @@ class TestCheckFeatureClassGeometry:
     # End test_check_nan_m method
 
     @mark.parametrize('fc_name, counts', [
-        ('structures_m_ma', (18, 16, 0, 0)),
-        ('structures_zm_ma', (18, 16, 1, 0)),
-        ('hydro_m_a', (382, 1, 0, 0)),
-        ('hydro_zm_a', (382, 1, 0, 0)),
-        ('structures_m_a', (1453, 4, 0, 0)),
-        ('structures_zm_a', (1453, 4, 4, 0)),
+        ('structures_m_ma', (2, 16, 0, 0)),
+        ('structures_zm_ma', (2, 16, 1, 0)),
+        ('hydro_m_a', (5, 1, 0, 0)),
+        ('hydro_zm_a', (5, 1, 0, 0)),
+        ('structures_m_a', (13, 4, 0, 0)),
+        ('structures_zm_a', (13, 4, 4, 0)),
         ('transmission_m_ml', (1, 1, 0, 0)),
         ('transmission_zm_ml', (1, 1, 1, 0)),
         ('topography_m_l', (485, 235, 0, 0)),
@@ -339,7 +339,7 @@ class TestCheckFeatureClassGeometry:
         ('toponymy_zm_p', (0, 0, 0, 0)),
         ('transmission_m_p', (0, 0, 0, 0)),
         ('transmission_zm_p', (0, 0, 0, 0)),
-        ('structures_ma', (18, 0, 0, 0)),
+        ('structures_ma', (2, 0, 0, 0)),
         ('structures_p', (0, 0, 0, 0)),
         ('toponymy_mp', (0, 0, 0, 0)),
         ('toponymy_p', (0, 0, 0, 0)),
@@ -352,7 +352,7 @@ class TestCheckFeatureClassGeometry:
         ('toponymy_z_p', (0, 0, 0, 0)),
         ('structures_z_p', (0, 0, 0, 0)),
         ('transmission_z_ml', (1, 0, 1, 0)),
-        ('structures_z_ma', (18, 0, 18, 0)),
+        ('structures_z_ma', (2, 0, 18, 0)),
     ])
     def test_check_coordinates(self, ntdb_zm_small, fc_name, counts):
         """

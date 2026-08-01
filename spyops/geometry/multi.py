@@ -54,7 +54,7 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
 # End build_multi function
 
 
-def build_dissolved(geometries: ndarray, shape_type: str,
+def build_dissolved(geoms: ndarray, shape_type: str,
                     grid_size: GRID_SIZE) \
         -> MultiPoint | MultiLineString | MultiPolygon | None:
     """
@@ -74,11 +74,11 @@ def build_dissolved(geometries: ndarray, shape_type: str,
         dissolver = _dissolve_polygon
     else:  # pragma: no cover
         raise ValueError(f'Unsupported shape type: {shape_type}')
-    geoms = []
-    _check_geometries(geometries, checker=checker, geoms=geoms)
-    if len(geoms) <= 1:
-        return cls(geoms)
-    return dissolver(geoms, grid_size=grid_size)
+    gs = []
+    _check_geometries(geoms, checker=checker, geoms=gs)
+    if len(gs) <= 1:
+        return cls(gs)
+    return dissolver(gs, grid_size=grid_size)
 # End build_dissolved function
 
 

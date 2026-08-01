@@ -5,10 +5,10 @@ Validation for Coordinate Reference Systems
 
 
 from functools import wraps
-from typing import Any, Callable, ClassVar, TYPE_CHECKING, Union
+from typing import Any, Callable, ClassVar, Union
 from warnings import warn
 
-from fudgeo import SpatialReferenceSystem
+from fudgeo import FeatureClass, SpatialReferenceSystem
 from pyproj import CRS
 from pyproj.transformer import Transformer
 
@@ -18,10 +18,6 @@ from spyops.shared.exception import (
     CoordinateSystemNotSupportedError, CoordinateSystemNotSupportedWarning)
 from spyops.shared.hint import NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateType
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
 
 
 class ValidateSupportedCRS(AbstractValidate):
@@ -78,11 +74,14 @@ class ValidateSupportedCRS(AbstractValidate):
         crses = []
         valid = True
         for name in self._names:
-            feature_class = kwargs[name]
-            if crs := _check_supported_crs(feature_class, name=name):
-                crses.append(crs)
-            else:
-                valid = False
+            feature_classes = self._make_iterable(kwargs[name])
+            for feature_class in feature_classes:
+                if not isinstance(feature_class, FeatureClass):
+                    continue
+                if crs := _check_supported_crs(feature_class, name=name):
+                    crses.append(crs)
+                else:
+                    valid = False
         if not valid:
             raise CoordinateSystemNotSupportedError(
                 'One or more feature classes have an unsupported '

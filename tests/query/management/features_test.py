@@ -10,26 +10,30 @@ from typing import Callable
 from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.geometry import Point, PointM, PointZ, PointZM
+from fudgeo.geometry.linestring import LineString
 from pyproj import CRS
 from pytest import approx, mark, raises
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
+from spyops.geometry.config import GeometryConfig
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
-    QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
+    QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
+    QueryCheckGeometry, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
+    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureToPrepare,
     QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryPolygonToLine, QueryRepairGeometry,
-    QuerySplitLineAtVertices,
-    QueryXYTableLine,
+    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
+    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
+    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
     QueryXYTablePoint)
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
-    ORIG_FID, ORIG_SEQ, POINT_M, POINT_X, POINT_Y,
-    POINT_Z)
+    ORIG_FID, ORIG_SEQ, POINT_M, POINT_X, POINT_Y, POINT_Z)
+from spyops.shared.sort import Ascending
+from tests.util import is_windows
 
 
 pytestmark = [mark.features, mark.query, mark.management]
@@ -208,7 +212,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         with query.source.geopackage.connection as cin:
             query._delete_intermediate()
             name = query._intermediate_table
@@ -235,7 +239,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         assert len(query._intermediate_fields) == count
     # End test_intermediate_fields method
 
@@ -250,7 +254,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         query._prepare_source()
         assert len(source.fields) == 10
     # End test_prepare_source method
@@ -265,7 +269,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         sql = query.select
         assert 'SELECT geom "[PolygonZM]", fid' in sql
         assert f'FROM {name}' in sql
@@ -281,7 +285,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         sql = query.insert
         assert '(ORIG_FID, VALUE) ' in sql
         assert f'temp.tmp_{name}' in sql
@@ -297,7 +301,7 @@ class TestQueryCalculateGeometryAttributes:
             source, field=Field('left', data_type=FieldType.real),
             geometry_attribute=GeometryAttribute.POINT_M,
             weight_option=WeightOption.TWO_D, length_unit=LengthUnit.METERS,
-            area_unit=AreaUnit.SQUARE_METERS)
+            area_unit=AreaUnit.SQUARE_METERS, where_clause='')
         sql = query.update
         assert 'UPDATE grid_zm_a ' in sql
         assert 'SET "left" = temp.tmp_grid_zm_a_' in sql
@@ -986,6 +990,538 @@ class TestQueryPolygonToLine:
         assert isinstance(query.polygon_getter, Callable)
     # End test_part_getter method
 # End TestQueryPolygonToLine class
+
+
+class TestQueryFeatureToPolygonPrepare:
+    """
+    Test QueryFeatureToPolygonPrepare
+    """
+    def _shared_query(self, inputs, mem_gpkg):
+        source = inputs['int_flavor_a']
+        target = FeatureClass(mem_gpkg, name=source.name)
+        return QueryFeatureToPrepare(
+            source, target=target, xy_tolerance=10 ** -6)
+    # End _shared_query method
+
+    def test_select(self, inputs, mem_gpkg):
+        """
+        Test select
+        """
+        query = self._shared_query(inputs, mem_gpkg)
+        sql = query.select
+        assert 'SELECT geom "[MultiPolygon]"' in sql
+        assert 'FROM int_flavor_a' in sql
+        assert 'WHERE ROWID > -1' in sql
+    # End test_select method
+
+    def test_insert(self, inputs, mem_gpkg):
+        """
+        Test insert
+        """
+        query = self._shared_query(inputs, mem_gpkg)
+        sql = query.insert
+        assert 'INTO int_flavor_a(SHAPE)' in sql
+        assert 'VALUES (?)' in sql
+    # End test_insert method
+
+    def test_source_transformer(self, inputs, mem_gpkg):
+        """
+        Test source transformer
+        """
+        query = self._shared_query(inputs, mem_gpkg)
+        assert query.source_transformer is None
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(6654)):
+            query = self._shared_query(inputs, mem_gpkg)
+            assert query.source_transformer is not None
+    # End test_source_transformer method
+
+    def test_target(self, inputs, mem_gpkg):
+        """
+        Test Target
+        """
+        query = self._shared_query(inputs, mem_gpkg)
+        assert isinstance(query.target, FeatureClass)
+    # End test_target method
+
+    def test_geometry_config(self, inputs, mem_gpkg):
+        """
+        Test geometry config
+        """
+        query = self._shared_query(inputs, mem_gpkg)
+        assert isinstance(query.geometry_config, GeometryConfig)
+    # End test_geometry_config method
+
+    def test_grid_size(self, inputs, mem_gpkg):
+        """
+        Test grid size
+        """
+        query = self._shared_query(inputs, mem_gpkg)
+        assert query.grid_size == 10**-6
+    # End test_grid_size method
+# End TestQueryFeatureToPolygonPrepare class
+
+
+class TestQueryFeatureToPolygon:
+    """
+    Test QueryFeatureToPolygon
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test get target shape type
+        """
+        query = QueryFeatureToPolygon([None], None, None, None)
+        assert query._get_target_shape_type() == ShapeType.polygon
+    # End test_get_target_shape_type method
+
+    def test_spatial_reference_system(self, inputs, mem_gpkg):
+        """
+        Test spatial reference system
+        """
+        source = inputs['int_flavor_a']
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon([source], target, None, None)
+        srs = source.spatial_reference_system
+        assert query.spatial_reference_system == srs
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(6654)):
+            query = QueryFeatureToPolygon([source], target, None, None)
+            assert query.spatial_reference_system != srs
+    # End test_spatial_reference_system method
+
+    @mark.parametrize('names, z_enabled, m_enabled', [
+        (('hydro_4617_a', 'hydro_a'), False, False),
+        (('hydro_4617_zm_a', 'hydro_a'), True, True),
+        (('hydro_4617_m_a', 'hydro_a'), False, True),
+    ])
+    def test_zm_config(self, ntdb_zm_small, names, z_enabled, m_enabled):
+        """
+        Test ZM config and has zm
+        """
+        source = [ntdb_zm_small[n] for n in names]
+        query = QueryFeatureToPolygon(source, None, None, None)
+        assert query.zm_config.z_enabled is z_enabled
+        assert query.zm_config.m_enabled is m_enabled
+        assert query._has_zm == (z_enabled, m_enabled)
+    # End test_zm_config method
+
+    @mark.parametrize('fc_name, expected', [
+        ('<does not exist>', []),
+        ('structures_4617_zm_p', ['ENTITY', 'ENTITY_NAME', 'VALDATE', 'PROVIDER', 'DATANAME', 'ACCURACY', 'FILE_NAME', 'CODE']),
+    ])
+    def test_get_unique_fields(self, ntdb_zm_small, fc_name, expected):
+        """
+        Test get unique fields
+        """
+        label = ntdb_zm_small[fc_name]
+        query = QueryFeatureToPolygon([None], None, label, None)
+        fields = query._get_unique_fields()
+        assert [f.name for f in fields] == expected
+    # End test_get_unique_fields method
+
+    @mark.parametrize('fc_name, expected', [
+        ('<does not exist>', ()),
+        ('structures_4617_zm_p', (None, None, None, None, None, None, None, None)),
+    ])
+    def test_get_null_record(self, ntdb_zm_small, fc_name, expected):
+        """
+        Get Null Record
+        """
+        label = ntdb_zm_small[fc_name]
+        query = QueryFeatureToPolygon([None], None, label, None)
+        assert query._get_null_record() == expected
+    # End test_get_null_record method
+
+    @mark.parametrize('fc_name, expected', [
+        ('<does not exist>', 'INTO polygons_a(SHAPE)'),
+        ('structures_4617_zm_p', 'INTO polygons_a(SHAPE, ENTITY, ENTITY_NAME, VALDATE'),
+    ])
+    def test_insert(self, mem_gpkg, ntdb_zm_small, fc_name, expected):
+        """
+        Test insert
+        """
+        source = [ntdb_zm_small['hydro_a']]
+        label = ntdb_zm_small[fc_name]
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon(source, target, label, None)
+        assert expected in query.insert
+    # End test_insert method
+
+    @mark.parametrize('code, xy', [
+        (4617, (-114.0575, 51.0373)),
+        (6654, (706283.9953, 5658093.1593)),
+    ])
+    def test_get_points_attributes(self, ntdb_zm_small, mem_gpkg, code, xy):
+        """
+        Test get points attributes
+        """
+        source = [ntdb_zm_small['hydro_a']]
+        label = ntdb_zm_small['structures_4617_zm_p']
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(code)):
+            query = QueryFeatureToPolygon(source, target, label, None)
+            points, attributes = query._get_points_attributes()
+            assert len(points) == len(attributes)
+            assert len(points) == 3912
+            point, *_ = points
+            assert approx((point.x, point.y), abs=0.001) == xy
+    # End test_get_points_attributes method
+
+    def test_get_points_attributes_sans_label(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test get points attributes sans label
+        """
+        source = [ntdb_zm_small['hydro_a']]
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon(source, target, None, None)
+        points, attributes = query._get_points_attributes()
+        assert len(points) == len(attributes)
+        assert len(points) == 0
+    # End test_get_points_attributes_sans_label method
+
+    @mark.parametrize('xy_tol, count', [
+        (None, 8551 if is_windows() else 8572),
+        (10**-5, 8683 if is_windows() else 8695),
+    ])
+    def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
+        """
+        Test get lines
+        """
+        names = ['topography_zm_l', 'hydro_a', 'structures_6654_ma']
+        source = [ntdb_zm_small[name] for name in names]
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon(source, target, None, xy_tol)
+        lines, *_ = query._get_lines(mem_gpkg)
+        assert len(lines) == count
+        assert all(line.has_z for line in lines)
+        assert all(line.has_m for line in lines)
+    # End test_get_lines method
+
+    def test_build_polygons(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test build polygons
+        """
+        names = ['topography_zm_l', 'hydro_a', 'structures_6654_ma']
+        source = [ntdb_zm_small[name] for name in names]
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon(source, target, None, None)
+        lines, *_ = query._get_lines(mem_gpkg)
+        polygons = query._build_polygons(lines)
+        count = 4037 if is_windows() else 4044
+        assert len(polygons) == count
+    # End test_build_polygons method
+
+    def test_add_attributes(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test add attributes
+        """
+        names = ['topography_zm_l', 'hydro_a', 'structures_6654_ma']
+        source = [ntdb_zm_small[name] for name in names]
+        label = ntdb_zm_small['structures_4617_zm_p']
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon(source, target, label, None)
+        lines, *_ = query._get_lines(mem_gpkg)
+        polygons = query._build_polygons(lines)
+        results = query._add_attributes(polygons)
+        count = 5816 if is_windows() else 5823
+        assert len(results) == count
+        _, attributes = zip(*results)
+        assert len(attributes[0]) == 8
+        count = 3732 if is_windows() else 3739
+        assert attributes.count((None,) * 8) == count
+    # End test_add_attributes method
+
+    def test_index_overlay(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test index overlay
+        """
+        names = ['topography_zm_l', 'hydro_a', 'structures_6654_ma']
+        source = [ntdb_zm_small[name] for name in names]
+        label = ntdb_zm_small['structures_4617_zm_p']
+        target = FeatureClass(mem_gpkg, name='polygons_a')
+        query = QueryFeatureToPolygon(source, target, label, None)
+        points, _ = query._get_points_attributes()
+        lines, *_ = query._get_lines(mem_gpkg)
+        polygons = query._build_polygons(lines)
+        grouper = query._index_overlay(points, polygons)
+        assert len(grouper) == 305
+    # End test_index_overlay method
+# End TestQueryFeatureToPolygon class
+
+
+class TestQueryFeatureToLine:
+    """
+    Test QueryFeatureToLine
+    """
+    def test_get_target_shape_type(self):
+        """
+        Test get target shape type
+        """
+        query = QueryFeatureToLine([None], None, None)
+        assert query._get_target_shape_type() == ShapeType.linestring
+    # End test_get_target_shape_type method
+
+    def test_spatial_reference_system(self, inputs, mem_gpkg):
+        """
+        Test spatial reference system
+        """
+        source = inputs['int_flavor_a']
+        target = FeatureClass(mem_gpkg, name='lines_l')
+        query = QueryFeatureToLine([source], target, None)
+        srs = source.spatial_reference_system
+        assert query.spatial_reference_system == srs
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(6654)):
+            query = QueryFeatureToLine([source], target, None)
+            assert query.spatial_reference_system != srs
+    # End test_spatial_reference_system method
+
+    @mark.parametrize('names, z_enabled, m_enabled', [
+        (('hydro_4617_a', 'hydro_a'), False, False),
+        (('hydro_4617_zm_a', 'hydro_a'), True, True),
+        (('hydro_4617_m_a', 'hydro_a'), False, True),
+    ])
+    def test_zm_config(self, ntdb_zm_small, names, z_enabled, m_enabled):
+        """
+        Test ZM config and has zm
+        """
+        source = [ntdb_zm_small[n] for n in names]
+        query = QueryFeatureToLine(source, None, None)
+        assert query.zm_config.z_enabled is z_enabled
+        assert query.zm_config.m_enabled is m_enabled
+        assert query._has_zm == (z_enabled, m_enabled)
+    # End test_zm_config method
+
+    def test_get_unique_fields(self):
+        """
+        Test get unique fields
+        """
+        query = QueryFeatureToLine([None], None, None)
+        assert not query._get_unique_fields()
+    # End test_get_unique_fields method
+
+    def test_get_null_record(self):
+        """
+        Get Null Record
+        """
+        query = QueryFeatureToLine([None], None, None)
+        assert not query._get_null_record()
+    # End test_get_null_record method
+
+    def test_insert(self, mem_gpkg, ntdb_zm_small):
+        """
+        Test insert
+        """
+        source = [ntdb_zm_small['hydro_a']]
+        target = FeatureClass(mem_gpkg, name='lines_l')
+        query = QueryFeatureToLine(source, target, None)
+        assert 'INTO lines_l(SHAPE)' in query.insert
+    # End test_insert method
+
+    @mark.parametrize('xy_tol, count', [
+        (None, 8551 if is_windows() else 8572),
+        (10**-5, 8683 if is_windows() else 8695),
+    ])
+    def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
+        """
+        Test get lines
+        """
+        names = ['topography_zm_l', 'hydro_a', 'structures_6654_ma']
+        source = [ntdb_zm_small[name] for name in names]
+        target = FeatureClass(mem_gpkg, name='lines_l')
+        query = QueryFeatureToLine(source, target, xy_tol)
+        lines, *_ = query._get_lines(mem_gpkg)
+        assert len(lines) == count
+        assert all(line.has_z for line in lines)
+        assert all(line.has_m for line in lines)
+    # End test_get_lines method
+# End TestQueryFeatureToLine class
+
+
+class TestQueryPointsToLine:
+    """
+    Test Query Points to Line
+    """
+    @mark.parametrize('cls', [
+        QueryPointsToLineNone,
+        QueryPointsToLineBoth,
+        QueryPointsToLineStart,
+        QueryPointsToLineEnd,
+    ])
+    def test_get_target_shape_type(self, cls):
+        """
+        Test get target shape type
+        """
+        query = cls(None, None, None, None, False, False)
+        assert query._get_target_shape_type() == ShapeType.linestring
+    # End test_get_target_shape_type method
+
+    @mark.parametrize('cls, count, in_names, sel_names', [
+        (QueryPointsToLineNone, 4, 'geom, NAME, SYSTEM, vertex_index', 'geom "[Point]", NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineBoth, 15,
+         'geom, START_NAME, START_SYSTEM, START_vertex_index, START_vertex_part, START_vertex_part_index, START_distance, START_angle, END_NAME, END_SYSTEM, END_vertex_index, END_vertex_part, END_vertex_part_index, END_distance, END_angle',
+         'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
+        (QueryPointsToLineStart, 8,
+         'geom, NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle',
+         'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
+        (QueryPointsToLineEnd, 8,
+         'geom, NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle',
+         'geom "[Point]", NAME, SYSTEM, vertex_index, vertex_part, vertex_part_index, distance, angle'),
+    ])
+    def test_field_names_and_count(self, inputs, cls, count, in_names, sel_names):
+        """
+        Test field names and count
+        """
+        source = inputs['river_p']
+        fields = (Field('NAME', data_type=FieldType.text),
+                  Field('SYSTEM', data_type=FieldType.text))
+        sort_fields = [Ascending(Field('vertex_index', data_type=FieldType.integer))]
+        query = cls(source, target=None, group_fields=fields,
+                    sort_fields=sort_fields, close_line=False,
+                    is_continuous=False)
+        field_count, insert_names, select_names = query._field_names_and_count(source)
+        assert field_count == count
+        assert insert_names == in_names
+        assert select_names == sel_names
+    # End test_field_names_and_count method
+
+    @mark.parametrize('cls', [
+        QueryPointsToLineNone,
+        QueryPointsToLineBoth,
+        QueryPointsToLineStart,
+        QueryPointsToLineEnd,
+    ])
+    def test_line_class(self, inputs, cls):
+        """
+        Test line class
+        """
+        source = inputs['river_p']
+        query = cls(source, None, None, None, False, False)
+        assert query._line_class is LineString
+    # End test_line_class method
+
+    @mark.parametrize('cls, sel_names', [
+        (QueryPointsToLineNone, 'NAME, SYSTEM'),
+        (QueryPointsToLineBoth, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineStart, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineEnd, 'NAME, SYSTEM, vertex_index'),
+    ])
+    def test_select_geometry_sans_sort(self, inputs, cls, sel_names):
+        """
+        Test select geometry
+        """
+        source = inputs['river_p']
+        fields = (Field('NAME', data_type=FieldType.text),
+                  Field('SYSTEM', data_type=FieldType.text))
+        query = cls(source, target=None, group_fields=fields,
+                    sort_fields=None, close_line=False,
+                    is_continuous=False)
+        sql = query.select_geometry
+        assert 'SELECT geom "[Point]", dense_rank()' in sql
+        assert sel_names in sql
+        assert sql.count('ORDER BY') == 1
+    # End test_select_geometry_sans_sort method
+
+    @mark.parametrize('cls, sel_names', [
+        (QueryPointsToLineNone, 'NAME, SYSTEM'),
+        (QueryPointsToLineBoth, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineStart, 'NAME, SYSTEM, vertex_index'),
+        (QueryPointsToLineEnd, 'NAME, SYSTEM, vertex_index'),
+    ])
+    def test_select_geometry_with_sort(self, inputs, cls, sel_names):
+        """
+        Test select geometry
+        """
+        source = inputs['river_p']
+        fields = (Field('NAME', data_type=FieldType.text),
+                  Field('SYSTEM', data_type=FieldType.text))
+        sort_fields = [Ascending(Field('vertex_index', data_type=FieldType.integer))]
+        query = cls(source, target=None, group_fields=fields,
+                    sort_fields=sort_fields, close_line=False,
+                    is_continuous=False)
+        sql = query.select_geometry
+        assert 'SELECT geom "[Point]", dense_rank()' in sql
+        assert sel_names in sql
+        assert sql.count('ORDER BY') == 2
+        assert 'ORDER BY __DRID__, vertex_index' in sql
+    # End test_select_geometry_with_sort method
+# End TestQueryPointsToLine class
+
+
+class TestQueryAdjust3DZ:
+    """
+    Tests for QueryAdjust3DZ
+    """
+    def test_delete_intermediate(self, grid_index):
+        """
+        Test delete intermediate
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        with query.source.geopackage.connection as cin:
+            query._delete_intermediate()
+            name = query._intermediate_table
+            assert name.startswith('temp.tmp_grid_zm_a_adjust_z_')
+            sql = f"""SELECT * FROM {name}"""
+            cin.execute(sql)
+            query._delete_intermediate()
+            with raises(OperationalError):
+                cin.execute(sql)
+    # End test_delete_intermediate method
+
+    def test_intermediate_fields(self, grid_index):
+        """
+        Test intermediate fields
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        assert len(query._intermediate_fields) == 2
+    # End test_intermediate_fields method
+
+    def test_select(self, grid_index):
+        """
+        Test select statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        sql = query.select
+        assert 'SELECT geom "[PolygonZM]", fid' in sql
+        assert f'FROM grid_zm_a' in sql
+    # End test_select method
+
+    def test_select_extent(self, grid_index):
+        """
+        Test select statement with extent
+        """
+        source = grid_index['grid_zm_a']
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 50, -110, 52, CRS(4326))):
+            query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+            sql = query.select
+            assert 'SELECT geom "[PolygonZM]", fid' in sql
+            assert 'FROM grid_zm_a' in sql
+            assert 'WHERE minx <= -113.9999' in sql
+    # End test_select_extent method
+
+    def test_insert(self, grid_index):
+        """
+        Test insert statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        sql = query.insert
+        assert '(ORIG_FID, SHAPE) ' in sql
+        assert f'temp.tmp_grid_zm_a' in sql
+    # End test_insert method
+
+    def test_update(self, grid_index):
+        """
+        Test update statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
+        sql = query.update
+        assert 'UPDATE grid_zm_a ' in sql
+        assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
+    # End test_update method
+# End TestQueryAdjust3DZ class
 
 
 if __name__ == '__main__':  # pragma: no cover

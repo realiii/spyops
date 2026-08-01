@@ -6,10 +6,10 @@ Field
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.enumeration import ShapeType, FieldType
+from fudgeo.enumeration import FieldType, ShapeType
 
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, NAMES
-from spyops.shared.util import make_unique_name
+from spyops.shared.util import make_unique_name, safe_float, safe_int
 
 
 GEOM_TYPE_POINTS: NAMES = ShapeType.point, ShapeType.multi_point
@@ -52,10 +52,31 @@ TEXT_AND_NUMBERS: NAMES = (*TEXTS, *NUMBERS)
 TEXT_AND_REALS: NAMES = (*TEXTS, *REALS)
 
 
+COMPATIBILITY_LUT: dict[str, list[str] | tuple[str, ...]] = {
+    FieldType.blob: (FieldType.blob,),
+    FieldType.boolean: TEXT_AND_NUMBERS,
+    FieldType.date: (*TEXTS, *DATES),
+    FieldType.datetime: (*TEXTS, *DATES),
+    FieldType.double: TEXT_AND_NUMBERS,
+    FieldType.float: TEXT_AND_NUMBERS,
+    FieldType.integer: TEXT_AND_NUMBERS,
+    FieldType.mediumint: TEXT_AND_NUMBERS,
+    FieldType.real: TEXT_AND_NUMBERS,
+    FieldType.smallint: TEXT_AND_NUMBERS,
+    FieldType.text: TEXTS,
+    FieldType.timestamp: (*TEXTS, *DATES),
+    FieldType.tinyint: TEXT_AND_NUMBERS,
+}
+
+
 VALUE: Field = Field('VALUE', data_type=FieldType.real)
+FREQUENCY: Field = Field('FREQUENCY', data_type=FieldType.integer)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+REPEAT_FID: Field = Field(
+    'REPEAT_FID', data_type=FieldType.integer,
+    alias='Repeat Feature Identifier')
 ORIG_SEQ: Field = Field(
     'ORIG_SEQ', data_type=FieldType.integer,
     alias='Original Sequence Number')
@@ -78,6 +99,84 @@ POINT_Z: Field = Field(
     'POINT_Z', data_type=FieldType.real, alias='Z Coordinate')
 POINT_M: Field = Field(
     'POINT_M', data_type=FieldType.real, alias='M Coordinate')
+FIELD_NAME: Field = Field(
+    'FIELD_NAME', data_type=FieldType.text, alias='Field Name')
+FIELD_ALIAS: Field = Field(
+    'FIELD_ALIAS', data_type=FieldType.text, alias='Alias')
+FIELD_TYPE: Field = Field(
+    'FIELD_TYPE', data_type=FieldType.text, alias='Field Type')
+MIN_X: Field = Field('minx', data_type=FieldType.real)
+MIN_Y: Field = Field('miny', data_type=FieldType.real)
+MAX_X: Field = Field('maxx', data_type=FieldType.real)
+MAX_Y: Field = Field('maxy', data_type=FieldType.real)
+
+
+NAME: Field = Field('NAME', data_type=FieldType.text)
+DESCRIPTION: Field = Field('DESCRIPTION', data_type=FieldType.text)
+TYPE: Field = Field('TYPE', data_type=FieldType.text)
+COMMENT: Field = Field('COMMENT', data_type=FieldType.text)
+SYMBOL: Field = Field('SYMBOL', data_type=FieldType.text)
+ELEVATION: Field = Field('ELEVATION', data_type=FieldType.real)
+DT: Field = Field('DT', data_type=FieldType.datetime)
+
+
+GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(
+    'GNSS_POSITIONSOURCETYPE', data_type=FieldType.text,
+    alias='Position Source Type')
+GNSS_FIX_TYPE_FIELD: Field = Field(
+    'GNSS_FIXTYPE', data_type=FieldType.text, alias='Fix Type')
+GNSS_NUM_SATS_FIELD: Field = Field(
+    'GNSS_NUMSATS', data_type=FieldType.integer, alias='Number of Satellites')
+GNSS_WORST_FIX_TYPE_FIELD: Field = Field(
+    'GNSS_WORST_FIXTYPE', data_type=FieldType.text, alias='Worst Fix Type')
+
+
+GNSS_COMMON_FIELDS: FIELDS = (
+    GNSS_POSITION_SOURCE_TYPE_FIELD,
+    Field('GNSS_RECEIVER', data_type=FieldType.text, alias='Receiver Name'),
+    Field('GNSS_LATITUDE', data_type=FieldType.real, alias='Latitude'),
+    Field('GNSS_LONGITUDE', data_type=FieldType.real, alias='Longitude'),
+    Field('GNSS_ALTITUDE', data_type=FieldType.real, alias='Altitude'),
+    Field('GNSS_H_RMS', data_type=FieldType.real,
+          alias='Horizontal Accuracy (m)'),
+    Field('GNSS_V_RMS', data_type=FieldType.real,
+          alias='Vertical Accuracy (m)'),
+    Field('GNSS_FIXDATETIME', data_type=FieldType.datetime, alias='Fix Time'),
+    GNSS_FIX_TYPE_FIELD,
+    Field('GNSS_CORRECTIONAGE', data_type=FieldType.real,
+          alias='Correction Age'),
+    Field('GNSS_STATIONID', data_type=FieldType.integer, alias='Station ID'),
+    GNSS_NUM_SATS_FIELD,
+    Field('GNSS_PDOP', data_type=FieldType.real, alias='PDOP'),
+    Field('GNSS_HDOP', data_type=FieldType.real, alias='HDOP'),
+    Field('GNSS_VDOP', data_type=FieldType.real, alias='VDOP'),
+    Field('GNSS_DIRECTION', data_type=FieldType.real,
+          alias='Direction of travel (°)'),
+    Field('GNSS_SPEED', data_type=FieldType.real, alias='Speed (km/h)'),
+    Field('SNSR_AZIMUTH', data_type=FieldType.real,
+          alias='Compass reading (°)'),
+    Field('GNSS_AVG_H_RMS', data_type=FieldType.real,
+          alias='Average Horizontal Accuracy (m)'),
+    Field('GNSS_AVG_V_RMS', data_type=FieldType.real,
+          alias='Average Vertical Accuracy (m)'),
+    Field('GNSS_AVG_POSITIONS', data_type=FieldType.integer,
+          alias='Averaged Positions'),
+    Field('GNSS_H_STDDEV', data_type=FieldType.real,
+          alias='Standard Deviation (m)'),
+)
+GNSS_POLY_LINE_FIELDS: FIELDS = (
+    Field('GNSS_AVG_H_RMS', data_type=FieldType.real,
+          alias='Average Horizontal Accuracy (m)'),
+    Field('GNSS_AVG_V_RMS', data_type=FieldType.real,
+          alias='Average Vertical Accuracy (m)'),
+    Field('GNSS_WORST_H_RMS', data_type=FieldType.real,
+          alias='Worst Horizontal Accuracy (m)'),
+    Field('GNSS_WORST_V_RMS', data_type=FieldType.real,
+          alias='Worst Vertical Accuracy (m)'),
+    GNSS_WORST_FIX_TYPE_FIELD,
+    Field('GNSS_MANUAL_LOCATIONS', data_type=FieldType.integer,
+          alias='Number of Manual Locations'),
+)
 
 
 def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,
@@ -136,12 +235,12 @@ def make_field_names(fields: FIELDS) -> str:
 # End make_field_names function
 
 
-def add_orig_fid(feature_class: FeatureClass) -> FIELDS:
+def add_orig_fid(element: ELEMENT) -> FIELDS:
     """
     Add Original FID
     """
     key = ORIG_FID.name.casefold()
-    fields = list(validate_fields(feature_class, fields=feature_class.fields))
+    fields = list(validate_fields(element, fields=element.fields))
     names = [f.name.casefold() for f in fields]
     if key not in names:
         return ORIG_FID, *fields
@@ -204,12 +303,30 @@ def _field_name_type(fields: FIELDS) -> dict[tuple[str, str], Field]:
     """
     lookup = {}
     for field in fields:
-        data_type = field.data_type.casefold()
-        data_type = next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
-                          if data_type.startswith(aliases)), data_type)
-        lookup[field.name.casefold(), data_type] = field
+        lookup[field.name.casefold(), simplify_type(field)] = field
     return lookup
 # End _field_name_type function
+
+
+def simplify_type(field: Field) -> str:
+    """
+    Simplify Data Type to SQLite / fudgeo expected Data Type
+    """
+    data_type = field.data_type.casefold()
+    dt = FieldType.datetime
+    if data_type.startswith(dt.casefold()):
+        return dt
+    return next((type_ for aliases, type_ in ALIAS_TYPE_LUT.items()
+                 if data_type.startswith(aliases)), field.data_type)
+# End simplify_type function
+
+
+def filter_by_data_type(fields: FIELDS, data_types: NAMES) -> FIELDS:
+    """
+    Filter by Data Type
+    """
+    return [fld for fld in fields if simplify_type(fld) in data_types]
+# End filter_by_data_type function
 
 
 def clone_field(field: Field, name: str, allow_null: bool = False) -> Field:
@@ -234,6 +351,48 @@ def make_unique_fields(base: FIELDS, others: FIELDS) -> FIELDS:
     return [clone_field(f, name=make_unique_name(f.name, names=names))
             for f in others]
 # End make_unique_fields function
+
+
+def find_field_data_type(field_names: NAMES, data: dict[str, list],
+                         str_source: bool) -> NAMES:
+    """
+    Find Field Data Types for each column
+    """
+    if not field_names:
+        return ()
+    if not data:
+        return tuple(FieldType.text for _ in field_names)
+    # noinspection PyTypeChecker
+    return tuple(_guess_data_type(data.get(name), str_source=str_source)
+                 for name in field_names)
+# End find_field_data_type function
+
+
+def _guess_data_type(values: list, str_source: bool) -> str:
+    """
+    Guess the underlying data type values or from string data that needs to be
+    inspected as being numeric.
+    """
+    default = FieldType.text
+    if not values:  # pragma: no cover
+        return default
+    if str_source:
+        int_count = [safe_int(v, strict=True) is not None
+                     for v in values].count(True)
+        float_count = [safe_float(v) is not None for v in values].count(True)
+    else:
+        types = [type(v) for v in values if isinstance(v, (int, float))]
+        int_count = types.count(int)
+        float_count = types.count(float)
+    if max(int_count, float_count) < (len(values) * 0.7):
+        return default
+    if float_count >= int_count:
+        return FieldType.real
+    elif float_count < int_count:
+        return FieldType.integer
+    else:
+        return default
+# End _guess_data_type function
 
 
 if __name__ == '__main__':  # pragma: no cover

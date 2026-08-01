@@ -1,6 +1,6 @@
 [project]
 name = "spyops"
-version = "0.1.1"
+version = "0.2.0"
 description = """\
     Spatial Python Operations (SPyOps) -- an evolving collection of GIS Analysis, \
     Spatial Statistics, Spatial Operations, and Spatial Data Management capabilities.\
@@ -21,16 +21,16 @@ keywords = ["geopackage", "geometry", "gis", "spatial", "operations", "analysis"
 requires-python = ">=3.12"
 dependencies = [
     "bottleneck>=1.6.0",
-    "fudgeo>=1.5.8",
-    "numpy>=2.4.4",
+    "fudgeo>=1.5.10",
+    "numpy>=2.5.1",
     "pyproj>=3.7.2",
     "shapely>=2.1.2",
 ]
 
 [dependency-groups]
 dev = [
-    "coverage>=7.13.5",
-    "pytest>=9.0.3",
+    "coverage>=7.15.2",
+    "pytest>=9.1.1",
     "pytest-xdist>=3.8.0",
 ]
 

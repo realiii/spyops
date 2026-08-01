@@ -14,7 +14,7 @@ from spyops.management import (
     remove_spatial_index, add_attribute_index)
 
 
-pytestmark = [mark.management, mark.indexes]
+pytestmark = [mark.management, mark.index]
 
 
 def test_add_spatial_index(mem_gpkg):

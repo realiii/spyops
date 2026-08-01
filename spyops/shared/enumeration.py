@@ -109,6 +109,23 @@ class AlgorithmOption(StrEnum):
 # End AlgorithmOption class
 
 
+class SimplifyAlgorithmOption(StrEnum):
+    """
+    Simplify Algorithm Option
+    """
+    POINT_REMOVE = auto()
+# End SimplifyAlgorithmOption class
+
+
+class SmoothAlgorithmOption(StrEnum):
+    """
+    Smooth Algorithm Option
+    """
+    PAEK = auto()
+    BEZIER = auto()
+# End SmoothAlgorithmOption class
+
+
 class OutputTypeOption(StrEnum):
     """
     Output Type Options
@@ -117,6 +134,16 @@ class OutputTypeOption(StrEnum):
     LINE = auto()
     POINT = auto()
 # End OutputTypeOption class
+
+
+class StatisticOutputOption(StrEnum):
+    """
+    Statistic Output Type Options
+    """
+    NUMERIC = auto()
+    TEXT = auto()
+    DATE = auto()
+# End StatisticOutputOption class
 
 
 class FieldProperty(StrEnum):
@@ -140,7 +167,7 @@ class WeightOption(StrEnum):
 
 class GeometryAttribute(StrEnum):
     """
-    GeometryAttributes
+    Geometry Attributes
     """
     POINT_X = auto()
     POINT_Y = auto()
@@ -192,6 +219,20 @@ class GeometryAttribute(StrEnum):
 # End GeometryAttribute class
 
 
+class GeoJSONGeometryType(StrEnum):
+    """
+    GeoJSON Geometry Type
+    """
+    AUTO = auto()
+    POINT = auto()
+    MULTI_POINT = auto()
+    LINESTRING = auto()
+    MULTI_LINESTRING = auto()
+    POLYGON = auto()
+    MULTI_POLYGON = auto()
+# End GeoJSONGeometryType class
+
+
 class GeometryCheck(IntFlag, boundary=STRICT):
     """
     Geometry Check Options
@@ -233,12 +274,112 @@ class Statistic(StrEnum):
     SUMMATION = auto()
 
     COUNT = auto()
+    COUNT_NULL = auto()
+    COUNT_NON_NULL = auto()
     UNIQUE = auto()
     MODE = auto()
     FIRST = auto()
     LAST = auto()
     CONCATENATE = auto()
+
+    SKEWNESS = auto()
+    KURTOSIS = auto()
+    VARIATION = auto()
+
+    FIRST_QUARTILE = auto()
+    THIRD_QUARTILE = auto()
+    INTERQUARTILE_RANGE = auto()
+    COUNT_OUTLIER = auto()
+
+    LEAST_COMMON = auto()
+    MOST_COMMON = auto()
 # End Statistic class
+
+
+class SortOrder(StrEnum):
+    """
+    Sort Order
+    """
+    ASCENDING = auto()
+    DESCENDING = auto()
+# End SortOrder class
+
+
+class AttributeSource(StrEnum):
+    """
+    Attribute Source
+    """
+    NONE = auto()
+    BOTH = auto()
+    START = auto()
+    END = auto()
+# End AttributeSource class
+
+
+class SpatialSortOption(StrEnum):
+    """
+    Spatial Sort Option
+    """
+    NONE = auto()
+    UPPER_LEFT_ASCENDING = auto()
+    LOWER_LEFT_ASCENDING = auto()
+    UPPER_RIGHT_ASCENDING = auto()
+    LOWER_RIGHT_ASCENDING = auto()
+    UPPER_LEFT_DESCENDING = auto()
+    LOWER_LEFT_DESCENDING = auto()
+    UPPER_RIGHT_DESCENDING = auto()
+    LOWER_RIGHT_DESCENDING = auto()
+# End SpatialSortOption class
+
+
+class StandardizationMethod(StrEnum):
+    """
+    Standardization Method
+    """
+    Z_SCORE = auto()
+    MIN_MAX = auto()
+    ABSOLUTE_MAX = auto()
+    ROBUST = auto()
+# End StandardizationMethod class
+
+
+class TransformationMethod(StrEnum):
+    """
+    Transformation Method
+    """
+    INVERSE = auto()
+    SQUARE_ROOT = auto()
+    SQUARE = auto()
+    LOGARITHM = auto()
+    EXPONENTIAL = auto()
+    BOX_COX = auto()
+    INVERSE_BOX_COX = auto()
+# End TransformationMethod class
+
+
+class ReclassificationMethod(StrEnum):
+    """
+    Reclassification Method
+    """
+    DEFINED_INTERVAL = auto()
+    EQUAL_INTERVAL = auto()
+    MANUAL = auto()
+    NATURAL_BREAKS = auto()
+    QUANTILE = auto()
+    STANDARD_DEVIATION = auto()
+    UNIQUE_VALUES = auto()
+# End ReclassificationMethod class
+
+
+class StandardDeviationOptions(StrEnum):
+    """
+    Standard Deviation Options
+    """
+    ONE = auto()
+    HALF = auto()
+    THIRD = auto()
+    QUARTER = auto()
+# End StandardDeviationOptions class
 
 
 DEFAULT_GEOM_CHECKS: GeometryCheck = (

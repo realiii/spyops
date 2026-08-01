@@ -124,7 +124,7 @@ class TestErase:
         ('airports_p', 3464),
         ('airports_mp_p', 191),
     ])
-    @mark.parametrize('xy_tolerance,', [
+    @mark.parametrize('xy_tolerance', [
         None,
         0.001,
     ])
@@ -1476,8 +1476,6 @@ class TestSymmetricalDifference:
         operator = ntdb_zm_tile[operator_name].copy(
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
             where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
-        print(source.extent)
-        print(operator.extent)
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
             result = symmetrical_difference(

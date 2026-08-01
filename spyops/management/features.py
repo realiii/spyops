@@ -4,7 +4,7 @@ Data Management for Features
 """
 
 
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from fudgeo import Field, SpatialReferenceSystem
 from fudgeo import Table
@@ -22,36 +22,45 @@ from spyops.geometry.repair import repair_feature_class_geometry
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.management.util import _build_lines_factory
 from spyops.query.management.features import (
-    QueryAddXYCoordinates, QueryCalculateGeometryAttributes, QueryCheckGeometry,
-    QueryCopyFeatures, QueryFeatureEnvelopeToPolygon, QueryFeatureToPoint,
+    QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
+    QueryCheckGeometry, QueryCopyFeatures, QueryFeatureEnvelopeToPolygon,
+    QueryFeatureToLine, QueryFeatureToPoint, QueryFeatureToPolygon,
     QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryPolygonToLine, QueryRepairGeometry,
-    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
+    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
+    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.shared.keywords import (
-    AREA_UNIT, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD, END_Y_FIELD,
-    FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS, GROUP_OPTION,
-    LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT, POINT_TYPE, SOURCE,
-    START_X_FIELD, START_Y_FIELD, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
+    AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD,
+    END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS,
+    GROUP_OPTION, LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
+    POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD, START_Y_FIELD, TARGET,
+    WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
-    DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
+    AttributeSource, DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck,
+    GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
+    WeightOption)
 from spyops.shared.field import GEOM_TYPE_MULTI
-from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD_STR, SORT_FIELDS,
+    XY_TOL)
 from spyops.shared.records import (
-    extend_records, insert_many, select_and_transform_features)
+    extend_records, insert_many_features, select_transform_insert)
 from spyops.validation import (
-    validate_coordinate_system, validate_element, validate_field,
-    validate_geometry_group_option, validate_group_option,
-    validate_int_flag_enumeration, validate_range, validate_source_element,
-    validate_source_numeric_field, validate_str_enumeration,
-    validate_feature_class, validate_geometry_attribute,
-    validate_overwrite_source, validate_result, validate_source_feature_class,
+    validate_coordinate_system, validate_element, validate_feature_classes,
+    validate_field, validate_geometry_group_option, validate_group_option,
+    validate_int_flag_enumeration, validate_overwrite_input, validate_range,
+    validate_sort_field, validate_source_element, validate_source_numeric_field,
+    validate_str_enumeration, validate_feature_class,
+    validate_geometry_attribute, validate_overwrite_source, validate_result,
+    validate_source_feature_class, validate_supported_crs,
     validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
 
 
 __all__ = [
@@ -60,7 +69,8 @@ __all__ = [
     'repair_geometry', 'xy_table_to_point', 'xy_table_to_line', 'xy_to_line',
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
     'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
-    'polygon_to_line']
+    'polygon_to_line', 'feature_to_polygon', 'feature_to_line',
+    'points_to_line', 'adjust_3d_z']
 
 
 @validate_result()
@@ -91,8 +101,9 @@ def multipart_to_singlepart(source: 'FeatureClass',
                 continue
             for geom, *attrs in features:
                 parts.extend([(part, *attrs) for part in geom])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=parts, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=parts, records=records)
             parts.clear()
     return query.target
 # End multipart_to_singlepart function
@@ -124,7 +135,7 @@ def copy_features(source: 'FeatureClass', target: 'FeatureClass', *,
     features using a where clause.
     """
     query = QueryCopyFeatures(source, target=target, where_clause=where_clause)
-    return select_and_transform_features(query)
+    return select_transform_insert(query)
 # End copy_features function
 
 
@@ -176,8 +187,8 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
                                   geometry_attribute: GeometryAttribute, *,
                                   weight_option: WeightOption = WeightOption.TWO_D,
                                   length_unit: LengthUnit = LengthUnit.METERS,
-                                  area_unit: AreaUnit = AreaUnit.SQUARE_METERS) \
-        -> 'FeatureClass':
+                                  area_unit: AreaUnit = AreaUnit.SQUARE_METERS,
+                                  where_clause: str = '') -> 'FeatureClass':
     """
     Calculate Geometry Attributes
 
@@ -269,7 +280,7 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     with QueryCalculateGeometryAttributes(
             source, field=field, geometry_attribute=geometry_attribute,
             weight_option=weight_option, length_unit=length_unit,
-            area_unit=area_unit) as query:
+            area_unit=area_unit, where_clause=where_clause) as query:
         query_insert = query.insert
         item_getter = query.item_getter
         attr_getter = query.attribute_getter
@@ -411,8 +422,8 @@ def repair_geometry(source: 'FeatureClass', drop_empty: bool = False) \
 def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
                       coordinate_system: CRS | SpatialReferenceSystem, *,
                       x_field: Field | str, y_field: Field | str,
-                      z_field: Field | str | None = None,
-                      m_field: Field | str | None = None) -> 'FeatureClass':
+                      z_field: OPT_FIELD_STR = None,
+                      m_field: OPT_FIELD_STR = None) -> 'FeatureClass':
     """
     XY Table to Point
 
@@ -446,9 +457,10 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
                         for row in rows]
             if not (features := filter_features(features)):
                 continue
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=features,
-                        records=records, extent=extent)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=features, records=records,
+                extent=extent)
     return query.target
 # End xy_table_to_point function
 
@@ -504,9 +516,9 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
             features = [(line, *row) for line, row in zip(lines, rows)]
             if not (features := filter_features(features)):
                 continue
-            insert_many(config, executor=executor, transformer=None,
-                        insert_sql=insert_sql, features=features,
-                        records=records)
+            insert_many_features(
+                config, executor=executor, transformer=None,
+                insert_sql=insert_sql, features=features, records=records)
     return query.target
 # End xy_to_line function
 
@@ -659,9 +671,9 @@ def feature_to_point(source: 'FeatureClass', target: 'FeatureClass',
             coordinates = getter(geometries)
             features = [(cls.from_tuple(coords, srs_id=srs_id), *attrs)
                         for coords, (_, *attrs) in zip(coordinates, features)]
-            insert_many(config, executor=executor, transformer=None,
-                        insert_sql=insert_sql, features=features,
-                        records=records)
+            insert_many_features(
+                config, executor=executor, transformer=None,
+                insert_sql=insert_sql, features=features, records=records)
     return query.target
 # End feature_to_point function
 
@@ -701,8 +713,9 @@ def feature_vertices_to_points(source: 'FeatureClass', target: 'FeatureClass',
             for _, *attrs in features:
                 fid, *_ = attrs
                 parts.extend([(point, *attrs) for point in points[fid]])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=parts, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=parts, records=records)
             parts.clear()
     return query.target
 # End feature_vertices_to_points function
@@ -738,8 +751,9 @@ def split_line_at_vertices(source: 'FeatureClass', target: 'FeatureClass') \
                 continue
             for geom, fid, *attrs in features:
                 lines.extend([(*rec, *attrs) for rec in getter([(geom, fid)])])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=lines, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=lines, records=records)
             lines.clear()
     return query.target
 # End split_line_at_vertices function
@@ -778,11 +792,145 @@ def polygon_to_line(source: 'FeatureClass', target: 'FeatureClass') \
                     lines.extend([
                         (cls(ring.coordinates, srs_id=srs_id), *attrs)
                         for ring in poly if len(ring.coordinates) >= 2])
-            insert_many(config, executor=executor, transformer=transformer,
-                        insert_sql=insert_sql, features=lines, records=records)
+            insert_many_features(
+                config, executor=executor, transformer=transformer,
+                insert_sql=insert_sql, features=lines, records=records)
             lines.clear()
     return query.target
 # End polygon_to_line function
+
+
+@validate_result()
+@validate_feature_classes(SOURCE, geometry_types=(
+        ShapeType.linestring, ShapeType.multi_linestring,
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_feature_class(LABEL, geometry_types=(
+        ShapeType.point, ShapeType.multi_point), is_optional=True)
+@validate_xy_tolerance()
+@validate_supported_crs(SOURCE, LABEL)
+@validate_overwrite_input(TARGET, SOURCE, LABEL)
+def feature_to_polygon(source: FEATURE_CLASSES, target: 'FeatureClass', *,
+                       label: Optional['FeatureClass'] = None,
+                       xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Feature to Polygon
+
+    Creates a feature class containing polygons generated from enclosed areas
+    defined by the features of input line and / or polygon features.
+    Optionally, adds attributes to the generated polygons based on the label
+    point feature class.
+    """
+    query = QueryFeatureToPolygon(
+        source, target=target, label=label, xy_tolerance=xy_tolerance)
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        records = []
+        results = query.build_features()
+        extend_records(results, records=records, config=query.geometry_config)
+        executor(sql=query.insert, data=records)
+    return query.target
+# End feature_to_polygon function
+
+
+@validate_result()
+@validate_feature_classes(SOURCE, geometry_types=(
+        ShapeType.linestring, ShapeType.multi_linestring,
+        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_target_feature_class()
+@validate_xy_tolerance()
+@validate_supported_crs(SOURCE)
+@validate_overwrite_source()
+def feature_to_line(source: FEATURE_CLASSES, target: 'FeatureClass', *,
+                    xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Feature to Line
+
+    Creates a feature class containing lines generated from the intersections
+    of input line features and / or the boundary of polygon features
+    """
+    query = QueryFeatureToLine(source, target=target, xy_tolerance=xy_tolerance)
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        records = []
+        results = query.build_features()
+        extend_records(results, records=records, config=query.geometry_config)
+        executor(sql=query.insert, data=records)
+    return query.target
+# End feature_to_line function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=(ShapeType.point,))
+@validate_target_feature_class()
+@validate_field(GROUP_FIELDS, element_name=SOURCE)
+@validate_sort_field(SORT_FIELDS_ARG, element_name=SOURCE)
+@validate_str_enumeration(ATTRIBUTE_SOURCE, AttributeSource)
+@validate_overwrite_source()
+def points_to_line(source: 'FeatureClass', target: 'FeatureClass', *,
+                   group_fields: FIELDS | FIELD_NAMES,
+                   sort_fields: SORT_FIELDS = (),
+                   close_line: bool = False, construct_continuous: bool = True,
+                   attribute_source: AttributeSource = AttributeSource.NONE) \
+        -> 'FeatureClass':
+    """
+    Points to Line
+
+    Create a line feature class from the points in a feature class based on
+    specified grouping (one or more fields).  Optionally, sort the points by
+    one or more fields.  Add attributes to the line features using the
+    specified attribute source option.  Lines can be generated as segments
+    (two point) or continuous and be closed or open.
+
+    """
+    group_fields: FIELDS
+    if attribute_source == AttributeSource.START:
+        cls = QueryPointsToLineStart
+    elif attribute_source == AttributeSource.END:
+        cls = QueryPointsToLineEnd
+    elif attribute_source == AttributeSource.BOTH:
+        cls = QueryPointsToLineBoth
+    else:
+        cls = QueryPointsToLineNone
+    query = cls(source, target=target, group_fields=group_fields,
+                sort_fields=sort_fields, close_line=close_line,
+                is_continuous=construct_continuous)
+    records = []
+    insert_sql = query.insert
+    config = query.geometry_config
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        for results in query.line_features():
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End points_to_line function
+
+
+@validate_result()
+@validate_source_feature_class(has_z=True)
+def adjust_3d_z(source: 'FeatureClass',
+                adjuster: Callable[['ndarray'], 'ndarray'], *,
+                where_clause: str = '') -> 'FeatureClass':
+    """
+    Adjust 3D Z
+
+    Adjust the Z values in 3D features using the specified adjuster function.
+    """
+    with QueryAdjust3DZ(source, adjuster=adjuster,
+                        where_clause=where_clause) as query:
+        query_insert = query.insert
+        z_adjuster = query.z_adjuster
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                cin.executemany(query_insert, z_adjuster(features))
+            cin.execute(query.update)
+    return query.target
+# End adjust_3d_z function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

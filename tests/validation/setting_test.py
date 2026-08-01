@@ -7,7 +7,7 @@ from pytest import mark
 
 from spyops.environment.enumeration import Setting
 from spyops.environment.context import Swap
-from spyops.validation import validate_xy_tolerance
+from spyops.validation import validate_tolerance, validate_xy_tolerance
 
 
 pytestmark = [mark.validation]
@@ -29,6 +29,24 @@ def test_validate_xy_tolerance_sans_setting(value, expected):
 
     assert xy_function(value) == expected
 # End test_validate_xy_tolerance_sans_setting function
+
+
+@mark.parametrize('value, expected', [
+    (None, None),
+    (0, 0.),
+    (-10, 0.),
+    ('10', 10.),
+])
+def test_validate_zm_tolerance(value, expected):
+    """
+    Test validate Z/M tolerance
+    """
+    @validate_tolerance('tol')
+    def tol_function(tol=None):
+        return tol
+
+    assert tol_function(value) == expected
+# End test_validate_zm_tolerance function
 
 
 @mark.parametrize('value, swap_value, expected', [

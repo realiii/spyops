@@ -5,14 +5,12 @@ Abstract Classes in support of Query objects
 
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
 from functools import cache, cached_property
-from typing import Callable, Generator, Optional, Self, TYPE_CHECKING
+from typing import Callable, Generator, Optional, TYPE_CHECKING
 from warnings import warn
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
-from fudgeo.util import escape_name
 from numpy import isfinite
 from pyproj import CRS
 from shapely.creation import box
@@ -27,16 +25,18 @@ from spyops.environment.core import HasZM, zm_config
 from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class
+from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
 from spyops.shared.constant import (
-    DOT, DRID, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
+    DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
 from spyops.shared.field import (
     clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, XY_TOL
-from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID, TEMP_SCHEMA
+from spyops.shared.hint import (
+    ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
+from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID
 from spyops.shared.util import make_unique_name
 
 
@@ -54,13 +54,21 @@ class AbstractElementQuery(metaclass=ABCMeta):
     """
     Abstract Query Support
     """
-    def __init__(self, element: ELEMENT) -> None:
+    def __init__(self, element: ELEMENT, *, where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractElementQuery class
         """
         super().__init__()
         self._element: ELEMENT = element
+        self._where_clause: str = where_clause
     # End init built-in
+
+    def _get_where_clause(self) -> str:
+        """
+        Get Where Clause
+        """
+        return (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+    # End _get_where_clause method
 
     @staticmethod
     def _make_select(element: ELEMENT, field_names: str,
@@ -147,11 +155,12 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
     """
     Abstract Feature Class Query
     """
-    def __init__(self, element: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
+    def __init__(self, element: FeatureClass, *, where_clause: str = EMPTY,
+                 xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the AbstractFeatureClassQuery class
         """
-        super().__init__(element)
+        super().__init__(element, where_clause=where_clause)
         self._xy_tolerance: XY_TOL = xy_tolerance
     # End init built-in
 
@@ -195,7 +204,7 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
     # End _get_extent_polygon method
 
     def _spatial_index_where(self, element: FeatureClass,
-                             extent: EXTENT) -> str:
+                             extent: EXTENT = (0, 0, 0, 0)) -> str:
         """
         Make a where clause stub that can be used to select features which
         intersect an extent. The query is based on a spatial index (if present).
@@ -261,51 +270,6 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
 # End AbstractFeatureClassQuery class
 
 
-class GroupQueryMixin:
-    """
-    Group Query Mixin
-    """
-    # noinspection PyUnusedLocal
-    def _spatial_index_where(self, element: ELEMENT, extent: EXTENT) -> str:
-        """
-        Make a where clause stub that can be used to select features which
-        intersect an extent. The query is based on a spatial index (if present).
-        """
-        if not isinstance(element, FeatureClass):
-            return EMPTY
-        # noinspection PyTypeChecker
-        if not (extent := ANALYSIS_SETTINGS.extent):
-            return EMPTY
-        # noinspection PyUnresolvedReferences
-        polygon = self._get_extent_polygon(
-            extent, crs=crs_from_srs(element.spatial_reference_system))
-        # noinspection PyProtectedMember,PyUnresolvedReferences
-        if index_where := super()._spatial_index_where(
-                element, extent=polygon.bounds):
-            index_where = f'WHERE ({index_where.format(IN)})'
-        return index_where
-    # End _spatial_index_where function
-
-    def _build_spatial_rank(self, element: ELEMENT) -> str:
-        """
-        Build Spatial Rank
-        """
-        # noinspection PyUnresolvedReferences
-        primary = element.primary_key_field.escaped_name
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(element, extent=(0, 0, 0, 0))
-        # noinspection PyUnresolvedReferences
-        return f"""
-            {primary} IN (SELECT {primary}
-            FROM (SELECT {primary}, 
-                         dense_rank() OVER (ORDER BY {self._group_names}) AS {DRID} 
-                  FROM {element.escaped_name} {index_where})
-            WHERE {DRID} = ?) 
-        """
-    # End _build_spatial_rank method
-# End GroupQueryMixin class
-
-
 class AbstractElementGroupQuery(GroupQueryMixin, AbstractElementQuery,
                                 metaclass=ABCMeta):
     """
@@ -344,11 +308,12 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
     Abstract Source Query
     """
     def __init__(self, source: FeatureClass, target: FeatureClass, *,
-                 xy_tolerance: XY_TOL) -> None:
+                 where_clause: str = EMPTY, xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source, xy_tolerance=xy_tolerance)
+        super().__init__(
+            source, where_clause=where_clause, xy_tolerance=xy_tolerance)
         self._target: FeatureClass = target
     # End init built-in
 
@@ -463,17 +428,30 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Build Select from a list of fields
         """
-        # noinspection PyTypeChecker
-        select_names = make_field_names(fields)
-        geom_type = get_geometry_column_name(
-            self.source, include_geom_type=True)
-        select_names = self._concatenate(geom_type, select_names)
+        where_clause = self._get_where_clause()
+        select_names = self._get_select_names(fields)
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
-                self.source, field_names=select_names)
+                self.source, field_names=select_names,
+                where_clause=where_clause)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+            self.source, field_names=select_names, where_clause=where_clause)
     # End _build_select method
+
+    def _get_select_names(self, fields: FIELDS) -> str:
+        """
+        Get Select Names
+        """
+        select_names = make_field_names(fields)
+        try:
+            geom_type = get_geometry_column_name(
+                self.source, include_geom_type=True)
+        except AttributeError:
+            pass
+        else:
+            select_names = self._concatenate(geom_type, select_names)
+        return select_names
+    # End _get_select_names method
 
     @cached_property
     def has_intersection(self) -> bool:
@@ -519,7 +497,9 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         elm = self.source
         *_, field_names = self._field_names_and_count(elm)
-        return self._make_intersection_query(elm, field_names=field_names)
+        return self._make_intersection_query(
+            elm, field_names=field_names,
+            where_clause=self._get_where_clause())
     # End select_intersect property
 
     @property
@@ -586,34 +566,17 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
 # End AbstractSourceQuery class
 
 
-class AbstractSourceUpdateQuery(AbstractSourceQuery):
+class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
+                                AbstractSourceQuery):
     """
     Abstract Source Update Query
     """
-    def __init__(self, source: FeatureClass) -> None:
+    def __init__(self, source: FeatureClass, where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source, target=source, xy_tolerance=None)
+        super().__init__(source, target=source, where_clause=where_clause)
     # End init built-in
-
-    def __enter__(self) -> Self:
-        """
-        Context Manager Enter
-        """
-        self._prepare_source()
-        self._delete_intermediate()
-        _ = self._intermediate_table
-        return self
-    # End enter built-in
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        """
-        Context Manager Exit
-        """
-        self._delete_intermediate()
-        return False
-    # End exit built-in
 
     @property
     @abstractmethod
@@ -640,36 +603,6 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         """
         pass
     # End _intermediate_fields property
-
-    def _delete_intermediate(self) -> None:
-        """
-        Delete Intermediate
-        """
-        name = self._intermediate_name
-        with self.source.geopackage.connection as cin:
-            cin.execute(f"""DROP TABLE IF EXISTS {TEMP_SCHEMA}{DOT}{name}""")
-    # End _delete_intermediate method
-
-    @cached_property
-    def _intermediate_table(self) -> str:
-        """
-        Intermediate Table
-        """
-        name = self._intermediate_name
-        defs = COMMA_SPACE.join(repr(f) for f in self._intermediate_fields)
-        with self.source.geopackage.connection as cin:
-            cin.execute(f"""CREATE TEMPORARY TABLE {name} ({defs})""")
-        return f'{TEMP_SCHEMA}{DOT}{name}'
-    # End _intermediate_table property
-
-    @cached_property
-    def _intermediate_name(self) -> str:
-        """
-        Intermediate Name
-        """
-        now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        return escape_name(f'tmp_{self.source.name}_{self._short_name}_{now}')
-    # End _intermediate_name property
 
     @staticmethod
     def _make_update_from(element_name: str, key_name: str, field_names: NAMES,
@@ -714,23 +647,14 @@ class AbstractSourceUpdateQuery(AbstractSourceQuery):
         # noinspection PyUnresolvedReferences
         key_name = self.source.primary_key_field.escaped_name
         select_names = self._concatenate(geom_type, key_name)
+        where_clause = self._get_where_clause()
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
-                self.source, field_names=select_names)
+                self.source, field_names=select_names,
+                where_clause=where_clause)
         return self._make_select(
-            self.source, field_names=select_names, where_clause=SQL_ALL_ID)
+            self.source, field_names=select_names, where_clause=where_clause)
     # End select property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert Query
-        """
-        return self._make_insert(
-            self._intermediate_table,
-            field_names=make_field_names(self._intermediate_fields),
-            field_count=len(self._intermediate_fields))
-    # End insert property
 
     @property
     def update(self) -> str:
@@ -757,12 +681,14 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     Abstract Spatial Query Support
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 operator: FeatureClass, *, xy_tolerance: XY_TOL) -> None:
+                 operator: FeatureClass, *, xy_tolerance: XY_TOL,
+                 where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSpatialQuery class
         """
         # noinspection PyTypeChecker
-        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance,
+                         where_clause=where_clause)
         self._operator: FeatureClass = operator
     # End init built-in
 
@@ -897,12 +823,12 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass, attribute_option: AttributeOption, *,
-                 xy_tolerance: XY_TOL) -> None:
+                 xy_tolerance: XY_TOL, where_clause: str = EMPTY) -> None:
         """
         Initialize the AbstractSpatialAttribute class
         """
         super().__init__(source, target=target, operator=operator,
-                         xy_tolerance=xy_tolerance)
+                         xy_tolerance=xy_tolerance, where_clause=where_clause)
         self._attr_option: AttributeOption = attribute_option
     # End init built-in
 
@@ -1056,7 +982,7 @@ class BaseQuerySelect(AbstractSourceQuery):
         """
         elm = self.source
         *_, select_field_names = self._field_names_and_count(elm)
-        where_clause = (self._where_clause or EMPTY).strip() or SQL_ALL_ID
+        where_clause = self._get_where_clause()
         if ANALYSIS_SETTINGS.extent:
             return self._make_intersection_query(
                 elm, field_names=select_field_names, where_clause=where_clause)
@@ -1076,6 +1002,42 @@ class BaseQuerySelect(AbstractSourceQuery):
             field_count=field_count)
     # End insert property
 # End BaseQuerySelect class
+
+
+class BaseQuerySelectOrderBy(BaseQuerySelect):
+    """
+    Base Query Select Order By
+    """
+    def __init__(self, source: FeatureClass, target: ELEMENT,
+                 where_clause: str = EMPTY, sort_fields: SORT_FIELDS = (),
+                 xy_tolerance: XY_TOL = None) -> None:
+        """
+        Initialize the BaseQuerySelectOrderBy class
+        """
+        super().__init__(source, target=target, where_clause=where_clause,
+                         xy_tolerance=xy_tolerance)
+        self._sort_fields: SORT_FIELDS = sort_fields
+    # End init built-in
+
+    def _add_order_by(self, sql: str) -> str:
+        """
+        Add Order By
+        """
+        if not self._sort_fields:
+            return sql
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        return f'{sql} ORDER BY {sorts}'
+    # End _add_order_by method
+
+    @property
+    def select(self) -> str:
+        """
+        Selection Query
+        """
+        sql = super().select
+        return self._add_order_by(sql)
+    # End select property
+# End BaseQuerySelectOrderBy class
 
 
 class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
@@ -1111,7 +1073,7 @@ class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
         Group Count
         """
         elm = self.source
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         with elm.geopackage.connection as cin:
             cursor = cin.execute(f"""
                 SELECT COUNT(*) AS CNT 

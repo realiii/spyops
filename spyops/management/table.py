@@ -4,16 +4,17 @@ Data Management for Tables
 """
 
 
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from spyops.environment import ANALYSIS_SETTINGS
+from spyops.shared.constant import EMPTY
 from spyops.shared.element import copy_element
 from spyops.shared.keywords import SOURCE
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
-from spyops.shared.util import make_valid_name
+from spyops.shared.util import make_valid_table_name
 from spyops.validation import (
     validate_element, validate_geopackage, validate_overwrite_source,
-    validate_result, validate_table, validate_target_table)
+    validate_result, validate_source_table, validate_target_table)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -24,6 +25,7 @@ __all__ = ['get_count', 'create_table', 'delete_rows', 'truncate_table',
            'copy_rows']
 
 
+@validate_result()
 @validate_element(SOURCE, has_content=False)
 def get_count(source: ELEMENT) -> int:
     """
@@ -45,7 +47,7 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
     optional description.
     """
     overwrite = ANALYSIS_SETTINGS.overwrite
-    name = make_valid_name(name, prefix='tbl')
+    name = make_valid_table_name(name, prefix='tbl')
     return geopackage.create_table(
         name, fields=fields, description=description, overwrite=overwrite)
 # End create_table function
@@ -64,8 +66,20 @@ def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
 # End delete_rows function
 
 
+@validate_element(SOURCE, has_content=False)
+def truncate_table(source: ELEMENT) -> ELEMENT:
+    """
+    Truncate a Table or Feature Class
+
+    Deletes all rows from a table or feature class.
+    """
+    source.delete(where_clause=EMPTY)
+    return source
+# End truncate_table function
+
+
 @validate_result()
-@validate_table(SOURCE)
+@validate_source_table()
 @validate_target_table()
 @validate_overwrite_source()
 def copy_rows(source: 'Table', target: 'Table', *,
@@ -79,10 +93,6 @@ def copy_rows(source: 'Table', target: 'Table', *,
     # noinspection PyTypeChecker
     return copy_element(source=source, target=target, where_clause=where_clause)
 # End copy_rows function
-
-
-# Aliases
-truncate_table: Callable[[ELEMENT, str], ELEMENT] = delete_rows
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -4,7 +4,7 @@ Type Hints
 """
 
 
-from typing import TYPE_CHECKING, Type, TypeAlias, Union
+from typing import Optional, TYPE_CHECKING, Type, TypeAlias, Union
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -17,22 +17,42 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry import (
         LineString as ShapelyLineString, MultiLineString, MultiPoint,
         MultiPolygon, Point as ShapelyPoint, Polygon)
+    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+    from spyops.shared.sort import AbstractSortField
     from spyops.shared.stats import AbstractStatisticField
 
 
 DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
+UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
+UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
+
+UPDATES_SHAPELY: TypeAlias = list[tuple[
+    int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]
+UPDATES_FUDGEO: TypeAlias = list[tuple[int, 'AbstractGeometry']]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
-XY_TOL: TypeAlias = float | int | None
-GRID_SIZE: TypeAlias = XY_TOL
+NUMBER: TypeAlias = float | int
+RECLASS_TABLE: TypeAlias = (
+        list[tuple[NUMBER, NUMBER | str]] |
+        tuple[tuple[NUMBER, NUMBER | str], ...])
+OPT_NUMBER: TypeAlias = NUMBER | None
+
+XY_TOL: TypeAlias = OPT_NUMBER
+Z_TOL: TypeAlias = OPT_NUMBER
+M_TOL: TypeAlias = OPT_NUMBER
+GRID_SIZE: TypeAlias = OPT_NUMBER
 
 ELEMENT: TypeAlias = Union['Table', 'FeatureClass']
 ELEMENTS: TypeAlias = list[ELEMENT] | tuple[ELEMENT, ...]
-EXTENT: TypeAlias = tuple[float, float, float, float]
+FEATURE_CLASSES: TypeAlias = list['FeatureClass'] | tuple['FeatureClass', ...]
+EXTENT: TypeAlias = tuple[NUMBER, NUMBER, NUMBER, NUMBER]
 FIELD_NAMES: TypeAlias = NAMES
+OPT_FIELD_STR: TypeAlias = Optional[Union['Field', str]]
+OPT_FIELD: TypeAlias = Optional['Field']
 FIELDS: TypeAlias = list['Field'] | tuple['Field', ...]
 STATS_FIELDS: TypeAlias = list['AbstractStatisticField'] | tuple['AbstractStatisticField', ...]
+SORT_FIELDS: TypeAlias = list['AbstractSortField'] | tuple['AbstractSortField', ...]
 GPKG: TypeAlias = Union['GeoPackage', 'MemoryGeoPackage']
 
 

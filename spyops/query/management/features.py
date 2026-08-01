@@ -6,24 +6,32 @@ Query Classes for management.features module
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from functools import cached_property, partial
+from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Callable, Generator, TYPE_CHECKING, Union
+from typing import Callable, Generator, Optional, TYPE_CHECKING, Union
 
-from fudgeo import Field, SpatialReferenceSystem
-from fudgeo.constant import FETCH_SIZE
-from fudgeo.enumeration import ShapeType
+from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
+from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.geometry import Point
 from numpy import array
 from pyproj import CRS
 from shapely import (
-    GeometryCollection, Polygon, get_num_coordinates, get_num_geometries)
+    GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
+    get_num_coordinates, get_num_geometries)
+from shapely.constructive import boundary
+from shapely.coordinates import get_coordinates
+from shapely.geometry.multilinestring import MultiLineString
+from shapely.set_operations import union_all
+from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.util import get_crs_from_source, srs_from_crs
-from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
 from spyops.environment.core import HasZM, ZMConfig, zm_config
+from spyops.geometry.adjust import GEOMETRY_ADJUST_Z
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
     length_planar, line_azimuth, line_end, line_start)
@@ -34,10 +42,11 @@ from spyops.geometry.extent import (
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
 from spyops.geometry.segment import GEOMETRY_SEGMENT
-from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
+from spyops.geometry.wa import polygonize
 from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
     BaseQuerySelect)
@@ -46,18 +55,19 @@ from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
     MBG_LENGTH, MBG_ORIENTATION, MBG_WIDTH, ORIG_FID, ORIG_SEQ, POINT_M,
-    POINT_X, POINT_Y,
-    POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
-    get_geometry_column_name, make_field_names, validate_fields)
+    POINT_X, POINT_Y, POINT_Z, REASON, VALUE, add_key_fields, add_orig_fid,
+    clone_field, get_geometry_column_name, make_field_names, validate_fields)
 from spyops.shared.hint import (
-    ELEMENT, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE, XY_TOL)
+    ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE,
+    SORT_FIELDS, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
+from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import SQL_ALL_ID
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    from fudgeo import FeatureClass, Table
+    from fudgeo import Table
     from numpy import ndarray
 
 
@@ -65,7 +75,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
     """
     Queries for MultiPart to SinglePart
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass') -> None:
+    def __init__(self, source: FeatureClass, target: FeatureClass) -> None:
         """
         Initialize the QueryMultiPartToSinglePart class
         """
@@ -138,7 +148,7 @@ class QueryCheckGeometry(BaseQuerySelect):
     """
     Query for Check Geometry
     """
-    def __init__(self, source: 'FeatureClass', target: 'Table',
+    def __init__(self, source: FeatureClass, target: 'Table',
                  xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryCheckGeometry class
@@ -279,7 +289,7 @@ class QueryAddXYCoordinates(AbstractSourceUpdateQuery):
     """
     Queries for Add XY Coordinates
     """
-    def __init__(self, source: 'FeatureClass',
+    def __init__(self, source: FeatureClass,
                  weight_option: WeightOption) -> None:
         """
         Initialize the QueryAddXYCoordinates class
@@ -343,14 +353,15 @@ class QueryCalculateGeometryAttributes(AbstractSourceUpdateQuery):
     """
     Queries for Calculate Geometry Attributes
     """
-    def __init__(self, source: 'FeatureClass', field: Field,
+    def __init__(self, source: FeatureClass, field: Field,
                  geometry_attribute: GeometryAttribute, *,
                  weight_option: WeightOption,
-                 length_unit: LengthUnit, area_unit: AreaUnit) -> None:
+                 length_unit: LengthUnit, area_unit: AreaUnit,
+                 where_clause: str) -> None:
         """
         Initialize the QueryCalculateGeometryAttributes class
         """
-        super().__init__(source)
+        super().__init__(source, where_clause=where_clause)
         self._field: Field = field
         self._attribute: GeometryAttribute = geometry_attribute
         self._option: WeightOption = weight_option
@@ -558,7 +569,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
     """
     Query for XY Table to Point Feature Class
     """
-    def __init__(self, source: ELEMENT, target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: FeatureClass,
                  fields: tuple[Field | None, ...],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
@@ -691,7 +702,7 @@ class QueryXYTableLine(QueryXYTablePoint):
     """
     Query for XY to Line Feature Class
     """
-    def __init__(self, source: ELEMENT, target: 'FeatureClass',
+    def __init__(self, source: ELEMENT, target: FeatureClass,
                  fields: tuple[Field, Field, Field, Field],
                  coordinate_system: CRS | SpatialReferenceSystem) -> None:
         """
@@ -750,7 +761,7 @@ class QueryFeatureEnvelopeToPolygon(BaseQuerySelect):
     """
     Query Feature Envelope to Polygon
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  as_multi_part: bool) -> None:
         """
         Initialize the QueryFeatureEnvelopeToPolygon class
@@ -829,7 +840,7 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
     """
     Abstract Query Minimum Bounding Geometry Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  geometry_type: MinimumGeometryOption, *,
                  add_geometric_attributes: bool, fields: FIELDS) -> None:
         """
@@ -840,6 +851,23 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
         self._geometry_type: MinimumGeometryOption = geometry_type
         self._add_attrs: bool = add_geometric_attributes
     # End init built-in
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+
+        Only generating a 2D bounding geometry regardless of the input feature
+        class dimensions, which means that the presence of Z or M on the source
+        (or from the settings) handled as is_different=True to ensure that
+        geometry casting occurs.
+        """
+        zm = zm_config(self.source)
+        is_different = zm.z_enabled or zm.m_enabled
+        return ZMConfig(
+            is_different=is_different, z_enabled=zm.z_enabled,
+            m_enabled=zm.m_enabled)
+    # End zm_config property
 
     @property
     def add_attributes(self) -> bool:
@@ -869,7 +897,7 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
 
     def _get_target_shape_type(self) -> str:
         """
-        Get Target Shape Type based on Output Type Option and Source Shape Type
+        Get Target Shape Type
         """
         return ShapeType.polygon
     # End _get_target_shape_type method
@@ -903,14 +931,13 @@ class AbstractQueryMinimumBoundingGeometry(AbstractQueryGroup,
     # End grouped_geometries method
 
     def _process_geometries(self, ids: 'ndarray',
-                            geometries: Union['ndarray', list]) \
-            -> dict[int, tuple]:
+                            geoms: Union['ndarray', list]) -> dict[int, tuple]:
         """
         Process Geometries
         """
         bounder = self._bounding_function
         attributer = self._attribute_function
-        polygons = bounder(geometries)
+        polygons = bounder(geoms)
         if self.add_attributes:
             attributes = attributer(polygons)
             return {id_: (geom, attrs) for id_, geom, attrs in
@@ -955,8 +982,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         Selection Query
         """
         elm = self.source
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {DRID}, {self._group_names}
             FROM (SELECT dense_rank() OVER (
@@ -973,8 +999,7 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT * 
             FROM (SELECT {geom}, dense_rank() OVER (
@@ -1072,8 +1097,7 @@ class QueryMinimumBoundingGeometryAll(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {geom} 
             FROM {elm.escaped_name} {index_where}
@@ -1169,8 +1193,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         #  the geometry dictionary, the second is used to store in ORIG_FID
         key_names = self._concatenate(name, name)
         field_names = self._concatenate(key_names, field_names)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         return f"""
             SELECT {field_names} 
             FROM {elm.escaped_name} {index_where}
@@ -1184,8 +1207,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         """
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
-        # NOTE this extent not used, simply filling a required argument
-        index_where = self._spatial_index_where(elm, extent=(0, 0, 0, 0))
+        index_where = self._spatial_index_where(elm)
         # noinspection PyUnresolvedReferences
         name = self.source.primary_key_field.escaped_name
         geom_and_fid = self._concatenate(geom, name)
@@ -1241,7 +1263,7 @@ class QueryFeatureToPoint(BaseQuerySelect):
     """
     Query Feature to Point
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  inside: bool, weight_option: WeightOption) -> None:
         """
         Initialize the QueryFeatureToPoint class
@@ -1318,7 +1340,7 @@ class QueryFeatureVerticesToPoints(BaseQuerySelect):
     """
     Query Feature Vertices to Points
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  point_type: PointTypeOption) -> None:
         """
         Initialize the QueryFeatureVerticesToPoints class
@@ -1497,6 +1519,735 @@ class QueryPolygonToLine(BaseQuerySelect):
             transformer=transformer)
     # End source_transformer property
 # End QueryPolygonToLine class
+
+
+class QueryFeatureToPrepare(BaseQuerySelect):
+    """
+    Query for each input to Feature to Polygon / Feature to Line
+    """
+    def __init__(self, source: FeatureClass, target: Optional[FeatureClass],
+                 xy_tolerance: XY_TOL = None) -> None:
+        """
+        Initialize the QueryFeatureToPrepare class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+    # End init built-in
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Limit fields to just geometry
+        """
+        insert_names = get_geometry_column_name(element)
+        select_names = get_geometry_column_name(element, include_geom_type=True)
+        return 1, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Limit fields to just geometry, sans attributes
+        """
+        return []
+    # End _get_unique_fields method
+# End QueryFeatureToPrepare class
+
+
+class BaseQueryFeatureTo(AbstractSourceQuery):
+    """
+    Base Query Feature To
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the BaseQueryFeatureTo class
+        """
+        src, *_ = source
+        super().__init__(src, target=target, xy_tolerance=xy_tolerance)
+        self._source: FEATURE_CLASSES = source
+    # End init built-in
+
+    @cached_property
+    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the first
+        feature class in the source.
+        """
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        source, *_ = self._source
+        return source.spatial_reference_system
+    # End spatial_reference_system property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+        """
+        return zm_config(*self._source)
+    # End zm_config property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert SQL
+        """
+        elm = self.target
+        fields = self._get_unique_fields()
+        insert_field_names = make_field_names(fields)
+        insert_field_names = self._concatenate(
+            get_geometry_column_name(elm), insert_field_names)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=len(fields) + 1)
+    # End insert property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        has_z = any(source.has_z for source in self._source)
+        has_m = any(source.has_m for source in self._source)
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
+
+    def _get_lines(self, scratch: MemoryGeoPackage) \
+            -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]:
+        """
+        Get lines from the input feature classes, the lines will be
+        in the Output Coordinate System and planarized.
+        """
+        sizes = []
+        lines = []
+        queries = []
+        xy_tol = self._xy_tolerance
+        srs = self.spatial_reference_system
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
+            for i, source in enumerate(self._source):
+                query = QueryFeatureToPrepare(
+                    source, target=FeatureClass(scratch, name=f'fc_{i}'),
+                    xy_tolerance=xy_tol)
+                queries.append(query)
+                fc = select_transform_insert(query)
+                if not len(fc):
+                    continue
+                self._fetch_lines_sizes(query, lines=lines, sizes=sizes)
+        if not lines:
+            return lines, queries, None
+        grid_size = max([s for s in sizes if s is not None], default=None)
+        lines = get_geoms_iter(union_all(lines, grid_size=grid_size))
+        # noinspection PyTypeChecker
+        return lines, queries, grid_size
+    # End _get_lines method
+
+    @staticmethod
+    def _fetch_lines_sizes(query: QueryFeatureToPrepare,
+                           lines: list[LineString],
+                           sizes: list[GRID_SIZE]) -> None:
+        """
+        Fetch Lines from memory feature classes and grid sizes from query
+        """
+        fc = query.target
+        cursor = fc.select(include_primary=True)
+        is_polygon = ShapeType.polygon in fc.shape_type
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            _, geoms = to_shapely(features, transformer=None)
+            if is_polygon:
+                geoms = boundary(geoms)
+            lines.extend(geoms)
+            sizes.append(query.grid_size)
+    # End _fetch_lines_sizes method
+
+    def _get_null_record(self) -> tuple:
+        """
+        Get Null Record
+        """
+        return tuple([None] * len(self._get_unique_fields()))
+    # End _get_null_record method
+# End BaseQueryFeatureTo class
+
+
+class QueryFeatureToPolygon(BaseQueryFeatureTo):
+    """
+    Query Feature to Polygon
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryFeatureToPolygon class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        self._label: Optional[FeatureClass] = label
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        label = self._label
+        if label is None:
+            return []
+        return validate_fields(label, fields=label.fields)
+    # End _get_unique_fields method
+
+    def build_features(self) -> list[tuple[Polygon, tuple]]:
+        """
+        Polygonized Features
+        """
+        scratch = MemoryGeoPackage.create()
+        lines, _, _ = self._get_lines(scratch)
+        if conn := scratch.connection:
+            conn.close()
+        if not len(lines):
+            return []
+        if not (polygons := self._build_polygons(lines)):
+            return []
+        return self._add_attributes(polygons)
+    # End build_features method
+
+    def _add_attributes(self, polygons: list[Polygon]) \
+            -> list[tuple[Polygon, tuple]]:
+        """
+        Add Attributes, keeping all matches between label points and planarized
+        """
+        nulls = self._get_null_record()
+        points, attributes = self._get_points_attributes()
+        if not attributes:
+            return [(polygon, nulls) for polygon in polygons]
+        if not (grouper := self._index_overlay(points, polygons)):
+            return [(polygon, nulls) for polygon in polygons]
+        results = []
+        for i, polygon in enumerate(polygons):
+            if i in grouper:
+                results.extend(
+                    [(polygon, attributes[idx]) for idx in grouper[i]])
+            else:
+                results.append((polygon, nulls))
+        return results
+    # End _add_attributes method
+
+    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]:
+        """
+        Get Points and Attributes
+        """
+        points = []
+        attributes = []
+        if self._label is None or not self._get_unique_fields():
+            return points, attributes
+        # noinspection PyTypeChecker
+        query = QueryCopyFeatures(self._label, target=None)
+        transformer = query.source_transformer
+        srs = self.spatial_reference_system
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs),
+              self._label.geopackage.connection as cin):
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geoms = to_shapely(
+                    features, transformer=transformer,
+                    option=DimensionOption.TWO_D)
+                if not features:
+                    continue
+                points.extend(geoms)
+                attributes.extend([feature[1:] for feature in features])
+        return points, attributes
+    # End _get_points_attributes method
+
+    @staticmethod
+    def _index_overlay(points: list[ShapelyPoint], polygons: list[Polygon]) \
+            -> defaultdict[int, list[int]]:
+        """
+        Build cross-reference between label planarized polygons and label points
+        for use in assigning attributes to polygons
+        """
+        tree = STRtree(polygons)
+        intersects = tree.query(points, predicate='intersects')
+        grouper = defaultdict(list)
+        for pnt_idx, poly_idx in intersects.T.tolist():
+            grouper[poly_idx].append(pnt_idx)
+        return grouper
+    # End _index_overlay method
+
+    @staticmethod
+    def _build_polygons(lines: list[LineString]) -> list[Polygon]:
+        """
+        Build Polygons
+        """
+        collections = polygonize(lines)
+        if isinstance(collections, GeometryCollection):
+            collections = [collections]
+        planarized = []
+        for collection in collections:
+            planarized.extend(get_geoms_iter(collection))
+        return planarized
+    # End _build_polygons method
+# End QueryFeatureToPolygon class
+
+
+class QueryFeatureToLine(BaseQueryFeatureTo):
+    """
+    Query Feature To Line
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryFeatureToPolygon class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type based on Output Type Option and Source Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return []
+    # End _get_unique_fields method
+
+    def build_features(self) -> list[tuple[LineString, tuple]]:
+        """
+        LineString Features
+        """
+        scratch = MemoryGeoPackage.create()
+        lines, *_ = self._get_lines(scratch)
+        if conn := scratch.connection:
+            conn.close()
+        combiner = self.geometry_config.combiner
+        lines = get_geoms_iter(combiner(MultiLineString(lines)))
+        # noinspection PyTypeChecker
+        return [(line, ()) for line in lines]
+    # End build_features method
+# End QueryFeatureToLine class
+
+
+class AbstractQueryPointsToLine(AbstractQueryGroup):
+    """
+    Abstract Query Points to Line
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 group_fields: FIELDS, sort_fields: SORT_FIELDS,
+                 close_line: bool, is_continuous: bool) -> None:
+        """
+        Initialize the AbstractQueryPointsToLine class
+        """
+        super().__init__(
+            source, target=target, fields=group_fields or [], xy_tolerance=None)
+        self._sort_fields: SORT_FIELDS = sort_fields or []
+        self._close_line: bool = close_line
+        self._is_continuous: bool = is_continuous
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        fields, select_names = self._build_select_names(element, element.fields)
+        field_count, insert_names = self._build_insert_names(element, fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _build_insert_names(self, element: FeatureClass,
+                            fields: FIELDS) -> tuple[int, str]:
+        """
+        Build Insert Name and get Field Count
+        """
+        field_count = len(fields) + 1
+        insert_names = self._concatenate(
+            get_geometry_column_name(element), make_field_names(fields))
+        return field_count, insert_names
+    # End _build_insert_names method
+
+    def _build_select_names(self, element: FeatureClass,
+                            fields: FIELDS) -> tuple[FIELDS, str]:
+        """
+        Build Select Names
+        """
+        fields = validate_fields(element, fields=fields)
+        geom_type = get_geometry_column_name(element, include_geom_type=True)
+        return fields, self._concatenate(geom_type, make_field_names(fields))
+    # End _build_select_names method
+
+    @property
+    def _line_class(self) -> LINE_TYPE:
+        """
+        Line Class
+        """
+        has_z, has_m = self._has_zm
+        return FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
+    # End _line_class property
+
+    def _get_coordinates(self, points: defaultdict[int, list[ShapelyPoint]]) \
+            -> dict[int, 'ndarray'] | dict[int, list]:
+        """
+        Get Coordinates from Points
+        """
+        has_z, has_m = self._has_zm
+        coords = {id_: get_coordinates(pts, include_z=has_z, include_m=has_m)
+                  for id_, pts in points.items()}
+        coords = {id_: values for id_, values in coords.items()
+                  if len(values) > 1}
+        if self._close_line:
+            coords = {id_: [*values, values[0]]
+                      for id_, values in coords.items()}
+        return coords
+    # End _get_coordinates method
+
+    def _build_segments(self, points: defaultdict[int, list[ShapelyPoint]],
+                        attributes: defaultdict[int, list[tuple]]) \
+            -> list[tuple[LineString, tuple]]:
+        """
+        Segment Lines and Attributes (Two Point Lines)
+        """
+        features = []
+        cls = self._line_class
+        coords = self._get_coordinates(points)
+        # noinspection PyUnresolvedReferences
+        srs_id = self.spatial_reference_system.srs_id
+        attributes = self._get_segment_attrs(attributes)
+        for id_, coords in coords.items():
+            if id_ not in attributes:
+                continue
+            features.extend([
+                (cls([start, end], srs_id=srs_id), *attrs)
+                for start, end, attrs in
+                zip(coords[:-1], coords[1:], attributes[id_])])
+        features, geoms = to_shapely(features, transformer=None)
+        return [(g, attrs) for g, (_, *attrs) in zip(geoms, features)]
+    # End _build_segments method
+
+    def _build_lines(self, points: defaultdict[int, list[ShapelyPoint]],
+                     attributes: defaultdict[int, list[tuple]]) \
+            -> list[tuple[LineString, tuple]]:
+        """
+        Continuous Lines and Attributes
+        """
+        features = []
+        cls = self._line_class
+        coords = self._get_coordinates(points)
+        # noinspection PyUnresolvedReferences
+        srs_id = self.spatial_reference_system.srs_id
+        attributes = self._get_line_attrs(attributes)
+        for id_, coords in coords.items():
+            if id_ not in attributes:
+                continue
+            # noinspection PyTypeChecker
+            features.append((cls(coords, srs_id=srs_id), *attributes[id_]))
+        features, geoms = to_shapely(features, transformer=None)
+        return [(g, attrs) for g, (_, *attrs) in zip(geoms, features)]
+    # End _build_lines method
+
+    def _close_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) -> None:
+        """
+        Close Segment Attributes
+        """
+        if not self._close_line:
+            return
+        for id_, attrs in attributes.items():
+            attributes[id_].append(attrs[0])
+    # End _close_segment_attrs method
+
+    @abstractmethod
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:  # pragma: no cover
+        """
+        Get Segment Attributes
+        """
+        pass
+    # End _get_segment_attrs method
+
+    @abstractmethod
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:  # pragma: no cover
+        """
+        Get Continuous Line Attributes
+        """
+        pass
+    # End _get_line_attrs method
+
+    @property
+    def select_geometry(self) -> str:
+        """
+        Select Geometry
+        """
+        elm = self.source
+        geom = get_geometry_column_name(elm, include_geom_type=True)
+        index_where = self._spatial_index_where(elm)
+        *_, select_names = self._field_names_and_count(elm)
+        sql = f"""
+            SELECT *  
+            FROM (SELECT {geom}, dense_rank() OVER (
+                    ORDER BY {self._group_names}) AS {DRID}, {select_names}
+                  FROM {elm.escaped_name} {index_where})
+            WHERE {DRID} BETWEEN ? AND ?
+        """
+        if not self._sort_fields:
+            return sql
+        sorts = COMMA_SPACE.join([f'{field!r}' for field in self._sort_fields])
+        sorts = self._concatenate(DRID, sorts)
+        return f'{sql} ORDER BY {sorts}'
+    # End select_geometry property
+
+    def line_features(self) -> Generator[list[tuple[LineString, tuple]], None, None]:
+        """
+        Line Features
+        """
+        results = []
+        size = FETCH_SIZE // 5
+        steps, remainder = divmod(self.group_count, size)
+        steps += bool(remainder)
+        sql = self.select_geometry
+        if self._is_continuous:
+            builder = self._build_lines
+        else:
+            builder = self._build_segments
+        with self.source.geopackage.connection as cin:
+            for step in range(steps):
+                start = 1 + (step * size)
+                end = (step + 1) * size
+                cursor = cin.execute(sql, (start, end))
+                features = filter_features(cursor.fetchall())
+                features, points = to_shapely(
+                    features, transformer=self.source_transformer)
+                if not features:
+                    continue
+                point_grouper = defaultdict(list)
+                attr_grouper = defaultdict(list)
+                for (_, id_, _, *attrs), pt in zip(features, points):
+                    point_grouper[id_].append(pt)
+                    attr_grouper[id_].append(attrs)
+                results.extend(builder(point_grouper, attr_grouper))
+                if len(results) >= FETCH_SIZE:
+                    yield results
+                    results.clear()
+        yield results
+    # End line_features method
+# End AbstractQueryPointsToLine class
+
+
+class QueryPointsToLineNone(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- No Atttributes (besides group fields)
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        fields = [s.field for s in self._sort_fields]
+        return validate_fields(self.source, fields=[*self._fields, *fields])
+    # End _get_unique_fields method
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        fields = self._get_unique_fields()
+        fields, select_names = self._build_select_names(element, fields)
+        field_count, insert_names = self._build_insert_names(element, fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: attrs for id_, (attrs, *_) in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineNone class
+
+
+class QueryPointsToLineBoth(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- Both Start and End Atttributes
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        fields = []
+        validated = validate_fields(self.source, fields=self.source.fields)
+        for prefix in ('START', 'END'):
+            for field in validated:
+                fields.append(clone_field(
+                    field, name=f'{prefix}_{field.name}', allow_null=True))
+        return fields
+    # End _get_unique_fields method
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Field Names for Select and Insert + Derive Field Count
+        """
+        _, select_names = self._build_select_names(element, element.fields)
+        fields = self._get_unique_fields()
+        field_count, insert_names = self._build_insert_names(element, fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        self._close_segment_attrs(attributes)
+        for id_, attrs in attributes.items():
+            attributes[id_] = [
+                (*start, *end) for start, end in zip(attrs[:-1], attrs[1:])]
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: (*attrs[0], *attrs[-1])
+                for id_, attrs in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineBoth class
+
+
+class QueryPointsToLineStart(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- Start Atttributes
+    """
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        self._close_segment_attrs(attributes)
+        for id_ in attributes:
+            # noinspection PyArgumentEqualDefault
+            attributes[id_].pop(-1)
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: attrs for id_, (attrs, *_) in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineStart class
+
+
+class QueryPointsToLineEnd(AbstractQueryPointsToLine):
+    """
+    Query Points to Line -- End Atttributes
+    """
+    def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, list[tuple]]:
+        """
+        Get Segment Attributes
+        """
+        self._close_segment_attrs(attributes)
+        for id_ in attributes:
+            attributes[id_].pop(0)
+        return attributes
+    # End _get_segment_attrs method
+
+    def _get_line_attrs(self, attributes: defaultdict[int, list[tuple]]) \
+            -> dict[int, tuple]:
+        """
+        Get Continuous Line Attributes
+        """
+        return {id_: attrs for id_, (*_, attrs) in attributes.items()}
+    # End _get_line_attrs method
+# End QueryPointsToLineEnd class
+
+
+class QueryAdjust3DZ(AbstractSourceUpdateQuery):
+    """
+    Queries for Adjust 3D Z
+    """
+    def __init__(self, source: FeatureClass,
+                 adjuster: Callable[['ndarray'], 'ndarray'],
+                 where_clause: str) -> None:
+        """
+        Initialize the QueryAdjust3DZ class
+        """
+        super().__init__(source, where_clause=where_clause)
+        self._adjuster: Callable[['ndarray'], 'ndarray'] = adjuster
+    # End init built-in
+
+    def _get_field_names(self) -> NAMES:
+        """
+        Get Field Names
+        """
+        return self.source.geometry_column_name,
+    # End _get_field_names method
+
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'adjust_z'
+    # End _short_name property
+
+    def _prepare_source(self) -> None:
+        """
+        Override
+        """
+        pass
+    # End _prepare_source method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        return ORIG_FID, Field(SHAPE, data_type=FieldType.text)
+    # End _intermediate_fields property
+
+    @property
+    def z_adjuster(self) -> Callable:
+        """
+        Z Adjuster
+        """
+        adjust_z = GEOMETRY_ADJUST_Z[self.source.shape_type]
+        return partial(adjust_z, adjuster=self._adjuster)
+    # End z_adjuster property
+# End QueryAdjust3DZ class
 
 
 if __name__ == '__main__':  # pragma: no cover

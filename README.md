@@ -28,8 +28,15 @@ MIT
 - [Analysis - Extract](https://github.com/realiii/spyops/wiki/Analysis#extract)
 - [Analysis - Overlay](https://github.com/realiii/spyops/wiki/Analysis#overlay)
 - [Analysis - Proximity](https://github.com/realiii/spyops/wiki/Analysis#proximity)
-- [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
+- [Analysis - Statistics](https://github.com/realiii/spyops/wiki/Analysis#statistics)
+- [Cartography - Generalization](https://github.com/realiii/spyops/wiki/Cartography#generalization)
+- [Conversion - Delimited File](https://github.com/realiii/spyops/wiki/Conversion#delimited-file)
+- [Conversion - GPS](https://github.com/realiii/spyops/wiki/Conversion#gps)
+- [Conversion - GeoPackage](https://github.com/realiii/spyops/wiki/Conversion#geopackage)
+- [Conversion - JSON](https://github.com/realiii/spyops/wiki/Conversion#json)
+- [Editing](https://github.com/realiii/spyops/wiki/Editing)
 - [Management - Feature Class](https://github.com/realiii/spyops/wiki/Data-Management#feature-class)
+- [Management - Features](https://github.com/realiii/spyops/wiki/Data-Management#features)
 - [Management - Fields](https://github.com/realiii/spyops/wiki/Data-Management#fields)
 - [Management - General](https://github.com/realiii/spyops/wiki/Data-Management#general)
 - [Management - Generalization](https://github.com/realiii/spyops/wiki/Data-Management#generalization)
@@ -41,6 +48,41 @@ MIT
 
 
 ## Release History
+### v0.2.0
+- added `add_gps_metadata_fields` (Management - Fields)
+- added `calculate_end_time` (Management - Fields)
+- added `field_statistics_to_table` (Management - Fields)
+- added `reclassify_field` (Management - Fields)
+- added `standardize_field` (Management - Fields)
+- added `transform_field` (Management - Fields)
+- added `delete_identical` (Management - General)
+- added `find_identical` (Management - General)
+- added `sort` (Management - General)
+- added `export_features` (Conversion - GeoPackage)
+- added `export_table` (Conversion - GeoPackage)
+- added `feature_class_to_geopackage` (Conversion - GeoPackage)
+- added `table_to_geopackage` (Conversion - GeoPackage)
+- added `features_to_gpx` (Conversion - GPS)
+- added `gpx_to_features` (Conversion - GPS)
+- added `features_to_geojson` (Conversion - JSON)
+- added `geojson_to_features` (Conversion - JSON)
+- added `frequency` (Analysis - Statistics)
+- added `statistics` (Analysis - Statistics)
+- added `adjust_3d_z` (Management - Features)
+- added `feature_to_line` (Management - Features)
+- added `feature_to_polygon` (Management - Features)
+- added `points_to_line` (Management - Features)
+- added `generalize` (Editing)
+- added `simplify_line` (Cartography - Generalization)
+- added `simplify_polygon` (Cartography - Generalization)
+- added `smooth_line` (Cartography - Generalization)
+- added `smooth_polygon` (Cartography - Generalization)
+- added `table_to_delimited_file` (Conversion - Delimited File)
+- added `delimited_file_to_table` (Conversion - Delimited File)
+- added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
+- avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
+- distinguish between `DATE` and `DATETIME` when filtering by field type
+
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 
 

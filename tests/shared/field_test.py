@@ -9,8 +9,9 @@ from fudgeo.enumeration import FieldType
 from pytest import mark
 
 from spyops.shared.field import (
-    clone_field, common_fields, get_geometry_column_name, make_field_names,
-    make_unique_fields, validate_fields)
+    clone_field, common_fields, find_field_data_type, get_geometry_column_name,
+    make_field_names, make_unique_fields, simplify_type, validate_fields,
+    _guess_data_type)
 
 
 pytestmark = [mark.field]
@@ -126,6 +127,61 @@ def test_make_unique_fields(existing_names, new_names, expected):
     unique_names = [f.name for f in make_unique_fields(existing, fields)]
     assert tuple(unique_names) == expected
 # End test_make_unique_fields function
+
+
+@mark.parametrize('str_source, values, expected', [
+    (False, [123, 234, None, 345, 456, 567, 678, 1000, 10000], FieldType.integer),
+    (False, [123., 234.5, None, 345.6, 456.7, 567.8, 678.9, 1000., 10000], FieldType.real),
+    (False, ['A123.', '234', '', None, 'B345.', '456', 'C567', '678', '1000.', 'D10000'], FieldType.text),
+    (False, ['3/9/2023 12:15', '2/10/2024', '8-Oct-22', 'May-23', '7/1/1960', '1960.7.1', '1960.07.01', '1960-07-01', '1960-7-1'], FieldType.text),
+    (False, ['A', 'B', 'C', '1', '2', '3', '4'], FieldType.text),
+    (True, [123, 234, None, 345, 456, 567, 678, 1000, 10000], FieldType.real),
+    (True, [123., 234.5, None, 345.6, 456.7, 567.8, 678.9, 1000., 10000], FieldType.real),
+    (True, ['A123.', '234', '', None, 'B345.', '456', 'C567', '678', '1000.', 'D10000'], FieldType.text),
+    (True, ['3/9/2023 12:15', '2/10/2024', '8-Oct-22', 'May-23', '7/1/1960', '1960.7.1', '1960.07.01', '1960-07-01', '1960-7-1'], FieldType.text),
+    (True, ['A', 'B', 'C', '1', '2', '3', '4'], FieldType.text),
+])
+def test_guess_data_type(str_source, values, expected):
+    """
+    Test guess_data_type
+    """
+    assert _guess_data_type(values, str_source) == expected
+# End test_guess_data_type function
+
+
+@mark.parametrize('str_source, expected', [
+    (True, (FieldType.real, FieldType.text, FieldType.real)),
+    (False, (FieldType.integer, FieldType.text, FieldType.real)),
+])
+def test_find_field_data_type(str_source, expected):
+    """
+    Test find_field_data_type
+    """
+    data = {
+        'asdf': [1, 2, 3, 4, 5, None, None],
+        'lmnop': ['a', 'b', 'c', 'd', 'e', None, None],
+        'xyz': [1.1, 2.2, 3.3, 4.4, 5.5, None, None],
+    }
+    types = find_field_data_type(list(data), data, str_source=str_source)
+    assert types == expected
+# End test_find_field_data_type function
+
+
+@mark.parametrize('data_type, expected', [
+    ('int32', FieldType.integer),
+    ('mediumint', FieldType.mediumint),
+    ('char', FieldType.text),
+    ('date', FieldType.date),
+    ('datetime', FieldType.datetime),
+    ('time', FieldType.timestamp),
+])
+def test_simplify_type(data_type, expected):
+    """
+    Test simplify_type
+    """
+    field = Field('asdf', data_type)
+    assert simplify_type(field) == expected
+# End test_simplify_type function
 
 
 if __name__ == '__main__':  # pragma: no cover

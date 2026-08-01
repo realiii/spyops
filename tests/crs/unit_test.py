@@ -12,9 +12,9 @@ from pytest import approx, mark, raises
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.unit import (
-    DecimalDegrees, FeetInternational, FeetUS, Kilometers, Meters,
+    DecimalDegrees, FeetInternational, FeetUS, Kilometers, Meters, Metres,
     degrees_to_meters, get_linear_unit_conversion_factor, get_unit_conversion,
-    get_unit_name, unit_factory)
+    get_unit_name, unit_factory, unit_from_number)
 
 
 pytestmark = [mark.crs]
@@ -190,6 +190,22 @@ def test_degrees_to_meters_array(epsg_code, expected):
         crs, coords, value=array([1.2345] * len(coords), dtype=float))
     assert approx(result.tolist(), abs=0.1, nan_ok=True) == expected
 # End test_degrees_to_meters_array function
+
+
+@mark.parametrize('fc_name, expected', [
+    ('hydro_4617_a', DecimalDegrees(100)),
+    ('hydro_6654_a', Metres(100)),
+    ('hydro_a', DecimalDegrees(100)),
+    ('hydro_lcc_a', Metres(100)),
+    ('hydro_utm11_a', Metres(100)),
+])
+def test_unit_from_number(ntdb_zm_small, fc_name, expected):
+    """
+    Test unit_from_number
+    """
+    source = ntdb_zm_small[fc_name]
+    assert unit_from_number(100, feature_class=source, name='') == expected
+# End test_unit_from_number function
 
 
 if __name__ == '__main__':  # pragma: no cover

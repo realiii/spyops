@@ -22,7 +22,7 @@ from spyops.shared.constant import QUESTION
 from spyops.shared.exception import OperationsError
 from spyops.shared.field import get_geometry_column_name, validate_fields
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
-from spyops.shared.records import bulk_insert
+from spyops.shared.records import bulk_features
 
 
 def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
@@ -79,8 +79,8 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
         with (target.geopackage.connection as cout,
               ExecuteMany(connection=cout, table=target) as executor):
             cursor = source.select(fields=fields, where_clause=where_clause)
-            bulk_insert(cursor, config=geom_config, executor=executor,
-                        insert_sql=insert_sql, transformer=transformer)
+            bulk_features(cursor, config=geom_config, executor=executor,
+                          insert_sql=insert_sql, transformer=transformer)
     return target
 # End copy_feature_class function
 
