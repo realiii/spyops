@@ -49,7 +49,6 @@ MIT
 
 ## Release History
 ### v0.2.0
-- avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
 - added `field_statistics_to_table` (Management - Fields)
@@ -81,6 +80,8 @@ MIT
 - added `table_to_delimited_file` (Conversion - Delimited File)
 - added `delimited_file_to_table` (Conversion - Delimited File)
 - added `truncate_table` (Management - Table) as function, no longer an alias for `delete_rows`
+- avoid reporting `REPEATED_XY` for start / end points of a Polygon in `check_geometry`
+- distinguish between `DATE` and `DATETIME` when filtering by field type
 
 ### v0.1.1
 - fix `to_shapely` to filter out invalid geometries post transformation 
