@@ -9,6 +9,7 @@ from pathlib import Path
 from pytest import mark, raises
 
 from spyops.validation import ValidateFile
+from tests.util import is_windows
 
 pytestmark = [mark.validation]
 
@@ -44,6 +45,7 @@ class TestValidateFile:
         assert vf._get_object({name: path}) == expected
     # End test_get_object method
 
+    @mark.skipif(is_windows(), reason='Non Windows Test')
     @mark.parametrize('path, ext, expected', [
         (Path('/a/b/c.def'), None, '/a/b/c.def'),
         (Path('/a/b/c.def'), 'txt', '/a/b/c.txt'),
