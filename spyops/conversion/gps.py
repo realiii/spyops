@@ -7,11 +7,10 @@ GPS
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from fudgeo.enumeration import ShapeType
-
 from spyops.conversion.util import _to_features
 from spyops.query.conversion.gps import FROM_GPX, TO_GPX
-from spyops.shared.field import DATES, NUMBERS, TEXTS
+from spyops.shared.field import (
+    DATES, GEOM_TYPE_LINES, GEOM_TYPE_POINTS, NUMBERS, TEXTS)
 from spyops.shared.hint import OPT_FIELD, OPT_FIELD_STR
 from spyops.shared.keywords import (
     DATE_FIELD, DESCRIPTION_FIELD, NAME_FIELD, SOURCE, TARGET, Z_FIELD)
@@ -29,8 +28,7 @@ __all__ = ['features_to_gpx', 'gpx_to_features']
 
 
 @validate_source_feature_class(geometry_types=(
-        ShapeType.point, ShapeType.multi_point,
-        ShapeType.linestring, ShapeType.multi_linestring))
+        *GEOM_TYPE_POINTS, *GEOM_TYPE_LINES))
 @validate_file(TARGET, extension=EXT_GPX)
 @validate_field(NAME_FIELD, element_name=SOURCE, single=True,
                 is_optional=True, data_types=TEXTS)

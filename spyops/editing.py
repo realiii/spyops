@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import ShapeType
 from fudgeo.util import get_extent
 
 from spyops.crs.unit import (
@@ -20,6 +19,7 @@ from spyops.crs.unit import (
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.wa import simplify
 from spyops.query.editing import QueryGeneralize
+from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import UNIT_TOLERANCE
 from spyops.shared.keywords import SOURCE, TOLERANCE
 from spyops.shared.records import extend_records
@@ -62,8 +62,7 @@ __all__ = [
 
 @validate_result()
 @validate_source_feature_class(geometry_types=(
-        ShapeType.linestring, ShapeType.multi_linestring,
-        ShapeType.polygon, ShapeType.multi_polygon))
+        *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS))
 @validate_linear_unit(TOLERANCE, feature_class_name=SOURCE, as_number=True)
 def generalize(source: 'FeatureClass', tolerance: UNIT_TOLERANCE, *,
                preserve_topology: bool = True,
