@@ -23,11 +23,11 @@ from spyops.shared.enumeration import (
 from spyops.shared.field import GEOM_TYPE_POLYGONS
 from spyops.shared.hint import XY_TOL
 from spyops.validation import (
-    validate_str_enumeration, validate_feature_class,
-    validate_geometry_dimension, validate_operator_feature_class,
-    validate_output_type, validate_overwrite_input, validate_result,
-    validate_supported_crs, validate_source_feature_class,
-    validate_target_feature_class, validate_xy_tolerance)
+    validate_str_enumeration, validate_geometry_dimension,
+    validate_operator_feature_class, validate_output_type,
+    validate_overwrite_input, validate_result, validate_supported_crs,
+    validate_source_feature_class, validate_target_feature_class,
+    validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -151,8 +151,8 @@ def symmetrical_difference(source: 'FeatureClass', operator: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=GEOM_TYPE_POLYGONS)
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_source_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
+@validate_operator_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
 @validate_target_feature_class()
 @validate_str_enumeration(ATTRIBUTE_OPTION, AttributeOption)
 @validate_str_enumeration(ALGORITHM_OPTION, AlgorithmOption)

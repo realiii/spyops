@@ -24,8 +24,8 @@ from spyops.shared.keywords import (
     END_OPTION, GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
 from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_dissolve_option, validate_distance, validate_feature_class,
-    validate_field, validate_overwrite_source, validate_range, validate_result,
+    validate_dissolve_option, validate_distance, validate_field,
+    validate_overwrite_source, validate_range, validate_result,
     validate_side_option, validate_source_feature_class,
     validate_str_enumeration, validate_target_feature_class, validate_values,
     validate_xy_tolerance)
@@ -165,7 +165,7 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
+@validate_source_feature_class(geometry_types=(
         ShapeType.point, ShapeType.multi_point))
 @validate_target_feature_class()
 @validate_xy_tolerance()
