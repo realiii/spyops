@@ -20,7 +20,8 @@ from spyops.validation.enumish import (
     ValidateGeometryAttribute, ValidateOutputType)
 from spyops.validation.field import (
     ValidateCompatibleFields, ValidateDistance, ValidateField,
-    ValidateGeometryDimension, ValidateSortField, ValidateStatisticField)
+    ValidateGeometryDimension, ValidatePlacement, ValidateSortField,
+    ValidateStatisticField)
 from spyops.validation.file import ValidateFile
 from spyops.validation.range import ValidateRange
 from spyops.validation.result import ValidateResult
@@ -48,6 +49,7 @@ validate_int_flag_enumeration = ValidateIntFlagEnumeration
 validate_linear_unit = ValidateLinearUnit
 validate_output_type = ValidateOutputType
 validate_overwrite_input = ValidateOverwriteInput
+validate_placement = ValidatePlacement
 validate_range = ValidateRange
 validate_result = ValidateResult
 validate_side_option = ValidateSideOption
