@@ -24,7 +24,7 @@ from spyops.shared.hint import UNIT_TOLERANCE
 from spyops.shared.keywords import SOURCE, TOLERANCE
 from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_feature_class, validate_linear_unit, validate_result)
+    validate_linear_unit, validate_result, validate_source_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -61,7 +61,7 @@ __all__ = [
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
+@validate_source_feature_class(geometry_types=(
         ShapeType.linestring, ShapeType.multi_linestring,
         ShapeType.polygon, ShapeType.multi_polygon))
 @validate_linear_unit(TOLERANCE, feature_class_name=SOURCE, as_number=True)

@@ -9,12 +9,11 @@ from typing import TYPE_CHECKING
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.shared.constant import EMPTY
 from spyops.shared.element import copy_element
-from spyops.shared.keywords import SOURCE
 from spyops.shared.hint import ELEMENT, FIELDS, GPKG
 from spyops.shared.util import make_valid_table_name
 from spyops.validation import (
-    validate_element, validate_geopackage, validate_overwrite_source,
-    validate_result, validate_source_table, validate_target_table)
+    validate_geopackage, validate_overwrite_source, validate_result,
+    validate_source_element, validate_source_table, validate_target_table)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -26,7 +25,7 @@ __all__ = ['get_count', 'create_table', 'delete_rows', 'truncate_table',
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 def get_count(source: ELEMENT) -> int:
     """
     Get Count
@@ -54,7 +53,7 @@ def create_table(geopackage: GPKG, name: str, *, fields: FIELDS = (),
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     """
     Delete rows from a Table or Feature Class
@@ -66,7 +65,7 @@ def delete_rows(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
 # End delete_rows function
 
 
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 def truncate_table(source: ELEMENT) -> ELEMENT:
     """
     Truncate a Table or Feature Class

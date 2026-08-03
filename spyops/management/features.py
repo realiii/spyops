@@ -48,8 +48,8 @@ from spyops.shared.hint import (
 from spyops.shared.records import (
     extend_records, insert_many_features, select_transform_insert)
 from spyops.validation import (
-    validate_coordinate_system, validate_element, validate_feature_classes,
-    validate_field, validate_geometry_group_option, validate_group_option,
+    validate_coordinate_system, validate_feature_classes, validate_field,
+    validate_geometry_group_option, validate_group_option,
     validate_int_flag_enumeration, validate_overwrite_input, validate_range,
     validate_sort_field, validate_source_element, validate_source_numeric_field,
     validate_str_enumeration, validate_feature_class,
@@ -74,7 +74,7 @@ __all__ = [
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=GEOM_TYPE_MULTI)
+@validate_source_feature_class(geometry_types=GEOM_TYPE_MULTI)
 @validate_target_feature_class()
 @validate_overwrite_source()
 def multipart_to_singlepart(source: 'FeatureClass',
@@ -110,7 +110,7 @@ def multipart_to_singlepart(source: 'FeatureClass',
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 def delete_features(source: ELEMENT, *, where_clause: str = '') -> ELEMENT:
     """
     Delete rows from a Table or Feature Class
@@ -524,7 +524,7 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
+@validate_source_feature_class(geometry_types=(
         ShapeType.multi_point, ShapeType.linestring, ShapeType.multi_linestring,
         ShapeType.polygon, ShapeType.multi_polygon))
 @validate_target_feature_class()
@@ -679,7 +679,7 @@ def feature_to_point(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
+@validate_source_feature_class(geometry_types=(
         ShapeType.linestring, ShapeType.multi_linestring,
         ShapeType.polygon, ShapeType.multi_polygon))
 @validate_target_feature_class()
@@ -722,7 +722,7 @@ def feature_vertices_to_points(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
+@validate_source_feature_class(geometry_types=(
         ShapeType.linestring, ShapeType.multi_linestring,
         ShapeType.polygon, ShapeType.multi_polygon))
 @validate_target_feature_class()
@@ -760,7 +760,7 @@ def split_line_at_vertices(source: 'FeatureClass', target: 'FeatureClass') \
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
+@validate_source_feature_class(geometry_types=(
         ShapeType.polygon, ShapeType.multi_polygon))
 @validate_target_feature_class()
 @validate_overwrite_source()

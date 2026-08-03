@@ -10,7 +10,7 @@ from spyops.shared.keywords import INDEX_FIELDS, SOURCE
 from spyops.shared.field import TEXT_AND_NUMBERS
 from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES
 from spyops.validation import (
-    validate_element, validate_feature_class, validate_field)
+    validate_field, validate_source_element, validate_source_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -21,7 +21,7 @@ __all__ = ['add_spatial_index', 'remove_spatial_index', 'add_attribute_index',
            'remove_attribute_index']
 
 
-@validate_feature_class(SOURCE, has_content=False)
+@validate_source_feature_class(has_content=False)
 def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     """
     Add Spatial Index
@@ -34,7 +34,7 @@ def add_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
 # End add_spatial_index function
 
 
-@validate_feature_class(SOURCE, has_content=False)
+@validate_source_feature_class(has_content=False)
 def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
     """
     Remove Spatial Index
@@ -47,7 +47,7 @@ def remove_spatial_index(source: 'FeatureClass') -> 'FeatureClass':
 # End remove_spatial_index function
 
 
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 @validate_field(INDEX_FIELDS, data_types=TEXT_AND_NUMBERS, element_name=SOURCE)
 def add_attribute_index(source: ELEMENT, name: str,
                         index_fields: FIELDS | FIELD_NAMES, *,
@@ -66,7 +66,7 @@ def add_attribute_index(source: ELEMENT, name: str,
 # End add_attribute_index function
 
 
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 def remove_attribute_index(source: ELEMENT, name: str) -> ELEMENT:
     """
     Remove Attribute Index
