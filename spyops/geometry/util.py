@@ -13,6 +13,7 @@ from numpy.linalg import norm
 from shapely import force_2d, force_3d
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
+from shapely.linear import line_interpolate_point
 from shapely.predicates import is_empty, is_valid
 
 from spyops.geometry.enumeration import DimensionOption
@@ -185,6 +186,14 @@ def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray',
     return nanmean(nansum(
         areas * ((origin + firsts + seconds) / 3), axis=0) / area)
 # End _get_weighted_dimension function
+
+
+def get_midpoints(lines: Union['ndarray', list]) -> 'ndarray':
+    """
+    Get Line Midpoints
+    """
+    return line_interpolate_point(lines, distance=0.5, normalized=True)
+# End get_midpoints function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -12,10 +12,9 @@ from typing import Callable, TYPE_CHECKING
 from fudgeo.enumeration import ShapeType
 from shapely import LineString, get_z
 from shapely.coordinates import get_coordinates
-from shapely.linear import line_interpolate_point
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, to_shapely
+from spyops.geometry.util import find_slice_indexes, get_midpoints, to_shapely
 from spyops.shared.hint import POINT
 
 
@@ -234,7 +233,7 @@ def _middle_sans_measures(features: list[tuple], *, has_z: bool, srs_id: int,
         features = _rings_to_lines(
             features, has_z=has_z, has_m=has_m, srs_id=srs_id)
     features, geometries = to_shapely(features, transformer=None)
-    points = line_interpolate_point(geometries, distance=0.5, normalize=True)
+    points = get_midpoints(geometries)
     cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
     for geom, (_, fid) in zip(points, features):
         middles[fid].append(cls.from_wkb(geom.wkb, srs_id=srs_id))
@@ -271,8 +270,7 @@ def _middle_with_measures(features: list[tuple], *, has_z: bool, srs_id: int,
         coordinates = get_coordinates(
             _interpolate_measures(geometries), include_z=True)
     else:
-        points = line_interpolate_point(
-            geometries, distance=0.5, normalize=True)
+        points = get_midpoints(geometries)
         coordinates = get_coordinates(points, include_z=has_z, include_m=has_m)
         # NOTE use get_z since measures in Z via LineString creation
         coordinates[:, -1] = get_z(_interpolate_measures(geometries))
@@ -292,7 +290,7 @@ def _interpolate_measures(geoms: 'ndarray') -> 'ndarray':
     # NOTE the current behaviour when passing triplets is for a LineStringZ
     #  to be generated, in this case the Z values are measures
     lines = [LineString(coordinates[b:e]) for b, e in zip(ids[:-1], ids[1:])]
-    return line_interpolate_point(lines, distance=0.5, normalize=True)
+    return get_midpoints(lines)
 # End _interpolate_measures function
 
 
