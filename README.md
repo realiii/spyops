@@ -48,6 +48,9 @@ MIT
 
 
 ## Release History
+### v0.2.1
+- fix spelling on keyword argument and extract to utility function
+
 ### v0.2.0
 - added `add_gps_metadata_fields` (Management - Fields)
 - added `calculate_end_time` (Management - Fields)
