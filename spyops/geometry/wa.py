@@ -69,23 +69,33 @@ def _simplify_with_measures(geometry, *, tolerance: float,
     """
     Simplify Workaround -- ensures measures are present
     """
-    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
-        geometry = [geometry]
-    geoms = geometry[:(min(25, len(geometry)))]
+    is_iterable, geometries = _ensure_iterable(geometry)
+    geoms = geometries[:(min(25, len(geometries)))]
     has_z = any(g.has_z for g in geoms)
     (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
     shape_type = geom_type.upper()
     if shape_type not in GEOMETRY_SIMPLIFY:
-        result = geometry
+        result = geometries
     else:
         func = GEOMETRY_SIMPLIFY[shape_type]
         result = func(
-            geometry, tolerance=tolerance, preserve_topology=preserve_topology,
+            geometries, tolerance=tolerance,
+            preserve_topology=preserve_topology,
             has_z=has_z, **kwargs)
     if not is_iterable:
         return result[0]
     return result
 # End _simplify_with_measures function
+
+
+def _ensure_iterable(geometry: Any) -> tuple[bool, list]:
+    """
+    Ensure working with an iterable and not just a geometry
+    """
+    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
+        geometry = [geometry]
+    return is_iterable, geometry
+# End _ensure_iterable function
 
 
 def _simplify_config(shape_type: str, has_z: bool) \
