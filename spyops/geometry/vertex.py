@@ -7,19 +7,28 @@ Vertices from Geometries
 from collections import defaultdict
 from functools import partial
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo.enumeration import ShapeType
 from shapely import LineString, get_z
 from shapely.coordinates import get_coordinates
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_midpoints, to_shapely
+from spyops.geometry.util import linestring_measures_to_zs, to_shapely
+from spyops.geometry.wa import line_interpolate_point
 from spyops.shared.hint import POINT
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
+
+
+def get_midpoints(lines: Union['ndarray', list[LineString]]) -> 'ndarray':
+    """
+    Get Midpoints from Lines
+    """
+    return line_interpolate_point(lines, distance=0.5, normalized=True)
+# End get_midpoints function
 
 
 def _vertices_points(features: list[tuple], **kwargs) \
@@ -268,30 +277,18 @@ def _middle_with_measures(features: list[tuple], *, has_z: bool, srs_id: int,
     if not has_z:
         # NOTE measures are stored in Z because of LineString construction
         coordinates = get_coordinates(
-            _interpolate_measures(geometries), include_z=True)
+            get_midpoints(linestring_measures_to_zs(geometries)),
+            include_z=True)
     else:
         points = get_midpoints(geometries)
         coordinates = get_coordinates(points, include_z=has_z, include_m=has_m)
         # NOTE use get_z since measures in Z via LineString creation
-        coordinates[:, -1] = get_z(_interpolate_measures(geometries))
+        coordinates[:, -1] = get_z(
+            get_midpoints(linestring_measures_to_zs(geometries)))
     for coords, (_, fid) in zip(coordinates, features):
         middles[fid].append(cls.from_tuple(coords, srs_id=srs_id))
     return middles
 # End _middle_with_measures function
-
-
-def _interpolate_measures(geoms: 'ndarray') -> 'ndarray':
-    """
-    Interplate Measures
-    """
-    coordinates, indexes = get_coordinates(
-        geoms, include_m=True, return_index=True)
-    ids = find_slice_indexes(indexes)
-    # NOTE the current behaviour when passing triplets is for a LineStringZ
-    #  to be generated, in this case the Z values are measures
-    lines = [LineString(coordinates[b:e]) for b, e in zip(ids[:-1], ids[1:])]
-    return get_midpoints(lines)
-# End _interpolate_measures function
 
 
 _ALL_GETTER = itemgetter(slice(None))
