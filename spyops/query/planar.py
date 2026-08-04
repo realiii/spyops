@@ -16,14 +16,13 @@ from fudgeo.enumeration import ShapeType
 from numpy import array, concatenate
 from shapely import GeometryCollection
 from shapely.constructive import point_on_surface
-from shapely.linear import line_interpolate_point
 from shapely.strtree import STRtree
 from shapely.set_operations import union_all
 
 from spyops.environment.core import zm_config
 from spyops.environment.util import tolerance_scale_factor
 from spyops.geometry.config import geometry_config
-from spyops.geometry.util import get_geoms_iter, to_shapely
+from spyops.geometry.util import get_geoms_iter, get_midpoints, to_shapely
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
 from spyops.shared.constant import EMPTY
@@ -427,8 +426,7 @@ class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
         """
         micro = 10 ** -6
         distance = tolerance_scale_factor(self._element) * micro
-        points = line_interpolate_point(
-            planarized, distance=0.5, normalized=True)
+        points = get_midpoints(planarized)
         return tree.query(points, predicate='dwithin', distance=distance)
     # End _get_intersections method
 
