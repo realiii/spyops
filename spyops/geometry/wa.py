@@ -464,6 +464,17 @@ class _UseWorkarounds:
     # End line_merge property
 
     @cached_property
+    def line_interpolate_point(self) -> bool:
+        """
+        Use workaround for line_interpolate_point?
+        """
+        a = from_wkt('LINESTRING (0 0 0 0, 10 20 30 40, 100 200 300 400)')
+        # noinspection PyTypeChecker
+        result = _line_interpolate_point(a, distance=0.5, normalized=True)
+        return not result.has_m
+    # End line_interpolate_point property
+
+    @cached_property
     def simplify(self) -> bool:
         """
         Use workaround for simplify?

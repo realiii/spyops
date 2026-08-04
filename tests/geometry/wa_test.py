@@ -42,6 +42,7 @@ def test_use_workarounds():
     assert USE_WORKAROUNDS.polygonize_drop_m is True
     assert USE_WORKAROUNDS.polygonize_drop_z_nan is True
     assert USE_WORKAROUNDS.polygonize is True
+    assert USE_WORKAROUNDS.line_interpolate_point is True
     assert USE_WORKAROUNDS.line_merge is True
     assert USE_WORKAROUNDS.set_precision is True
     assert USE_WORKAROUNDS.inconsistent_zm_source is True
@@ -234,6 +235,14 @@ class TestSimplify:
         assert geom.has_m == result.has_m
     # End test_multi_polygon_with_measures method
 # End TestSimplify class
+
+
+class TestLineInterpolatePoint:
+    """
+    Test line interpolate point
+    """
+
+# End TestLineInterpolatePoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
