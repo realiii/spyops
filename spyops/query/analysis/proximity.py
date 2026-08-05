@@ -36,13 +36,14 @@ from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
 from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
+from spyops.query.mixin import UnitTypeMixin
 from spyops.shared.constant import DRID, EMPTY, METRE, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    NUMBERS, ORIG_FID, TYPE_ALIAS_LUT, add_orig_fid, get_geometry_column_name,
-    make_field_names, make_unique_fields, validate_fields)
+    ORIG_FID, add_orig_fid, get_geometry_column_name, make_field_names,
+    make_unique_fields, validate_fields)
 from spyops.shared.hint import FIELDS, XY_TOL
 from spyops.shared.keywords import (
     CRS_KEY, END_OPTION, METERS_ATTR, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION,
@@ -68,7 +69,8 @@ class BufferConfig(NamedTuple):
 # End BufferConfig class
 
 
-class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
+class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
+                                  metaclass=ABCMeta):
     """
     Abstract Query Buffer Dissolve Class
     """
@@ -89,66 +91,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             end_option=end_option, resolution=resolution)
         self._counter: int = 0
     # End init built-in
-
-    @property
-    def _is_distance_from_field(self) -> bool:
-        """
-        Is Distance from Field?
-        """
-        return isinstance(self._config.distance, Field)
-    # End _is_distance_from_field property
-
-    @cached_property
-    def _is_numeric_field(self) -> bool:
-        """
-        Is Numeric Field
-        """
-        if not self._is_distance_from_field:
-            return False
-        aliases = set(NUMBERS)
-        for data_type in NUMBERS:
-            aliases.update(TYPE_ALIAS_LUT[data_type])
-        aliases = tuple(a.casefold() for a in aliases)
-        # noinspection PyUnresolvedReferences
-        return self._config.distance.data_type.casefold().startswith(aliases)
-    # End _is_numeric_field property
-
-    @cached_property
-    def _unit_types(self) -> tuple[bool, bool]:
-        """
-        Check for Linear and Angular Units, return tuple of truth
-        """
-        elm = self.source
-        distance = self._config.distance
-        if not self._is_distance_from_field:
-            is_linear = isinstance(distance, LinearUnit)
-            return is_linear, not is_linear
-        if self._is_numeric_field:
-            is_projected = self.source_crs.is_projected
-            return is_projected, not is_projected
-        distance: Field
-        null_clause = f'{distance.escaped_name} IS NOT NULL'
-        if index_where := self._spatial_index_where(elm):
-            where_clause = f'{index_where} AND {null_clause}'
-        else:
-            where_clause = f'WHERE {null_clause}'
-        has_linear = has_angular = False
-        with elm.geopackage.connection as cin:
-            cursor = cin.execute(f"""
-                SELECT DISTINCT {distance.escaped_name}
-                FROM {elm.escaped_name} {where_clause}
-            """)
-            while rows := cursor.fetchmany(FETCH_SIZE):
-                units = [unit_factory(value) for value, in rows]
-                units = [unit for unit in units if unit]
-                has_linear = has_linear or any(
-                    isinstance(u, LinearUnit) for u in units)
-                has_angular = has_angular or any(
-                    isinstance(u, DecimalDegrees) for u in units)
-                if has_linear and has_angular:
-                    return has_linear, has_angular
-        return has_linear, has_angular
-    # End _unit_types property
 
     @cached_property
     def buffer_type(self) -> BufferTypeOption:

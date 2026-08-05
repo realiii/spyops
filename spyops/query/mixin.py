@@ -8,16 +8,19 @@ from datetime import datetime
 from functools import cached_property
 from typing import Self
 
-from fudgeo import FeatureClass
-from fudgeo.constant import COMMA_SPACE
+from fudgeo import FeatureClass, Field
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
 
+from spyops.crs.unit import DecimalDegrees, LinearUnit, unit_factory
 from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.shared.constant import DOT, DRID, EMPTY
+from spyops.shared.constant import DOT, DRID, EMPTY, SEMI
 
 from spyops.shared.database import add_aggregates, remove_aggregates
-from spyops.shared.field import make_field_names, make_unique_fields
+from spyops.shared.field import (
+    NUMBERS, TYPE_ALIAS_LUT, make_field_names,
+    make_unique_fields)
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
@@ -194,6 +197,78 @@ class IntermediateTableContextMixin:
             field_count=len(self._intermediate_fields))
     # End insert property
 # End IntermediateTableContextMixin class
+
+
+class UnitTypeMixin:
+    """
+    Unit Type Mixin
+    """
+    @property
+    def _is_distance_from_field(self) -> bool:
+        """
+        Is Distance from Field?
+        """
+        # noinspection PyUnresolvedReferences
+        return isinstance(self._config.distance, Field)
+    # End _is_distance_from_field property
+
+    @cached_property
+    def _is_numeric_field(self) -> bool:
+        """
+        Is Numeric Field
+        """
+        if not self._is_distance_from_field:
+            return False
+        aliases = set(NUMBERS)
+        for data_type in NUMBERS:
+            aliases.update(TYPE_ALIAS_LUT[data_type])
+        aliases = tuple(a.casefold() for a in aliases)
+        # noinspection PyUnresolvedReferences
+        return self._config.distance.data_type.casefold().startswith(aliases)
+    # End _is_numeric_field property
+
+    @cached_property
+    def _unit_types(self) -> tuple[bool, bool]:
+        """
+        Check for Linear and Angular Units, return tuple of truth
+        """
+        # noinspection PyUnresolvedReferences
+        elm = self.source
+        # noinspection PyUnresolvedReferences
+        distance = self._config.distance
+        if not self._is_distance_from_field:
+            is_linear = isinstance(distance, LinearUnit)
+            return is_linear, not is_linear
+        if self._is_numeric_field:
+            # noinspection PyUnresolvedReferences
+            is_projected = self.source_crs.is_projected
+            return is_projected, not is_projected
+        distance: Field
+        null_clause = f'{distance.escaped_name} IS NOT NULL'
+        # noinspection PyUnresolvedReferences
+        if index_where := self._spatial_index_where(elm):
+            where_clause = f'{index_where} AND {null_clause}'
+        else:
+            where_clause = f'WHERE {null_clause}'
+        has_linear = has_angular = False
+        with elm.geopackage.connection as cin:
+            cursor = cin.execute(f"""
+                SELECT DISTINCT {distance.escaped_name}
+                FROM {elm.escaped_name} {where_clause}
+            """)
+            while rows := cursor.fetchmany(FETCH_SIZE):
+                units = sum([[unit_factory(v) for v in value.split(SEMI)]
+                             for value, in rows], [])
+                units = [unit for unit in units if unit]
+                has_linear = has_linear or any(
+                    isinstance(u, LinearUnit) for u in units)
+                has_angular = has_angular or any(
+                    isinstance(u, DecimalDegrees) for u in units)
+                if has_linear and has_angular:
+                    return has_linear, has_angular
+        return has_linear, has_angular
+    # End _unit_types property
+# End UnitTypeMixin class
 
 
 if __name__ == '__main__':  # pragma: no cover
