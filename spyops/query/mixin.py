@@ -5,24 +5,35 @@ Mixins
 
 
 from datetime import datetime
-from functools import cached_property
-from typing import Self
+from functools import cache, cached_property
+from math import nan
+from typing import Self, TYPE_CHECKING
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
+from numpy import array, ones_like
+from shapely.constructive import centroid
+from shapely.coordinates import get_coordinates
 
-from spyops.crs.unit import DecimalDegrees, LinearUnit, unit_factory
+from spyops.crs.unit import (
+    DecimalDegrees, LinearUnit, degrees_to_meters,
+    get_linear_unit_conversion_factor, get_unit_name, unit_factory)
 from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.shared.constant import DOT, DRID, EMPTY, SEMI
+from spyops.shared.constant import DOT, DRID, EMPTY, METRE, SEMI
 
 from spyops.shared.database import add_aggregates, remove_aggregates
 from spyops.shared.field import (
-    NUMBERS, TYPE_ALIAS_LUT, make_field_names,
-    make_unique_fields)
+    NUMBERS, TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS
+from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
 from spyops.shared.sql import IN, TEMP_SCHEMA
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from numpy import ndarray
+    from pyproj import CRS
 
 
 class AggregateContextMixin:
@@ -203,6 +214,75 @@ class UnitTypeMixin:
     """
     Unit Type Mixin
     """
+    def _convert_unit(self, is_geodesic: bool, crs: 'CRS', geoms: 'ndarray',
+                      unit: LinearUnit | DecimalDegrees) -> 'ndarray':
+        """
+        Convert Unit
+        """
+        has_linear, _ = self._unit_types
+        if is_geodesic:
+            if has_linear:
+                value = getattr(unit, METERS_ATTR, nan)
+            else:
+                value = getattr(unit, VALUE_ATTR, nan)
+                coordinates = get_coordinates(centroid(geoms))
+                return degrees_to_meters(
+                    crs, coordinates=coordinates, value=value)
+        else:
+            has_linear, _ = self._unit_types
+            if has_linear:
+                # NOTE return in units of the source CRS
+                value = getattr(unit, METERS_ATTR, nan)
+                value *= self._get_conversion_factor(crs)
+            else:
+                value = getattr(unit, VALUE_ATTR, nan)
+        return ones_like(geoms, dtype=float) * value
+    # End _convert_unit method
+
+    def _convert_units(self, is_geodesic: bool, crs: 'CRS', geoms: 'ndarray',
+                       units: list[LinearUnit | DecimalDegrees | None]) \
+            -> 'ndarray':
+        """
+        Convert Units
+        """
+        meters = array([getattr(unit, METERS_ATTR, nan)
+                        for unit in units], dtype=float)
+        if is_geodesic:
+            degrees = [(i, unit.value) for i, unit in enumerate(units)
+                       if isinstance(unit, DecimalDegrees)]
+            if not degrees:
+                return meters
+            ids, values = zip(*degrees)
+            ids = array(ids, dtype=int)
+            coordinates = get_coordinates(centroid(geoms[ids]))
+            meters[ids] = degrees_to_meters(
+                crs, coordinates=coordinates,
+                value=array(values, dtype=float))
+            return meters
+        else:
+            # NOTE planar buffer type only occurs when there is no mixture of
+            #  units which means fully linear or fully angular
+            has_linear, _ = self._unit_types
+            if has_linear:
+                # NOTE return in units of the source CRS
+                return meters * self._get_conversion_factor()
+            else:
+                # NOTE this will be in decimal degrees
+                return array([getattr(unit, VALUE_ATTR, nan)
+                              for unit in units], dtype=float)
+    # End _convert_units method
+
+    @cache
+    def _get_conversion_factor(self, crs: 'CRS') -> float:
+        """
+        Get Conversion Factor
+        """
+        if not (unit_name := get_unit_name(crs)):
+            return 1.
+        return get_linear_unit_conversion_factor(
+            from_name=METRE, to_name=unit_name)
+    # End _get_conversion_factor method
+
     @property
     def _is_distance_from_field(self) -> bool:
         """
