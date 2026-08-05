@@ -78,8 +78,11 @@ REPEAT_FID: Field = Field(
     'REPEAT_FID', data_type=FieldType.integer,
     alias='Repeat Feature Identifier')
 ORIG_SEQ: Field = Field(
-    'ORIG_SEQ', data_type=FieldType.integer,
-    alias='Original Sequence Number')
+    'ORIG_SEQ', data_type=FieldType.integer, alias='Original Sequence Number')
+SEQ_NUM: Field = Field(
+    'SEQ_NUM', data_type=FieldType.integer, alias='Sequence Number')
+ALONG: Field = Field(
+    'ALONG', data_type=FieldType.real, alias='Length Along Line')
 MBG_WIDTH: Field = Field(
     'MBG_WIDTH', data_type=FieldType.real,
     alias='Width of Minimum Bounding Geometry')
