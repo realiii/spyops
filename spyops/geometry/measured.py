@@ -27,7 +27,7 @@ class MeasuredLine:
                  zs: Optional[VALUES] = None, ms: Optional[VALUES] = None,
                  lengths: Optional[VALUES] = None,
                  validate_measures: bool = False,
-                 is_planar: bool = False) -> None:
+                 is_2d: bool = False, start_length: float = 0.) -> None:
         """
         Initialize the MeasuredLine class
         """
@@ -36,11 +36,10 @@ class MeasuredLine:
             zs = zeros_like(xs, dtype=float)
         self._validate_inputs(xs, ys=ys, zs=zs, ms=ms, lengths=lengths)
         ms = self._prepare_measures(
-            ms, xs=xs, ys=ys, zs=zs, is_planar=is_planar,
-            validate=validate_measures)
+            ms, xs=xs, ys=ys, zs=zs, is_2d=is_2d, validate=validate_measures)
         lengths = self._prepare_measures(
-            lengths, xs=xs, ys=ys, zs=zs, is_planar=is_planar,
-            validate=validate_measures)
+            lengths, xs=xs, ys=ys, zs=zs, is_2d=is_2d,
+            validate=validate_measures, start=start_length)
         coords = full((len(xs), 5), fill_value=nan, dtype=float)
         coords[:, 0] = xs
         coords[:, 1] = ys
@@ -68,12 +67,13 @@ class MeasuredLine:
 
     def _prepare_measures(self, values: Optional[VALUES], *,
                           xs: VALUES, ys: VALUES, zs: VALUES,
-                          is_planar: bool, validate: bool) -> VALUES:
+                          is_2d: bool, validate: bool,
+                          start: float = 0.) -> VALUES:
         """
         Prepare Measures / Lengths
         """
         if values is None:
-            return self._calculate_measures(xs, ys, zs, is_planar=is_planar)
+            return self._calculate_measures(xs, ys, zs, is_2d=is_2d) + start
         if validate:
             self._validate_measures(values)
         return values
@@ -110,20 +110,20 @@ class MeasuredLine:
     # End _validate_measures method
 
     def _calculate_measures(self, xs: VALUES, ys: VALUES, zs: VALUES,
-                            is_planar: bool) -> VALUES:
+                            is_2d: bool) -> VALUES:
         """
         Calculate measures
         """
-        planar = self._calculate_segment_lengths(xs, ys)
-        if is_planar:
-            return planar
+        lengths = self._calculate_segment_lengths(xs, ys)
+        if is_2d:
+            return lengths
         mask = ~isfinite(zs)
         if mask.all():
             zs = zeros_like(zs, dtype=float)
         elif mask.any():
             zs = array(zs, dtype=float)
             zs[mask] = interp(flatnonzero(mask), flatnonzero(~mask), zs[~mask])
-        return self._calculate_segment_lengths(planar, zs)
+        return self._calculate_segment_lengths(lengths, zs)
     # End _calculate_measures method
 
     @staticmethod
