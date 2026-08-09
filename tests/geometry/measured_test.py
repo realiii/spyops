@@ -6,7 +6,7 @@ Test module for Measured Line
 
 from math import sqrt
 
-from numpy import arange
+from numpy import arange, isnan
 from pytest import approx, fixture, mark, raises
 
 from spyops.geometry.measured import MeasuredLine
@@ -68,7 +68,7 @@ def test_find_coordinate_measures_out_of_bounds(straight_line, m_value):
     Test bad measures
     """
     result = straight_line.interpolate([m_value])
-    assert not len(result)
+    assert isnan(result).all()
 # End test_find_coordinate_measures_out_of_bounds function
 
 
