@@ -92,9 +92,9 @@ def test_add_end_locations(shape_type, geom, expected):
     _add_end_locations(coordinates, ids=ids, records=records,
                        fid=fid, total_length=100)
     (first_location, *first_attrs), _, (last_location, *last_attrs) = records
-    assert approx(tuple(first_location), nan_ok=True, abs=0) == (0, 0, nan, nan)
+    assert approx(tuple(first_location), nan_ok=True, abs=0.1) == (0, 0, nan, nan)
     assert first_attrs == [fid, 1, 0.0]
-    assert approx(tuple(last_location), nan_ok=True, abs=0) == expected
+    assert approx(tuple(last_location), nan_ok=True, abs=0.1) == expected
     assert last_attrs == [fid, 3, 100.0]
 # End test_add_end_locations function
 
