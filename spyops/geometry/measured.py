@@ -49,6 +49,17 @@ class MeasuredLine:
         self._coordinates: 'ndarray' = coords
     # End init built-in
 
+    @classmethod
+    def from_coordinates_2d(cls, coordinates: 'ndarray',
+                            start_length: float = 0.) -> 'MeasuredLine':
+        """
+        From Coordinates stored in array and using 2D length
+        """
+        return cls(
+            xs=coordinates[:, 0], ys=coordinates[:, 1], zs=coordinates[:, 2],
+            ms=coordinates[:, 3], is_2d=True, start_length=start_length)
+    # End from_coordinates method
+
     @property
     def coordinates(self) -> 'ndarray':
         """
