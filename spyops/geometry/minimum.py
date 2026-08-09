@@ -17,7 +17,7 @@ from shapely.constructive import (
     normalize)
 from shapely.coordinates import get_coordinates
 
-from spyops.geometry.util import find_slice_indexes
+from spyops.geometry.util import get_coords_and_slices
 from spyops.shared.enumeration import MinimumGeometryOption
 
 
@@ -46,8 +46,7 @@ def _minimum_rotated_rectangle_width(geometry, **kwargs) -> Polygon | None:
     vxs, vys = -uys, uxs
     rects = envelope([affine_transform(hull, (*params, 0, 0))
                       for params in zip(uxs, uys, vxs, vys)])
-    coords, indexes = get_coordinates(rects, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(rects, include_z=False, include_m=False)
     widths = []
     for begin, end in zip(ids[:-1], ids[1:]):
         (x1, y1), (x2, y2), (x3, y3), *_ = coords[begin:end]
@@ -70,8 +69,7 @@ def _rectangle_attributes(geoms: 'ndarray') -> list[tuple[float, float, float]]:
     the Length (longer side).
     """
     wlo = []
-    coords, indexes = get_coordinates(geoms, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=False, include_m=False)
     for begin, end in zip(ids[:-1], ids[1:]):
         try:
             pt1, pt2, pt3, *_ = coords[begin:end]
@@ -110,8 +108,8 @@ def _convex_hull_attributes(geoms: 'ndarray') \
     measured clockwise from north along the Length (longer side).
     """
     wlo = []
-    coords, indexes = get_coordinates(normalize(geoms), return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(
+        normalize(geoms), include_z=False, include_m=False)
     for begin, end in zip(ids[:-1], ids[1:]):
         subset = coords[begin:end]
         pairs = _antipodal_pairs(subset)

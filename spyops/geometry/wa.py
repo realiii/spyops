@@ -31,7 +31,7 @@ from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transforms
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import (
-    find_slice_indexes, get_geoms, get_geoms_iter, linestring_measures_to_zs,
+    get_coords_and_slices, get_geoms, get_geoms_iter, linestring_measures_to_zs,
     nada)
 from spyops.shared.constant import SKIP_FILE_PREFIXES, SRS_ID_WKB
 from spyops.shared.exception import ShapelyWarning
@@ -172,12 +172,12 @@ def _build_xy_and_lookup(geoms: list, has_z: bool, max_id: int,
     """
     Build XY and Lookup, also return identifier indexes
     """
-    coords, indexes = get_coordinates(
-        getter(geoms), include_z=has_z, include_m=True, return_index=True)
+    coords, ids = get_coords_and_slices(
+        getter(geoms), include_z=has_z, include_m=True)
     xy_index = coords[:, :3].copy()
     xy_index[:, 2] = arange(len(xy_index), dtype=float) + max_id
     lookup = dict(zip(xy_index[:, 2], coords[:, 2:]))
-    return find_slice_indexes(indexes), lookup, xy_index
+    return ids, lookup, xy_index
 # End _build_xy_and_lookup function
 
 
@@ -187,10 +187,10 @@ def _rebuild_coordinates(geoms: 'ndarray', lookup: dict[float, 'ndarray'],
     """
     Rebuild Coordinates by using lookup to add back measures and z values
     """
-    coords, indexes = get_coordinates(
-        getter(geoms), include_z=True, return_index=True)
+    coords, ids = get_coords_and_slices(
+        getter(geoms), include_z=True, include_m=False)
     coords = [(x, y, *lookup.get(idx, missing)) for x, y, idx in coords]
-    return coords, find_slice_indexes(indexes)
+    return coords, ids
 # End _rebuild_coordinates function
 
 
@@ -462,9 +462,8 @@ def _build_linear_coordinates(geom: Polygon | MultiLineString | LinearRing,
     Build Coordinates for Linear Geometry
     """
     coords = []
-    coordinates, indexes = get_coordinates(
-        getter(geom), include_z=has_z, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coordinates, ids = get_coords_and_slices(
+        getter(geom), include_z=has_z, include_m=False)
     for begin, end in zip(ids[:-1], ids[1:]):
         coords.append([slicer((*key, nanmean(lookup.get(tuple(key), [nan]))))
                        for key in coordinates[begin:end]])

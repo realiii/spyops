@@ -14,7 +14,7 @@ from shapely.coordinates import get_coordinates
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_geoms, nada
+from spyops.geometry.util import get_coords_and_slices, get_geoms, nada
 from spyops.shared.enumeration import OutputTypeOption
 from spyops.shared.keywords import GEOMS_ATTR
 
@@ -160,10 +160,8 @@ def cast_multi_polygons(geoms: 'ndarray', *, srs_id: int, has_z: bool,
     for geom in geoms:
         poly_coords = []
         for part in get_geoms(geom):
-            coords, indexes = get_coordinates(
-                get_rings(part), include_z=has_z, include_m=has_m,
-                return_index=True)
-            ids = find_slice_indexes(indexes)
+            coords, ids = get_coords_and_slices(
+                get_rings(part), include_z=has_z, include_m=has_m)
             _update_z_values(coords, has_z=has_z)
             poly_coords.append([coords[b:e] for b, e in zip(ids[:-1], ids[1:])])
         converted.append(cls(poly_coords, srs_id=srs_id))
@@ -177,9 +175,7 @@ def _cast_linear(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
     Cast Linear Geometry
     """
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     _update_z_values(coords, has_z=has_z)
     return [cls(coords[b:e], srs_id=srs_id) for b, e in zip(ids[:-1], ids[1:])]
 # End _cast_linear function
@@ -193,10 +189,8 @@ def _cast_groups(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
     converted = []
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
     for geom in geoms:
-        # noinspection PyTypeChecker
-        coords, indexes = get_coordinates(
-            getter(geom), include_z=has_z, include_m=has_m, return_index=True)
-        ids = find_slice_indexes(indexes)
+        coords, ids = get_coords_and_slices(
+            getter(geom), include_z=has_z, include_m=has_m)
         _update_z_values(coords, has_z=has_z)
         converted.append(cls([coords[b:e] for b, e in
                               zip(ids[:-1], ids[1:])], srs_id=srs_id))

@@ -70,6 +70,19 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 # End find_slice_indexes function
 
 
+def get_coords_and_slices(geoms: Union['ndarray', 'GeometrySequence'], *,
+                          include_z: bool, include_m: bool) \
+        -> tuple['ndarray', tuple[int, ...]]:
+    """
+    Get Coordinates and Slice Indexes
+    """
+    coordinates, indexes = get_coordinates(
+        geoms, include_z=include_z, include_m=include_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    return coordinates, ids
+# End get_coords_and_slices method
+
+
 def to_shapely(features: list[tuple], transformer: Callable | None,
                *, option: DimensionOption = DimensionOption.SAME,
                on_invalid: str = 'raise', extent: Optional['Polygon'] = None) \
@@ -193,12 +206,11 @@ def linestring_measures_to_zs(geoms: Union['ndarray', list[LineString]]) \
     Move the Measures of a LineString to the Z axis, reducing to LineStringZ
     from LineStringZM or changing from LineStringM to LineStringZ.
     """
-    coordinates, indexes = get_coordinates(
-        geoms, include_m=True, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(
+        geoms, include_z=False, include_m=True)
     # NOTE the current behaviour when passing triplets is for a LineStringZ
     #  to be generated, in this case the Z values are measures
-    return [LineString(coordinates[b:e]) for b, e in zip(ids[:-1], ids[1:])]
+    return [LineString(coords[b:e]) for b, e in zip(ids[:-1], ids[1:])]
 # End linestring_measures_to_zs function
 
 

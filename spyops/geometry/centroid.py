@@ -14,7 +14,7 @@ from shapely.coordinates import get_coordinates
 from shapely.measurement import area, length
 
 from spyops.geometry.util import (
-    ring_area_and_centroid, find_slice_indexes, get_geoms)
+    get_coords_and_slices, ring_area_and_centroid, get_geoms)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -35,9 +35,7 @@ def centroid_multi_points(geoms: 'ndarray', *, has_z: bool, has_m: bool,
     """
     Centroids for MultiPoints
     """
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     return [nanmean(coords[b:e], axis=0) for b, e in zip(ids[:-1], ids[1:])]
 # End centroid_multi_points function
 
@@ -100,9 +98,7 @@ def _get_geometric_centers(geoms: 'ndarray', has_z: bool, has_m: bool,
     Get Geometric Centers
     """
     centers = []
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     for begin, end in zip(ids[:-1], ids[1:]):
         coordinates = coords[begin:end]
         middles = move_mean(coordinates, window=2, min_count=1, axis=0)[1:]
@@ -127,9 +123,7 @@ def _ring_centers(rings: 'ndarray', areas: 'ndarray',
     """
     centers = []
     dim = 2 + sum((has_z, has_m))
-    coords, indexes = get_coordinates(
-        rings, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(rings, include_z=has_z, include_m=has_m)
     for begin, end, signed_area in zip(ids[:-1], ids[1:], areas):
         if not signed_area:
             continue

@@ -10,10 +10,10 @@ from typing import Callable, TYPE_CHECKING
 from bottleneck import nanmax, nanmin
 from fudgeo.util import get_extent
 from numpy import isfinite
-from shapely import MultiPolygon, get_coordinates
+from shapely import MultiPolygon
 from shapely.constructive import envelope
 
-from spyops.geometry.util import find_slice_indexes, get_geoms_iter
+from spyops.geometry.util import get_coords_and_slices, get_geoms_iter
 from spyops.shared.exception import BadExtentError
 from spyops.shared.hint import EXTENT
 
@@ -108,9 +108,7 @@ def _get_partial_extent(geoms: 'ndarray', *, has_z: bool, has_m: bool,
     """
     Get Partial Extent
     """
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     return _apply_axis_summary(func, coords=coords, ids=ids)
 # End _get_partial_extent function
 

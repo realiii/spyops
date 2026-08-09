@@ -22,7 +22,7 @@ from spyops.crs.util import crs_from_srs, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.util import (
-    filter_features, find_slice_indexes, get_geoms_iter, to_shapely)
+    filter_features, get_coords_and_slices, get_geoms_iter, to_shapely)
 from spyops.gpx.export import GPX, Track, TrackPoint, Waypoint
 from spyops.gpx.parse import (
     get_trackpoints, get_tracks, get_root, get_waypoints)
@@ -168,9 +168,8 @@ class QueryFeaturesToGPXLineString(AbstractQueryFeaturesToGPX):
         Build Records
         """
         tracks = []
-        coords, indexes = get_coordinates(
-            geometries, include_z=True, return_index=True)
-        ids = find_slice_indexes(indexes)
+        coords, ids = get_coords_and_slices(
+            geometries, include_z=True, include_m=False)
         for begin, end, attrs in zip(ids[:-1], ids[1:], attributes):
             coordinates = coords[begin:end]
             mask = isfinite(coordinates[:, 0]) & isfinite(coordinates[:, 1])
