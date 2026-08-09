@@ -231,7 +231,8 @@ class MeasuredLine:
         Find Coordinates for values along the line. By default, the values are
         interpolated using the measures otherwise they are interpolated using
         the geometric length which may be 2D or 3D depending on the inputs used
-        during initialization.
+        during initialization.  Return all coordinates for the values in same
+        order as input values.
         """
         count = len(values)
         coords = full((count, 4), fill_value=nan, dtype=float)
@@ -248,7 +249,7 @@ class MeasuredLine:
             coords[:, 3] = values
         else:
             coords[:, 3] = interp(values, fp=self.measures, **kwargs)
-        return coords[isfinite(coords[:, 0]) & isfinite(coords[:, 1])]
+        return coords
     # End interpolate method
 # End MeasuredLine class
 
