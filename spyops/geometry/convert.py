@@ -4,11 +4,11 @@ Convert Geometry
 """
 
 
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo.enumeration import ShapeType
 from numpy import isnan
-from shapely import get_rings
+from shapely import get_rings, MultiLineString
 from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
 
@@ -16,11 +16,13 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import find_slice_indexes, get_geoms, nada
 from spyops.shared.enumeration import OutputTypeOption
+from spyops.shared.keywords import GEOMS_ATTR
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
+    from shapely import LineString, MultiPolygon, Polygon
 
 
 def get_geometry_converters(source: 'FeatureClass', operator: 'FeatureClass',
@@ -202,6 +204,26 @@ def _cast_groups(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
 # End _cast_groups function
 
 
+def _polygon_as_multilinestring(geom: Union['Polygon', 'MultiPolygon']) \
+        -> MultiLineString:
+    """
+    Polygon as MultiLineString
+    """
+    return _line_as_multilinestring(boundary(geom))
+# End _polygon_as_multilinestring function
+
+
+def _line_as_multilinestring(geom: Union['LineString', MultiLineString]) \
+        -> MultiLineString:
+    """
+    LineString as MultiLineString
+    """
+    if hasattr(geom, GEOMS_ATTR):
+        return geom
+    return MultiLineString([geom])
+# End _polygon_as_multilinestring function
+
+
 GEOMETRY_CAST: dict[str, Callable] = {
     ShapeType.point: cast_points,
     ShapeType.multi_point: cast_multi_points,
@@ -209,6 +231,14 @@ GEOMETRY_CAST: dict[str, Callable] = {
     ShapeType.multi_linestring: cast_multi_linestrings,
     ShapeType.polygon: cast_polygons,
     ShapeType.multi_polygon: cast_multi_polygons,
+}
+
+
+GEOMETRY_AS_MULTILINE: dict[str, Callable] = {
+    ShapeType.linestring: _line_as_multilinestring,
+    ShapeType.multi_linestring: _line_as_multilinestring,
+    ShapeType.polygon: _polygon_as_multilinestring,
+    ShapeType.multi_polygon: _polygon_as_multilinestring,
 }
 
 
