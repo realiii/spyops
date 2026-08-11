@@ -270,7 +270,7 @@ class UnitTypeMixin:
             #  units which means fully linear or fully angular
             has_linear, _ = self._unit_types
             if has_linear:
-                # NOTE return in units of the source CRS
+                # NOTE return in units of the CRS
                 return meters * self._get_conversion_factor()
             else:
                 # NOTE this will be in decimal degrees
