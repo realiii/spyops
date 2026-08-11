@@ -7,7 +7,7 @@ Mixins
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from typing import Self, TYPE_CHECKING
+from typing import Self, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
@@ -214,8 +214,10 @@ class UnitTypeMixin:
     """
     Unit Type Mixin
     """
-    def _convert_unit(self, is_geodesic: bool, crs: 'CRS', geoms: 'ndarray',
-                      unit: LinearUnit | DecimalDegrees) -> 'ndarray':
+    def _convert_unit(self, is_geodesic: bool, crs: 'CRS',
+                      geoms: Union[list, 'ndarray'],
+                      unit: LinearUnit | DecimalDegrees,
+                      broadcast: bool = True) -> Union['ndarray', float]:
         """
         Convert Unit
         """
