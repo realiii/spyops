@@ -228,7 +228,7 @@ class UnitTypeMixin:
             else:
                 value = getattr(unit, VALUE_ATTR, nan)
                 coordinates = get_coordinates(centroid(geoms))
-                return degrees_to_meters(
+                values = degrees_to_meters(
                     crs, coordinates=coordinates, value=value)
         else:
             has_linear, _ = self._unit_types
