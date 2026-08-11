@@ -230,6 +230,9 @@ class UnitTypeMixin:
                 coordinates = get_coordinates(centroid(geoms))
                 values = degrees_to_meters(
                     crs, coordinates=coordinates, value=value)
+                if not broadcast:
+                    return values[0]
+                return values
         else:
             has_linear, _ = self._unit_types
             if has_linear:
@@ -238,6 +241,8 @@ class UnitTypeMixin:
                 value *= self._get_conversion_factor(crs)
             else:
                 value = getattr(unit, VALUE_ATTR, nan)
+        if not broadcast:
+            return value
         return ones_like(geoms, dtype=float) * value
     # End _convert_unit method
 
