@@ -233,7 +233,7 @@ class UnitTypeMixin:
         else:
             has_linear, _ = self._unit_types
             if has_linear:
-                # NOTE return in units of the source CRS
+                # NOTE return in units of the CRS
                 value = getattr(unit, METERS_ATTR, nan)
                 value *= self._get_conversion_factor(crs)
             else:
