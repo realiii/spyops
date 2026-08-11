@@ -234,7 +234,6 @@ class UnitTypeMixin:
                     return values[0]
                 return values
         else:
-            has_linear, _ = self._unit_types
             if has_linear:
                 # NOTE return in units of the CRS
                 value = getattr(unit, METERS_ATTR, nan)
