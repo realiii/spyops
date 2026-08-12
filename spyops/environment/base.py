@@ -6,14 +6,15 @@ Base Classes for Environment
 
 from typing import Self, TYPE_CHECKING
 
-from numpy import isfinite
 from shapely import Polygon
 from shapely.creation import box
 from shapely.lib import force_2d
 
 from spyops.crs.util import get_crs_from_source
-from spyops.geometry.extent import extent_from_feature_class
+from spyops.geometry.extent import extent_from_feature_class, is_degenerate
 from spyops.geometry.wa import make_valid_structure
+from spyops.shared.exception import BadExtentError
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
@@ -92,7 +93,7 @@ class Extent:
         """
         Create an Extent from XY Bounds
         """
-        if not isfinite((x_min, y_min, x_max, y_max)).all():
+        if is_degenerate((x_min, y_min, x_max, y_max)):
             return cls(None, crs=crs)
         x_min, x_max = min(x_min, x_max), max(x_min, x_max)
         y_min, y_max = min(y_min, y_max), max(y_min, y_max)

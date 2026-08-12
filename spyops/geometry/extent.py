@@ -42,10 +42,10 @@ def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     brute force check of all features.
     """
     extent = feature_class.extent
-    if isfinite(extent).all():
+    if not is_degenerate(extent):
         return extent
     extent = extent_from_index_or_geometry(feature_class)
-    if isfinite(extent).all():
+    if not is_degenerate(extent):
         return extent
     else:  # pragma: no cover
         raise BadExtentError(
@@ -80,7 +80,7 @@ def extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
     from geometries.
     """
     extent = _extent_from_spatial_index(feature_class)
-    if isfinite(extent).all():
+    if not is_degenerate(extent):
         return extent
     else:  # pragma: no cover
         return get_extent(feature_class)
@@ -143,6 +143,21 @@ def extent_from_parts(geoms: 'ndarray') -> list[MultiPolygon]:
         extents.append(MultiPolygon(envelope(get_geoms_iter(geom))))
     return extents
 # End extent_from_parts function
+
+
+def is_degenerate(extent: EXTENT) -> bool:
+    """
+    Check if an extent is degenerate
+    """
+    if len(extent) != 4:
+        return True
+    if not isfinite(extent).all():
+        return True
+    min_x, min_y, max_x, max_y = extent
+    if (min_x == max_x) or (min_y == max_y):
+        return True
+    return False
+# End is_degenerate function
 
 
 if __name__ == '__main__':  # pragma: no cover
