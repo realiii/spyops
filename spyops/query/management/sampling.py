@@ -113,8 +113,32 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         Distance Type
         """
-        pass
+        dist_type = self._crs_distance_type_check()
+        if dist_type == DistanceTypeOption.GEODESIC:
+            return dist_type
+        return self._unit_distance_type_check(dist_type)
     # End distance_type property
+
+    def _crs_distance_type_check(self) -> DistanceTypeOption:
+        """
+        Distance Type Check based on CRS
+        """
+        crs = crs_from_srs(self.spatial_reference_system)
+        if not crs.is_projected:
+            return DistanceTypeOption.GEODESIC
+        return self._config.distance_type
+    # End _crs_distance_type_check method
+
+    def _unit_distance_type_check(self, dist_type: DistanceTypeOption) \
+            -> DistanceTypeOption:
+        """
+        Distance Type Check based on Unit Types
+        """
+        _, has_angular = self._unit_types
+        if has_angular:
+            return DistanceTypeOption.GEODESIC
+        return dist_type
+    # End _unit_distance_type_check method
 
     def _get_target_shape_type(self) -> str:
         """
@@ -224,6 +248,35 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
                                 zip(from_eqd(points), attributes)])
         return records
     # End _place_points_geodesic method
+
+    def _build_range(self, geoms: Union[list, 'GeometrySequence'],
+                     total_length: float, crs: 'CRS',
+                     unit: Optional[Union['LinearUnit', 'DecimalDegrees']]) \
+            -> 'ndarray':
+        """
+        Build Range of Distances from unit
+        """
+        if unit is None:
+            self._counter += 1
+            return array([], dtype=float)
+        distance = self._to_distance(geoms, crs=crs, unit=unit)
+        if isnan(distance) or distance <= 0 or distance >= total_length:
+            self._counter += 1
+            return array([], dtype=float)
+        return arange(distance, total_length, distance)
+    # End _build_range method
+
+    def _to_distance(self, geoms: Union[list, 'GeometrySequence'], crs: 'CRS',
+                     unit: Union['LinearUnit', 'DecimalDegrees']) -> float:
+        """
+        Convert unit to distance
+        """
+        is_geodesic = self.distance_type == DistanceTypeOption.GEODESIC
+        # noinspection bad-assignment
+        distance: float = self._convert_unit(
+            is_geodesic, crs=crs, geoms=geoms, unit=unit, broadcast=False)
+        return distance
+    # End _to_distance method
 # End AbstractQueryGeneratePointsAlongLines class
 
 
@@ -237,10 +290,7 @@ class QueryGeneratePointsAlongLinesPercentage(
         """
         Distance Type
         """
-        crs = crs_from_srs(self.spatial_reference_system)
-        if not crs.is_projected:
-            return DistanceTypeOption.GEODESIC
-        return self._config.distance_type
+        return self._crs_distance_type_check()
     # End distance_type property
 
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
@@ -264,35 +314,16 @@ class QueryGeneratePointsAlongLinesDistance(
     """
     Query for Generate Points Along Lines using Distance Placement
     """
-    @cached_property
-    def distance_type(self) -> DistanceTypeOption:
-        """
-        Distance Type
-        """
-        crs = crs_from_srs(self.spatial_reference_system)
-        if not crs.is_projected:
-            return DistanceTypeOption.GEODESIC
-        has_linear, _ = self._unit_types
-        if not has_linear:
-            return DistanceTypeOption.GEODESIC
-        return self._config.distance_type
-    # End distance_type property
-
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
                     total_length: float, crs: 'CRS',
                     distance: Any) -> 'ndarray':  # pragma: no cover
         """
         Get Values
         """
-        unit = self._config.distance
-        is_geodesic = self.distance_type == DistanceTypeOption.GEODESIC
-        # noinspection bad-assignment
-        distance: float = self._convert_unit(
-            is_geodesic, crs=crs, geoms=geoms, unit=unit, broadcast=False)
-        if isnan(distance) or distance <= 0 or distance >= total_length:
-            self._counter += 1
-            return array([], dtype=float)
-        return arange(distance, total_length, distance)
+        # noinspection bad-argument-type
+        return self._build_range(
+            geoms, total_length=total_length, crs=crs,
+            unit=self._config.distance)
     # End _get_values method
 # End QueryGeneratePointsAlongLinesDistance class
 
