@@ -209,6 +209,8 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
         Make a where clause stub that can be used to select features which
         intersect an extent. The query is based on a spatial index (if present).
         """
+        if not isinstance(element, FeatureClass):
+            return EMPTY
         primary = element.primary_key_field
         if not element.has_spatial_index or not primary:  # pragma: no cover
             return EMPTY
