@@ -341,6 +341,58 @@ class QueryGeneratePointsAlongLinesField(
         primary = element.primary_key_field
         return [primary, self._config.distance]
     # End _get_select_fields method
+
+    @cached_property
+    def _source_unit_cls(self) -> Type['LinearUnit'] | Type['DecimalDegrees']:
+        """
+        Source Unit Class
+        """
+        return UNIT_CLASS_MAP[get_unit_name(self.source_crs)]
+    # End _source_unit_cls method
+
+    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
+                    total_length: float, crs: 'CRS',
+                    distance: Any) -> 'ndarray':
+        """
+        Get Values
+        """
+        if distance is None:
+            self._counter += 1
+            return array([], dtype=float)
+        if self._is_numeric_field:
+            unit = self._source_unit_cls(distance)
+            return self._build_range(
+                geoms, total_length=total_length, crs=crs, unit=unit)
+        if SEMI not in distance:
+            unit = unit_factory(distance)
+            return self._build_range(
+                geoms, total_length=total_length, crs=crs, unit=unit)
+        return self._build_multi_values(geoms, total_length, crs, distance)
+    # End _get_values method
+
+    def _build_multi_values(self, geoms: Union[list, 'GeometrySequence'],
+                            total_length: float, crs: 'CRS',
+                            distance: str) -> 'ndarray':
+        """
+        Build Multi Values
+        """
+        distances = distance.split(SEMI)
+        units = [unit_factory(d) for d in distances]
+        count = len(units)
+        if not (units := [unit for unit in units if unit is not None]):
+            self._counter += count
+            return array([], dtype=float)
+        distances = [self._to_distance(geoms, crs=crs, unit=unit)
+                     for unit in units]
+        bads = [isnan(d) or d <= 0 or d >= total_length for d in distances]
+        if all(bads):
+            self._counter += sum(bads)
+            return array([], dtype=float)
+        if any(bads):
+            self._counter += sum(bads)
+        distances = [d for d, bad in zip(distances, bads) if not bad]
+        return array(distances, dtype=float)
+    # End _build_multi_values method
 # End QueryGeneratePointsAlongLinesField class
 
 
