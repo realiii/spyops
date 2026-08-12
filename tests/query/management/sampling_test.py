@@ -3,11 +3,11 @@
 Tests for the Sampling Query Classes
 """
 
-from math import nan
+from math import log, nan
 from warnings import catch_warnings, simplefilter
 
-from fudgeo import FeatureClass
-from fudgeo.enumeration import ShapeType
+from fudgeo import FeatureClass, Field
+from fudgeo.enumeration import FieldType, ShapeType
 from numpy import cumsum, isfinite
 from pytest import mark, approx
 from shapely.geometry.linestring import LineString
@@ -24,7 +24,7 @@ from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.util import get_geoms
 from spyops.query.management.sampling import (
     QueryGeneratePointsAlongLinesDistance,
-    QueryGeneratePointsAlongLinesPercentage)
+    QueryGeneratePointsAlongLinesField, QueryGeneratePointsAlongLinesPercentage)
 from spyops.shared.enumeration import DistanceTypeOption
 from spyops.shared.exception import DistanceCalculationWarning
 
@@ -714,6 +714,371 @@ class TestQueryGeneratePointsAlongLinesDistance:
             assert approx(alongs, abs=0.1) == expected
     # End test_generate_points_include_ends method
 # End TestQueryGeneratePointsAlongLinesDistance class
+
+
+class TestQueryGeneratePointsAlongLinesField:
+    """
+    Test Query Generate Points Along Lines using Field
+    """
+    @mark.parametrize('name, distance_type, expected', [
+        ('transmission_l', DistanceTypeOption.GEODESIC, DistanceTypeOption.GEODESIC),
+        ('transmission_l', DistanceTypeOption.PLANAR, DistanceTypeOption.GEODESIC),
+        ('transmission_lcc_l', DistanceTypeOption.GEODESIC, DistanceTypeOption.GEODESIC),
+        ('transmission_lcc_l', DistanceTypeOption.PLANAR, DistanceTypeOption.PLANAR),
+    ])
+    @mark.parametrize('field', [
+        Field('SINGLE_VALUE', data_type=FieldType.real),
+        Field('SINGLE_UNIT', data_type=FieldType.text),
+    ])
+    def test_distance_type_singles(self, along_field, name, distance_type, expected, field):
+        """
+        Test distance type for single value and single unit
+        """
+        source = along_field[name]
+        where_clause = f'{source.primary_key_field.name} <= 4'
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=None, placement=field, include_end_points=False,
+            where_clause=where_clause, distance_type=distance_type)
+        assert query.distance_type == expected
+    # End test_distance_type_singles method
+
+    @mark.parametrize('name, distance_type, expected', [
+        ('transmission_l', DistanceTypeOption.GEODESIC, DistanceTypeOption.GEODESIC),
+        ('transmission_l', DistanceTypeOption.PLANAR, DistanceTypeOption.GEODESIC),
+        ('transmission_lcc_l', DistanceTypeOption.GEODESIC, DistanceTypeOption.GEODESIC),
+        ('transmission_lcc_l', DistanceTypeOption.PLANAR, DistanceTypeOption.GEODESIC),
+    ])
+    @mark.parametrize('field', [
+        Field('SINGLE_DD', data_type=FieldType.text),
+        Field('DISTANCES', data_type=FieldType.text),
+    ])
+    def test_distance_type_dd_and_distances(self, along_field, name, distance_type, expected, field):
+        """
+        Test distance type for single dd and distances
+        """
+        source = along_field[name]
+        where_clause = f'{source.primary_key_field.name} <= 4'
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=None, placement=field, include_end_points=False,
+            where_clause=where_clause, distance_type=distance_type)
+        assert query.distance_type == expected
+    # End test_distance_type_dd_and_distances method
+
+    @mark.parametrize('shape_type, geom, expected', [
+        (ShapeType.linestring, LineString([(0, 0), (0, 20)]), (5, 10, 15)),
+        (ShapeType.multi_linestring, LineString([(0, 0), (0, 20)]), (5, 10, 15)),
+        (ShapeType.multi_linestring, MultiLineString([LineString([(0, 0), (0, 10)]), LineString([(0, 10), (0, 20)])]), (5, 10, 15)),
+        (ShapeType.polygon, Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]), (5, 10, 15)),
+        (ShapeType.multi_polygon, Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]), (5, 10, 15)),
+        (ShapeType.multi_polygon, MultiPolygon(
+            [Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]),
+             Polygon([(10, 10), (10, 15), (15, 15), (15, 10)])]), (5, 10, 15, 20, 25, 30, 35)),
+    ])
+    @mark.parametrize('distance_type', [
+        DistanceTypeOption.PLANAR,
+        DistanceTypeOption.GEODESIC
+    ])
+    @mark.parametrize('distance, field', [
+        (5, Field('SINGLE_VALUE', data_type=FieldType.real)),
+        ('5 m', Field('SINGLE_UNIT', data_type=FieldType.text)),
+    ])
+    def test_get_values_linear_unit(self, along_field, shape_type, geom, expected, distance_type, distance, field):
+        """
+        Test get values using linear unit
+        """
+        source = along_field['transmission_lcc_l']
+        where_clause = f'{source.primary_key_field.name} <= 4'
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=None, placement=field, include_end_points=False,
+            where_clause=where_clause, distance_type=distance_type)
+        lines = get_geoms(GEOMETRY_AS_MULTILINE[shape_type](geom))
+        lengths = cumsum(length(lines))
+        crs = crs_from_srs(query.spatial_reference_system)
+        result = query._get_values(
+            lines, total_length=lengths[-1], crs=crs, distance=distance)
+        assert approx(result, abs=0.1) == expected
+    # End test_get_values_linear_unit method
+
+    @mark.parametrize('shape_type, geom, expected', [
+        (ShapeType.linestring, LineString([(0, 0), (0, 20)]), (4.91, 9.82, 14.73, 19.64)),
+        (ShapeType.multi_linestring, LineString([(0, 0), (0, 20)]), (4.91, 9.82, 14.73, 19.64)),
+        (ShapeType.multi_linestring, MultiLineString([LineString([(0, 0), (0, 10)]), LineString([(0, 10), (0, 20)])]), (4.91, 9.82, 14.73, 19.64)),
+        (ShapeType.polygon, Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]), (4.91, 9.82, 14.73, 19.64)),
+        (ShapeType.multi_polygon, Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]), (4.91, 9.82, 14.73, 19.64)),
+        (ShapeType.multi_polygon, MultiPolygon(
+            [Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]),
+             Polygon([(10, 10), (10, 15), (15, 15), (15, 10)])]),
+         (4.91, 9.82, 14.73, 19.64, 24.55, 29.45, 34.37, 39.28)),
+    ])
+    @mark.parametrize('distance_type', [
+        DistanceTypeOption.PLANAR,
+        DistanceTypeOption.GEODESIC
+    ])
+    @mark.parametrize('distance, field', [
+        ('0.00005 dd', Field('SINGLE_DD', data_type=FieldType.text)),
+    ])
+    def test_get_values_dd(self, along_field, shape_type, geom, expected, distance_type, distance, field):
+        """
+        Test get values using decimal degrees
+        """
+        source = along_field['transmission_lcc_l']
+        where_clause = f'{source.primary_key_field.name} <= 4'
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=None, placement=field, include_end_points=False,
+            where_clause=where_clause, distance_type=distance_type)
+        lines = get_geoms(GEOMETRY_AS_MULTILINE[shape_type](geom))
+        lengths = cumsum(length(lines))
+        crs = crs_from_srs(query.spatial_reference_system)
+        result = query._get_values(
+            lines, total_length=lengths[-1], crs=crs, distance=distance)
+        assert approx(result, abs=0.1) == expected
+    # End test_get_values_dd method
+
+    @mark.parametrize('field_name, distance, expected', [
+        ('SINGLE_VALUE', 10, 0),
+        ('SINGLE_UNIT', '10 m', 0),
+        ('DISTANCES', '10 m;20 ft', 0),
+        ('SINGLE_VALUE', nan, 1),
+        ('SINGLE_VALUE', None, 1),
+        ('SINGLE_UNIT', None, 1),
+        ('SINGLE_UNIT', '', 1),
+        ('SINGLE_UNIT', 'nan', 1),
+        ('SINGLE_UNIT', ' ', 1),
+        ('DISTANCES', ';', 2),
+        ('DISTANCES', ' ; ', 2),
+        ('DISTANCES', '-10 m;20 ft', 1),
+        ('DISTANCES', '0 m;20 ft', 1),
+    ])
+    def test_get_values_counter(self, along_field, field_name, distance, expected):
+        """
+        Test get values, checking counter is incremented
+        """
+        if field_name == 'SINGLE_VALUE':
+            data_type = FieldType.real
+        else:
+            data_type = FieldType.text
+        field = Field(field_name, data_type=data_type)
+        source = along_field['transmission_lcc_l']
+        where_clause = f'{source.primary_key_field.name} <= 4'
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=None, placement=field,
+            include_end_points=False, where_clause=where_clause,
+            distance_type=DistanceTypeOption.GEODESIC)
+        query._get_values([], total_length=123, crs=WGS84, distance=distance)
+        assert query._counter == expected
+    # End test_get_values_counter method
+
+    @mark.parametrize('distance_type, name', [
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_m_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_z_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_zm_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_m_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_z_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_zm_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_m_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_z_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_zm_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_m_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_z_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_zm_l'),
+    ])
+    @mark.parametrize('field', [
+        Field('SINGLE_VALUE', data_type=FieldType.real),
+        Field('SINGLE_UNIT', data_type=FieldType.text),
+    ])
+    def test_generate_points_projected_linear(self, along_field, mem_gpkg, distance_type, field, name):
+        """
+        Test generate_points using projected source with linear unit
+        """
+        count = 4
+        source = along_field[name]
+        target = FeatureClass(mem_gpkg, 'output_fc')
+        include = False
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=target, placement=field,
+            include_end_points=include, where_clause=f'fid <= {count}',
+            distance_type=distance_type)
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            points = query.generate_points(features)
+            points, attrs = zip(*points)
+            fids, seqs, alongs = zip(*attrs)
+            assert all(isinstance(p, Point) for p in points)
+            assert set(fids) == {1, 2, 4}
+            assert all(p.has_z == source.has_z for p in points)
+            if source.has_z:
+                assert isfinite([p.z for p in points]).all()
+            assert all(p.has_m == source.has_m for p in points)
+            if source.has_m:
+                assert isfinite([p.m for p in points]).all()
+            expected_seqs = (
+                1, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
+            assert seqs == expected_seqs
+            assert approx(alongs, abs=0.1) == [200 * i for i in expected_seqs]
+            assert all(log(abs(p.x)) > 3 for p in points)
+            assert all(log(abs(p.y)) > 3 for p in points)
+    # End test_generate_points_projected_linear method
+
+    @mark.parametrize('distance_type, name', [
+        (DistanceTypeOption.PLANAR, 'transmission_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_m_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_z_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_zm_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_m_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_z_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_zm_l'),
+    ])
+    @mark.parametrize('field', [
+        Field('SINGLE_UNIT', data_type=FieldType.text),
+    ])
+    def test_generate_points_geographic_linear(self, along_field, mem_gpkg, distance_type, name, field):
+        """
+        Test generate_points using geographic source with linear unit
+        """
+        count = 4
+        source = along_field[name]
+        target = FeatureClass(mem_gpkg, 'output_fc')
+        include = False
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=target, placement=field,
+            include_end_points=include, where_clause=f'fid <= {count}',
+            distance_type=distance_type)
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            points = query.generate_points(features)
+            points, attrs = zip(*points)
+            fids, seqs, alongs = zip(*attrs)
+            assert all(isinstance(p, Point) for p in points)
+            assert set(fids) == {1, 2, 4}
+            assert all(p.has_z == source.has_z for p in points)
+            if source.has_z:
+                assert isfinite([p.z for p in points]).all()
+            assert all(p.has_m == source.has_m for p in points)
+            if source.has_m:
+                assert isfinite([p.m for p in points]).all()
+            expected_seqs = (
+                1, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                29, 30, 31)
+            assert seqs == expected_seqs
+            assert approx(alongs, abs=0.1) == [200 * i for i in expected_seqs]
+            assert all(p.x < 1000 for p in points)
+            assert all(p.y < 1000 for p in points)
+    # End test_generate_points_geographic_linear method
+
+    @mark.parametrize('distance_type, name', [
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_m_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_z_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_lcc_zm_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_m_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_z_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_6654_zm_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_m_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_z_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_lcc_zm_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_m_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_z_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_6654_zm_l'),
+    ])
+    @mark.parametrize('field', [
+        Field('SINGLE_DD', data_type=FieldType.text),
+    ])
+    def test_generate_points_projected_dd(self, along_field, mem_gpkg, distance_type, name, field):
+        """
+        Test generate_points using projected source with decimal degrees
+        """
+        count = 4
+        source = along_field[name]
+        target = FeatureClass(mem_gpkg, 'output_fc')
+        include = False
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=target, placement=field,
+            include_end_points=include, where_clause=f'fid <= {count}',
+            distance_type=distance_type)
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            points = query.generate_points(features)
+            points, attrs = zip(*points)
+            fids, seqs, alongs = zip(*attrs)
+            assert all(isinstance(p, Point) for p in points)
+            assert set(fids) == {1, 2, 4}
+            assert all(p.has_z == source.has_z for p in points)
+            if source.has_z:
+                assert isfinite([p.z for p in points]).all()
+            assert all(p.has_m == source.has_m for p in points)
+            if source.has_m:
+                assert isfinite([p.m for p in points]).all()
+            expected_seqs = (
+                1, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)
+            assert seqs == expected_seqs
+            assert approx(alongs, abs=2) == [s * 272 for s in expected_seqs]
+            assert all(log(abs(p.x)) > 3 for p in points)
+            assert all(log(abs(p.y)) > 3 for p in points)
+    # End test_generate_points_projected_dd method
+
+    @mark.parametrize('distance_type, name', [
+        (DistanceTypeOption.PLANAR, 'transmission_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_m_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_z_l'),
+        (DistanceTypeOption.PLANAR, 'transmission_zm_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_m_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_z_l'),
+        (DistanceTypeOption.GEODESIC, 'transmission_zm_l'),
+    ])
+    @mark.parametrize('field', [
+        Field('SINGLE_VALUE', data_type=FieldType.real),
+        Field('SINGLE_DD', data_type=FieldType.text),
+    ])
+    def test_generate_points_geographic_dd(self, along_field, mem_gpkg, distance_type, name, field):
+        """
+        Test generate_points using geographic source with decimal degrees
+        """
+        count = 4
+        source = along_field[name]
+        target = FeatureClass(mem_gpkg, 'output_fc')
+        include = False
+        query = QueryGeneratePointsAlongLinesField(
+            source, target=target, placement=field,
+            include_end_points=include, where_clause=f'fid <= {count}',
+            distance_type=distance_type)
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            points = query.generate_points(features)
+            points, attrs = zip(*points)
+            fids, seqs, alongs = zip(*attrs)
+            assert all(isinstance(p, Point) for p in points)
+            assert set(fids) == {1, 2, 4}
+            assert all(p.has_z == source.has_z for p in points)
+            if source.has_z:
+                assert isfinite([p.z for p in points]).all()
+            assert all(p.has_m == source.has_m for p in points)
+            if source.has_m:
+                assert isfinite([p.m for p in points]).all()
+            expected_seqs = (
+                1, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)
+            assert seqs == expected_seqs
+            assert approx(alongs, abs=2) == [s * 272 for s in expected_seqs]
+            assert all(p.x < 1000 for p in points)
+            assert all(p.y < 1000 for p in points)
+    # End test_generate_points_geographic_dd method
+# End TestQueryGeneratePointsAlongLinesField class
 
 
 if __name__ == '__main__':  # pragma: no cover
