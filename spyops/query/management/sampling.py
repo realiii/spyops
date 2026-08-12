@@ -296,7 +296,7 @@ class QueryGeneratePointsAlongLinesPercentage(
 
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
                     total_length: float, crs: 'CRS',
-                    distance: Any) -> 'ndarray':  # pragma: no cover
+                    distance: Any) -> 'ndarray':
         """
         Get Values
         """
@@ -317,7 +317,7 @@ class QueryGeneratePointsAlongLinesDistance(
     """
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
                     total_length: float, crs: 'CRS',
-                    distance: Any) -> 'ndarray':  # pragma: no cover
+                    distance: Any) -> 'ndarray':
         """
         Get Values
         """
