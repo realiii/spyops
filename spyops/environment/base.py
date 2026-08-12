@@ -106,8 +106,9 @@ class Extent:
         Create an Extent from a Feature Class
         """
         crs = get_crs_from_source(feature_class)
-        extent = extent_from_feature_class(feature_class)
-        if not isfinite(extent).all():
+        try:
+            extent = extent_from_feature_class(feature_class)
+        except BadExtentError:
             return cls(None, crs=crs)
         # noinspection PyTypeChecker
         return cls(box(*extent), crs=crs)
