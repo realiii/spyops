@@ -261,7 +261,8 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
             self._counter += 1
             return array([], dtype=float)
         distance = self._to_distance(geoms, crs=crs, unit=unit)
-        if isnan(distance) or distance <= 0 or distance >= total_length:
+        if (distance is None or isnan(distance) or
+                distance <= 0 or distance >= total_length):
             self._counter += 1
             return array([], dtype=float)
         return arange(distance, total_length, distance)
@@ -302,7 +303,7 @@ class QueryGeneratePointsAlongLinesPercentage(
         """
         # noinspection bad-assignment
         percent: float = self._config.distance
-        if isnan(percent) or percent <= 0 or percent >= 100:
+        if percent is None or isnan(percent) or percent <= 0 or percent >= 100:
             self._counter += 1
             return array([], dtype=float)
         return arange(percent, 100, percent) * total_length / 100
