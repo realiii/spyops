@@ -273,11 +273,10 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         Convert unit to distance
         """
-        is_geodesic = self.distance_type == DistanceTypeOption.GEODESIC
-        # noinspection bad-assignment
-        distance: float = self._convert_unit(
-            is_geodesic, crs=crs, geoms=geoms, unit=unit, broadcast=False)
-        return distance
+        # noinspection bad-return
+        return self._convert_unit(
+            self.distance_type == DistanceTypeOption.GEODESIC, crs=crs,
+            geoms=geoms, unit=unit, broadcast=False)
     # End _to_distance method
 # End AbstractQueryGeneratePointsAlongLines class
 
