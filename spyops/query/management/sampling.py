@@ -6,7 +6,8 @@ Queries for Sampling
 
 from abc import abstractmethod
 from functools import cache, cached_property
-from typing import Any, Callable, NamedTuple, TYPE_CHECKING, Union
+from typing import (
+    Any, Callable, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
 from warnings import warn
 
 from fudgeo.enumeration import ShapeType
@@ -14,16 +15,16 @@ from numpy import arange, array, cumsum, isfinite, isnan
 from shapely import Point
 from shapely.measurement import length
 
+from spyops.crs.unit import UNIT_CLASS_MAP, get_unit_name, unit_factory
 from spyops.crs.util import crs_from_srs
 from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.distance import (
     get_equidistant_details, interpolate_locations, make_points)
 from spyops.geometry.util import (
-    get_coords_and_slices, get_geoms, nada,
-    to_shapely)
+    get_coords_and_slices, get_geoms, nada, to_shapely)
 from spyops.query.base import AbstractSourceQuery
 from spyops.query.mixin import UnitTypeMixin
-from spyops.shared.constant import SKIP_FILE_PREFIXES
+from spyops.shared.constant import SEMI, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import DistanceTypeOption
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
@@ -36,6 +37,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from pyproj import CRS
     from shapely.geometry.base import GeometrySequence
+    from spyops.crs.unit import LinearUnit, DecimalDegrees
 
 
 class PlacementConfig(NamedTuple):
@@ -107,8 +109,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
             field_count=field_count)
     # End insert property
 
-    @property
-    @abstractmethod
+    @cached_property
     def distance_type(self) -> DistanceTypeOption:
         """
         Distance Type
