@@ -271,7 +271,7 @@ class UnitTypeMixin:
             has_linear, _ = self._unit_types
             if has_linear:
                 # NOTE return in units of the CRS
-                return meters * self._get_conversion_factor()
+                return meters * self._get_conversion_factor(crs)
             else:
                 # NOTE this will be in decimal degrees
                 return array([getattr(unit, VALUE_ATTR, nan)
