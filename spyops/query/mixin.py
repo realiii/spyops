@@ -334,6 +334,7 @@ class UnitTypeMixin:
         # noinspection PyUnresolvedReferences
         if index_where := self._spatial_index_where(elm):
             where_clause = f'{index_where} AND {null_clause}'
+            where_clause = where_clause.format(IN)
         else:
             where_clause = f'WHERE {null_clause}'
         has_linear = has_angular = False
