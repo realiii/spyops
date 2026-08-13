@@ -40,7 +40,7 @@ class TestQueryGeneratePointsAlongLinesPercentage:
     def _get_query(ntdb_zm_small):
         source = ntdb_zm_small['transmission_l']
         return QueryGeneratePointsAlongLinesPercentage(
-            source, target=None, placement=33, include_end_points=False,
+            source, target=None, placement=33, include_ends=False,
             where_clause='', distance_type=DistanceTypeOption.GEODESIC)
     # End _get_query method
 
@@ -91,7 +91,7 @@ class TestQueryGeneratePointsAlongLinesPercentage:
         """
         source = ntdb_zm_small[name]
         query = QueryGeneratePointsAlongLinesPercentage(
-            source, target=None, placement=0.5, include_end_points=False,
+            source, target=None, placement=0.5, include_ends=False,
             where_clause='', distance_type=distance_type)
         assert query.distance_type == expected
     # End test_distance_type method
@@ -134,7 +134,7 @@ class TestQueryGeneratePointsAlongLinesPercentage:
         """
         query = QueryGeneratePointsAlongLinesPercentage(
             None, target=None, placement=placement,
-            include_end_points=False, where_clause='',
+            include_ends=False, where_clause='',
             distance_type=DistanceTypeOption.GEODESIC)
         query._get_values([], total_length=123, crs=WGS84, distance=None)
         assert query._counter == expected
@@ -165,7 +165,7 @@ class TestQueryGeneratePointsAlongLinesPercentage:
         source = ntdb_zm_small['transmission_l']
         target = FeatureClass(mem_gpkg, 'output_fc')
         query = QueryGeneratePointsAlongLinesPercentage(
-            source, target=target, placement=33, include_end_points=False,
+            source, target=target, placement=33, include_ends=False,
             where_clause='', distance_type=DistanceTypeOption.GEODESIC)
         assert 'INTO output_fc(SHAPE, ORIG_FID, SEQ_NUM, ALONG)' in query.insert
     # End test_insert method
@@ -207,12 +207,12 @@ class TestQueryGeneratePointsAlongLinesPercentage:
         include = False
         query = QueryGeneratePointsAlongLinesPercentage(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             assert len(points) == (int((100 / placement)) + (2 * int(include))) * count
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
@@ -255,12 +255,12 @@ class TestQueryGeneratePointsAlongLinesPercentage:
         include = False
         query = QueryGeneratePointsAlongLinesPercentage(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             assert len(points) == (int((100 / placement)) + (2 * int(include))) * count
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
@@ -295,12 +295,12 @@ class TestQueryGeneratePointsAlongLinesPercentage:
         include = True
         query = QueryGeneratePointsAlongLinesPercentage(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             assert len(points) == (int((100 / placement)) + (2 * int(include))) * count
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
@@ -338,7 +338,7 @@ class TestQueryGeneratePointsAlongLinesDistance:
         """
         source = ntdb_zm_small[name]
         query = QueryGeneratePointsAlongLinesDistance(
-            source, target=None, placement=unit, include_end_points=False,
+            source, target=None, placement=unit, include_ends=False,
             where_clause='', distance_type=distance_type)
         assert query.distance_type == expected
     # End test_distance_type method
@@ -364,7 +364,7 @@ class TestQueryGeneratePointsAlongLinesDistance:
         unit = Meters(5)
         source = ntdb_zm_small['transmission_10tm_l']
         query = QueryGeneratePointsAlongLinesDistance(
-            source, target=None, placement=unit, include_end_points=False,
+            source, target=None, placement=unit, include_ends=False,
             where_clause='', distance_type=distance_type)
         lines = get_geoms(GEOMETRY_AS_MULTILINE[shape_type](geom))
         lengths = cumsum(length(lines))
@@ -396,7 +396,7 @@ class TestQueryGeneratePointsAlongLinesDistance:
         unit = DecimalDegrees(0.00005)
         source = ntdb_zm_small['transmission_10tm_l']
         query = QueryGeneratePointsAlongLinesDistance(
-            source, target=None, placement=unit, include_end_points=False,
+            source, target=None, placement=unit, include_ends=False,
             where_clause='', distance_type=distance_type)
         lines = get_geoms(GEOMETRY_AS_MULTILINE[shape_type](geom))
         lengths = cumsum(length(lines))
@@ -420,7 +420,7 @@ class TestQueryGeneratePointsAlongLinesDistance:
         source = ntdb_zm_small['transmission_10tm_l']
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=None, placement=placement,
-            include_end_points=False, where_clause='',
+            include_ends=False, where_clause='',
             distance_type=DistanceTypeOption.GEODESIC)
         query._get_values([], total_length=123, crs=WGS84, distance=None)
         assert query._counter == expected
@@ -433,7 +433,7 @@ class TestQueryGeneratePointsAlongLinesDistance:
         source = ntdb_zm_small['transmission_10tm_l']
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=None, placement=Meters(10),
-            include_end_points=False, where_clause='',
+            include_ends=False, where_clause='',
             distance_type=DistanceTypeOption.GEODESIC)
         with catch_warnings(record=True) as ws:
             simplefilter('always')
@@ -484,12 +484,12 @@ class TestQueryGeneratePointsAlongLinesDistance:
         include = False
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -537,12 +537,12 @@ class TestQueryGeneratePointsAlongLinesDistance:
         include = False
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -598,12 +598,12 @@ class TestQueryGeneratePointsAlongLinesDistance:
         include = False
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -651,12 +651,12 @@ class TestQueryGeneratePointsAlongLinesDistance:
         include = False
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=target, placement=placement,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -693,12 +693,12 @@ class TestQueryGeneratePointsAlongLinesDistance:
         include = True
         query = QueryGeneratePointsAlongLinesDistance(
             source, target=target, placement=Kilometers(10),
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             assert len(points) == 2 * count
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
@@ -737,7 +737,7 @@ class TestQueryGeneratePointsAlongLinesField:
         source = along_field[name]
         where_clause = f'{source.primary_key_field.name} <= 4'
         query = QueryGeneratePointsAlongLinesField(
-            source, target=None, placement=field, include_end_points=False,
+            source, target=None, placement=field, include_ends=False,
             where_clause=where_clause, distance_type=distance_type)
         assert query.distance_type == expected
     # End test_distance_type_singles method
@@ -759,7 +759,7 @@ class TestQueryGeneratePointsAlongLinesField:
         source = along_field[name]
         where_clause = f'{source.primary_key_field.name} <= 4'
         query = QueryGeneratePointsAlongLinesField(
-            source, target=None, placement=field, include_end_points=False,
+            source, target=None, placement=field, include_ends=False,
             where_clause=where_clause, distance_type=distance_type)
         assert query.distance_type == expected
     # End test_distance_type_dd_and_distances method
@@ -789,7 +789,7 @@ class TestQueryGeneratePointsAlongLinesField:
         source = along_field['transmission_lcc_l']
         where_clause = f'{source.primary_key_field.name} <= 4'
         query = QueryGeneratePointsAlongLinesField(
-            source, target=None, placement=field, include_end_points=False,
+            source, target=None, placement=field, include_ends=False,
             where_clause=where_clause, distance_type=distance_type)
         lines = get_geoms(GEOMETRY_AS_MULTILINE[shape_type](geom))
         lengths = cumsum(length(lines))
@@ -824,7 +824,7 @@ class TestQueryGeneratePointsAlongLinesField:
         source = along_field['transmission_lcc_l']
         where_clause = f'{source.primary_key_field.name} <= 4'
         query = QueryGeneratePointsAlongLinesField(
-            source, target=None, placement=field, include_end_points=False,
+            source, target=None, placement=field, include_ends=False,
             where_clause=where_clause, distance_type=distance_type)
         lines = get_geoms(GEOMETRY_AS_MULTILINE[shape_type](geom))
         lengths = cumsum(length(lines))
@@ -862,7 +862,7 @@ class TestQueryGeneratePointsAlongLinesField:
         where_clause = f'{source.primary_key_field.name} <= 4'
         query = QueryGeneratePointsAlongLinesField(
             source, target=None, placement=field,
-            include_end_points=False, where_clause=where_clause,
+            include_ends=False, where_clause=where_clause,
             distance_type=DistanceTypeOption.GEODESIC)
         query._get_values([], total_length=123, crs=WGS84, distance=distance)
         assert query._counter == expected
@@ -900,12 +900,12 @@ class TestQueryGeneratePointsAlongLinesField:
         include = False
         query = QueryGeneratePointsAlongLinesField(
             source, target=target, placement=field,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -948,12 +948,12 @@ class TestQueryGeneratePointsAlongLinesField:
         include = False
         query = QueryGeneratePointsAlongLinesField(
             source, target=target, placement=field,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -1005,12 +1005,12 @@ class TestQueryGeneratePointsAlongLinesField:
         include = False
         query = QueryGeneratePointsAlongLinesField(
             source, target=target, placement=field,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
@@ -1054,12 +1054,12 @@ class TestQueryGeneratePointsAlongLinesField:
         include = False
         query = QueryGeneratePointsAlongLinesField(
             source, target=target, placement=field,
-            include_end_points=include, where_clause=f'fid <= {count}',
+            include_ends=include, where_clause=f'fid <= {count}',
             distance_type=distance_type)
         with query.source.geopackage.connection as cin:
             cursor = cin.execute(query.select)
             features = cursor.fetchall()
-            points = query.generate_points(features)
+            points = query.generate_features(features)
             points, attrs = zip(*points)
             fids, seqs, alongs = zip(*attrs)
             assert all(isinstance(p, Point) for p in points)
