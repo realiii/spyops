@@ -9,6 +9,7 @@ from functools import cache, cached_property
 from math import nan
 from typing import Self, TYPE_CHECKING, Union
 
+from bottleneck import nanmean
 from fudgeo import FeatureClass, Field
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
@@ -231,7 +232,7 @@ class UnitTypeMixin:
                 values = degrees_to_meters(
                     crs, coordinates=coordinates, value=value)
                 if not broadcast:
-                    return values[0]
+                    return nanmean(values)
                 return values
         else:
             if has_linear:
