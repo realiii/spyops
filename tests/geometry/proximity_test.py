@@ -14,6 +14,7 @@ from shapely import LineString, Polygon, Point, MultiPolygon, MultiPoint
 from shapely.constructive import buffer
 from shapely.geometry.multilinestring import MultiLineString
 
+from spyops.crs.constant import WGS84
 from spyops.geometry.proximity import (
     _get_side_settings, _equidistant_transformers, _to_multi,
     _dissolve_polygons, _outside_only, build_voronoi, geodesic_buffer,
@@ -38,8 +39,8 @@ def test_get_side_settings(side, expected):
 
 
 @mark.parametrize('from_crs, to_crs, expected', [
-    (CRS(4326), CRS(4326), None),
-    (CRS(4326), CRS(4617), partial),
+    (WGS84, WGS84, None),
+    (WGS84, CRS(4617), partial),
 ])
 def test_equidistant_transformers(from_crs, to_crs, expected):
     """
@@ -303,7 +304,7 @@ class TestGeodesicBuffer:
         """
         Test Polygons using WGS84
         """
-        crs = CRS(4326)
+        crs = WGS84
         distances = array([1000, 2000, -3000])
         poly1 = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
         poly2 = Polygon([(-115, 50), (-115, 60), (-110, 60), (-110, 50)])

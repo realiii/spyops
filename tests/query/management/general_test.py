@@ -9,6 +9,7 @@ from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.general import (
@@ -183,7 +184,7 @@ class TestQuerySortFeatureClass:
         Test select sans sorting fields + extent
         """
         source = inputs['river_p']
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=WGS84)):
             query = QuerySortFeatureClass(
                 source, target=None, sort_fields=[],
                 spatial_sort_option=SpatialSortOption.NONE)
@@ -217,7 +218,7 @@ class TestQuerySortFeatureClass:
         Test select sans sorting fields with spatial + extent
         """
         source = inputs['river_p']
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=WGS84)):
             query = QuerySortFeatureClass(
                 source, target=None, sort_fields=[],
                 spatial_sort_option=SpatialSortOption.UPPER_RIGHT_ASCENDING)
@@ -276,7 +277,7 @@ class TestQuerySortFeatureClass:
         source = inputs['river_p']
         fields = (Descending(Field('NAME', data_type=FieldType.text)),
                   Ascending(Field('vertex_index', data_type=FieldType.integer)))
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=WGS84)):
             query = QuerySortFeatureClass(
                 source, target=None, sort_fields=fields,
                 spatial_sort_option=SpatialSortOption.UPPER_RIGHT_ASCENDING)

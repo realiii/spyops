@@ -8,6 +8,7 @@ from fudgeo import FeatureClass, Table
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.management import (
@@ -181,7 +182,7 @@ class TestFindIdentical:
         source = ntdb_zm_small['hydro_zm_a']
         target = Table(mem_gpkg, name='repeats')
         names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=WGS84)):
             find_identical(source, target, fields=names, include_geometry=include)
         assert len(target) == expected
     # End test_extent method
@@ -244,7 +245,7 @@ class TestDeleteIdentical:
         source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
         assert len(source) == 382
         names = 'PART_ID', 'ENTITY', 'ENTITY_NAME', 'VALDATE', 'CODE'
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=WGS84)):
             delete_identical(source, fields=names, include_geometry=include)
         assert len(source) == count
     # End test_extent method
@@ -330,7 +331,7 @@ class TestSort:
         """
         source = inputs['river_p']
         target = FeatureClass(mem_gpkg, name='river_p_sort')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=WGS84)),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED)):
             fc = sort(source, target, sort_fields=sorts,

@@ -9,6 +9,7 @@ from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import mark, param
 
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
@@ -148,7 +149,7 @@ class TestQueryIntersectPairwise:
             source=cites, target=target, operator=operator,
             attribute_option=AttributeOption.ALL, xy_tolerance=None,
             output_type_option=OutputTypeOption.SAME)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
     # End test_extent method
@@ -284,7 +285,7 @@ class TestQueryIntersectClassic:
             source=cites, target=target, operator=operator,
             attribute_option=AttributeOption.ALL, xy_tolerance=None,
             output_type_option=OutputTypeOption.SAME)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
     # End test_extent method
@@ -385,7 +386,7 @@ class TestQuerySymmetricalDifferencePairwise:
         query = QuerySymmetricalDifferencePairwise(
             source=source, target=target, operator=operator,
             attribute_option=AttributeOption.ALL, xy_tolerance=None)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
     # End test_extent method
@@ -465,7 +466,7 @@ class TestQuerySymmetricalDifferenceClassic:
         query = QuerySymmetricalDifferenceClassic(
             source=source, target=target, operator=operator,
             attribute_option=AttributeOption.ALL, xy_tolerance=None)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
     # End test_extent method
@@ -704,7 +705,7 @@ class TestQueryUnionPairwise:
         query = QueryUnionPairwise(
             source=source, target=target, operator=operator,
             attribute_option=AttributeOption.ALL, xy_tolerance=None)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
     # End test_extent method
@@ -825,7 +826,7 @@ class TestQueryUnionClassic:
             attribute_option=AttributeOption.ALL, xy_tolerance=None,
             source_fid=Field('a', data_type=FieldType.integer),
             operator_fid=Field('b', data_type=FieldType.integer))
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in query.select_source
             assert ' 52.0 ' in query.select_operator
     # End test_extent method

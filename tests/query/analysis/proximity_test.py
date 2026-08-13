@@ -9,6 +9,7 @@ from fudgeo.enumeration import FieldType, ShapeType
 from pyproj import CRS
 from pytest import mark, approx
 
+from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Meters, Miles
 from spyops.environment import Extent, Setting
@@ -676,7 +677,7 @@ class TestQueryCreateThiessenPolygons:
         Test extent from analysis setting
         """
         source = world_features['admin_a']
-        extent = Extent.from_bounds(-115, 50, -110, 55, crs=CRS(4326))
+        extent = Extent.from_bounds(-115, 50, -110, 55, crs=WGS84)
         with Swap(Setting.EXTENT, extent):
             query = QueryCreateThiessenPolygons(
                 source, target=None, include_attributes=False,

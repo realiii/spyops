@@ -8,6 +8,7 @@ from fudgeo import FeatureClass
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.geometry.smooth import smooth_bezier, smooth_paek
@@ -30,7 +31,7 @@ class TestQuerySimplifyLine:
         Test extent and where clause
         """
         source = ntdb_zm_small['topography_l']
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=WGS84)):
             where = """PART_ID = 1"""
             query = QuerySimplifyLine(
                 source, target=None, where_clause=where,
@@ -42,7 +43,7 @@ class TestQuerySimplifyLine:
     # End test_extent_where_clause method
 
     @mark.parametrize('crs', [
-        CRS(4326),
+        WGS84,
         CRS(6654),
     ])
     def test_output_coordinate_system(self, ntdb_zm_small, crs):
@@ -99,7 +100,7 @@ class TestQuerySmoothLine:
         Test extent and where clause
         """
         source = ntdb_zm_small['topography_l']
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=WGS84)):
             where = """PART_ID = 1"""
             query = QuerySmoothLine(
                 source, target=None, where_clause=where,
@@ -115,7 +116,7 @@ class TestQuerySmoothLine:
         SmoothAlgorithmOption.BEZIER,
     ])
     @mark.parametrize('crs', [
-        CRS(4326),
+        WGS84,
         CRS(6654),
     ])
     def test_output_coordinate_system(self, ntdb_zm_small, crs, algorithm_option):

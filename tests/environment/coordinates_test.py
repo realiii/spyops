@@ -7,6 +7,7 @@ Tests for Output Coordinates
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transform_best_guess
 from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.context import Swap
@@ -20,7 +21,7 @@ def test_output_coordinate_system():
     Test output coordinate system
     """
     original = ANALYSIS_SETTINGS.output_coordinate_system
-    crs = CRS(4326)
+    crs = WGS84
     with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs) as s:
         assert s.cached_value is None
         assert isinstance(s.swap_value, CRS)
@@ -34,7 +35,7 @@ def test_geographic_transformations():
     Test geographic transformations
     """
     original = ANALYSIS_SETTINGS.geographic_transformations
-    transformer = get_transform_best_guess(CRS(4326), CRS(3857))
+    transformer = get_transform_best_guess(WGS84, CRS(3857))
 
     with Swap(Setting.GEOGRAPHIC_TRANSFORMATIONS, transformer) as s:
         assert s.cached_value == []
@@ -55,7 +56,7 @@ def test_extent():
     Test extent
     """
     original = ANALYSIS_SETTINGS.extent
-    extent = Extent.from_bounds(0, 0, 1, 1, CRS(4326))
+    extent = Extent.from_bounds(0, 0, 1, 1, WGS84)
     with Swap(Setting.EXTENT, extent) as s:
         assert s.cached_value is original
         assert isinstance(s.swap_value, Extent)

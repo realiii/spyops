@@ -8,6 +8,7 @@ from pytest import raises, mark
 from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transform_best_guess
 from spyops.shared.exception import OperationsError
 from spyops.validation import (
@@ -88,7 +89,7 @@ def test_validate_transform(mem_gpkg):
     @validate_transform('xform')
     def crs_function(xform):
         return xform
-    t = get_transform_best_guess(CRS(4326), CRS(4267))
+    t = get_transform_best_guess(WGS84, CRS(4267))
     assert crs_function(t) is t
     assert crs_function(None) is None
 # End test_validate_transform function

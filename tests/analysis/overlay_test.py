@@ -13,7 +13,7 @@ from spyops.analysis import (
     erase, intersect, symmetrical_difference, union)
 from spyops.environment import Extent
 from spyops.environment.core import zm_config
-from spyops.crs.constant import EPSG
+from spyops.crs.constant import EPSG, WGS84
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
@@ -375,7 +375,7 @@ class TestErase:
         operator = inputs[name]
         source = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name=f'erase_{name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=WGS84)):
             result = erase(source=source, operator=operator, target=target)
             assert len(result) == count
     # End test_larger_inputs_extent function
@@ -1021,7 +1021,7 @@ class TestIntersect:
         target = FeatureClass(
             geopackage=mem_gpkg,
             name=f'{str(algorithm_option)}_{attribute_option}_a')
-        with Swap(Setting.EXTENT, Extent.from_bounds(9, 47.3, 14, 50.5, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(9, 47.3, 14, 50.5, crs=WGS84)):
             result = intersect(
                 source=source, operator=operator, target=target,
                 algorithm_option=algorithm_option, attribute_option=attribute_option)
@@ -1166,7 +1166,7 @@ class TestIntersect:
         operator = inputs[name]
         source = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name=f'intersect_{option}_{name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=WGS84)):
             result = intersect(source=source, operator=operator, target=target, algorithm_option=option)
             assert len(result) == count
     # End test_larger_inputs_extent method
@@ -1363,7 +1363,7 @@ class TestSymmetricalDifference:
         source = ntdb_zm['hydro_a']
         operator = ntdb_zm['structures_a']
         target = FeatureClass(geopackage=mem_gpkg, name=f'symdiff_{option}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=WGS84)):
             result = symmetrical_difference(source=source, operator=operator, target=target, algorithm_option=option)
             assert len(result) == count
     # End test_larger_inputs_extent method
@@ -1477,7 +1477,7 @@ class TestSymmetricalDifference:
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
             where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=WGS84)):
             result = symmetrical_difference(
                 source=source, operator=operator, target=target,
                 attribute_option=AttributeOption.ALL,
@@ -1505,7 +1505,7 @@ class TestSymmetricalDifference:
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
             where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=WGS84)):
             result = symmetrical_difference(
                 source=source, operator=operator, target=target,
                 attribute_option=AttributeOption.ALL,
@@ -1909,7 +1909,7 @@ class TestUnion:
         source = ntdb_zm['hydro_a']
         operator = ntdb_zm['structures_a']
         target = FeatureClass(geopackage=mem_gpkg, name=f'union_{option}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 50.75, -112.5, 51.25, crs=WGS84)):
             result = union(source=source, operator=operator, target=target, algorithm_option=option)
             assert len(result) == count
     # End test_larger_inputs_extent method
@@ -1979,7 +1979,7 @@ class TestUnion:
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
             where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=WGS84)):
             result = union(
                 source=source, operator=operator, target=target,
                 attribute_option=AttributeOption.ALL)
@@ -2003,7 +2003,7 @@ class TestUnion:
             name=f'{operator_name}_operator', geopackage=mem_gpkg,
             where_clause="""DATANAME IN ('082O01-2', '082O01-3')""")
         target = FeatureClass(geopackage=mem_gpkg, name=f'{source_name}_{operator_name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.05, -114.3, 51.25, crs=WGS84)):
             result = union(
                 source=source, operator=operator, target=target,
                 algorithm_option=AlgorithmOption.CLASSIC,

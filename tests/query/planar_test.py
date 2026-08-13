@@ -6,6 +6,7 @@ Test for Planarization
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent
 from spyops.environment.context import Swap
@@ -131,7 +132,7 @@ class TestPlanarizePolygon:
         ps = cls(
             source=source, operator=operator,
             use_full_extent=use_full_extent, xy_tolerance=None)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in ps.select
             assert ' 52.0 ' in ps.select
     # End test_extent method
@@ -217,7 +218,7 @@ class TestPlanarizePoint:
         ps = PlanarizePointSource(
             source=source, operator=operator,
             use_full_extent=use_full_extent, xy_tolerance=None)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             assert ' 7.0 ' in ps.select
             assert ' 52.0 ' in ps.select
     # End test_extent method

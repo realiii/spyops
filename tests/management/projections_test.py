@@ -8,6 +8,7 @@ from fudgeo import FeatureClass
 from pyproj import CRS
 from pytest import mark, approx
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transform_best_guess
 from spyops.crs.util import crs_from_srs
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
@@ -38,7 +39,7 @@ class TestProject:
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         code = 102009
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-90, 48, -80, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-90, 48, -80, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -123,7 +124,7 @@ class TestDefineProjections:
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         code = 102009
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-90, 48, -80, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-90, 48, -80, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),

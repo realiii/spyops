@@ -8,7 +8,7 @@ from fudgeo import FeatureClass
 from pyproj import CRS
 from pytest import mark, param, approx
 
-from spyops.crs.constant import EPSG, ESRI
+from spyops.crs.constant import EPSG, ESRI, WGS84
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
@@ -65,7 +65,7 @@ class TestDissolve:
         fields = 'CONTINENT', 'COUNTRY', 'DISPUTED'
         stats = (First('LAND_TYPE'), Last('LAND_TYPE'), Mode('LAND_RANK'),
                  Concatenate('LAND_RANK'))
-        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=WGS84)):
             result = dissolve(
                 source, target=target, group_fields=fields, statistics=stats,
                 as_multi_part=as_multi_part, xy_tolerance=xy_tolerance)
@@ -116,7 +116,7 @@ class TestDissolve:
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         fields = 'ISO_CC',
         stats = Average(source.primary_key_field),
-        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=WGS84)):
             result = dissolve(
                 source, target=target, group_fields=fields, statistics=stats,
                 as_multi_part=as_multi_part, xy_tolerance=xy_tolerance)
@@ -209,7 +209,7 @@ class TestDissolve:
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
         fields = 'ISO_CC',
         stats = Average(source.primary_key_field),
-        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=WGS84)):
             result = dissolve(
                 source, target=target, group_fields=fields, statistics=stats,
                 as_multi_part=as_multi_part, xy_tolerance=xy_tolerance)

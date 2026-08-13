@@ -7,6 +7,7 @@ Test for Utility Functions
 from pyproj import CRS
 from pytest import approx, mark
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transform_best_guess
 from spyops.crs.unit import get_unit_name
 from spyops.crs.util import get_crs_from_source, srs_from_crs
@@ -95,7 +96,7 @@ def test_get_geographic_transformation():
     """
     Test get_geographic_transformation
     """
-    source_crs = CRS(4326)
+    source_crs = WGS84
     target_crs = CRS(3857)
     transformer = get_transform_best_guess(source_crs, target_crs)
     assert get_geographic_transformation(source_crs, source_crs, [transformer]) is None
