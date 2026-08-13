@@ -30,6 +30,7 @@ from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
     ALONG, ORIG_FID, SEQ_NUM, get_geometry_column_name, make_field_names)
 from spyops.shared.hint import FIELDS, PLACEMENT
+from spyops.shared.util import safe_float
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -376,8 +377,7 @@ class QueryGeneratePointsAlongLinesField(
         """
         Build Multi Values
         """
-        distances = distance.split(SEMI)
-        units = [unit_factory(d) for d in distances]
+        units = self._get_units_from_distances(distance)
         count = len(units)
         if not (units := [unit for unit in units if unit is not None]):
             self._counter += count
@@ -393,6 +393,24 @@ class QueryGeneratePointsAlongLinesField(
         distances = [d for d, bad in zip(distances, bads) if not bad]
         return array(distances, dtype=float)
     # End _build_multi_values method
+
+    def _get_units_from_distances(self, distance: str) \
+            -> list[Optional[Union['LinearUnit', 'DecimalDegrees']]]:
+        """
+        Get Units from Distances
+        """
+        units = []
+        for dist in distance.split(SEMI):
+            if unit := unit_factory(dist):
+                units.append(unit)
+                continue
+            if dist := safe_float(dist):
+                unit = self._source_unit_cls(dist)
+            else:
+                unit = None
+            units.append(unit)
+        return units
+    # End _get_units_from_distances method
 # End QueryGeneratePointsAlongLinesField class
 
 
