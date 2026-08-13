@@ -12,7 +12,7 @@ from spyops.crs.constant import WGS84
 from spyops.crs.unit import Meters
 from spyops.environment import Extent, OutputZOption, Setting
 from spyops.environment.context import Swap
-from spyops.management.sampling import generate_points_along_lines
+from spyops.management import generate_points_along_lines
 from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
 
 pytestmark = [mark.management, mark.sampling]
@@ -77,7 +77,7 @@ class TestGeneratePointsAlongLines:
         result = generate_points_along_lines(
             source=source, target=target, placement=25,
             placement_option=PlacementOption.PERCENTAGE,
-            include_end_points=include, distance_type=distance_type,
+            include_ends=include, distance_type=distance_type,
             where_clause=where_clause)
         assert result.has_z == source.has_z
         assert result.has_m == source.has_m
@@ -148,7 +148,7 @@ class TestGeneratePointsAlongLines:
         result = generate_points_along_lines(
             source=source, target=target, placement=unit,
             placement_option=PlacementOption.DISTANCE,
-            include_end_points=include, distance_type=distance_type,
+            include_ends=include, distance_type=distance_type,
             where_clause=where_clause)
         assert result.has_z == source.has_z
         assert result.has_m == source.has_m
@@ -218,7 +218,7 @@ class TestGeneratePointsAlongLines:
         result = generate_points_along_lines(
             source=source, target=target, placement='SINGLE_VALUE',
             placement_option=PlacementOption.FIELD,
-            include_end_points=include, distance_type=distance_type,
+            include_ends=include, distance_type=distance_type,
             where_clause=where_clause)
         assert result.has_z == source.has_z
         assert result.has_m == source.has_m
@@ -283,7 +283,7 @@ class TestGeneratePointsAlongLines:
         result = generate_points_along_lines(
             source=source, target=target, placement='SINGLE_UNIT',
             placement_option=PlacementOption.FIELD,
-            include_end_points=include, distance_type=distance_type,
+            include_ends=include, distance_type=distance_type,
             where_clause=where_clause)
         assert result.has_z == source.has_z
         assert result.has_m == source.has_m
@@ -348,7 +348,7 @@ class TestGeneratePointsAlongLines:
         result = generate_points_along_lines(
             source=source, target=target, placement='SINGLE_DD',
             placement_option=PlacementOption.FIELD,
-            include_end_points=include, distance_type=distance_type,
+            include_ends=include, distance_type=distance_type,
             where_clause=where_clause)
         assert result.has_z == source.has_z
         assert result.has_m == source.has_m
@@ -413,7 +413,7 @@ class TestGeneratePointsAlongLines:
         result = generate_points_along_lines(
             source=source, target=target, placement='DISTANCES',
             placement_option=PlacementOption.FIELD,
-            include_end_points=include, distance_type=distance_type,
+            include_ends=include, distance_type=distance_type,
             where_clause=where_clause)
         assert result.has_z == source.has_z
         assert result.has_m == source.has_m
@@ -438,14 +438,14 @@ class TestGeneratePointsAlongLines:
         target = FeatureClass(mem_gpkg, name='points')
         result = generate_points_along_lines(
             source=source, target=target, placement=placement,
-            placement_option=option, include_end_points=False,
+            placement_option=option, include_ends=False,
             distance_type=DistanceTypeOption.PLANAR)
         count = len(result)
         target = FeatureClass(mem_gpkg, name='some_points')
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51., -114.25, 51.25, crs=WGS84)):
             result = generate_points_along_lines(
                 source=source, target=target, placement=placement,
-                placement_option=option, include_end_points=False,
+                placement_option=option, include_ends=False,
                 distance_type=DistanceTypeOption.PLANAR)
         assert len(result) < count
         assert len(result) > 0
@@ -468,7 +468,7 @@ class TestGeneratePointsAlongLines:
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84)):
             result = generate_points_along_lines(
                 source=source, target=target, placement=placement,
-                placement_option=option, include_end_points=False,
+                placement_option=option, include_ends=False,
                 distance_type=DistanceTypeOption.PLANAR)
             assert len(result) > 0
             assert result.has_z
