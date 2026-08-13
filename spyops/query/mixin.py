@@ -222,25 +222,23 @@ class UnitTypeMixin:
         """
         Convert Unit
         """
-        has_linear, _ = self._unit_types
         if is_geodesic:
-            if has_linear:
-                value = getattr(unit, METERS_ATTR, nan)
+            if isinstance(unit, LinearUnit):
+                value = unit.meters
             else:
-                value = getattr(unit, VALUE_ATTR, nan)
                 coordinates = get_coordinates(centroid(geoms))
                 values = degrees_to_meters(
-                    crs, coordinates=coordinates, value=value)
+                    crs, coordinates=coordinates, value=unit.value)
                 if not broadcast:
                     return nanmean(values)
                 return values
         else:
-            if has_linear:
+            if isinstance(unit, LinearUnit):
+                value = unit.meters
                 # NOTE return in units of the CRS
-                value = getattr(unit, METERS_ATTR, nan)
                 value *= self._get_conversion_factor(crs)
             else:
-                value = getattr(unit, VALUE_ATTR, nan)
+                value = unit.value
         if not broadcast:
             return value
         return ones_like(geoms, dtype=float) * value
