@@ -13,12 +13,11 @@ from numpy import (
     zeros_like)
 from numpy.linalg import norm, solve
 from shapely import get_rings
-from shapely.coordinates import get_coordinates
 from shapely.geometry.base import BaseGeometry
 from shapely.io import from_wkb
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_geoms_iter
+from spyops.geometry.util import get_coords_and_slices, get_geoms_iter
 from spyops.shared.constant import EMPTY, SRS_ID_WKB
 
 
@@ -214,9 +213,8 @@ def _smooth_bezier(geometry: ndarray | list, *, density: int,
     """
     Smooth Linear Geometry Coordinates using cubic Bezier interpolation
     """
-    coords, indexes = get_coordinates(
-        geometry, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(
+        geometry, include_z=has_z, include_m=has_m)
     smoothed_coords = []
     for begin, end in zip(ids[:-1], ids[1:]):
         subset = coords[begin:end]
@@ -318,9 +316,8 @@ def _smooth_paek(geometry: ndarray | list, *, tolerance: float,
     """
     Smooth Linear Geometry Coordinates using PAEK
     """
-    coords, indexes = get_coordinates(
-        geometry, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(
+        geometry, include_z=has_z, include_m=has_m)
     smoothed_coords = []
     for begin, end in zip(ids[:-1], ids[1:]):
         subset = coords[begin:end]

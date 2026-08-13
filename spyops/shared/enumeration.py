@@ -7,6 +7,16 @@ Enumerations
 from enum import IntFlag, STRICT, StrEnum, auto
 
 
+class PlacementOption(StrEnum):
+    """
+    Placement Option
+    """
+    DISTANCE = auto()
+    PERCENTAGE = auto()
+    FIELD = auto()
+# End PlacementOption class
+
+
 class LineTypeOption(StrEnum):
     """
     Line Type Options
@@ -23,6 +33,15 @@ class BufferTypeOption(StrEnum):
     GEODESIC = auto()
     PLANAR = auto()
 # End BufferTypeOption class
+
+
+class DistanceTypeOption(StrEnum):
+    """
+    Distance Type Options
+    """
+    GEODESIC = auto()
+    PLANAR = auto()
+# End DistanceTypeOption class
 
 
 class SideOption(StrEnum):

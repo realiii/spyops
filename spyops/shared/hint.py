@@ -13,6 +13,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geometry import (
         LineString, LineStringM, LineStringZ, LineStringZM,
         Point, PointM, PointZM, PointZ)
+    from numpy import ndarray
     from spyops.crs.unit import DecimalDegrees, LinearUnit
     from shapely.geometry import (
         LineString as ShapelyLineString, MultiLineString, MultiPoint,
@@ -24,8 +25,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
+PLACEMENT: TypeAlias = Union['LinearUnit', 'DecimalDegrees', 'Field', float]
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
 UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
+VALUES: TypeAlias = Union[list[float], tuple[float, ...], 'ndarray']
 
 UPDATES_SHAPELY: TypeAlias = list[tuple[
     int, Optional[Union['BaseGeometry', 'BaseMultipartGeometry']]]]

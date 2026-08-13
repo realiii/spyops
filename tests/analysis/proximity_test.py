@@ -8,6 +8,7 @@ from pyproj import CRS
 from pytest import mark, param, approx
 
 from spyops.analysis import buffer, create_thiessen_polygons, multiple_buffer
+from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
@@ -63,7 +64,7 @@ class TestBuffer:
         fields = 'COUNTRY', 'ADMINTYPE', 'LAND_RANK'
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=side_option,
@@ -77,7 +78,7 @@ class TestBuffer:
         """
         source = buffering['admin_sans_attr_a']
         target = FeatureClass(geopackage=mem_gpkg, name=f'sans_all_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=Meters(1234.5),
                 buffer_type=BufferTypeOption.PLANAR, side_option=SideOption.FULL,
@@ -85,7 +86,7 @@ class TestBuffer:
             assert len(result) == 1
 
         target = FeatureClass(geopackage=mem_gpkg, name=f'sans_none_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=Meters(1234.5),
                 buffer_type=BufferTypeOption.PLANAR, side_option=SideOption.FULL,
@@ -109,7 +110,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -148,7 +149,7 @@ class TestBuffer:
         fields = 'ISO_CC', 'RANK'
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=side_option,
@@ -196,7 +197,7 @@ class TestBuffer:
             fields = 'ISO_CC', 'IATA'
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=SideOption.FULL,
@@ -244,7 +245,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=side_option,
@@ -275,7 +276,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=side_option,
@@ -319,7 +320,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=SideOption.FULL,
@@ -367,7 +368,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=side_option,
@@ -419,7 +420,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=side_option,
@@ -463,7 +464,7 @@ class TestBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = buffer(
                 source, target=target, distance=distance,
                 buffer_type=buffer_type, side_option=SideOption.FULL,
@@ -594,7 +595,7 @@ class TestMultipleBuffer:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_buffer')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -736,7 +737,7 @@ class TestCreateThiessenPolygons:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_a')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-120, 35, -100, 60, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),

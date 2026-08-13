@@ -27,7 +27,7 @@ from spyops.management import (
     polygon_to_line,
     split_line_at_vertices, xy_to_line, check_geometry,
     minimum_bounding_geometry, repair_geometry, xy_table_to_point)
-from spyops.crs.constant import EPSG, ESRI
+from spyops.crs.constant import EPSG, ESRI, WGS84
 from spyops.management.features import feature_to_polygon
 from spyops.shared.enumeration import (
     AttributeSource, GeometryAttribute, GeometryCheck, GroupOption,
@@ -154,7 +154,7 @@ class TestMultiPartToSinglePart:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-        crs = CRS(4326)
+        crs = WGS84
         assert len(source) == pre_count
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.2, 51.05, -114.05, 51.15, crs)):
             result = multipart_to_singlepart(source=source, target=target)
@@ -228,7 +228,7 @@ class TestCopyFeatures:
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, WGS84)):
             result = copy_features(source=source, target=target, where_clause=where_clause)
             assert len(result) == count
     # End test_extent method
@@ -408,7 +408,7 @@ class TestAddXYCoordinates:
         """
         source = ntdb_zm_small[fc_name].copy(name=fc_name, geopackage=mem_gpkg)
         sql = f"""SELECT COUNT(1) AS CNT FROM {source.escaped_name} WHERE POINT_X IS NULL"""
-        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.15, -114.375, 51.25, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-114.5, 51.15, -114.375, 51.25, crs=WGS84)):
             add_xy_coordinates(source)
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
@@ -526,13 +526,13 @@ class TestCalculateGeometryAttributes:
                   FROM {source.escaped_name} 
                   WHERE {name} IS NOT NULL"""
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone()[0], abs=0.1) == average_lcc
-            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
                 calculate_geometry_attributes(
                     source, field=field, geometry_attribute=attribute)
                 with source.geopackage.connection as cin:
@@ -578,13 +578,13 @@ class TestCalculateGeometryAttributes:
                   FROM {source.escaped_name} 
                   WHERE {name} IS NOT NULL"""
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone()[0], abs=0.1) == average
-            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
                 calculate_geometry_attributes(
                     source, field=field, geometry_attribute=attribute)
                 with source.geopackage.connection as cin:
@@ -617,7 +617,7 @@ class TestCalculateGeometryAttributes:
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
             assert cursor.fetchone()[0] == count
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
@@ -650,7 +650,7 @@ class TestCalculateGeometryAttributes:
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
             assert cursor.fetchone()[0] == count
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
@@ -680,7 +680,7 @@ class TestCalculateGeometryAttributes:
         with source.geopackage.connection as cin:
             cursor = cin.execute(sql)
             assert cursor.fetchone()[0] == count
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
@@ -756,13 +756,13 @@ class TestCalculateGeometryAttributes:
                   FROM {source.escaped_name} 
                   WHERE {name} IS NOT NULL"""
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone()[0], abs=0.1) == average
-            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
                 calculate_geometry_attributes(
                     source, field=field, geometry_attribute=attribute)
                 with source.geopackage.connection as cin:
@@ -789,13 +789,13 @@ class TestCalculateGeometryAttributes:
                   FROM {source.escaped_name} 
                   WHERE {name} IS NOT NULL"""
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone()[0], abs=0.1) == average
-            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
                 calculate_geometry_attributes(
                     source, field=field, geometry_attribute=attribute)
                 with source.geopackage.connection as cin:
@@ -830,13 +830,13 @@ class TestCalculateGeometryAttributes:
                   FROM {source.escaped_name} 
                   WHERE {name} IS NOT NULL"""
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             calculate_geometry_attributes(
                 source, field=field, geometry_attribute=attribute)
             with source.geopackage.connection as cin:
                 cursor = cin.execute(sql)
                 assert approx(cursor.fetchone()[0], abs=0.1) == average
-            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
                 calculate_geometry_attributes(
                     source, field=field, geometry_attribute=attribute)
                 with source.geopackage.connection as cin:
@@ -1222,7 +1222,7 @@ class TestXYTableToPoint:
     ])
     @mark.parametrize('extent, count', [
         (None, 12_950),
-        (Extent.from_bounds(-114, 51, -114.1, 51.15, CRS(4326)), 35),
+        (Extent.from_bounds(-114, 51, -114.1, 51.15, WGS84), 35),
     ])
     def test_extent(self, inputs, mem_gpkg, fields, extent, count):
         """
@@ -1473,7 +1473,7 @@ class TestFeatureEnvelopeToPolygon:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-        crs = CRS(4326)
+        crs = WGS84
         assert len(source) == pre_count
         with Swap(Setting.EXTENT, Extent.from_bounds(-114.2, 51.05, -114.05, 51.15, crs)):
             result = feature_envelope_to_polygon(source=source, target=target)
@@ -1510,7 +1510,7 @@ class TestMinimumBoundingGeometry:
         fields = 'COUNTRY', 'ADMINTYPE', 'LAND_RANK'
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, geometry_type=geometry_type,
                 add_geometric_attributes=add_attributes,
@@ -1529,7 +1529,7 @@ class TestMinimumBoundingGeometry:
         source = buffering['admin_sans_attr_a']
         target = FeatureClass(geopackage=mem_gpkg, name='sans_all_mbg')
         additional = 3 if add_attributes else 0
-        extent = Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))
+        extent = Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)
         with Swap(Setting.EXTENT, extent):
             result = minimum_bounding_geometry(
                 source, target=target, group_option=GroupOption.ALL,
@@ -1562,7 +1562,7 @@ class TestMinimumBoundingGeometry:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -1595,7 +1595,7 @@ class TestMinimumBoundingGeometry:
         fields = 'ISO_CC', 'RANK'
         source = buffering['roads_l']
         target = FeatureClass(geopackage=mem_gpkg, name='roads_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, geometry_type=geometry_type,
                 add_geometric_attributes=add_attributes,
@@ -1630,7 +1630,7 @@ class TestMinimumBoundingGeometry:
             fields = 'ISO_CC', 'IATA'
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, geometry_type=geometry_type,
                 add_geometric_attributes=add_attributes,
@@ -1661,7 +1661,7 @@ class TestMinimumBoundingGeometry:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, geometry_type=geometry_type,
                 add_geometric_attributes=add_attributes,
@@ -1686,7 +1686,7 @@ class TestMinimumBoundingGeometry:
         """
         source = buffering['roads_l']
         target = FeatureClass(geopackage=mem_gpkg, name='roads_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, add_geometric_attributes=add_attributes,
                 geometry_type=geometry_type, group_option=GroupOption.ALL)
@@ -1716,7 +1716,7 @@ class TestMinimumBoundingGeometry:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, add_geometric_attributes=add_attributes,
                 geometry_type=geometry_type, group_option=GroupOption.ALL)
@@ -1746,7 +1746,7 @@ class TestMinimumBoundingGeometry:
         """
         source = buffering[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-145, 45, -90, 85, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, add_geometric_attributes=add_attributes,
                 geometry_type=geometry_type, group_option=GroupOption.NONE)
@@ -1770,7 +1770,7 @@ class TestMinimumBoundingGeometry:
         """
         source = buffering['roads_l']
         target = FeatureClass(geopackage=mem_gpkg, name='roads_mbg')
-        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(27, 45, 56, 70, crs=WGS84)):
             result = minimum_bounding_geometry(
                 source, target=target, add_geometric_attributes=add_attributes,
                 geometry_type=geometry_type, group_option=GroupOption.NONE)
@@ -1804,7 +1804,7 @@ class TestFeatureToPoint:
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             fc = feature_to_point(source=source, target=target, inside=inside)
             assert approx(fc.extent, abs=1) == extent
     # End test_inside method
@@ -1824,7 +1824,7 @@ class TestFeatureToPoint:
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             fc = feature_to_point(source=source, target=target, inside=inside)
             assert approx(fc.extent, abs=0.001) == extent
     # End test_inside_multi method
@@ -1842,7 +1842,7 @@ class TestFeatureToPoint:
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
         with Swap(Setting.EXTENT, Extent.from_bounds(
-                -114.3169, 51.1955, -114.2277, 51.1282, crs=CRS(4326))):
+                -114.3169, 51.1955, -114.2277, 51.1282, crs=WGS84)):
             fc = feature_to_point(source=source, target=target, inside=False,
                                   weight_option=WeightOption.THREE_D)
             assert approx(fc.extent, abs=1) == extent
@@ -1860,7 +1860,7 @@ class TestFeatureToPoint:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
-        crs = CRS(4326)
+        crs = WGS84
         with (Swap(Setting.EXTENT, Extent.from_bounds(-114.3169, 51.1955, -114.2277, 51.1282, crs=crs)),
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
@@ -2053,7 +2053,7 @@ class TestFeatureVerticesToPoints:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_p')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -2097,7 +2097,7 @@ class TestSplitLineAtVertices:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_l')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -2132,7 +2132,7 @@ class TestPolygonToLine:
         """
         source = ntdb_zm_small[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=f'{fc_name}_l')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-116, 48, -110, 54, crs=WGS84)),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
@@ -2198,7 +2198,7 @@ class TestFeatureToPolygon:
         label = feature_to_point(index, target, inside=False)
         source = [index] * 2
         target = FeatureClass(geopackage=mem_gpkg, name='ftp')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-115.1, 50.8, -113.6, 51.5, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-115.1, 50.8, -113.6, 51.5, crs=WGS84)),
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(code))):
             fc = feature_to_polygon(source, target, label=label)
             assert len(fc) == 9
@@ -2259,7 +2259,7 @@ class TestFeatureToLine:
         index = ntdb_zm['index_a']
         source = [index] * 2
         target = FeatureClass(geopackage=mem_gpkg, name='ftp')
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-115.1, 50.8, -113.6, 51.5, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-115.1, 50.8, -113.6, 51.5, crs=WGS84)),
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(code))):
             fc = feature_to_line(source, target)
             assert len(fc) == 20
@@ -2361,7 +2361,7 @@ class TestPointsToLine:
         crs = CRS.from_authority('ESRI', code)
         with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
-              Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=CRS(4326))),
+              Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 90, crs=WGS84)),
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs)):
             fc = points_to_line(
                 source, target=target, group_fields=fields, sort_fields=sorts,

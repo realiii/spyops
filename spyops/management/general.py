@@ -24,10 +24,10 @@ from spyops.shared.hint import (
     ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, M_TOL, SORT_FIELDS, XY_TOL, Z_TOL)
 from spyops.shared.records import bulk_records, select_transform_insert
 from spyops.validation import (
-    validate_element, validate_elements, validate_field,
-    validate_overwrite_source, validate_result, validate_sort_field,
-    validate_source_element, validate_str_enumeration, validate_target_element,
-    validate_tolerance, validate_xy_tolerance)
+    validate_elements, validate_field, validate_overwrite_source,
+    validate_result, validate_sort_field, validate_source_element,
+    validate_str_enumeration, validate_target_element, validate_tolerance,
+    validate_xy_tolerance)
 
 
 __all__ = ['copy', 'delete', 'rename', 'find_identical', 'delete_identical',
@@ -35,7 +35,7 @@ __all__ = ['copy', 'delete', 'rename', 'find_identical', 'delete_identical',
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 @validate_target_element()
 @validate_overwrite_source()
 def copy(source: ELEMENT, target: ELEMENT, *,
@@ -72,7 +72,7 @@ def delete(source: ELEMENT | ELEMENTS) -> bool:
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 def rename(source: ELEMENT, name: str) -> ELEMENT:
     """
     Rename Table or Feature Class

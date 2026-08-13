@@ -6,20 +6,19 @@ Generalization
 
 from typing import TYPE_CHECKING
 
-from fudgeo.enumeration import ShapeType
-
 from spyops.cartography.util import _simplify, _smooth
 from spyops.query.cartography.generalization import (
     QuerySimplifyLine, QuerySimplifyPolygon, QuerySmoothLine,
     QuerySmoothPolygon)
 from spyops.shared.enumeration import (
     SimplifyAlgorithmOption, SmoothAlgorithmOption)
+from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import UNIT_TOLERANCE, XY_TOL
 from spyops.shared.keywords import ALGORITHM_OPTION, SOURCE, TOLERANCE
 from spyops.validation import (
-    validate_feature_class, validate_linear_unit, validate_overwrite_source,
-    validate_result, validate_str_enumeration, validate_target_feature_class,
-    validate_xy_tolerance)
+    validate_linear_unit, validate_overwrite_source, validate_result,
+    validate_source_feature_class, validate_str_enumeration,
+    validate_target_feature_class, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,8 +29,7 @@ __all__ = ['simplify_line', 'simplify_polygon', 'smooth_line', 'smooth_polygon']
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
-        ShapeType.linestring, ShapeType.multi_linestring))
+@validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
 @validate_target_feature_class()
 @validate_linear_unit(TOLERANCE, feature_class_name=SOURCE,
                       as_number=True, use_source_crs=False)
@@ -60,8 +58,7 @@ def simplify_line(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
-        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_source_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
 @validate_target_feature_class()
 @validate_linear_unit(TOLERANCE, feature_class_name=SOURCE,
                       as_number=True, use_source_crs=False)
@@ -90,8 +87,7 @@ def simplify_polygon(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
-        ShapeType.linestring, ShapeType.multi_linestring))
+@validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
 @validate_target_feature_class()
 @validate_linear_unit(TOLERANCE, feature_class_name=SOURCE,
                       as_number=True, use_source_crs=False)
@@ -120,8 +116,7 @@ def smooth_line(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
-        ShapeType.polygon, ShapeType.multi_polygon))
+@validate_source_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
 @validate_target_feature_class()
 @validate_linear_unit(TOLERANCE, feature_class_name=SOURCE,
                       as_number=True, use_source_crs=False)

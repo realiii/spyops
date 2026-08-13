@@ -173,7 +173,7 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
                               shape_type: str) \
         -> tuple[Callable, Callable] | tuple[None, None]:
     """
-    Equidistant Transformers
+    Equidistant Transformers for Buffers
     """
     to_equidistant_transformer = get_transform_best_guess(
         crs, target_crs=equidistant_crs, suppress=True)

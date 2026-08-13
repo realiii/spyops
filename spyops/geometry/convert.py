@@ -4,23 +4,25 @@ Convert Geometry
 """
 
 
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo.enumeration import ShapeType
 from numpy import isnan
-from shapely import get_rings
+from shapely import get_rings, MultiLineString
 from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_geoms, nada
+from spyops.geometry.util import get_coords_and_slices, get_geoms, nada
 from spyops.shared.enumeration import OutputTypeOption
+from spyops.shared.keywords import GEOMS_ATTR
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
+    from shapely import LineString, MultiPolygon, Polygon
 
 
 def get_geometry_converters(source: 'FeatureClass', operator: 'FeatureClass',
@@ -158,10 +160,8 @@ def cast_multi_polygons(geoms: 'ndarray', *, srs_id: int, has_z: bool,
     for geom in geoms:
         poly_coords = []
         for part in get_geoms(geom):
-            coords, indexes = get_coordinates(
-                get_rings(part), include_z=has_z, include_m=has_m,
-                return_index=True)
-            ids = find_slice_indexes(indexes)
+            coords, ids = get_coords_and_slices(
+                get_rings(part), include_z=has_z, include_m=has_m)
             _update_z_values(coords, has_z=has_z)
             poly_coords.append([coords[b:e] for b, e in zip(ids[:-1], ids[1:])])
         converted.append(cls(poly_coords, srs_id=srs_id))
@@ -175,9 +175,7 @@ def _cast_linear(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
     Cast Linear Geometry
     """
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     _update_z_values(coords, has_z=has_z)
     return [cls(coords[b:e], srs_id=srs_id) for b, e in zip(ids[:-1], ids[1:])]
 # End _cast_linear function
@@ -191,15 +189,33 @@ def _cast_groups(geoms: 'ndarray', *, has_z: bool, has_m: bool, srs_id: int,
     converted = []
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
     for geom in geoms:
-        # noinspection PyTypeChecker
-        coords, indexes = get_coordinates(
-            getter(geom), include_z=has_z, include_m=has_m, return_index=True)
-        ids = find_slice_indexes(indexes)
+        coords, ids = get_coords_and_slices(
+            getter(geom), include_z=has_z, include_m=has_m)
         _update_z_values(coords, has_z=has_z)
         converted.append(cls([coords[b:e] for b, e in
                               zip(ids[:-1], ids[1:])], srs_id=srs_id))
     return converted
 # End _cast_groups function
+
+
+def _polygon_as_multilinestring(geom: Union['Polygon', 'MultiPolygon']) \
+        -> MultiLineString:
+    """
+    Polygon as MultiLineString
+    """
+    return _line_as_multilinestring(boundary(geom))
+# End _polygon_as_multilinestring function
+
+
+def _line_as_multilinestring(geom: Union['LineString', MultiLineString]) \
+        -> MultiLineString:
+    """
+    LineString as MultiLineString
+    """
+    if hasattr(geom, GEOMS_ATTR):
+        return geom
+    return MultiLineString([geom])
+# End _polygon_as_multilinestring function
 
 
 GEOMETRY_CAST: dict[str, Callable] = {
@@ -209,6 +225,14 @@ GEOMETRY_CAST: dict[str, Callable] = {
     ShapeType.multi_linestring: cast_multi_linestrings,
     ShapeType.polygon: cast_polygons,
     ShapeType.multi_polygon: cast_multi_polygons,
+}
+
+
+GEOMETRY_AS_MULTILINE: dict[str, Callable] = {
+    ShapeType.linestring: _line_as_multilinestring,
+    ShapeType.multi_linestring: _line_as_multilinestring,
+    ShapeType.polygon: _polygon_as_multilinestring,
+    ShapeType.multi_polygon: _polygon_as_multilinestring,
 }
 
 

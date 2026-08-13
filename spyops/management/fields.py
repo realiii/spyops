@@ -34,10 +34,9 @@ from spyops.shared.enumeration import (
 from spyops.shared.hint import (
     ELEMENT, ELEMENTS, FIELDS, FIELD_NAMES, NUMBER, OPT_FIELD_STR)
 from spyops.validation import (
-    validate_compatible_fields, validate_element, validate_elements,
-    validate_feature_class, validate_overwrite_source, validate_result,
-    validate_source_element, validate_str_enumeration, validate_field,
-    validate_target_table)
+    validate_compatible_fields, validate_elements, validate_overwrite_source,
+    validate_result, validate_source_element, validate_source_feature_class,
+    validate_str_enumeration, validate_field, validate_target_table)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -52,7 +51,7 @@ __all__ = ['delete_field', 'add_field', 'calculate_field', 'alter_field',
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 @validate_field(FIELDS_ARG, element_name=SOURCE)
 def delete_field(source: ELEMENT, fields: FIELDS | FIELD_NAMES) -> ELEMENT:
     """
@@ -66,7 +65,7 @@ def delete_field(source: ELEMENT, fields: FIELDS | FIELD_NAMES) -> ELEMENT:
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 @validate_field(FIELDS_ARG, exists=False)
 @validate_elements(ELEMENTS_ARG, has_content=False)
 def add_field(source: ELEMENT, *, fields: FIELDS = (),
@@ -123,7 +122,7 @@ def calculate_field(source: ELEMENT, field: Field | str, expression: str, *,
 
 
 @validate_result()
-@validate_element(SOURCE, has_content=False)
+@validate_source_element(has_content=False)
 @validate_field(FIELD, single=True, element_name=SOURCE)
 @validate_str_enumeration(FIELD_PROPERTY, FieldProperty)
 def alter_field(source: ELEMENT, field: Field | str, *,
@@ -155,7 +154,7 @@ def alter_field(source: ELEMENT, field: Field | str, *,
 
 
 @validate_result()
-@validate_feature_class(SOURCE, has_content=False)
+@validate_source_feature_class(has_content=False)
 def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
     """
     Add GPS Metadata Fields

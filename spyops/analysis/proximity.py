@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
-from fudgeo.enumeration import ShapeType
 
 from spyops.crs.enumeration import DistanceUnit
 from spyops.geometry.proximity import build_voronoi
@@ -18,14 +17,15 @@ from spyops.query.analysis.proximity import (
     QueryCreateThiessenPolygons, QueryMultipleBuffer)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SideOption)
+from spyops.shared.field import GEOM_TYPE_POINTS
 from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
 from spyops.shared.keywords import (
     BUFFER_TYPE, DISSOLVE_OPTION, DISTANCES, DISTANCE_ARG, DISTANCE_UNIT,
     END_OPTION, GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
 from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_dissolve_option, validate_distance, validate_feature_class,
-    validate_field, validate_overwrite_source, validate_range, validate_result,
+    validate_dissolve_option, validate_distance, validate_field,
+    validate_overwrite_source, validate_range, validate_result,
     validate_side_option, validate_source_feature_class,
     validate_str_enumeration, validate_target_feature_class, validate_values,
     validate_xy_tolerance)
@@ -165,8 +165,7 @@ def multiple_buffer(source: 'FeatureClass', target: 'FeatureClass',
 
 
 @validate_result()
-@validate_feature_class(SOURCE, geometry_types=(
-        ShapeType.point, ShapeType.multi_point))
+@validate_source_feature_class(geometry_types=GEOM_TYPE_POINTS)
 @validate_target_feature_class()
 @validate_xy_tolerance()
 @validate_overwrite_source()

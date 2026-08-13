@@ -9,13 +9,15 @@ from fudgeo import Field
 from fudgeo.enumeration import FieldType
 
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters
+from spyops.shared.enumeration import PlacementOption
 from spyops.shared.field import REALS, TEXT_AND_NUMBERS
 from spyops.shared.sort import Ascending, Descending
 from spyops.shared.stats import Average, First
 from spyops.validation import (
     validate_compatible_fields, validate_distance, validate_feature_class,
-    validate_field, validate_sort_field, validate_statistic_field,
-    validate_table)
+    validate_field, validate_placement, validate_sort_field,
+    validate_statistic_field,
+    validate_str_enumeration, validate_table)
 
 
 pytestmark = [mark.validation]
@@ -261,6 +263,56 @@ def test_validate_distance(ntdb_zm_small, fc_name, value, expected, throws):
     else:
         assert dist_function(tbl, value) == expected
 # End test_validate_distance function
+
+
+@mark.parametrize('fc_name, option, value, expected, throws', [
+    ('hydro_4617_a', PlacementOption.DISTANCE, None, None, True),
+    ('hydro_4617_a', PlacementOption.DISTANCE, [], None, True),
+    ('hydro_4617_a', PlacementOption.DISTANCE, 5, DecimalDegrees(5), False),
+    ('hydro_4617_a', PlacementOption.DISTANCE, 5.6, DecimalDegrees(5.6), False),
+    ('hydro_6654_a', PlacementOption.DISTANCE, 5, Meters(5), False),
+    ('hydro_6654_a', PlacementOption.DISTANCE, 5.6, Meters(5.6), False),
+    ('hydro_6654_a', PlacementOption.DISTANCE, 'asdf', None, True),
+    ('hydro_6654_a', PlacementOption.DISTANCE, Kilometers(5), Kilometers(5), False),
+    ('hydro_6654_a', PlacementOption.DISTANCE, '5 kms', Kilometers(5), False),
+    ('hydro_6654_a', PlacementOption.DISTANCE, 'CODE', None, True),
+    ('hydro_6654_a', PlacementOption.DISTANCE, 'PART_ID', None, True),
+    ('hydro_6654_a', PlacementOption.DISTANCE, 'VALDATE', None, True),
+    ('hydro_4617_a', PlacementOption.PERCENTAGE, None, None, True),
+    ('hydro_4617_a', PlacementOption.PERCENTAGE, [], None, True),
+    ('hydro_4617_a', PlacementOption.PERCENTAGE, 5, 5., False),
+    ('hydro_4617_a', PlacementOption.PERCENTAGE, 5.6, 5.6, False),
+    ('hydro_6654_a', PlacementOption.PERCENTAGE, 'asdf', None, True),
+    ('hydro_6654_a', PlacementOption.PERCENTAGE, '5 kms', None, True),
+    ('hydro_6654_a', PlacementOption.PERCENTAGE, 'CODE', None, True),
+    ('hydro_6654_a', PlacementOption.PERCENTAGE, 'PART_ID', None, True),
+    ('hydro_6654_a', PlacementOption.PERCENTAGE, 'VALDATE', None, True),
+    ('hydro_4617_a', PlacementOption.PERCENTAGE, None, None, True),
+    ('hydro_4617_a', PlacementOption.FIELD, [], None, True),
+    ('hydro_4617_a', PlacementOption.FIELD, 5, None, True),
+    ('hydro_4617_a', PlacementOption.FIELD, 5.6, None, True),
+    ('hydro_6654_a', PlacementOption.FIELD, 'asdf', None, True),
+    ('hydro_6654_a', PlacementOption.FIELD, '5 kms', None, True),
+    ('hydro_6654_a', PlacementOption.FIELD, 'CODE', Field('CODE', data_type=FieldType.mediumint), False),
+    ('hydro_6654_a', PlacementOption.FIELD, 'PART_ID', Field('PART_ID', data_type=FieldType.integer), False),
+    ('hydro_6654_a', PlacementOption.FIELD, 'VALDATE', Field('VALDATE', data_type='TEXT(10)'), False),
+])
+def test_validate_placement(ntdb_zm_small, fc_name, option, value, expected, throws):
+    """
+    Test validate placement
+    """
+    @validate_feature_class('fc')
+    @validate_str_enumeration('po', PlacementOption)
+    @validate_placement('dist', element_name='fc', enum_name='po')
+    def place_function(fc, po, dist):
+        return dist
+    tbl = ntdb_zm_small[fc_name]
+    if throws:
+        with raises((TypeError, ValueError)):
+            place_function(tbl, option, value)
+    else:
+        assert place_function(tbl, option, value) == expected
+# End test_validate_placement function
 
 
 if __name__ == '__main__':  # pragma: no cover

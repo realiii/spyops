@@ -7,7 +7,7 @@ Workarounds for Shapely / GEOS
 from collections import Counter, defaultdict
 from functools import cache, cached_property
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING, Type, Union
+from typing import Any, Callable, TYPE_CHECKING, Type, Union
 from warnings import warn
 from math import nan
 
@@ -17,26 +17,79 @@ from numpy import arange, isnan, ndarray
 from pyproj import CRS
 from shapely import (
     GeometryCollection, LineString, LinearRing, MultiLineString, MultiPoint,
-    MultiPolygon, Point, Polygon, coverage_simplify, get_rings,
+    MultiPolygon, Point, Polygon, coverage_simplify, get_rings, get_z,
     set_precision as _set_precision)
 from shapely.constructive import (
     make_valid as _make_valid, polygonize as _polygonize, simplify as _simplify)
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb, from_wkt
-from shapely.linear import line_merge
+from shapely.linear import (
+    line_interpolate_point as _line_interpolate_point, line_merge)
 from shapely.ops import transform
 
 from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transforms
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import (
-    find_slice_indexes, get_geoms, get_geoms_iter, nada)
+    get_coords_and_slices, get_geoms, get_geoms_iter, linestring_measures_to_zs,
+    nada)
 from spyops.shared.constant import SKIP_FILE_PREFIXES, SRS_ID_WKB
 from spyops.shared.exception import ShapelyWarning
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+
+
+def line_interpolate_point(line, distance, normalized=False, **kwargs):
+    """
+    Line Interpolate Point Workaround -- ensures measures are present
+    """
+    func = _line_interpolate_point
+    if USE_WORKAROUNDS.line_interpolate_point:
+        if isinstance(line, (list, tuple, ndarray)):
+            if not len(line):
+                has_m = False
+            else:
+                geoms = line[:(min(25, len(line)))]
+                has_m = any(g.has_m for g in geoms)
+        else:
+            has_m = line.has_m
+        if has_m:
+            func = _line_interpolate_point_with_measures
+    return func(line, distance=distance, normalized=normalized, **kwargs)
+# End line_interpolate_point function
+
+
+def _line_interpolate_point_with_measures(line, distance, normalized=False,
+                                          **kwargs):
+    """
+    Line Interpolate Point Workaround -- ensures measures are present
+    """
+    has_m = True
+    is_iterable, lines = _ensure_iterable(line)
+    geoms = lines[:(min(25, len(lines)))]
+    has_z = any(g.has_z for g in geoms)
+    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
+    if not has_z:
+        # NOTE measures are stored in Z because of LineString construction
+        coordinates = get_coordinates(_line_interpolate_point(
+            linestring_measures_to_zs(lines), distance=distance,
+            normalized=normalized, **kwargs), include_z=True)
+    else:
+        points = _line_interpolate_point(
+            lines, distance=distance, normalized=normalized, **kwargs)
+        coordinates = get_coordinates(points, include_z=has_z, include_m=has_m)
+        # NOTE use get_z since measures in Z via LineString creation
+        coordinates[:, -1] = get_z(_line_interpolate_point(
+            linestring_measures_to_zs(lines), distance=distance,
+            normalized=normalized, **kwargs))
+    result = from_wkb([cls.from_tuple(coords, srs_id=SRS_ID_WKB).wkb
+                       for coords in coordinates])
+    if not is_iterable:
+        return result[0]
+    return result
+# End _line_interpolate_point_with_measures function
 
 
 def simplify(geometry, tolerance, preserve_topology=True, **kwargs):
@@ -69,23 +122,33 @@ def _simplify_with_measures(geometry, *, tolerance: float,
     """
     Simplify Workaround -- ensures measures are present
     """
-    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
-        geometry = [geometry]
-    geoms = geometry[:(min(25, len(geometry)))]
+    is_iterable, geometries = _ensure_iterable(geometry)
+    geoms = geometries[:(min(25, len(geometries)))]
     has_z = any(g.has_z for g in geoms)
     (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
     shape_type = geom_type.upper()
     if shape_type not in GEOMETRY_SIMPLIFY:
-        result = geometry
+        result = geometries
     else:
         func = GEOMETRY_SIMPLIFY[shape_type]
         result = func(
-            geometry, tolerance=tolerance, preserve_topology=preserve_topology,
+            geometries, tolerance=tolerance,
+            preserve_topology=preserve_topology,
             has_z=has_z, **kwargs)
     if not is_iterable:
         return result[0]
     return result
 # End _simplify_with_measures function
+
+
+def _ensure_iterable(geometry: Any) -> tuple[bool, list]:
+    """
+    Ensure working with an iterable and not just a geometry
+    """
+    if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
+        geometry = [geometry]
+    return is_iterable, geometry
+# End _ensure_iterable function
 
 
 def _simplify_config(shape_type: str, has_z: bool) \
@@ -109,12 +172,12 @@ def _build_xy_and_lookup(geoms: list, has_z: bool, max_id: int,
     """
     Build XY and Lookup, also return identifier indexes
     """
-    coords, indexes = get_coordinates(
-        getter(geoms), include_z=has_z, include_m=True, return_index=True)
+    coords, ids = get_coords_and_slices(
+        getter(geoms), include_z=has_z, include_m=True)
     xy_index = coords[:, :3].copy()
     xy_index[:, 2] = arange(len(xy_index), dtype=float) + max_id
     lookup = dict(zip(xy_index[:, 2], coords[:, 2:]))
-    return find_slice_indexes(indexes), lookup, xy_index
+    return ids, lookup, xy_index
 # End _build_xy_and_lookup function
 
 
@@ -124,10 +187,10 @@ def _rebuild_coordinates(geoms: 'ndarray', lookup: dict[float, 'ndarray'],
     """
     Rebuild Coordinates by using lookup to add back measures and z values
     """
-    coords, indexes = get_coordinates(
-        getter(geoms), include_z=True, return_index=True)
+    coords, ids = get_coords_and_slices(
+        getter(geoms), include_z=True, include_m=False)
     coords = [(x, y, *lookup.get(idx, missing)) for x, y, idx in coords]
-    return coords, find_slice_indexes(indexes)
+    return coords, ids
 # End _rebuild_coordinates function
 
 
@@ -399,9 +462,8 @@ def _build_linear_coordinates(geom: Polygon | MultiLineString | LinearRing,
     Build Coordinates for Linear Geometry
     """
     coords = []
-    coordinates, indexes = get_coordinates(
-        getter(geom), include_z=has_z, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coordinates, ids = get_coords_and_slices(
+        getter(geom), include_z=has_z, include_m=False)
     for begin, end in zip(ids[:-1], ids[1:]):
         coords.append([slicer((*key, nanmean(lookup.get(tuple(key), [nan]))))
                        for key in coordinates[begin:end]])
@@ -462,6 +524,17 @@ class _UseWorkarounds:
         # noinspection PyUnresolvedReferences
         return not result.has_m
     # End line_merge property
+
+    @cached_property
+    def line_interpolate_point(self) -> bool:
+        """
+        Use workaround for line_interpolate_point?
+        """
+        a = from_wkt('LINESTRING (0 0 0 0, 10 20 30 40, 100 200 300 400)')
+        # noinspection PyTypeChecker
+        result = _line_interpolate_point(a, distance=0.5, normalized=True)
+        return not result.has_m
+    # End line_interpolate_point property
 
     @cached_property
     def simplify(self) -> bool:

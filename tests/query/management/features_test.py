@@ -14,6 +14,7 @@ from fudgeo.geometry.linestring import LineString
 from pyproj import CRS
 from pytest import approx, mark, raises
 
+from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
@@ -94,7 +95,7 @@ class TestQueryMultiPartToSinglePart:
         target = FeatureClass(geopackage=mem_gpkg, name='test_target')
         query = QueryMultiPartToSinglePart(source=source, target=target)
         assert approx(query._shared_extent(query.source), abs=0.001) == (-180, -90, 180, 83.6654)
-        with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, WGS84)):
             assert approx(query._shared_extent(query.source), abs=0.001) == (-100, -60, 100, 83.6654)
             assert '100' in query.select
             assert '-100' in query.select
@@ -483,7 +484,7 @@ class TestQueryXYTablePoint:
         source = inputs['xyzm_table']
         target = FeatureClass(geopackage=mem_gpkg, name='asdf')
         fields = POINT_X, POINT_Y, POINT_Z, POINT_M
-        crs = CRS(4326)
+        crs = WGS84
         query = QueryXYTablePoint(
             source, target=target, fields=fields, coordinate_system=crs)
         sql = query.insert
@@ -507,7 +508,7 @@ class TestQueryXYTablePoint:
             source, target=target, fields=fields, coordinate_system=crs)
         assert query.source_transformer is None
 
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(4326)):
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84):
             query = QueryXYTablePoint(
                 source, target=target, fields=fields, coordinate_system=crs)
             assert query.source_transformer is not None
@@ -521,7 +522,7 @@ class TestQueryXYTablePoint:
         query = QueryXYTablePoint(
             None, target=None, fields=(), coordinate_system=crs)
         assert query.filter_extent is None
-        with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-100, -60, 100, 90, WGS84)):
             assert approx(query.filter_extent.bounds, abs=1e-6) == (
                 -99.9999731, -60.0000257, 99.9999828, 89.999988)
     # End test_filter_extent method
@@ -586,7 +587,7 @@ class TestQueryXYTableLine:
             Field('END_X', data_type=FieldType.real),
             Field('END_Y', data_type=FieldType.real),
         )
-        crs = CRS(4326)
+        crs = WGS84
         query = QueryXYTablePoint(
             source, target=target, fields=fields, coordinate_system=crs)
         sql = query.insert
@@ -1492,7 +1493,7 @@ class TestQueryAdjust3DZ:
         Test select statement with extent
         """
         source = grid_index['grid_zm_a']
-        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 50, -110, 52, CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 50, -110, 52, WGS84)):
             query = QueryAdjust3DZ(source, lambda x: x, where_clause='')
             sql = query.select
             assert 'SELECT geom "[PolygonZM]", fid' in sql

@@ -24,7 +24,7 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
 from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
-from spyops.geometry.extent import extent_from_feature_class
+from spyops.geometry.extent import extent_from_feature_class, is_degenerate
 from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
 from spyops.shared.constant import (
     DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
@@ -196,7 +196,7 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
         polygon = extent.polygon
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
             polygon = transform(transformer.transform, polygon)
-            if not isfinite(polygon.bounds).all():
+            if is_degenerate(polygon.bounds):
                 warn('Bad extent polygon after transformation, '
                      'extent will be ignored', category=BadExtentWarning,
                      skip_file_prefixes=SKIP_FILE_PREFIXES)
@@ -209,10 +209,12 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
         Make a where clause stub that can be used to select features which
         intersect an extent. The query is based on a spatial index (if present).
         """
+        if not isinstance(element, FeatureClass):
+            return EMPTY
         primary = element.primary_key_field
         if not element.has_spatial_index or not primary:  # pragma: no cover
             return EMPTY
-        if not isfinite(extent).all():
+        if is_degenerate(extent):
             return EMPTY
         min_x, min_y, max_x, max_y = extent
         return f"""{primary.escaped_name} {{}} (

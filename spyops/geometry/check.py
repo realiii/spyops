@@ -14,12 +14,11 @@ from fudgeo.util import get_extent
 from numpy import array, isclose, isfinite, isnan
 from shapely import LineString as ShapelyLineString, Polygon as ShapelyPolygon
 from shapely.constructive import make_valid
-from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_ccw, is_closed, is_valid
 
 from spyops.geometry.util import (
-    find_slice_indexes, get_geoms_iter, make_none_mask)
+    get_coords_and_slices, get_geoms_iter, make_none_mask)
 from spyops.shared.enumeration import GeometryCheck
 from spyops.shared.hint import FEATURES, GRID_SIZE
 
@@ -434,13 +433,9 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     is_polygon = ShapeType.polygon in shape_type
     for fid, geom in zip(fids, geoms):
         repeated_xy = repeated_m = mismatch_z = mismatch_m = False
-        # noinspection PyTypeChecker
-        coords, indexes = get_coordinates(
-            get_geoms_iter(geom), include_z=has_z, include_m=has_m,
-            return_index=True)
-        # noinspection PyUnresolvedReferences
+        coords, ids = get_coords_and_slices(
+            get_geoms_iter(geom), include_z=has_z, include_m=has_m)
         coords = ((coords / grid_size).round() * grid_size).round(8)
-        ids = find_slice_indexes(indexes)
         start_xy = set()
         grouped = defaultdict(list)
         for begin, end in zip(ids[:-1], ids[1:]):

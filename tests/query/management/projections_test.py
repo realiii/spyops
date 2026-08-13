@@ -8,6 +8,7 @@ from fudgeo import SpatialReferenceSystem
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.crs.util import srs_from_crs
 from spyops.query.management.projections import QueryDefineProjection
 
@@ -20,8 +21,8 @@ class TestDefineProjection:
     Test Define Projection
     """
     @mark.parametrize('spatial_reference', [
-        CRS(4326),
-        srs_from_crs(CRS(4326))
+        WGS84,
+        srs_from_crs(WGS84)
     ])
     def test_spatial_reference(self, spatial_reference):
         """

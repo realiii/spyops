@@ -19,7 +19,7 @@ from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
-from spyops.crs.constant import EPSG, ESRI
+from spyops.crs.constant import EPSG, ESRI, WGS84
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
 from tests.util import UseGrids
@@ -135,7 +135,7 @@ class TestSelect:
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
-        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(0, -20, 45, 30, WGS84)):
             result = select(source=source, target=target, where_clause=where_clause)
             assert len(result) == count
     # End test_extent method
@@ -328,7 +328,7 @@ class TestSplitByAttributes:
         Test split_by_attributes for feature classes
         """
         source = world_features['admin_a']
-        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=WGS84)):
             results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
             assert len(results) == split_count
             assert sum([len(r) for r in results]) == total_count
@@ -349,7 +349,7 @@ class TestSplitByAttributes:
         with (Swap(Setting.OUTPUT_Z_OPTION, output_z_option),
               Swap(Setting.OUTPUT_M_OPTION, output_m_option),
               Swap(Setting.Z_VALUE, 123.456),
-              Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326)))):
+              Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=WGS84))):
             zm = zm_config(source)
             results = split_by_attributes(source, group_fields=fields, geopackage=mem_gpkg)
         assert sum([len(r) for r in results]) == count
@@ -362,7 +362,7 @@ class TestSplitByAttributes:
         Test split_by_attributes for feature classes sans attributes
         """
         source = world_features['admin_sans_attr_a']
-        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=WGS84)):
             results = split_by_attributes(source, group_fields=['fid'], geopackage=mem_gpkg)
             assert len(results) == 49
             assert sum([len(r) for r in results]) == 49
@@ -379,7 +379,7 @@ class TestSplitByAttributes:
         Test split_by_attributes for feature classes with analysis settings
         """
         source = world_features['admin_a']
-        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(20, 0, 30, 20, crs=WGS84)):
             source = select(source, target=FeatureClass(geopackage=mem_gpkg, name=source.name))
         with Swap(Setting.CURRENT_WORKSPACE, mem_gpkg):
             results = split_by_attributes(source.name, group_fields=fields, geopackage=None)
@@ -413,7 +413,7 @@ class TestSplitByAttributes:
         Test split by attributes using larger inputs and an extent
         """
         source = request.getfixturevalue(fix_name)[name]
-        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=WGS84)):
             results = split_by_attributes(
                 source=source, group_fields=fields, geopackage=mem_gpkg)
         assert len(results) == count
@@ -565,11 +565,11 @@ class TestClip:
         Test clipping using a point feature class as the operator on a point feature class
         """
         clipper = inputs['river_p']
-        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=WGS84)):
             clipper = select(clipper, target=FeatureClass(geopackage=mem_gpkg, name='river_subset_p'))
         source = inputs['river_p']
         # NOTE this has no real effect on the result, but it does test the extent
-        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(144.8, 61.4, 154.5, 66.1, crs=WGS84)):
             target = FeatureClass(geopackage=mem_gpkg, name='riv')
             result = clip(source=source, operator=clipper, target=target, xy_tolerance=xy_tolerance)
             assert len(result) == count
@@ -637,7 +637,7 @@ class TestClip:
         operator = inputs[name]
         source = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name=f'clip_{name}')
-        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=WGS84)):
             result = clip(source=source, operator=operator, target=target)
             assert len(result) == count
     # End test_larger_inputs_extent method
@@ -989,7 +989,7 @@ class TestSplit:
         assert len(splitter) == 5
         source = world_features[fc_name]
         field = Field('NAME', data_type=FieldType.text)
-        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(7, 47, 16, 52, crs=WGS84)):
             results = split(source=source, operator=splitter, field=field,
                             geopackage=mem_gpkg, xy_tolerance=None)
             assert len(results) == element_count
@@ -1249,7 +1249,7 @@ class TestSplit:
         """
         operator = inputs[name]
         source = world_features['admin_a']
-        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 30, -100, 50, crs=WGS84)):
             results = split(source=source, operator=operator, field='NAME', geopackage=mem_gpkg)
             assert len(results) == count
     # End test_larger_inputs_extent method

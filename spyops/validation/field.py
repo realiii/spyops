@@ -15,6 +15,7 @@ from spyops.crs.unit import (
 from spyops.geometry.validate import (
     check_dimension, check_zm, get_geometry_dimension, get_geometry_zm)
 from spyops.shared.constant import PADDED_PIPE
+from spyops.shared.enumeration import PlacementOption
 from spyops.shared.keywords import NAME_ATTR
 from spyops.shared.field import (
     COMPATIBILITY_LUT, TEXT_AND_NUMBERS, TYPE_ALIAS_LUT, simplify_type,
@@ -22,6 +23,7 @@ from spyops.shared.field import (
 from spyops.shared.hint import ELEMENT, NAMES
 from spyops.shared.sort import AbstractSortField
 from spyops.shared.stats import AbstractStatisticField
+from spyops.shared.util import safe_float
 from spyops.validation.base import AbstractValidate, AbstractValidateType
 
 
@@ -251,6 +253,77 @@ class ValidateDistance(ValidateField):
         return wrapper
     # End call built-in
 # End ValidateDistance class
+
+
+class ValidatePlacement(ValidateDistance):
+    """
+    Validate Placement
+    """
+    def __init__(self, name: str, *, element_name: str, enum_name: str) -> None:
+        """
+        Initialize the ValidatePlacement class
+
+        :param name: Name of the argument to validate
+        :param element_name: Argument Name of the element to validate against
+        :param enum_name: Argument Name of the enum to validate against
+        """
+        super().__init__(name=name, element_name=element_name)
+        self._enum_name: str = enum_name
+    # End init built-in
+
+    def __call__(self, func: Callable) -> Callable:
+        """
+        Make the class callable
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Handler for the arguments and keyword arguments.
+            """
+            kwargs = self._get_arguments(func=func, args=args, kwargs=kwargs)
+            obj = self._get_object(kwargs)
+            self._validate_type(obj)
+            element = self._get_element(kwargs)
+            enum_value = kwargs[self._enum_name]
+            if enum_value == PlacementOption.PERCENTAGE:
+                percent = safe_float(obj)
+                self._validate_percentage(percent, obj)
+                obj = percent
+            elif enum_value == PlacementOption.DISTANCE:
+                if isinstance(obj, (float, int)):
+                    obj = unit_from_number(
+                        obj, feature_class=element, name=self._name)
+                elif isinstance(obj, str):
+                    obj = unit_factory(obj)
+            else:
+                if not isinstance(obj, (Field, str)):
+                    raise TypeError(
+                        f'{self._name} must be a valid field or string field '
+                        f'name, got {type(obj)}')
+                obj = self._find_field(obj, element=element)
+                self._validate_data_type(obj)
+                self._validate_exists(obj, element=element)
+            if not obj:
+                raise TypeError(
+                    f'Unable to interpret {self._get_object(kwargs)} '
+                    f'for {self._name}')
+            self._set_object(obj, kwargs=kwargs)
+            return func(**kwargs)
+        # End wrapper function
+        return wrapper
+    # End call built-in
+
+    def _validate_percentage(self, percentage: Any, obj: Any) -> None:
+        """
+        Validate Percentage
+        """
+        stub = f'{self._name} must be a valid percentage'
+        if not isinstance(percentage, (float, int)):
+            raise TypeError(f'{stub}, got {type(obj)}')
+        if percentage < 0 or percentage > 100:
+            raise ValueError(f'{stub} between 0 and 100, got {percentage}')
+    # End _validate_percentage method
+# End ValidatePlacement class
 
 
 class ValidateStatisticField(ValidateField):

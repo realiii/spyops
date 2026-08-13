@@ -10,6 +10,7 @@ from conftest import world_features
 from spyops.conversion import (
     export_features, export_table, feature_class_to_geopackage,
     table_to_geopackage)
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.shared.sort import Ascending, Descending
@@ -171,7 +172,7 @@ class TestExportFeatures:
         """
         source = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name=source.name)
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, -50, 0, 0, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, -50, 0, 0, crs=WGS84)):
             result = export_features(source, target, where_clause=where_clause)
         assert len(result) == count
         names = [n for n, in result.select('NAME', include_geometry=False, limit=10).fetchall()]
@@ -185,7 +186,7 @@ class TestExportFeatures:
         source = world_features['admin_a']
         target = FeatureClass(geopackage=mem_gpkg, name=source.name)
         code = 3395
-        with (Swap(Setting.EXTENT, Extent.from_bounds(-180, -50, 0, 0, crs=CRS(4326))),
+        with (Swap(Setting.EXTENT, Extent.from_bounds(-180, -50, 0, 0, crs=WGS84)),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.Z_VALUE, 123.456),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),

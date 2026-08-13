@@ -136,6 +136,19 @@ def ntdb_zm_meh_small(data_path) -> Generator[GeoPackage, None, None]:
 
 
 @fixture(scope='session')
+def along_field(data_path) -> Generator[GeoPackage, None, None]:
+    """
+    Based on the ntdb_zm_small GeoPackage.  Reduced to just some hydro and
+    transmission feature classes in different coordinate systems.  The
+    attribute tables are extended to include fields to be interpreted as
+    distances along the line via a single number in a numeric field, a linear
+    unit in a string field, or linear units in a string field.
+    """
+    yield from _open_geopackage(data_path.joinpath('along_field.gpkg'))
+# End along_field function
+
+
+@fixture(scope='session')
 def ntdb_zm_small(data_path) -> Generator[GeoPackage, None, None]:
     """
     NTDB Clipped to a single 50K tile near YYC, Z and M values in these

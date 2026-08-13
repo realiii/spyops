@@ -6,8 +6,7 @@ Query Classes for management.proximity module
 
 from abc import ABCMeta, abstractmethod
 from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
-from math import nan
-from functools import cache, cached_property, partial
+from functools import cached_property, partial
 from typing import (
     Callable, Generator, Iterator, NamedTuple, TYPE_CHECKING, Type)
 from warnings import warn
@@ -17,36 +16,34 @@ from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import FieldType, ShapeType
 from numpy import array, asarray, isfinite, ones_like, unique
 from shapely import GeometryCollection, MultiPolygon
-from shapely.constructive import centroid
-from shapely.coordinates import get_coordinates
 from shapely.predicates import is_empty
 
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
-    DISTANCE_UNIT_LUT, DecimalDegrees, LinearUnit, Meters, degrees_to_meters,
-    get_linear_unit_conversion_factor, get_unit_name, unit_factory)
+    DISTANCE_UNIT_LUT, DecimalDegrees, LinearUnit, Meters, get_unit_name,
+    unit_factory)
 from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.core import ZMConfig, zm_config
-from spyops.geometry.proximity import geodesic_buffer, planar_buffer
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.multi import build_dissolved
+from spyops.geometry.proximity import geodesic_buffer, planar_buffer
 from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
 from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
-from spyops.shared.constant import DRID, EMPTY, METRE, SKIP_FILE_PREFIXES
+from spyops.query.mixin import UnitTypeMixin
+from spyops.shared.constant import DRID, EMPTY, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    NUMBERS, ORIG_FID, TYPE_ALIAS_LUT, add_orig_fid, get_geometry_column_name,
-    make_field_names, make_unique_fields, validate_fields)
+    ORIG_FID, add_orig_fid, get_geometry_column_name, make_field_names,
+    make_unique_fields, validate_fields)
 from spyops.shared.hint import FIELDS, XY_TOL
 from spyops.shared.keywords import (
-    CRS_KEY, END_OPTION, METERS_ATTR, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION,
-    VALUE_ATTR)
+    CRS_KEY, END_OPTION, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -68,7 +65,8 @@ class BufferConfig(NamedTuple):
 # End BufferConfig class
 
 
-class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
+class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
+                                  metaclass=ABCMeta):
     """
     Abstract Query Buffer Dissolve Class
     """
@@ -89,66 +87,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
             end_option=end_option, resolution=resolution)
         self._counter: int = 0
     # End init built-in
-
-    @property
-    def _is_distance_from_field(self) -> bool:
-        """
-        Is Distance from Field?
-        """
-        return isinstance(self._config.distance, Field)
-    # End _is_distance_from_field property
-
-    @cached_property
-    def _is_numeric_field(self) -> bool:
-        """
-        Is Numeric Field
-        """
-        if not self._is_distance_from_field:
-            return False
-        aliases = set(NUMBERS)
-        for data_type in NUMBERS:
-            aliases.update(TYPE_ALIAS_LUT[data_type])
-        aliases = tuple(a.casefold() for a in aliases)
-        # noinspection PyUnresolvedReferences
-        return self._config.distance.data_type.casefold().startswith(aliases)
-    # End _is_numeric_field property
-
-    @cached_property
-    def _unit_types(self) -> tuple[bool, bool]:
-        """
-        Check for Linear and Angular Units, return tuple of truth
-        """
-        elm = self.source
-        distance = self._config.distance
-        if not self._is_distance_from_field:
-            is_linear = isinstance(distance, LinearUnit)
-            return is_linear, not is_linear
-        if self._is_numeric_field:
-            is_projected = self.source_crs.is_projected
-            return is_projected, not is_projected
-        distance: Field
-        null_clause = f'{distance.escaped_name} IS NOT NULL'
-        if index_where := self._spatial_index_where(elm):
-            where_clause = f'{index_where} AND {null_clause}'
-        else:
-            where_clause = f'WHERE {null_clause}'
-        has_linear = has_angular = False
-        with elm.geopackage.connection as cin:
-            cursor = cin.execute(f"""
-                SELECT DISTINCT {distance.escaped_name}
-                FROM {elm.escaped_name} {where_clause}
-            """)
-            while rows := cursor.fetchmany(FETCH_SIZE):
-                units = [unit_factory(value) for value, in rows]
-                units = [unit for unit in units if unit]
-                has_linear = has_linear or any(
-                    isinstance(u, LinearUnit) for u in units)
-                has_angular = has_angular or any(
-                    isinstance(u, DecimalDegrees) for u in units)
-                if has_linear and has_angular:
-                    return has_linear, has_angular
-        return has_linear, has_angular
-    # End _unit_types property
 
     @cached_property
     def buffer_type(self) -> BufferTypeOption:
@@ -235,75 +173,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         return to_shapely(
             features, transformer=None, option=DimensionOption.TWO_D)
     # End _fetch_features method
-
-    def _convert_unit(self, geoms: 'ndarray',
-                      unit: LinearUnit | DecimalDegrees) -> 'ndarray':
-        """
-        Convert Unit
-        """
-        has_linear, _ = self._unit_types
-        if self.buffer_type == BufferTypeOption.GEODESIC:
-            if has_linear:
-                value = getattr(unit, METERS_ATTR, nan)
-            else:
-                value = getattr(unit, VALUE_ATTR, nan)
-                coordinates = get_coordinates(centroid(geoms))
-                return degrees_to_meters(
-                    self.source_crs, coordinates=coordinates, value=value)
-        else:
-            has_linear, _ = self._unit_types
-            if has_linear:
-                # NOTE return in units of the source CRS
-                value = getattr(unit, METERS_ATTR, nan)
-                value *= self._get_conversion_factor()
-            else:
-                value = getattr(unit, VALUE_ATTR, nan)
-        return ones_like(geoms, dtype=float) * value
-    # End _convert_unit method
-
-    def _convert_units(self, geoms: 'ndarray',
-                       units: list[LinearUnit | DecimalDegrees | None]) \
-            -> 'ndarray':
-        """
-        Convert Units
-        """
-        meters = array([getattr(unit, METERS_ATTR, nan)
-                        for unit in units], dtype=float)
-        if self.buffer_type == BufferTypeOption.GEODESIC:
-            degrees = [(i, unit.value) for i, unit in enumerate(units)
-                       if isinstance(unit, DecimalDegrees)]
-            if not degrees:
-                return meters
-            ids, values = zip(*degrees)
-            ids = array(ids, dtype=int)
-            coordinates = get_coordinates(centroid(geoms[ids]))
-            meters[ids] = degrees_to_meters(
-                self.source_crs, coordinates=coordinates,
-                value=array(values, dtype=float))
-            return meters
-        else:
-            # NOTE planar buffer type only occurs when there is no mixture of
-            #  units which means fully linear or fully angular
-            has_linear, _ = self._unit_types
-            if has_linear:
-                # NOTE return in units of the source CRS
-                return meters * self._get_conversion_factor()
-            else:
-                # NOTE this will be in decimal degrees
-                return array([getattr(unit, VALUE_ATTR, nan)
-                              for unit in units], dtype=float)
-    # End _convert_units method
-
-    @cache
-    def _get_conversion_factor(self) -> float:
-        """
-        Get Conversion Factor
-        """
-        if not (unit_name := get_unit_name(self.source_crs)):
-            return 1.
-        return get_linear_unit_conversion_factor(
-            from_name=METRE, to_name=unit_name)
-    # End _get_conversion_factor method
 
     def show_warning(self) -> None:
         """
@@ -413,7 +282,9 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Get Distances and Distance Validity
         """
-        distances = self._convert_units(geoms, units=units)
+        distances = self._convert_units(
+            self.buffer_type == BufferTypeOption.GEODESIC, crs=self.source_crs,
+            geoms=geoms, units=units)
         valid = isfinite(distances)
         self._counter += (~valid).sum()
         return distances, valid
@@ -425,7 +296,9 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
         """
         Get Distances and Distance Validity, broadcasting unit to all geometries
         """
-        distances = self._convert_unit(geoms, unit=unit)
+        distances = self._convert_unit(
+            self.buffer_type == BufferTypeOption.GEODESIC, crs=self.source_crs,
+            geoms=geoms, unit=unit)
         valid = isfinite(distances)
         self._counter += (~valid).sum()
         return distances, valid
@@ -616,6 +489,8 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
         """
         counter = 0
         dissolved = {}
+        crs = self.source_crs
+        is_geodesic = self.buffer_type == BufferTypeOption.GEODESIC
         bufferer = self._buffer_function
         unit = self._config.distance
         with self.source.geopackage.connection as cin:
@@ -626,7 +501,8 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
                 _, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
                 # noinspection PyTypeChecker
-                distances = self._convert_unit(geometries, unit=unit)
+                distances = self._convert_unit(
+                    is_geodesic, crs=crs, geoms=geometries, unit=unit)
                 # NOTE distance validity
                 valid = isfinite(distances)
                 self._counter += (~valid).sum()

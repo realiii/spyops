@@ -9,6 +9,7 @@ from fudgeo.enumeration import FieldType, GeometryType
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.conversion.gps import (
@@ -92,7 +93,7 @@ class TestQueryFeaturesToGPXPoint:
         name_field = Field('name', data_type=FieldType.text)
         desc_field = Field('system', data_type=FieldType.text)
         where = 'fid = 1234'
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, -90, 180, 90, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, -90, 180, 90, crs=WGS84)):
             query = QueryFeaturesToGPXPoint(
                 fc, name_field=name_field, description_field=desc_field,
                 z_field=None, date_field=None, where_clause=where)
@@ -113,11 +114,11 @@ class TestQueryGPXToFeaturesPoint:
         Test source crs
         """
         query = QueryGPXToFeaturesPoint(None)
-        assert query.source_crs == CRS(4326)
+        assert query.source_crs == WGS84
     # End test_source_crs method
 
     @mark.parametrize('crs, expected', [
-        (CRS(4326), True),
+        (WGS84, True),
         (CRS(4617), False),
     ])
     def test_source_transformer(self, crs, expected):

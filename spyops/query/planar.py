@@ -23,6 +23,7 @@ from spyops.environment.core import zm_config
 from spyops.environment.util import tolerance_scale_factor
 from spyops.geometry.config import geometry_config
 from spyops.geometry.util import get_geoms_iter, get_midpoints, to_shapely
+from spyops.geometry.vertex import get_midpoints
 from spyops.geometry.wa import polygonize
 from spyops.query.base import AbstractSpatialAttribute
 from spyops.shared.constant import EMPTY

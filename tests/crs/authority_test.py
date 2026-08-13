@@ -13,7 +13,7 @@ from constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY,  COMPOUND_ESRI_EPSG_MIX)
 from spyops.crs.authority import Authority, authorities
 from spyops.crs.util import _get_crs_component, get_crs_authority
-from spyops.crs.constant import CUSTOM_UPPER, EPSG, ESRI
+from spyops.crs.constant import CUSTOM_UPPER, EPSG, ESRI, WGS84
 from spyops.crs.enumeration import InfoOption
 
 pytestmark = [mark.crs]
@@ -39,9 +39,9 @@ def test_authority_repr():
     (CRS(2962), InfoOption.ORIGINAL, (EPSG, '2962'), 'EPSG:2962', (EPSG, '2962'), (EPSG, '2962')),
     (CRS(2962), InfoOption.HORIZONTAL, (EPSG, '2962'), 'EPSG:2962', (EPSG, '2962'), (EPSG, '2962')),
     (CRS(2962), InfoOption.VERTICAL, (EPSG, '2962'), 'EPSG:2962', (EPSG, '2962'), (EPSG, '2962')),
-    (CRS(4326), InfoOption.ORIGINAL, (EPSG, '4326'), 'EPSG:4326', (EPSG, '4326'), (EPSG, '4326')),
-    (CRS(4326), InfoOption.HORIZONTAL, (EPSG, '4326'), 'EPSG:4326', (EPSG, '4326'), (EPSG, '4326')),
-    (CRS(4326), InfoOption.VERTICAL, (EPSG, '4326'), 'EPSG:4326', (EPSG, '4326'), (EPSG, '4326')),
+    (WGS84, InfoOption.ORIGINAL, (EPSG, '4326'), 'EPSG:4326', (EPSG, '4326'), (EPSG, '4326')),
+    (WGS84, InfoOption.HORIZONTAL, (EPSG, '4326'), 'EPSG:4326', (EPSG, '4326'), (EPSG, '4326')),
+    (WGS84, InfoOption.VERTICAL, (EPSG, '4326'), 'EPSG:4326', (EPSG, '4326'), (EPSG, '4326')),
     (CRS(8780), InfoOption.ORIGINAL, (EPSG, '8780'), 'EPSG:8780', (EPSG, '8780'), (EPSG, '8780')),
     (CRS(8780), InfoOption.HORIZONTAL, (EPSG, '2276'), 'EPSG:2276', (EPSG, '2276'), (EPSG, '2276')),
     (CRS(8780), InfoOption.VERTICAL, (EPSG, '6360'), 'EPSG:6360', (EPSG, '6360'), (EPSG, '6360')),
@@ -93,9 +93,9 @@ def test_get_crs_authority(crs, option, names_codes, label, pretty, org):
 
 
 @mark.parametrize('crs, option, names_codes', [
-    (CRS(4326), InfoOption.ORIGINAL, (EPSG, '4326')),
-    (CRS(4326), InfoOption.HORIZONTAL, (EPSG, '4326')),
-    (CRS(4326), InfoOption.VERTICAL, (EPSG, '4326')),
+    (WGS84, InfoOption.ORIGINAL, (EPSG, '4326')),
+    (WGS84, InfoOption.HORIZONTAL, (EPSG, '4326')),
+    (WGS84, InfoOption.VERTICAL, (EPSG, '4326')),
     (CRS(8780), InfoOption.ORIGINAL, (EPSG, '8780')),
     (CRS(8780), InfoOption.HORIZONTAL, (EPSG, '2276')),
     (CRS(8780), InfoOption.VERTICAL, (EPSG, '6360')),

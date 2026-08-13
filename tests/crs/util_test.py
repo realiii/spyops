@@ -10,6 +10,7 @@ from pyproj import CRS, Transformer
 from pyproj.crs import ProjectedCRS
 from pytest import approx, mark, raises
 
+from spyops.crs.constant import WGS84
 from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
@@ -82,9 +83,9 @@ def test_check_same_crs():
     """
     Check Same CRS
     """
-    check_same_crs(CRS(4326), CRS(4326))
+    check_same_crs(WGS84, WGS84)
     with raises(OperationsError):
-        check_same_crs(CRS(4326), CRS(8780))
+        check_same_crs(WGS84, CRS(8780))
 # End test_check_same_crs function
 
 

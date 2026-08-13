@@ -11,6 +11,7 @@ from pyproj import CRS
 from pytest import approx, mark
 from shapely import Polygon, MultiPolygon, LineString, MultiLineString
 
+from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count,
@@ -85,7 +86,7 @@ def test_area_geodesic(geom, expected):
     Test area geodesic
     """
     result = area_geodesic(
-        [geom], crs=CRS(4326), unit=AreaUnit.SQUARE_KILOMETERS)[0]
+        [geom], crs=WGS84, unit=AreaUnit.SQUARE_KILOMETERS)[0]
     assert approx(result, abs=1) == expected
 # End test_area_geodesic function
 
@@ -100,7 +101,7 @@ def test_length_geodesic(geom, expected):
     """
     Test length geodesic
     """
-    result = length_geodesic([geom], crs=CRS(4326), unit=LengthUnit.KILOMETERS)[0]
+    result = length_geodesic([geom], crs=WGS84, unit=LengthUnit.KILOMETERS)[0]
     assert approx(result, abs=1) == expected
 # End test_length_geodesic function
 
@@ -140,7 +141,7 @@ def test_line_azimuth():
     Test line azimuth
     """
     lines = LineString([(0, 0, 0), (0, 10, 2)]), LineString([(10, 10, 5), (10, 0, 6)])
-    assert approx(line_azimuth(lines, crs=CRS(4326)), abs=0.001) == (0, 180)
+    assert approx(line_azimuth(lines, crs=WGS84), abs=0.001) == (0, 180)
 # End test_line_azimuth function
 
 
@@ -149,7 +150,7 @@ def test_line_azimuth_bad_values():
     Test line azimuth
     """
     lines = LineString([(0, nan, 0), (0, 10, 2)]), LineString([(nan, 10, 5), (10, 0, 6)])
-    assert isnan(line_azimuth(lines, crs=CRS(4326))).all()
+    assert isnan(line_azimuth(lines, crs=WGS84)).all()
 # End test_line_azimuth_bad_values function
 
 

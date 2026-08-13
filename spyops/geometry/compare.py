@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING
 
 from numpy import allclose, array
 from shapely.constructive import normalize
-from shapely.coordinates import get_coordinates
 from shapely.predicates import equals_exact
 
-from spyops.geometry.util import filter_features, find_slice_indexes, to_shapely
+from spyops.geometry.util import (
+    filter_features, get_coords_and_slices, to_shapely)
 from spyops.geometry.wa import make_valid_structure
 from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
 
@@ -83,9 +83,8 @@ def _compare_zm(grouped_geom: dict[int, list['BaseGeometry']],
     m_tol = m_tolerance or 0.
     for id_, ids in grouped_ids.items():
         geoms = grouped_geom[id_]
-        coordinates, indexes = get_coordinates(
-            geoms, include_z=True, include_m=True, return_index=True)
-        indexes = find_slice_indexes(indexes)
+        coordinates, indexes = get_coords_and_slices(
+            geoms, include_z=True, include_m=True)
         first, second, *_ = indexes
         coords = coordinates[first:second]
         zs = coords[:, 2]

@@ -10,10 +10,10 @@ from typing import Callable, TYPE_CHECKING
 from bottleneck import nanmax, nanmin
 from fudgeo.util import get_extent
 from numpy import isfinite
-from shapely import MultiPolygon, get_coordinates
+from shapely import MultiPolygon
 from shapely.constructive import envelope
 
-from spyops.geometry.util import find_slice_indexes, get_geoms_iter
+from spyops.geometry.util import get_coords_and_slices, get_geoms_iter
 from spyops.shared.exception import BadExtentError
 from spyops.shared.hint import EXTENT
 
@@ -42,10 +42,10 @@ def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
     brute force check of all features.
     """
     extent = feature_class.extent
-    if isfinite(extent).all():
+    if not is_degenerate(extent):
         return extent
     extent = extent_from_index_or_geometry(feature_class)
-    if isfinite(extent).all():
+    if not is_degenerate(extent):
         return extent
     else:  # pragma: no cover
         raise BadExtentError(
@@ -80,7 +80,7 @@ def extent_from_index_or_geometry(feature_class: 'FeatureClass') -> EXTENT:
     from geometries.
     """
     extent = _extent_from_spatial_index(feature_class)
-    if isfinite(extent).all():
+    if not is_degenerate(extent):
         return extent
     else:  # pragma: no cover
         return get_extent(feature_class)
@@ -108,9 +108,7 @@ def _get_partial_extent(geoms: 'ndarray', *, has_z: bool, has_m: bool,
     """
     Get Partial Extent
     """
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
-    ids = find_slice_indexes(indexes)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     return _apply_axis_summary(func, coords=coords, ids=ids)
 # End _get_partial_extent function
 
@@ -145,6 +143,21 @@ def extent_from_parts(geoms: 'ndarray') -> list[MultiPolygon]:
         extents.append(MultiPolygon(envelope(get_geoms_iter(geom))))
     return extents
 # End extent_from_parts function
+
+
+def is_degenerate(extent: EXTENT) -> bool:
+    """
+    Check if an extent is degenerate
+    """
+    if len(extent) != 4:
+        return True
+    if not isfinite(extent).all():
+        return True
+    min_x, min_y, max_x, max_y = extent
+    if (min_x == max_x) or (min_y == max_y):
+        return True
+    return False
+# End is_degenerate function
 
 
 if __name__ == '__main__':  # pragma: no cover

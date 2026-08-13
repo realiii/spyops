@@ -7,19 +7,27 @@ Vertices from Geometries
 from collections import defaultdict
 from functools import partial
 from operator import itemgetter
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 from fudgeo.enumeration import ShapeType
-from shapely import LineString, get_z
-from shapely.coordinates import get_coordinates
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_midpoints, to_shapely
+from spyops.geometry.util import to_shapely
+from spyops.geometry.wa import line_interpolate_point
 from spyops.shared.hint import POINT
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
+    from shapely import LineString
+
+
+def get_midpoints(lines: Union['ndarray', list['LineString']]) -> 'ndarray':
+    """
+    Get Midpoints from Lines
+    """
+    return line_interpolate_point(lines, distance=0.5, normalized=True)
+# End get_midpoints function
 
 
 def _vertices_points(features: list[tuple], **kwargs) \
@@ -118,19 +126,6 @@ def _vertices_multi_polygons(features: list[tuple], getter: itemgetter) \
 # End _vertices_multi_polygons function
 
 
-def _middle_linear(features: list[tuple], *, has_z: bool, has_m: bool,
-                   srs_id: int, is_ring: bool) -> defaultdict[int, list[POINT]]:
-    """
-    Middle for Point Collection that could be treated as a LineString
-    """
-    if not has_m:
-        func = _middle_sans_measures
-    else:
-        func = _middle_with_measures
-    return func(features, has_z=has_z, srs_id=srs_id, is_ring=is_ring)
-# End _middle_linear function
-
-
 def _middle_multi_linear(features: list[tuple], *, has_z: bool, has_m: bool,
                          srs_id: int, is_ring: bool) \
         -> defaultdict[int, list[POINT]]:
@@ -220,15 +215,14 @@ def middle_multi_polygons_rings(features: list[tuple], *, has_z: bool,
 # End middle_multi_polygons_rings function
 
 
-def _middle_sans_measures(features: list[tuple], *, has_z: bool, srs_id: int,
-                          is_ring: bool) -> defaultdict[int, list[POINT]]:
+def _middle_linear(features: list[tuple], *, has_z: bool, has_m: bool,
+                   srs_id: int, is_ring: bool) -> defaultdict[int, list[POINT]]:
     """
-    Middle without measures
+    Middle Linear
     """
     middles = defaultdict(list)
     if not features:
         return middles
-    has_m = False
     if is_ring:
         features = _rings_to_lines(
             features, has_z=has_z, has_m=has_m, srs_id=srs_id)
@@ -238,7 +232,7 @@ def _middle_sans_measures(features: list[tuple], *, has_z: bool, srs_id: int,
     for geom, (_, fid) in zip(points, features):
         middles[fid].append(cls.from_wkb(geom.wkb, srs_id=srs_id))
     return middles
-# End _middle_sans_measures function
+# End _middle_linear function
 
 
 def _rings_to_lines(features: list[tuple], has_z: bool, has_m: bool,
@@ -249,49 +243,6 @@ def _rings_to_lines(features: list[tuple], has_z: bool, has_m: bool,
     cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
     return [(cls(g.coordinates, srs_id=srs_id), fid) for g, fid in features]
 # End _rings_to_lines function
-
-
-def _middle_with_measures(features: list[tuple], *, has_z: bool, srs_id: int,
-                          is_ring: bool) -> defaultdict[int, list[POINT]]:
-    """
-    Middle with measures
-    """
-    middles = defaultdict(list)
-    if not features:
-        return middles
-    has_m = True
-    if is_ring:
-        features = _rings_to_lines(
-            features, has_z=has_z, has_m=has_m, srs_id=srs_id)
-    cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
-    features, geometries = to_shapely(features, transformer=None)
-    if not has_z:
-        # NOTE measures are stored in Z because of LineString construction
-        coordinates = get_coordinates(
-            _interpolate_measures(geometries), include_z=True)
-    else:
-        points = get_midpoints(geometries)
-        coordinates = get_coordinates(points, include_z=has_z, include_m=has_m)
-        # NOTE use get_z since measures in Z via LineString creation
-        coordinates[:, -1] = get_z(_interpolate_measures(geometries))
-    for coords, (_, fid) in zip(coordinates, features):
-        middles[fid].append(cls.from_tuple(coords, srs_id=srs_id))
-    return middles
-# End _middle_with_measures function
-
-
-def _interpolate_measures(geoms: 'ndarray') -> 'ndarray':
-    """
-    Interplate Measures
-    """
-    coordinates, indexes = get_coordinates(
-        geoms, include_m=True, return_index=True)
-    ids = find_slice_indexes(indexes)
-    # NOTE the current behaviour when passing triplets is for a LineStringZ
-    #  to be generated, in this case the Z values are measures
-    lines = [LineString(coordinates[b:e]) for b, e in zip(ids[:-1], ids[1:])]
-    return get_midpoints(lines)
-# End _interpolate_measures function
 
 
 _ALL_GETTER = itemgetter(slice(None))

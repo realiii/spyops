@@ -13,6 +13,7 @@ from pyproj.aoi import AreaOfInterest
 from pyproj.datadir import append_data_dir, get_data_dir, set_data_dir
 from pytest import mark, raises
 
+from spyops.crs.constant import WGS84
 from spyops.crs.transform import (
     get_transform_best_guess, get_transforms, _validate_crs_for_transform,
     _validate_aoi_for_crs, _make_boxes)
@@ -167,8 +168,8 @@ def test_get_transform_best_guess(from_code, to_code, flag, has_warning):
 
 
 @mark.parametrize('crs, expected, throw', [
-    ((CRS(4326),), (CRS(4326),), None),
-    ((CRS(4326), CRS(4143)), (CRS(4326), CRS(4143)), None),
+    ((WGS84,), (WGS84,), None),
+    ((WGS84, CRS(4143)), (WGS84, CRS(4143)), None),
     (CRS(9451), '', CoordinateSystemNotSupportedError)
 ])
 def test_validate_crs_for_transform(crs, expected, throw):

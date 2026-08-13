@@ -18,10 +18,10 @@ from spyops.shared.hint import ELEMENT, FIELDS, FIELD_NAMES, GPKG, XY_TOL
 from spyops.shared.records import select_transform_insert
 from spyops.shared.util import make_valid_table_name
 from spyops.validation import (
-    validate_feature_class, validate_field, validate_geometry_dimension,
-    validate_geopackage, validate_operator_feature_class,
-    validate_overwrite_input, validate_overwrite_source, validate_result,
-    validate_source_element, validate_source_table, validate_supported_crs,
+    validate_field, validate_geometry_dimension, validate_geopackage,
+    validate_operator_feature_class, validate_overwrite_input,
+    validate_overwrite_source, validate_result, validate_source_element,
+    validate_source_table, validate_supported_crs,
     validate_source_feature_class, validate_target_feature_class,
     validate_target_table, validate_xy_tolerance)
 
@@ -111,7 +111,7 @@ def clip(source: FeatureClass, operator: FeatureClass, target: FeatureClass, *,
 
 @validate_result()
 @validate_source_feature_class()
-@validate_feature_class(OPERATOR, geometry_types=GEOM_TYPE_POLYGONS)
+@validate_operator_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
 @validate_field(FIELD, data_types=TEXTS, single=True, element_name=OPERATOR)
 @validate_geopackage()
 @validate_xy_tolerance()

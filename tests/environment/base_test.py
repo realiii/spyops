@@ -7,6 +7,7 @@ Tests for Base Classes
 from pyproj import CRS
 from pytest import approx, mark, raises
 
+from spyops.crs.constant import WGS84
 from spyops.environment.base import Extent
 
 
@@ -22,7 +23,7 @@ class TestExtent:
         Test bad polygon
         """
         with raises(TypeError):
-            Extent(polygon=Ellipsis, crs=CRS(4326))
+            Extent(polygon=Ellipsis, crs=WGS84)
     # End test_bad_polygon method
 
     def test_from_feature_class(self, world_features):
@@ -31,7 +32,7 @@ class TestExtent:
         """
         extent = Extent.from_feature_class(world_features['admin_a'])
         assert approx(extent.bounds, abs=0.001) == (-180, -90, 180, 83.6654)
-        assert extent.coordinate_reference_system == CRS(4326)
+        assert extent.coordinate_reference_system == WGS84
     # End test_from_feature_class method
 
     def test_from_bounds(self):
@@ -48,7 +49,7 @@ class TestExtent:
         """
         Test empty polygon
         """
-        extent = Extent(polygon=None, crs=CRS(4326))
+        extent = Extent(polygon=None, crs=WGS84)
         assert extent.polygon.is_empty
     # End test_empty_polygon method
 
@@ -56,8 +57,8 @@ class TestExtent:
         """
         Test equality
         """
-        a = Extent.from_bounds(1, 2, 3, 4, crs=CRS(4326))
-        b = Extent.from_bounds(1, 2, 3, 4, crs=CRS(4326))
+        a = Extent.from_bounds(1, 2, 3, 4, crs=WGS84)
+        b = Extent.from_bounds(1, 2, 3, 4, crs=WGS84)
         assert a == b
     # End test_equality method
 
@@ -65,7 +66,7 @@ class TestExtent:
         """
         Test truth
         """
-        assert bool(Extent(None, crs=CRS(4326))) is False
+        assert bool(Extent(None, crs=WGS84)) is False
     # End test_truth method
 # End TestExtent class
 

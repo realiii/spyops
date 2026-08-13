@@ -18,7 +18,7 @@ from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import find_slice_indexes, get_geoms
+from spyops.geometry.util import get_coords_and_slices, get_geoms
 from spyops.shared.constant import SRS_ID_WKB
 
 
@@ -105,13 +105,11 @@ def transform_multi_polygons(geoms: 'ndarray', transformer: 'Transformer',
     for geom in geoms:
         poly_coords = []
         for part in get_geoms(geom):
-            coords, indexes = get_coordinates(
-                get_rings(part), include_z=has_z, include_m=has_m,
-                return_index=True)
+            coords, ids = get_coords_and_slices(
+                get_rings(part), include_z=has_z, include_m=has_m)
             validity = _transform_coords(
                 coords, transformer=transformer,
                 include_vertical=include_vertical)
-            ids = find_slice_indexes(indexes)
             rings = [coords[b:e][validity[b:e]]
                      for b, e in zip(ids[:-1], ids[1:])]
             rings = [r for r in rings if len(r)]
@@ -130,11 +128,9 @@ def _transform_linear(geoms: 'ndarray', transformer: 'Transformer',
     Transform Linear Geometry
     """
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
-    coords, indexes = get_coordinates(
-        geoms, include_z=has_z, include_m=has_m, return_index=True)
+    coords, ids = get_coords_and_slices(geoms, include_z=has_z, include_m=has_m)
     validity = _transform_coords(
         coords, transformer=transformer, include_vertical=include_vertical)
-    ids = find_slice_indexes(indexes)
     return from_wkb([cls(coords[b:e][validity[b:e]], srs_id=SRS_ID_WKB).wkb
                      for b, e in zip(ids[:-1], ids[1:])], on_invalid='fix')
 # End _transform_linear function
@@ -149,11 +145,10 @@ def _transform_groups(geoms: 'ndarray', transformer: 'Transformer',
     wkb = []
     cls = FUDGEO_GEOMETRY_LOOKUP[geom_type][has_z, has_m]
     for geom in geoms:
-        coords, indexes = get_coordinates(
-            getter(geom), include_z=has_z, include_m=has_m, return_index=True)
+        coords, ids = get_coords_and_slices(
+            getter(geom), include_z=has_z, include_m=has_m)
         validity = _transform_coords(
             coords, transformer=transformer, include_vertical=include_vertical)
-        ids = find_slice_indexes(indexes)
         wkb.append(cls([coords[b:e][validity[b:e]] for b, e in
                         zip(ids[:-1], ids[1:])], srs_id=SRS_ID_WKB).wkb)
     return from_wkb(wkb, on_invalid='fix')

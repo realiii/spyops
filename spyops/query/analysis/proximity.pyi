@@ -18,6 +18,7 @@ from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.unit import DecimalDegrees, LinearUnit
 from spyops.environment.core import ZMConfig
 from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
+from spyops.query.mixin import UnitTypeMixin
 from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
 from spyops.shared.hint import FIELDS, XY_TOL
 
@@ -31,7 +32,8 @@ class BufferConfig(NamedTuple):
     resolution: int
 
 
-class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
+class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
+                                  metaclass=ABCMeta):
     def __init__(self, source: FeatureClass, target: FeatureClass, *,
                  distance: Field | LinearUnit | DecimalDegrees,
                  buffer_type: BufferTypeOption, fields: FIELDS | None,
@@ -41,12 +43,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     _counter: int
     _config: BufferConfig
 
-    @property
-    def _is_distance_from_field(self) -> bool: ...
-    @cached_property
-    def _is_numeric_field(self) -> bool: ...
-    @cached_property
-    def _unit_types(self) -> tuple[bool, bool]: ...
     @cached_property
     def buffer_type(self) -> BufferTypeOption: ...
     @cached_property
@@ -57,9 +53,6 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, metaclass=ABCMeta):
     def source_transformer(self) -> Callable | None: ...
     @staticmethod
     def _fetch_features(connection: Connection, sql: str, size: int, step: int,) -> tuple[list[tuple], ndarray]: ...
-    def _convert_unit(self, geoms: ndarray, unit: LinearUnit | DecimalDegrees,) -> ndarray: ...
-    def _convert_units(self, geoms: ndarray, units: list[LinearUnit | DecimalDegrees | None],) -> ndarray: ...
-    def _get_conversion_factor(self) -> float: ...
     def show_warning(self) -> None: ...
     def dissolved_geometries(self) -> Generator[dict[int, MultiPolygon], None, None]: ...
     def _from_field(self, sql: str, size: int, steps: int, ) -> Generator[dict[int, MultiPolygon], None, None]: ...

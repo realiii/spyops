@@ -10,10 +10,9 @@ from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 from bottleneck import nanmean, nansum
 from numpy import array, copysign, cross, diff, isfinite, ndarray, nonzero, ones
 from numpy.linalg import norm
-from shapely import force_2d, force_3d
+from shapely import LineString, force_2d, force_3d
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
-from shapely.linear import line_interpolate_point
 from shapely.predicates import is_empty, is_valid
 
 from spyops.geometry.enumeration import DimensionOption
@@ -69,6 +68,19 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
     ids += 1
     return 0, *[int(i) for i in ids], len(indexes)
 # End find_slice_indexes function
+
+
+def get_coords_and_slices(geoms: Union['ndarray', 'GeometrySequence'], *,
+                          include_z: bool, include_m: bool) \
+        -> tuple['ndarray', tuple[int, ...]]:
+    """
+    Get Coordinates and Slice Indexes
+    """
+    coordinates, indexes = get_coordinates(
+        geoms, include_z=include_z, include_m=include_m, return_index=True)
+    ids = find_slice_indexes(indexes)
+    return coordinates, ids
+# End get_coords_and_slices method
 
 
 def to_shapely(features: list[tuple], transformer: Callable | None,
@@ -188,12 +200,18 @@ def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray',
 # End _get_weighted_dimension function
 
 
-def get_midpoints(lines: Union['ndarray', list]) -> 'ndarray':
+def linestring_measures_to_zs(geoms: Union['ndarray', list[LineString]]) \
+        -> list[LineString]:
     """
-    Get Line Midpoints
+    Move the Measures of a LineString to the Z axis, reducing to LineStringZ
+    from LineStringZM or changing from LineStringM to LineStringZ.
     """
-    return line_interpolate_point(lines, distance=0.5, normalized=True)
-# End get_midpoints function
+    coords, ids = get_coords_and_slices(
+        geoms, include_z=False, include_m=True)
+    # NOTE the current behaviour when passing triplets is for a LineStringZ
+    #  to be generated, in this case the Z values are measures
+    return [LineString(coords[b:e]) for b, e in zip(ids[:-1], ids[1:])]
+# End linestring_measures_to_zs function
 
 
 if __name__ == '__main__':  # pragma: no cover

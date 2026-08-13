@@ -9,6 +9,7 @@ from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import mark
 
+from spyops.crs.constant import WGS84
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.management.fields import (
@@ -205,7 +206,7 @@ class TestQueryStandardizeField:
         source = inputs['river_p'].copy(name='copy', geopackage=mem_gpkg)
         output_field = Field('distance_standard', data_type=FieldType.real)
         source.add_fields(output_field)
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=WGS84)):
             query = QueryStandardizeFieldAbsoluteMax(
                 source, field=Field('distance', data_type=FieldType.real),
                 output_field=output_field, where_clause='')
@@ -219,7 +220,7 @@ class TestQueryStandardizeField:
         source = inputs['transmission_xy_4617'].copy(name='copy', geopackage=mem_gpkg)
         output_field = Field('standard', data_type=FieldType.real)
         source.add_fields(output_field)
-        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=CRS(4326))):
+        with Swap(Setting.EXTENT, Extent.from_bounds(-180, 0, 0, 60, crs=WGS84)):
             query = QueryStandardizeFieldAbsoluteMax(
                 source, field=Field('FEATURE_ID', data_type=FieldType.integer),
                 output_field=output_field, where_clause='')

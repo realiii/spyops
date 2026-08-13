@@ -26,7 +26,7 @@ from spyops.crs.constant import (
     UNDEFINED)
 from spyops.crs.enumeration import InfoOption
 from spyops.crs.message import UNABLE_TO_USE_CRS, UNSUPPORTED_WKT
-from spyops.geometry.extent import extent_from_index_or_geometry
+from spyops.geometry.extent import extent_from_index_or_geometry, is_degenerate
 from spyops.shared.constant import EMPTY
 from spyops.shared.exception import (
     CoordinateSystemDifferentError, CoordinateSystemNotSupportedError)
@@ -254,7 +254,7 @@ def get_equidistant_from_extent(source: 'FeatureClass') -> ProjectedCRS | None:
     """
     crs = get_crs_from_source(source)
     extent = extent_from_index_or_geometry(source)
-    if not isfinite(extent).all():
+    if is_degenerate(extent):
         return None
     digits = -1
     pt = get_geographic_extent_centroid(crs, extent=extent)
