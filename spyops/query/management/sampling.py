@@ -47,7 +47,7 @@ class PlacementConfig(NamedTuple):
     """
     distance: PLACEMENT
     distance_type: DistanceTypeOption
-    include_end_points: bool
+    include_ends: bool
 # End PlacementConfig class
 
 
@@ -56,7 +56,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
     Abstract Query Generate Points Along Lines
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 placement: PLACEMENT, include_end_points: bool,
+                 placement: PLACEMENT, include_ends: bool,
                  where_clause: str, distance_type: DistanceTypeOption) -> None:
         """
         Initialize the AbstractQueryGeneratePointsAlongLines class
@@ -64,7 +64,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         super().__init__(source, target=target, where_clause=where_clause)
         self._config: PlacementConfig = PlacementConfig(
             distance=placement, distance_type=distance_type,
-            include_end_points=include_end_points)
+            include_ends=include_ends)
         self._counter: int = 0
     # End init built-in
 
@@ -215,7 +215,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
                 lines, include_z=True, include_m=True)
             results = interpolate_locations(
                 values, lengths=lengths, coordinates=coordinates, ids=ids,
-                fid=fid, include_ends=self._config.include_end_points)
+                fid=fid, include_ends=self._config.include_ends)
             records.extend(results)
         points = make_points(
             records, has_z=self.source.has_z, has_m=self.source.has_m)
