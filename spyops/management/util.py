@@ -6,17 +6,45 @@ Internal Functions for Management Module
 
 from typing import TYPE_CHECKING
 
+from fudgeo.constant import FETCH_SIZE
+from fudgeo.context import ExecuteMany
 from fudgeo.geometry import LineString
 from numpy import array, linspace, outer
 from pyproj import Transformer
 
 from spyops.crs.util import make_geodetic_transformer
+from spyops.geometry.util import filter_features
 from spyops.shared.enumeration import LineTypeOption
+from spyops.shared.records import extend_records
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
     from numpy import ndarray
     from pyproj import CRS
+
+
+def _generate_along_lines(query) -> 'FeatureClass':
+    """
+    Generate Along Lines
+    """
+    records = []
+    insert_sql = query.insert
+    config = query.geometry_config
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            results = query.generate_features(features)
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    query.show_warning()
+    return query.target
+# End _generate_along_lines function
 
 
 def _build_lines_factory(coords: list[tuple[float, float, float, float]], *,

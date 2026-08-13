@@ -6,10 +6,7 @@ Data Management for Sampling
 
 from typing import TYPE_CHECKING
 
-from fudgeo.constant import FETCH_SIZE
-from fudgeo.context import ExecuteMany
-
-from spyops.geometry.util import filter_features
+from spyops.management.util import _generate_along_lines
 from spyops.query.management.sampling import (
     QueryGeneratePointsAlongLinesDistance, QueryGeneratePointsAlongLinesField,
     QueryGeneratePointsAlongLinesPercentage)
@@ -40,15 +37,12 @@ __all__ = ['generate_points_along_lines']
 @validate_str_enumeration(DISTANCE_TYPE, DistanceTypeOption)
 @validate_placement(PLACEMENT, element_name=SOURCE, enum_name=PLACEMENT_OPTION)
 @validate_overwrite_source()
-def generate_points_along_lines(source: 'FeatureClass', target: 'FeatureClass',
-                                placement: DISTANCE, *,
-                                placement_option: PlacementOption = (
-                                        PlacementOption.DISTANCE),
-                                include_end_points: bool = False,
-                                distance_type: DistanceTypeOption = (
-                                        DistanceTypeOption.PLANAR),
-                                where_clause: str = '') \
-        -> 'FeatureClass':
+def generate_points_along_lines(
+        source: 'FeatureClass', target: 'FeatureClass', placement: DISTANCE, *,
+        placement_option: PlacementOption = PlacementOption.DISTANCE,
+        include_ends: bool = False,
+        distance_type: DistanceTypeOption = DistanceTypeOption.PLANAR,
+        where_clause: str = '') -> 'FeatureClass':
     """
     Generate Points Along Lines
 
@@ -84,31 +78,17 @@ def generate_points_along_lines(source: 'FeatureClass', target: 'FeatureClass',
       source feature class spatial reference.
 
     """
-    records = []
-    kwargs = dict(source=source, target=target, placement=placement,
-                  include_end_points=include_end_points,
-                  distance_type=distance_type, where_clause=where_clause)
     if placement_option == PlacementOption.PERCENTAGE:
-        query = QueryGeneratePointsAlongLinesPercentage(**kwargs)
+        cls = QueryGeneratePointsAlongLinesPercentage
     elif placement_option == PlacementOption.FIELD:
-        query = QueryGeneratePointsAlongLinesField(**kwargs)
+        cls = QueryGeneratePointsAlongLinesField
     else:
-        query = QueryGeneratePointsAlongLinesDistance(**kwargs)
-    insert_sql = query.insert
-    config = query.geometry_config
-    with (query.source.geopackage.connection as cin,
-          query.target.geopackage.connection as cout,
-          ExecuteMany(connection=cout, table=query.target) as executor):
-        cursor = cin.execute(query.select)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            results = query.generate_points(features)
-            extend_records(results, records=records, config=config)
-            executor(sql=insert_sql, data=records)
-            records.clear()
-    query.show_warning()
-    return query.target
+        cls = QueryGeneratePointsAlongLinesDistance
+    # noinspection bad-argument-type
+    query = cls(source=source, target=target, placement=placement,
+                include_ends=include_ends, distance_type=distance_type,
+                where_clause=where_clause)
+    return _generate_along_lines(query)
 # End generate_points_along_lines function
 
 
