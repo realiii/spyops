@@ -168,7 +168,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         warn(msg, category=category, skip_file_prefixes=SKIP_FILE_PREFIXES)
     # End show_warning method
 
-    def generate_points(self, features: list[tuple]) -> list[tuple]:
+    def generate_features(self, features: list[tuple]) -> list[tuple]:
         """
         Generate Points
         """
@@ -181,7 +181,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         if self.distance_type == DistanceTypeOption.PLANAR:
             return self._place_points_planar(**kwargs)
         return self._place_points_geodesic(**kwargs)
-    # End generate_points method
+    # End generate_features method
 
     @abstractmethod
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
