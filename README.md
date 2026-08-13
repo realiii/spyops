@@ -42,12 +42,17 @@ MIT
 - [Management - Generalization](https://github.com/realiii/spyops/wiki/Data-Management#generalization)
 - [Management - Indexes](https://github.com/realiii/spyops/wiki/Data-Management#indexes)
 - [Management - Projections and Transformations](https://github.com/realiii/spyops/wiki/Data-Management#projections-and-transformations)
+- [Management - Sampling](https://github.com/realiii/spyops/wiki/Data-Management#sampling) (v0.3.0)
 - [Management - Table](https://github.com/realiii/spyops/wiki/Data-Management#table)
 - [Management - Workspace](https://github.com/realiii/spyops/wiki/Data-Management#workspace)
 - [Settings](https://github.com/realiii/spyops/wiki/Settings)
 
 
 ## Release History
+### v0.3.0 (wip)
+- added `generate_points_along_lines` (Management - Sampling)
+- added `generate_transects_along_lines` (Management - Sampling)
+
 ### v0.2.1
 - fix spelling on keyword argument and extract to utility function
 
