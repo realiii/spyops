@@ -51,6 +51,19 @@ class PlacementConfig(NamedTuple):
 # End PlacementConfig class
 
 
+class PlacementDetails(NamedTuple):
+    """
+    Placement Details
+    """
+    fid: int
+    lines: list
+    lengths: 'ndarray'
+    distances: 'ndarray'
+    coordinates: 'ndarray'
+    ids: tuple[int, ...]
+# End PlacementDetails class
+
+
 class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
     """
     Abstract Query Generate Along Lines
