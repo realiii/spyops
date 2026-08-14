@@ -55,13 +55,13 @@ def get_equidistant_details(geometries: 'ndarray', *, crs: 'CRS',
 # End get_equidistant_details function
 
 
-def interpolate_locations(values: 'ndarray', *, lengths: 'ndarray',
+def interpolate_locations(distances: 'ndarray', *, lengths: 'ndarray',
                           coordinates: 'ndarray', ids: tuple[int, ...],
                           fid: int, include_ends: bool) -> RECORDS:
     """
     Interpolate Locations
     """
-    grouped = _group_by_line_index(lengths, values=values)
+    grouped = _group_by_line_index(lengths, distances=distances)
     records = _build_locations(
         grouped, coordinates=coordinates, ids=ids, lengths=lengths,
         offset=int(include_ends), fid=fid)
@@ -116,7 +116,7 @@ def _add_end_locations(coordinates: 'ndarray', ids: tuple[int, ...],
 # End _add_end_locations method
 
 
-def _group_by_line_index(lengths: 'ndarray', values: 'ndarray') \
+def _group_by_line_index(lengths: 'ndarray', distances: 'ndarray') \
         -> defaultdict[int, list]:
     """
     Group by Line Index, exclude end points and values outside the range.
@@ -124,7 +124,7 @@ def _group_by_line_index(lengths: 'ndarray', values: 'ndarray') \
     End points are defined as the first point on the first line and the last
     point on the last line, e.g. 0 length and max length.
     """
-    values = [v for v in values if 0 < v < max(lengths)]
+    values = [d for d in distances if 0 < d < max(lengths)]
     indexes = [bisect_left(lengths, value) for value in values]
     grouped = defaultdict(list)
     for index, value in zip(indexes, values):
