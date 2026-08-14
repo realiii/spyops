@@ -4,7 +4,7 @@ Queries for Sampling
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from typing import (
     Any, Callable, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
@@ -12,7 +12,6 @@ from warnings import warn
 
 from fudgeo.enumeration import ShapeType
 from numpy import arange, array, cumsum, isfinite, isnan
-from shapely import Point
 from shapely.measurement import length
 
 from spyops.crs.unit import UNIT_CLASS_MAP, get_unit_name, unit_factory
@@ -37,7 +36,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
     from pyproj import CRS
-    from shapely.geometry.base import GeometrySequence
+    from shapely import Point
+    from shapely.geometry.base import BaseGeometry, GeometrySequence
     from spyops.crs.unit import LinearUnit, DecimalDegrees
 
 
@@ -51,15 +51,15 @@ class PlacementConfig(NamedTuple):
 # End PlacementConfig class
 
 
-class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
+class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
     """
-    Abstract Query Generate Points Along Lines
+    Abstract Query Generate Along Lines
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
                  placement: PLACEMENT, include_ends: bool,
                  where_clause: str, distance_type: DistanceTypeOption) -> None:
         """
-        Initialize the AbstractQueryGeneratePointsAlongLines class
+        Initialize the AbstractQueryGenerateAlongLines class
         """
         super().__init__(source, target=target, where_clause=where_clause)
         self._config: PlacementConfig = PlacementConfig(
@@ -80,6 +80,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         Get Select Fields
         """
         primary = element.primary_key_field
+        # noinspection bad-return
         return [primary, primary]
     # End _get_select_fields method
 
@@ -125,8 +126,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         Distance Type Check based on CRS
         """
-        crs = crs_from_srs(self.spatial_reference_system)
-        if not crs.is_projected:
+        if not self.target_crs.is_projected:
             return DistanceTypeOption.GEODESIC
         return self._config.distance_type
     # End _crs_distance_type_check method
@@ -174,14 +174,22 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         features, geometries = to_shapely(
             features, transformer=self.source_transformer)
-        crs = crs_from_srs(self.spatial_reference_system)
         getter = GEOMETRY_AS_MULTILINE[self.source.shape_type]
         kwargs = dict(features=features, geometries=geometries,
-                      crs=crs, getter=getter)
+                      crs=self.target_crs, getter=getter)
         if self.distance_type == DistanceTypeOption.PLANAR:
-            return self._place_points_planar(**kwargs)
-        return self._place_points_geodesic(**kwargs)
+            return self._along_planar(**kwargs)
+        return self._along_geodesic(**kwargs)
     # End generate_features method
+
+    @property
+    def target_crs(self) -> CRS:
+        """
+        Target CRS
+        """
+        # noinspection bad-argument-type
+        return crs_from_srs(self.spatial_reference_system)
+    # End target_crs property
 
     @abstractmethod
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
@@ -193,63 +201,25 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         pass
     # End _get_values method
 
-    def _place_points_planar(self, features: list[tuple],
-                             geometries: 'ndarray', crs: 'CRS',
-                             getter: Callable) -> list[tuple[Point, tuple]]:
+    @abstractmethod
+    def _along_planar(self, features: list[tuple],
+                      geometries: 'ndarray', crs: 'CRS',
+                      getter: Callable) -> list[tuple['BaseGeometry', tuple]]:
         """
-        Place Points Planar
+        Place Geometries Planar
         """
-        records = []
-        for (_, fid, distance), geom in zip(features, geometries):
-            lines = get_geoms(getter(geom))
-            # noinspection PyTypeChecker
-            lengths = length(lines)
-            mask = isfinite(lengths)
-            if not mask.any():  # pragma: no cover
-                continue
-            lengths = cumsum(lengths[mask])
-            total_length = lengths[-1]
-            values = self._get_values(
-                lines, total_length=total_length, crs=crs, distance=distance)
-            coordinates, ids = get_coords_and_slices(
-                lines, include_z=True, include_m=True)
-            results = interpolate_locations(
-                values, lengths=lengths, coordinates=coordinates, ids=ids,
-                fid=fid, include_ends=self._config.include_ends)
-            records.extend(results)
-        points = make_points(
-            records, has_z=self.source.has_z, has_m=self.source.has_m)
-        return [(pt, attrs) for pt, (_, *attrs) in zip(points, records)]
-    # End _place_points_planar method
+        pass
+    # End _along_planar method
 
-    def _place_points_geodesic(self, features: list[tuple],
-                               geometries: 'ndarray', crs: 'CRS',
-                               getter: Callable) -> list[tuple[Point, tuple]]:
+    @abstractmethod
+    def _along_geodesic(self, features: list[tuple],
+                        geometries: 'ndarray', crs: 'CRS',
+                        getter: Callable) -> list[tuple['BaseGeometry', tuple]]:
         """
-        Place Points Geodesic
+        Place Geometries Geodesic
         """
-        records = []
-        details = get_equidistant_details(
-            geometries, crs=crs, has_z=self.source.has_z,
-            has_m=self.source.has_m)
-        for indexes, prj, to_eqd, from_eqd in details:
-            feats = [features[i] for i in indexes]
-            geoms = geometries[indexes]
-            if None in (to_eqd, from_eqd):
-                records.extend(self._place_points_planar(
-                    feats, geometries=geoms, crs=crs, getter=getter))
-                continue
-            else:
-                geoms = [getter(geom) for geom in geoms]
-                results = self._place_points_planar(
-                    feats, geometries=to_eqd(geoms), crs=prj, getter=nada)
-                if not results:  # pragma: no cover
-                    continue
-                points, attributes = zip(*results)
-                records.extend([(pt, attrs) for pt, attrs in
-                                zip(from_eqd(points), attributes)])
-        return records
-    # End _place_points_geodesic method
+        pass
+    # End _along_geodesic method
 
     def _build_range(self, geoms: Union[list, 'GeometrySequence'],
                      total_length: float, crs: 'CRS',
@@ -274,11 +244,126 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         Convert unit to distance
         """
-        # noinspection bad-return
+        # noinspection bad-return,bad-argument-type
         return self._convert_unit(
             self.distance_type == DistanceTypeOption.GEODESIC, crs=crs,
             geoms=geoms, unit=unit, broadcast=False)
     # End _to_distance method
+
+    @cached_property
+    def _source_unit_cls(self) -> Type['LinearUnit'] | Type['DecimalDegrees']:
+        """
+        Source Unit Class
+        """
+        # noinspection bad-index
+        return UNIT_CLASS_MAP[get_unit_name(self.source_crs)]
+    # End _source_unit_cls method
+
+    def _build_multi_values(self, geoms: Union[list, 'GeometrySequence'],
+                            total_length: float, crs: 'CRS',
+                            distance: str) -> 'ndarray':
+        """
+        Build Multi Values
+        """
+        units = self._get_units_from_distances(distance)
+        count = len(units)
+        if not (units := [unit for unit in units if unit is not None]):
+            self._counter += count
+            return array([], dtype=float)
+        distances = [self._to_distance(geoms, crs=crs, unit=unit)
+                     for unit in units]
+        bads = [isnan(d) or d <= 0 or d >= total_length for d in distances]
+        if all(bads):
+            self._counter += sum(bads)
+            return array([], dtype=float)
+        if any(bads):
+            self._counter += sum(bads)
+        distances = [d for d, bad in zip(distances, bads) if not bad]
+        return array(distances, dtype=float)
+    # End _build_multi_values method
+
+    def _get_units_from_distances(self, distance: str) \
+            -> list[Optional[Union['LinearUnit', 'DecimalDegrees']]]:
+        """
+        Get Units from Distances
+        """
+        units = []
+        for dist in distance.split(SEMI):
+            if unit := unit_factory(dist):
+                units.append(unit)
+                continue
+            if dist := safe_float(dist):
+                unit = self._source_unit_cls(dist)
+            else:
+                unit = None
+            units.append(unit)
+        return units
+    # End _get_units_from_distances method
+# End AbstractQueryGenerateAlongLines class
+
+
+class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
+                                            metaclass=ABCMeta):
+    """
+    Abstract Query Generate Points Along Lines
+    """
+    def _along_planar(self, features: list[tuple],
+                      geometries: 'ndarray', crs: 'CRS',
+                      getter: Callable) -> list[tuple['Point', tuple]]:
+        """
+        Place Points Planar
+        """
+        records = []
+        for (_, fid, distance), geom in zip(features, geometries):
+            lines = get_geoms(getter(geom))
+            # noinspection PyTypeChecker
+            lengths = length(lines)
+            mask = isfinite(lengths)
+            if not mask.any():  # pragma: no cover
+                continue
+            lengths = cumsum(lengths[mask])
+            total_length = lengths[-1]
+            values = self._get_values(
+                lines, total_length=total_length, crs=crs, distance=distance)
+            coordinates, ids = get_coords_and_slices(
+                lines, include_z=True, include_m=True)
+            results = interpolate_locations(
+                values, lengths=lengths, coordinates=coordinates, ids=ids,
+                fid=fid, include_ends=self._config.include_ends)
+            records.extend(results)
+        points = make_points(
+            records, has_z=self.source.has_z, has_m=self.source.has_m)
+        return [(pt, attrs) for pt, (_, *attrs) in zip(points, records)]
+    # End _along_planar method
+
+    def _along_geodesic(self, features: list[tuple],
+                        geometries: 'ndarray', crs: 'CRS',
+                        getter: Callable) -> list[tuple['Point', tuple]]:
+        """
+        Place Points Geodesic
+        """
+        records = []
+        details = get_equidistant_details(
+            geometries, crs=crs, has_z=self.source.has_z,
+            has_m=self.source.has_m)
+        for indexes, prj, to_eqd, from_eqd in details:
+            feats = [features[i] for i in indexes]
+            geoms = geometries[indexes]
+            if None in (to_eqd, from_eqd):
+                records.extend(self._along_planar(
+                    feats, geometries=geoms, crs=crs, getter=getter))
+                continue
+            else:
+                geoms = [getter(geom) for geom in geoms]
+                results = self._along_planar(
+                    feats, geometries=to_eqd(geoms), crs=prj, getter=nada)
+                if not results:  # pragma: no cover
+                    continue
+                points, attributes = zip(*results)
+                records.extend([(pt, attrs) for pt, attrs in
+                                zip(from_eqd(points), attributes)])
+        return records
+    # End _along_geodesic method
 # End AbstractQueryGeneratePointsAlongLines class
 
 
@@ -340,16 +425,9 @@ class QueryGeneratePointsAlongLinesField(
         Get Select Fields
         """
         primary = element.primary_key_field
+        # noinspection bad-return
         return [primary, self._config.distance]
     # End _get_select_fields method
-
-    @cached_property
-    def _source_unit_cls(self) -> Type['LinearUnit'] | Type['DecimalDegrees']:
-        """
-        Source Unit Class
-        """
-        return UNIT_CLASS_MAP[get_unit_name(self.source_crs)]
-    # End _source_unit_cls method
 
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
                     total_length: float, crs: 'CRS',
@@ -370,47 +448,6 @@ class QueryGeneratePointsAlongLinesField(
                 geoms, total_length=total_length, crs=crs, unit=unit)
         return self._build_multi_values(geoms, total_length, crs, distance)
     # End _get_values method
-
-    def _build_multi_values(self, geoms: Union[list, 'GeometrySequence'],
-                            total_length: float, crs: 'CRS',
-                            distance: str) -> 'ndarray':
-        """
-        Build Multi Values
-        """
-        units = self._get_units_from_distances(distance)
-        count = len(units)
-        if not (units := [unit for unit in units if unit is not None]):
-            self._counter += count
-            return array([], dtype=float)
-        distances = [self._to_distance(geoms, crs=crs, unit=unit)
-                     for unit in units]
-        bads = [isnan(d) or d <= 0 or d >= total_length for d in distances]
-        if all(bads):
-            self._counter += sum(bads)
-            return array([], dtype=float)
-        if any(bads):
-            self._counter += sum(bads)
-        distances = [d for d, bad in zip(distances, bads) if not bad]
-        return array(distances, dtype=float)
-    # End _build_multi_values method
-
-    def _get_units_from_distances(self, distance: str) \
-            -> list[Optional[Union['LinearUnit', 'DecimalDegrees']]]:
-        """
-        Get Units from Distances
-        """
-        units = []
-        for dist in distance.split(SEMI):
-            if unit := unit_factory(dist):
-                units.append(unit)
-                continue
-            if dist := safe_float(dist):
-                unit = self._source_unit_cls(dist)
-            else:
-                unit = None
-            units.append(unit)
-        return units
-    # End _get_units_from_distances method
 # End QueryGeneratePointsAlongLinesField class
 
 
