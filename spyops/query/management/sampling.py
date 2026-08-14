@@ -232,14 +232,33 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         pass
     # End _along_planar method
 
-    @abstractmethod
     def _along_geodesic(self, features: list[tuple],
                         geometries: 'ndarray', crs: 'CRS',
                         getter: Callable) -> list[tuple['BaseGeometry', tuple]]:
         """
         Place Geometries Geodesic
         """
-        pass
+        records = []
+        details = get_equidistant_details(
+            geometries, crs=crs, has_z=self.source.has_z,
+            has_m=self.source.has_m)
+        for indexes, prj, to_eqd, from_eqd in details:
+            feats = [features[i] for i in indexes]
+            geoms = geometries[indexes]
+            if None in (to_eqd, from_eqd):
+                records.extend(self._along_planar(
+                    feats, geometries=geoms, crs=crs, getter=getter))
+                continue
+            else:
+                geoms = [getter(geom) for geom in geoms]
+                results = self._along_planar(
+                    feats, geometries=to_eqd(geoms), crs=prj, getter=nada)
+                if not results:  # pragma: no cover
+                    continue
+                points, attributes = zip(*results)
+                records.extend([(pt, attrs) for pt, attrs in
+                                zip(from_eqd(points), attributes)])
+        return records
     # End _along_geodesic method
 
     def _build_range(self, geoms: Union[list, 'GeometrySequence'],
