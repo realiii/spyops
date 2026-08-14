@@ -12,7 +12,7 @@ from warnings import warn
 
 from fudgeo.enumeration import ShapeType
 from numpy import arange, array, cumsum, isfinite, isnan
-from shapely.measurement import length
+from shapely.measurement import length as length_
 
 from spyops.crs.unit import UNIT_CLASS_MAP, get_unit_name, unit_factory
 from spyops.crs.util import crs_from_srs
@@ -317,7 +317,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
         for (_, fid, distance), geom in zip(features, geometries):
             lines = get_geoms(getter(geom))
             # noinspection PyTypeChecker
-            lengths = length(lines)
+            lengths = length_(lines)
             mask = isfinite(lengths)
             if not mask.any():  # pragma: no cover
                 continue
