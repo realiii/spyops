@@ -7,7 +7,7 @@ Queries for Sampling
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from typing import (
-    Any, Callable, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
+    Any, Callable, Generator, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
 from warnings import warn
 
 from fudgeo.enumeration import ShapeType
@@ -312,21 +312,14 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
             units.append(unit)
         return units
     # End _get_units_from_distances method
-# End AbstractQueryGenerateAlongLines class
 
-
-class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
-                                            metaclass=ABCMeta):
-    """
-    Abstract Query Generate Points Along Lines
-    """
-    def _along_planar(self, features: list[tuple],
-                      geometries: 'ndarray', crs: 'CRS',
-                      getter: Callable) -> list[tuple['Point', tuple]]:
+    def _get_placement_details(self, features: list[tuple],
+                               geometries: 'ndarray', crs: 'CRS',
+                               getter: Callable) \
+            -> Generator[PlacementDetails]:
         """
-        Place Points Planar
+        Get Placement Details
         """
-        records = []
         for (_, fid, distance), geom in zip(features, geometries):
             lines = get_geoms(getter(geom))
             # noinspection PyTypeChecker
@@ -335,9 +328,9 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
             if not mask.any():  # pragma: no cover
                 continue
             lengths = cumsum(lengths[mask])
-            total_length = lengths[-1]
-            values = self._get_values(
-                lines, total_length=total_length, crs=crs, distance=distance)
+            lines = [line for line, truth in zip(lines, mask) if truth]
+            distances = self._get_values(
+                lines, total_length=lengths[-1], crs=crs, distance=distance)
             coordinates, ids = get_coords_and_slices(
                 lines, include_z=True, include_m=True)
             results = interpolate_locations(
@@ -345,6 +338,11 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
                 fid=fid, include_ends=self._config.include_ends)
             records.extend(results)
         points = make_points(
+            yield PlacementDetails(
+                fid=fid, lines=lines, lengths=lengths, distances=distances,
+                coordinates=coordinates, ids=ids)
+    # End _get_placement_details method
+# End AbstractQueryGenerateAlongLines class
             records, has_z=self.source.has_z, has_m=self.source.has_m)
         return [(pt, attrs) for pt, (_, *attrs) in zip(points, records)]
     # End _along_planar method
