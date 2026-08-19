@@ -4,7 +4,7 @@ Test module for Measured Line
 """
 
 
-from math import sqrt
+from math import sqrt, nan
 
 from numpy import arange, isnan
 from pytest import approx, fixture, mark, raises
@@ -52,24 +52,41 @@ def test_interpolate_3d_line(threed_line):
 # End test_interpolate_3d_line function
 
 
-def test_find_coordinate_no_measures(straight_line):
+def test_interpolate_no_measures(straight_line):
     """
     Test no measures
     """
     assert len(straight_line.interpolate([])) == 0
-# End test_find_coordinate_no_measures function
+# End test_interpolate_no_measures function
 
 
 @mark.parametrize('m_value', [
     -1000, 10_000
 ])
-def test_find_coordinate_measures_out_of_bounds(straight_line, m_value):
+def test_interpolate_measures_out_of_bounds(straight_line, m_value):
     """
     Test bad measures
     """
     result = straight_line.interpolate([m_value])
     assert isnan(result).all()
-# End test_find_coordinate_measures_out_of_bounds function
+# End test_interpolate_measures_out_of_bounds function
+
+
+@mark.parametrize(('values', 'expected'), [
+    ([0, 10, 35], [0, -36.86, -14.03]),
+    ([-10, 90, 10000], [nan, 59.03, nan]),
+    ([0, 50, 100, 150, 200, 250], [0, -14.03, 59.03, -2.862, -2.862, -2.862]),
+])
+def test_find_directions(values, expected):
+    """
+    Test find directions
+    """
+    xs = [0, 10, 30, 50, 80, 100, 200]
+    ys = [0, 0, -15, -20, 30, 0, -5]
+    line = MeasuredLine(xs=xs, ys=ys, is_2d=True)
+    results = line.find_directions(values, use_length=True)
+    assert approx(results.tolist(), abs=0.1, nan_ok=True) == expected
+# End test_find_directions function
 
 
 def test_provide_incorrect_length_measures():
