@@ -8,8 +8,10 @@ from bisect import bisect_left
 from math import nan
 from typing import Optional, TYPE_CHECKING
 
+from bottleneck import nanmax, nanmin
 from numpy import (
-    array, cumsum, diff, flatnonzero, full, hypot, interp, isfinite, zeros_like)
+    arctan2, array, cumsum, degrees, diff, flatnonzero, full, hypot, interp,
+    isfinite, searchsorted, zeros_like)
 
 
 from spyops.shared.hint import VALUES
@@ -253,6 +255,39 @@ class MeasuredLine:
             coords[:, 3] = interp(values, fp=self.measures, **kwargs)
         return coords
     # End interpolate method
+
+    def find_directions(self, values: VALUES, use_length: bool = False) -> 'ndarray':
+        """
+        Find Directions for values along the line.
+
+        By default, the values are interpolated using the measures otherwise
+        they are interpolated using the geometric length which may be
+        2D or 3D depending on the inputs used during initialization.
+
+        Angles returned are in degrees and represent the direction of the line
+        segment on which the value falls.  Angles for inflection points use
+        the angle of the segment for which the point is the end point.
+        """
+        count = len(values)
+        if not count:
+            return full(count, fill_value=nan, dtype=float)
+        xs = self.coordinates[:, 0]
+        ys = self.coordinates[:, 1]
+        ss = self._coordinates[:, 3 + int(use_length)]
+        angles = degrees(arctan2(diff(ys), diff(xs)))
+        indexes = searchsorted(ss, values, side='right') - 1
+        directions = []
+        min_ss = nanmin(ss)
+        max_ss = nanmax(ss)
+        for index, value in zip(indexes, values):
+            bad_value = not (isfinite(value) and min_ss <= value <= max_ss)
+            bad_index = index < 0 or index >= len(angles)
+            if bad_value or bad_index:
+                directions.append(nan)
+            else:
+                directions.append(angles[index])
+        return array(directions, dtype=float)
+    # End find_directions method
 # End MeasuredLine class
 
 
