@@ -228,20 +228,22 @@ class MeasuredLine:
 
     def interpolate(self, values: VALUES, use_length: bool = False) -> 'ndarray':
         """
-        Find Coordinates for values along the line. By default, the values are
-        interpolated using the measures otherwise they are interpolated using
-        the geometric length which may be 2D or 3D depending on the inputs used
-        during initialization.  Return all coordinates for the values in same
-        order as input values.
+        Find Coordinates for values along the line.
+
+        By default, the values are interpolated using the measures otherwise
+        they are interpolated using the geometric length which may be
+        2D or 3D depending on the inputs used during initialization.
+
+        Return all coordinates for the values in the same order as input values.
         """
         count = len(values)
         coords = full((count, 4), fill_value=nan, dtype=float)
         if not count:
             return coords
-        index = 3 + int(use_length)
         # NOTE use the internal property to access length too
         coordinates = self._coordinates
-        kwargs = dict(xp=coordinates[:, index], left=nan, right=nan)
+        kwargs = dict(xp=coordinates[:, (3 + int(use_length))],
+                      left=nan, right=nan)
         coords[:, 0] = interp(values, fp=coordinates[:, 0], **kwargs)
         coords[:, 1] = interp(values, fp=coordinates[:, 1], **kwargs)
         coords[:, 2] = interp(values, fp=coordinates[:, 2], **kwargs)
