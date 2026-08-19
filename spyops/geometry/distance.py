@@ -33,7 +33,7 @@ RECORDS: TypeAlias = list[tuple[list, int, int, float]]
 
 
 def get_equidistant_details(geometries: 'ndarray', *, crs: 'CRS',
-                            has_z: bool, has_m: bool) \
+                            target_shape_type: str, has_z: bool, has_m: bool) \
         -> list[tuple[list[int], 'CRS', Callable | None, Callable | None]]:
     """
     Get Equidistant Projections and Transformers
@@ -48,7 +48,8 @@ def get_equidistant_details(geometries: 'ndarray', *, crs: 'CRS',
         if prj is None:
             continue
         transformers = _equidistant_transformers(
-            crs, equidistant_crs=prj, has_z=has_z, has_m=has_m)
+            crs, equidistant_crs=prj, target_shape_type=target_shape_type,
+            has_z=has_z, has_m=has_m)
         to_eqd, from_eqd = transformers
         details.append((indexes, prj, to_eqd, from_eqd))
     return details
@@ -153,7 +154,8 @@ def make_points(records: RECORDS, has_z: bool, has_m: bool) -> 'ndarray':
 
 @lru_cache(maxsize=1000)
 def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
-                              has_z: bool, has_m: bool) \
+                              target_shape_type: str, has_z: bool,
+                              has_m: bool) \
         -> tuple[Callable, Callable] | tuple[None, None]:
     """
     Equidistant Transformers for Along Lines
@@ -170,7 +172,7 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
     if not from_equidistant_transformer:
         return None, None
     from_equidistant = make_transformer_function(
-        shape_type=ShapeType.point, has_z=has_z, has_m=has_m,
+        shape_type=target_shape_type, has_z=has_z, has_m=has_m,
         transformer=from_equidistant_transformer)
     # noinspection PyTypeChecker
     return to_equidistant, from_equidistant

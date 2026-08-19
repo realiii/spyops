@@ -240,8 +240,9 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         records = []
         details = get_equidistant_details(
-            geometries, crs=crs, has_z=self.source.has_z,
-            has_m=self.source.has_m)
+            geometries, crs=crs,
+            target_shape_type=self._get_target_shape_type(),
+            has_z=self.source.has_z, has_m=self.source.has_m)
         for indexes, prj, to_eqd, from_eqd in details:
             feats = [features[i] for i in indexes]
             geoms = geometries[indexes]
