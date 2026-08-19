@@ -205,14 +205,6 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
     # End target_crs property
 
     @abstractmethod
-    def _build_geometries(self, records: list) -> 'ndarray':
-        """
-        Build Geometries
-        """
-        pass
-    # End _build_geometries method
-
-    @abstractmethod
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
                     total_length: float, crs: 'CRS',
                     distance: Any) -> 'ndarray':  # pragma: no cover
@@ -373,14 +365,6 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
     """
     Abstract Query Generate Points Along Lines
     """
-    def _build_geometries(self, records: list) -> 'ndarray':
-        """
-        Build Geometries
-        """
-        return make_points(
-            records, has_z=self.source.has_z, has_m=self.source.has_m)
-    # End _build_geometries method
-
     def _along_planar(self, features: list[tuple],
                       geometries: 'ndarray', crs: 'CRS',
                       getter: Callable) -> list[tuple['Point', tuple]]:
@@ -395,7 +379,8 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
                 coordinates=details.coordinates, ids=details.ids,
                 fid=details.fid, include_ends=self._config.include_ends)
             records.extend(results)
-        geoms = self._build_geometries(records)
+        geoms = make_points(
+            records, has_z=self.source.has_z, has_m=self.source.has_m)
         return [(pt, attrs) for pt, (_, *attrs) in zip(geoms, records)]
     # End _along_planar method
 # End AbstractQueryGeneratePointsAlongLines class
