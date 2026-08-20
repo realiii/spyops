@@ -70,7 +70,7 @@ def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
 # End find_slice_indexes function
 
 
-def get_coords_and_slices(geoms: Union['ndarray', 'GeometrySequence'], *,
+def get_coords_and_slices(geoms: Union['ndarray', 'GeometrySequence', list], *,
                           include_z: bool, include_m: bool) \
         -> tuple['ndarray', tuple[int, ...]]:
     """

@@ -19,7 +19,7 @@ from shapely.measurement import length
 
 from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.distance import (
-    _group_by_line_index,
+    _group_by_line_index, _transect_coordinates,
     interpolate_locations, make_points, _add_end_locations)
 from spyops.geometry.util import find_slice_indexes, get_geoms
 
@@ -130,6 +130,21 @@ def test_interpolate_locations(include_ends, shape_type, geom, expected):
     assert tuple(seq) == tuple(range(1, len(results) + 1))
     assert along == expected
 # End test_interpolate_locations function
+
+
+@mark.parametrize('length_, location, attributes, expected', [
+    (100, [0, 10, 20, 30], (45, 45, 45, 0), [[0, -40, 20, 30], [0, 60, 20, 30]]),
+    (100, [0, 0, 20, 30], (45, 45, 45, 45), [[35.355339, -35.355339, 20, 30], [-35.355339, 35.355339, 20, 30]]),
+])
+def test_transect_coordinates(length_, location, attributes, expected):
+    """
+    Test _transect_coordinates
+    """
+    expected_start, expected_end = expected
+    start, end = _transect_coordinates(length_, location, attributes)
+    assert approx(start, abs=0.001) == expected_start
+    assert approx(end, abs=0.001) == expected_end
+# End test_transect_coordinates function
 
 
 if __name__ == '__main__':  # pragma: no cover

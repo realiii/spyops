@@ -83,6 +83,8 @@ SEQ_NUM: Field = Field(
     'SEQ_NUM', data_type=FieldType.integer, alias='Sequence Number')
 ALONG: Field = Field(
     'ALONG', data_type=FieldType.real, alias='Length Along Line')
+ORIENTATION: Field = Field(
+    'ORIENTATION', data_type=FieldType.real, alias='Orientation Along Line')
 MBG_WIDTH: Field = Field(
     'MBG_WIDTH', data_type=FieldType.real,
     alias='Width of Minimum Bounding Geometry')

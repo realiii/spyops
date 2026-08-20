@@ -4,22 +4,22 @@ Queries for Sampling
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from typing import (
-    Any, Callable, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
+    Any, Callable, Generator, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
 from warnings import warn
 
 from fudgeo.enumeration import ShapeType
 from numpy import arange, array, cumsum, isfinite, isnan
-from shapely import Point
-from shapely.measurement import length
+from shapely.measurement import length as length_
 
 from spyops.crs.unit import UNIT_CLASS_MAP, get_unit_name, unit_factory
 from spyops.crs.util import crs_from_srs
 from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.distance import (
-    get_equidistant_details, interpolate_locations, make_points)
+    get_equidistant_details, interpolate_locations, interpolate_transects,
+    make_lines, make_points)
 from spyops.geometry.util import (
     get_coords_and_slices, get_geoms, nada, to_shapely)
 from spyops.query.base import AbstractSourceQuery
@@ -28,7 +28,8 @@ from spyops.shared.constant import SEMI, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import DistanceTypeOption
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    ALONG, ORIG_FID, SEQ_NUM, get_geometry_column_name, make_field_names)
+    ALONG, ORIENTATION, ORIG_FID, SEQ_NUM, get_geometry_column_name,
+    make_field_names)
 from spyops.shared.hint import FIELDS, PLACEMENT
 from spyops.shared.util import safe_float
 
@@ -37,7 +38,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
     from pyproj import CRS
-    from shapely.geometry.base import GeometrySequence
+    from shapely import LineString, Point
+    from shapely.geometry.base import BaseGeometry, GeometrySequence
     from spyops.crs.unit import LinearUnit, DecimalDegrees
 
 
@@ -47,24 +49,37 @@ class PlacementConfig(NamedTuple):
     """
     distance: PLACEMENT
     distance_type: DistanceTypeOption
-    include_end_points: bool
+    include_ends: bool
 # End PlacementConfig class
 
 
-class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
+class PlacementDetails(NamedTuple):
     """
-    Abstract Query Generate Points Along Lines
+    Placement Details
+    """
+    fid: int
+    lines: list
+    lengths: 'ndarray'
+    distances: 'ndarray'
+    coordinates: 'ndarray'
+    ids: tuple[int, ...]
+# End PlacementDetails class
+
+
+class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
+    """
+    Abstract Query Generate Along Lines
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 placement: PLACEMENT, include_end_points: bool,
+                 placement: PLACEMENT, include_ends: bool,
                  where_clause: str, distance_type: DistanceTypeOption) -> None:
         """
-        Initialize the AbstractQueryGeneratePointsAlongLines class
+        Initialize the AbstractQueryGenerateAlongLines class
         """
         super().__init__(source, target=target, where_clause=where_clause)
         self._config: PlacementConfig = PlacementConfig(
             distance=placement, distance_type=distance_type,
-            include_end_points=include_end_points)
+            include_ends=include_ends)
         self._counter: int = 0
     # End init built-in
 
@@ -80,6 +95,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         Get Select Fields
         """
         primary = element.primary_key_field
+        # noinspection bad-return
         return [primary, primary]
     # End _get_select_fields method
 
@@ -125,8 +141,7 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         Distance Type Check based on CRS
         """
-        crs = crs_from_srs(self.spatial_reference_system)
-        if not crs.is_projected:
+        if not self.target_crs.is_projected:
             return DistanceTypeOption.GEODESIC
         return self._config.distance_type
     # End _crs_distance_type_check method
@@ -168,20 +183,28 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         warn(msg, category=category, skip_file_prefixes=SKIP_FILE_PREFIXES)
     # End show_warning method
 
-    def generate_points(self, features: list[tuple]) -> list[tuple]:
+    def generate_features(self, features: list[tuple]) -> list[tuple]:
         """
         Generate Points
         """
         features, geometries = to_shapely(
             features, transformer=self.source_transformer)
-        crs = crs_from_srs(self.spatial_reference_system)
         getter = GEOMETRY_AS_MULTILINE[self.source.shape_type]
         kwargs = dict(features=features, geometries=geometries,
-                      crs=crs, getter=getter)
+                      crs=self.target_crs, getter=getter)
         if self.distance_type == DistanceTypeOption.PLANAR:
-            return self._place_points_planar(**kwargs)
-        return self._place_points_geodesic(**kwargs)
-    # End generate_points method
+            return self._along_planar(**kwargs)
+        return self._along_geodesic(**kwargs)
+    # End generate_features method
+
+    @property
+    def target_crs(self) -> CRS:
+        """
+        Target CRS
+        """
+        # noinspection bad-argument-type
+        return crs_from_srs(self.spatial_reference_system)
+    # End target_crs property
 
     @abstractmethod
     def _get_values(self, geoms: Union[list, 'GeometrySequence'],
@@ -193,63 +216,45 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         pass
     # End _get_values method
 
-    def _place_points_planar(self, features: list[tuple],
-                             geometries: 'ndarray', crs: 'CRS',
-                             getter: Callable) -> list[tuple[Point, tuple]]:
+    @abstractmethod
+    def _along_planar(self, features: list[tuple],
+                      geometries: 'ndarray', crs: 'CRS',
+                      getter: Callable) -> list[tuple['BaseGeometry', tuple]]:
         """
-        Place Points Planar
+        Place Geometries Planar
         """
-        records = []
-        for (_, fid, distance), geom in zip(features, geometries):
-            lines = get_geoms(getter(geom))
-            # noinspection PyTypeChecker
-            lengths = length(lines)
-            mask = isfinite(lengths)
-            if not mask.any():  # pragma: no cover
-                continue
-            lengths = cumsum(lengths[mask])
-            total_length = lengths[-1]
-            values = self._get_values(
-                lines, total_length=total_length, crs=crs, distance=distance)
-            coordinates, ids = get_coords_and_slices(
-                lines, include_z=True, include_m=True)
-            results = interpolate_locations(
-                values, lengths=lengths, coordinates=coordinates, ids=ids,
-                fid=fid, include_ends=self._config.include_end_points)
-            records.extend(results)
-        points = make_points(
-            records, has_z=self.source.has_z, has_m=self.source.has_m)
-        return [(pt, attrs) for pt, (_, *attrs) in zip(points, records)]
-    # End _place_points_planar method
+        pass
+    # End _along_planar method
 
-    def _place_points_geodesic(self, features: list[tuple],
-                               geometries: 'ndarray', crs: 'CRS',
-                               getter: Callable) -> list[tuple[Point, tuple]]:
+    def _along_geodesic(self, features: list[tuple],
+                        geometries: 'ndarray', crs: 'CRS',
+                        getter: Callable) -> list[tuple['BaseGeometry', tuple]]:
         """
-        Place Points Geodesic
+        Place Geometries Geodesic
         """
         records = []
         details = get_equidistant_details(
-            geometries, crs=crs, has_z=self.source.has_z,
-            has_m=self.source.has_m)
+            geometries, crs=crs,
+            target_shape_type=self._get_target_shape_type(),
+            has_z=self.source.has_z, has_m=self.source.has_m)
         for indexes, prj, to_eqd, from_eqd in details:
             feats = [features[i] for i in indexes]
             geoms = geometries[indexes]
             if None in (to_eqd, from_eqd):
-                records.extend(self._place_points_planar(
+                records.extend(self._along_planar(
                     feats, geometries=geoms, crs=crs, getter=getter))
                 continue
             else:
                 geoms = [getter(geom) for geom in geoms]
-                results = self._place_points_planar(
+                results = self._along_planar(
                     feats, geometries=to_eqd(geoms), crs=prj, getter=nada)
                 if not results:  # pragma: no cover
                     continue
-                points, attributes = zip(*results)
-                records.extend([(pt, attrs) for pt, attrs in
-                                zip(from_eqd(points), attributes)])
+                geoms, attributes = zip(*results)
+                records.extend([(g, attrs) for g, attrs in
+                                zip(from_eqd(geoms), attributes)])
         return records
-    # End _place_points_geodesic method
+    # End _along_geodesic method
 
     def _build_range(self, geoms: Union[list, 'GeometrySequence'],
                      total_length: float, crs: 'CRS',
@@ -274,102 +279,20 @@ class AbstractQueryGeneratePointsAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         Convert unit to distance
         """
-        # noinspection bad-return
+        # noinspection bad-return,bad-argument-type
         return self._convert_unit(
             self.distance_type == DistanceTypeOption.GEODESIC, crs=crs,
             geoms=geoms, unit=unit, broadcast=False)
     # End _to_distance method
-# End AbstractQueryGeneratePointsAlongLines class
-
-
-class QueryGeneratePointsAlongLinesPercentage(
-        AbstractQueryGeneratePointsAlongLines):
-    """
-    Query for Generate Points Along Lines using Percentage Placement
-    """
-    @cached_property
-    def distance_type(self) -> DistanceTypeOption:
-        """
-        Distance Type
-        """
-        return self._crs_distance_type_check()
-    # End distance_type property
-
-    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
-                    total_length: float, crs: 'CRS',
-                    distance: Any) -> 'ndarray':
-        """
-        Get Values
-        """
-        # noinspection bad-assignment
-        percent: float = self._config.distance
-        if percent is None or isnan(percent) or percent <= 0 or percent >= 100:
-            self._counter += 1
-            return array([], dtype=float)
-        return arange(percent, 100, percent) * total_length / 100
-    # End _get_values method
-# End QueryGeneratePointsAlongLinesPercentage class
-
-
-class QueryGeneratePointsAlongLinesDistance(
-        AbstractQueryGeneratePointsAlongLines):
-    """
-    Query for Generate Points Along Lines using Distance Placement
-    """
-    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
-                    total_length: float, crs: 'CRS',
-                    distance: Any) -> 'ndarray':
-        """
-        Get Values
-        """
-        # noinspection bad-argument-type
-        return self._build_range(
-            geoms, total_length=total_length, crs=crs,
-            unit=self._config.distance)
-    # End _get_values method
-# End QueryGeneratePointsAlongLinesDistance class
-
-
-class QueryGeneratePointsAlongLinesField(
-        AbstractQueryGeneratePointsAlongLines):
-    """
-    Query for Generate Points Along Lines using Field Placement
-    """
-    def _get_select_fields(self, element: 'FeatureClass') -> FIELDS:
-        """
-        Get Select Fields
-        """
-        primary = element.primary_key_field
-        return [primary, self._config.distance]
-    # End _get_select_fields method
 
     @cached_property
     def _source_unit_cls(self) -> Type['LinearUnit'] | Type['DecimalDegrees']:
         """
         Source Unit Class
         """
+        # noinspection bad-index
         return UNIT_CLASS_MAP[get_unit_name(self.source_crs)]
     # End _source_unit_cls method
-
-    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
-                    total_length: float, crs: 'CRS',
-                    distance: Any) -> 'ndarray':
-        """
-        Get Values
-        """
-        if distance is None:
-            self._counter += 1
-            return array([], dtype=float)
-        if self._is_numeric_field:
-            unit = self._source_unit_cls(distance)
-            return self._build_range(
-                geoms, total_length=total_length, crs=crs, unit=unit)
-        if SEMI not in distance:
-            unit = unit_factory(distance)
-            return self._build_range(
-                geoms, total_length=total_length, crs=crs, unit=unit)
-        return self._build_multi_values(geoms, total_length, crs, distance)
-    # End _get_values method
 
     def _build_multi_values(self, geoms: Union[list, 'GeometrySequence'],
                             total_length: float, crs: 'CRS',
@@ -411,7 +334,251 @@ class QueryGeneratePointsAlongLinesField(
             units.append(unit)
         return units
     # End _get_units_from_distances method
+
+    def _get_placement_details(self, features: list[tuple],
+                               geometries: 'ndarray', crs: 'CRS',
+                               getter: Callable) \
+            -> Generator[PlacementDetails]:
+        """
+        Get Placement Details
+        """
+        for (_, fid, distance), geom in zip(features, geometries):
+            lines = get_geoms(getter(geom))
+            # noinspection PyTypeChecker
+            lengths = length_(lines)
+            mask = isfinite(lengths) & (lengths > 0)
+            if not mask.any():  # pragma: no cover
+                continue
+            lengths = cumsum(lengths[mask])
+            lines = [line for line, truth in zip(lines, mask) if truth]
+            distances = self._get_values(
+                lines, total_length=lengths[-1], crs=crs, distance=distance)
+            coordinates, ids = get_coords_and_slices(
+                lines, include_z=True, include_m=True)
+            yield PlacementDetails(
+                fid=fid, lines=lines, lengths=lengths, distances=distances,
+                coordinates=coordinates, ids=ids)
+    # End _get_placement_details method
+# End AbstractQueryGenerateAlongLines class
+
+
+class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
+                                            metaclass=ABCMeta):
+    """
+    Abstract Query Generate Points Along Lines
+    """
+    def _along_planar(self, features: list[tuple],
+                      geometries: 'ndarray', crs: 'CRS',
+                      getter: Callable) -> list[tuple['Point', tuple]]:
+        """
+        Place Points Planar
+        """
+        records = []
+        for details in self._get_placement_details(
+                features, geometries=geometries, crs=crs, getter=getter):
+            results = interpolate_locations(
+                details.distances, lengths=details.lengths,
+                coordinates=details.coordinates, ids=details.ids,
+                fid=details.fid, include_ends=self._config.include_ends)
+            records.extend(results)
+        geoms = make_points(
+            records, has_z=self.source.has_z, has_m=self.source.has_m)
+        return [(pt, attrs) for pt, (_, *attrs) in zip(geoms, records)]
+    # End _along_planar method
+# End AbstractQueryGeneratePointsAlongLines class
+
+
+class AbstractQueryGenerateTransectsAlongLines(AbstractQueryGenerateAlongLines,
+                                               metaclass=ABCMeta):
+    """
+    Abstract Query Generate Transects Along Lines
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 placement: PLACEMENT, length: LinearUnit | DecimalDegrees,
+                 include_ends: bool, where_clause: str,
+                 distance_type: DistanceTypeOption) -> None:
+        """
+        Initialize the AbstractQueryGenerateTransectsAlongLines class
+        """
+        super().__init__(
+            source, target=target, placement=placement,
+            include_ends=include_ends, distance_type=distance_type,
+            where_clause=where_clause)
+        self._length: LinearUnit | DecimalDegrees = length
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return *super()._get_unique_fields(), ORIENTATION
+    # End _get_unique_fields method
+
+    def _along_planar(self, features: list[tuple],
+                      geometries: 'ndarray', crs: 'CRS',
+                      getter: Callable) -> list[tuple['LineString', tuple]]:
+        """
+        Place Points Planar
+        """
+        records = []
+        for details in self._get_placement_details(
+                features, geometries=geometries, crs=crs, getter=getter):
+            length = self._to_distance(
+                details.lines, crs=crs, unit=self._length)
+            results = interpolate_transects(
+                details.distances, lengths=details.lengths, length=length,
+                coordinates=details.coordinates, ids=details.ids,
+                fid=details.fid, include_ends=self._config.include_ends)
+            records.extend(results)
+        geoms = make_lines(
+            records, has_z=self.source.has_z, has_m=self.source.has_m)
+        return [(line, attrs) for line, (_, *attrs) in zip(geoms, records)]
+    # End _along_planar method
+# End AbstractQueryGenerateTransectsAlongLines class
+
+
+class AlongLinesPercentageMixin:
+    """
+    Along Lines Percentage Mixin
+    """
+    @cached_property
+    def distance_type(self) -> DistanceTypeOption:
+        """
+        Distance Type
+        """
+        # noinspection unresolved-references
+        return self._crs_distance_type_check()
+    # End distance_type property
+
+    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
+                    total_length: float, crs: 'CRS',
+                    distance: Any) -> 'ndarray':
+        """
+        Get Values
+        """
+        # noinspection bad-assignment,unresolved-references
+        percent: float = self._config.distance
+        if percent is None or isnan(percent) or percent <= 0 or percent >= 100:
+            # noinspection unresolved-references
+            self._counter += 1
+            return array([], dtype=float)
+        return arange(percent, 100, percent) * total_length / 100
+    # End _get_values method
+# End AlongLinesPercentageMixin class
+
+
+class AlongLinesDistanceMixin:
+    """
+    Along Lines Distance Mixin
+    """
+    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
+                    total_length: float, crs: 'CRS',
+                    distance: Any) -> 'ndarray':
+        """
+        Get Values
+        """
+        # noinspection bad-argument-type,unresolved-references
+        return self._build_range(
+            geoms, total_length=total_length, crs=crs,
+            unit=self._config.distance)
+    # End _get_values method
+# End AlongLinesDistanceMixin class
+
+
+class AlongLinesFieldMixin:
+    """
+    Along Lines Field Mixin
+    """
+    def _get_select_fields(self, element: 'FeatureClass') -> FIELDS:
+        """
+        Get Select Fields
+        """
+        primary = element.primary_key_field
+        # noinspection bad-return,unresolved-references
+        return [primary, self._config.distance]
+    # End _get_select_fields method
+
+    def _get_values(self, geoms: Union[list, 'GeometrySequence'],
+                    total_length: float, crs: 'CRS',
+                    distance: Any) -> 'ndarray':
+        """
+        Get Values
+        """
+        if distance is None:
+            # noinspection unresolved-references
+            self._counter += 1
+            return array([], dtype=float)
+        # noinspection unresolved-references
+        if self._is_numeric_field:
+            # noinspection unresolved-references
+            unit = self._source_unit_cls(distance)
+            # noinspection unresolved-references
+            return self._build_range(
+                geoms, total_length=total_length, crs=crs, unit=unit)
+        if SEMI not in distance:
+            unit = unit_factory(distance)
+            # noinspection unresolved-references
+            return self._build_range(
+                geoms, total_length=total_length, crs=crs, unit=unit)
+        # noinspection unresolved-references
+        return self._build_multi_values(geoms, total_length, crs, distance)
+    # End _get_values method
+# End AlongLinesFieldMixin class
+
+
+class QueryGeneratePointsAlongLinesPercentage(
+        AlongLinesPercentageMixin, AbstractQueryGeneratePointsAlongLines):
+    """
+    Query for Generate Points Along Lines using Percentage Placement
+    """
+# End QueryGeneratePointsAlongLinesPercentage class
+
+
+class QueryGeneratePointsAlongLinesDistance(
+        AlongLinesDistanceMixin, AbstractQueryGeneratePointsAlongLines):
+    """
+    Query for Generate Points Along Lines using Distance Placement
+    """
+# End QueryGeneratePointsAlongLinesDistance class
+
+
+class QueryGeneratePointsAlongLinesField(
+        AlongLinesFieldMixin, AbstractQueryGeneratePointsAlongLines):
+    """
+    Query for Generate Points Along Lines using Field Placement
+    """
 # End QueryGeneratePointsAlongLinesField class
+
+
+class QueryGenerateTransectsAlongLinesPercentage(
+        AlongLinesPercentageMixin, AbstractQueryGenerateTransectsAlongLines):
+    """
+    Query for Generate Transects Along Lines using Percentage Placement
+    """
+# End QueryGenerateTransectsAlongLinesPercentage class
+
+
+class QueryGenerateTransectsAlongLinesDistance(
+        AlongLinesDistanceMixin, AbstractQueryGenerateTransectsAlongLines):
+    """
+    Query for Generate Transects Along Lines using Distance Placement
+    """
+# End QueryGenerateTransectsAlongLinesDistance class
+
+
+class QueryGenerateTransectsAlongLinesField(
+        AlongLinesFieldMixin, AbstractQueryGenerateTransectsAlongLines):
+    """
+    Query for Generate Transects Along Lines using Field Placement
+    """
+# End QueryGenerateTransectsAlongLinesField class
 
 
 if __name__ == '__main__':  # pragma: no cover

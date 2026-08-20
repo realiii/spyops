@@ -25,15 +25,18 @@ from spyops.management.indexes import (
     add_attribute_index, add_spatial_index, remove_attribute_index,
     remove_spatial_index)
 from spyops.management.projections import define_projection, project
+from spyops.management.sampling import (
+    generate_points_along_lines, generate_transects_along_lines)
 from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.management.workspace import (
     create_folder, create_geopackage, create_sqlite_database)
 from spyops.shared.enumeration import (
-    AttributeSource, FieldProperty, GeometryAttribute, GeometryCheck,
-    GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
-    SpatialSortOption, StandardDeviationOptions, StandardizationMethod,
-    StatisticOutputOption, TransformationMethod, WeightOption)
+    AttributeSource, DistanceTypeOption, FieldProperty, GeometryAttribute,
+    GeometryCheck, GroupOption, LineTypeOption, MinimumGeometryOption,
+    PlacementOption, PointTypeOption, SpatialSortOption,
+    StandardDeviationOptions, StandardizationMethod, StatisticOutputOption,
+    TransformationMethod, WeightOption)
 from spyops.shared.reclass import (
     DefinedIntervalReclass, EqualIntervalReclass, ManualReclass,
     NaturalBreaksReclass, QuantileReclass, StandardDeviationReclass,
@@ -102,6 +105,9 @@ __all__ = [
     'define_projection',
     'project',
 
+    'generate_points_along_lines',
+    'generate_transects_along_lines',
+
     'copy_rows',
     'create_table',
     'delete_rows',
@@ -114,6 +120,7 @@ __all__ = [
 
     'AreaUnit',
     'AttributeSource',
+    'DistanceTypeOption',
     'FieldProperty',
     'GeometryAttribute',
     'GeometryCheck',
@@ -121,6 +128,7 @@ __all__ = [
     'LengthUnit',
     'LineTypeOption',
     'MinimumGeometryOption',
+    'PlacementOption',
     'PointTypeOption',
     'SpatialSortOption',
     'StandardDeviationOptions',

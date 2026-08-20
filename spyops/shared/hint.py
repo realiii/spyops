@@ -28,6 +28,7 @@ DISTANCE: TypeAlias = Union[
 PLACEMENT: TypeAlias = Union['LinearUnit', 'DecimalDegrees', 'Field', float]
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
 UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
+TRANSECT_LENGTH: TypeAlias = Union[UNIT, str, float, int]
 VALUES: TypeAlias = Union[list[float], tuple[float, ...], 'ndarray']
 
 UPDATES_SHAPELY: TypeAlias = list[tuple[
