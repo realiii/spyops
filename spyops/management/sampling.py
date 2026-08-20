@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING
 from spyops.management.util import _generate_along_lines
 from spyops.query.management.sampling import (
     QueryGeneratePointsAlongLinesDistance, QueryGeneratePointsAlongLinesField,
-    QueryGeneratePointsAlongLinesPercentage)
+    QueryGeneratePointsAlongLinesPercentage,
+    QueryGenerateTransectsAlongLinesDistance,
+    QueryGenerateTransectsAlongLinesField,
+    QueryGenerateTransectsAlongLinesPercentage)
 from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import DISTANCE, TRANSECT_LENGTH
@@ -146,7 +149,17 @@ def generate_transects_along_lines(
       source feature class spatial reference.
 
     """
-    pass
+    if placement_option == PlacementOption.PERCENTAGE:
+        cls = QueryGenerateTransectsAlongLinesPercentage
+    elif placement_option == PlacementOption.FIELD:
+        cls = QueryGenerateTransectsAlongLinesField
+    else:
+        cls = QueryGenerateTransectsAlongLinesDistance
+    # noinspection bad-argument-type
+    query = cls(source=source, target=target, placement=placement,
+                length=length, include_ends=include_ends,
+                distance_type=distance_type, where_clause=where_clause)
+    return _generate_along_lines(query)
 # End generate_transects_along_lines function
 
 
