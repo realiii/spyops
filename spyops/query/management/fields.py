@@ -626,7 +626,11 @@ class QueryReclassifyFieldUniqueValues(QueryReclassifyField):
         """
         Get Expression
         """
-        breaks = f'DENSE_RANK() OVER (ORDER BY {self._field.escaped_name})'
+        if self._reclass.reverse:
+            order = 'DESC'
+        else:
+            order = 'ASC'
+        breaks = f'DENSE_RANK() OVER (ORDER BY {self._field.escaped_name} {order})'
         return breaks, EMPTY
     # End _get_expression method
 # End QueryReclassifyFieldUniqueValues class

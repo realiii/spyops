@@ -270,7 +270,10 @@ class TestQueryReclassifyField:
         assert label_expected in lab_exp
     # End test_expression method
 
-    def test_unique_expression(self, inputs, mem_gpkg):
+    @mark.parametrize('reverse', [
+        True, False
+    ])
+    def test_unique_expression(self, inputs, mem_gpkg, reverse):
         """
         Test expression for unique values
         """
@@ -280,12 +283,16 @@ class TestQueryReclassifyField:
         field = Field('NAME', data_type=FieldType.text)
         code = Field('code', data_type=FieldType.integer)
         source.add_fields([code])
-        reclass = UniqueValuesReclass()
+        reclass = UniqueValuesReclass(reverse=reverse)
         with QueryReclassifyFieldUniqueValues(
                 source, field=field, output_field=code, label_field=None,
                 where_clause=where_clause, reclass=reclass) as query:
             code_exp, lab_exp = query._get_expression()
-        assert 'DENSE_RANK() OVER (ORDER BY NAME)' in code_exp
+        assert 'DENSE_RANK() OVER (ORDER BY NAME' in code_exp
+        if reverse:
+            assert 'DESC)' in code_exp
+        else:
+            assert 'ASC)' in code_exp
         assert not lab_exp
     # End test_unique_expression method
 # End TestQueryReclassifyField class
