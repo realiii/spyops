@@ -27,8 +27,11 @@ DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
 PLACEMENT: TypeAlias = Union['LinearUnit', 'DecimalDegrees', 'Field', float]
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
-UNIT_TOLERANCE: TypeAlias = Union[UNIT, str, float, int]
-TRANSECT_LENGTH: TypeAlias = Union[UNIT, str, float, int]
+UNIT_INPUT = Union[UNIT, str, float, int]
+UNIT_TOLERANCE: TypeAlias = UNIT_INPUT
+TRANSECT_LENGTH: TypeAlias = UNIT_INPUT
+RECT_LENGTH: TypeAlias = UNIT_INPUT
+RECT_WIDTH: TypeAlias = UNIT_INPUT
 VALUES: TypeAlias = Union[list[float], tuple[float, ...], 'ndarray']
 
 UPDATES_SHAPELY: TypeAlias = list[tuple[
