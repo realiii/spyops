@@ -445,7 +445,7 @@ USSurveyYards = YardsUS
 Degrees = DecimalDegrees
 
 
-UNIT_CLASS_MAP: dict[str, Type['LinearUnit'] | Type['DecimalDegrees']] = {
+UNIT_CLASS_MAP: dict[str, Type[UNIT]] = {
     'ft': FeetInternational,
     'feet': FeetInternational,
     'foot': FeetInternational,
@@ -528,7 +528,7 @@ UNIT_CLASS_MAP.update(
     {k.replace(UNDERSCORE, EMPTY): v for k, v in UNIT_CLASS_MAP.items()})
 
 
-DISTANCE_UNIT_LUT: dict[DistanceUnit, Type[LinearUnit | DecimalDegrees]] = {
+DISTANCE_UNIT_LUT: dict[DistanceUnit, Type[UNIT]] = {
     DistanceUnit.KILOMETERS: Kilometers,
     DistanceUnit.METERS: Meters,
 

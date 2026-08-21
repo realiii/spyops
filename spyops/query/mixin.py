@@ -27,7 +27,7 @@ from spyops.shared.constant import DOT, DRID, EMPTY, METRE, SEMI
 from spyops.shared.database import add_aggregates, remove_aggregates
 from spyops.shared.field import (
     NUMBERS, TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS
+from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS, UNIT
 from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
@@ -215,9 +215,9 @@ class UnitTypeMixin:
     """
     Unit Type Mixin
     """
+
     def _convert_unit(self, is_geodesic: bool, crs: 'CRS',
-                      geoms: Union[list, 'ndarray'],
-                      unit: LinearUnit | DecimalDegrees,
+                      geoms: Union[list, 'ndarray'], unit: UNIT,
                       broadcast: bool = True) -> Union['ndarray', float]:
         """
         Convert Unit
@@ -245,8 +245,7 @@ class UnitTypeMixin:
     # End _convert_unit method
 
     def _convert_units(self, is_geodesic: bool, crs: 'CRS', geoms: 'ndarray',
-                       units: list[LinearUnit | DecimalDegrees | None]) \
-            -> 'ndarray':
+                       units: list[UNIT | None]) -> 'ndarray':
         """
         Convert Units
         """

@@ -7,7 +7,7 @@ Queries for Sampling
 from abc import ABCMeta, abstractmethod
 from functools import cache, cached_property
 from typing import (
-    Any, Callable, Generator, NamedTuple, Optional, TYPE_CHECKING, Type, Union)
+    Any, Callable, Generator, NamedTuple, TYPE_CHECKING, Type, Union)
 from warnings import warn
 
 from fudgeo.enumeration import ShapeType
@@ -30,7 +30,7 @@ from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
     ALONG, ORIENTATION, ORIG_FID, SEQ_NUM, get_geometry_column_name,
     make_field_names)
-from spyops.shared.hint import FIELDS, PLACEMENT
+from spyops.shared.hint import FIELDS, PLACEMENT, UNIT
 from spyops.shared.util import safe_float
 
 
@@ -40,7 +40,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj import CRS
     from shapely import LineString, Point
     from shapely.geometry.base import BaseGeometry, GeometrySequence
-    from spyops.crs.unit import LinearUnit, DecimalDegrees
 
 
 class PlacementConfig(NamedTuple):
@@ -258,8 +257,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
 
     def _build_range(self, geoms: Union[list, 'GeometrySequence'],
                      total_length: float, crs: 'CRS',
-                     unit: Optional[Union['LinearUnit', 'DecimalDegrees']]) \
-            -> 'ndarray':
+                     unit: UNIT | None) -> 'ndarray':
         """
         Build Range of Distances from unit
         """
@@ -274,8 +272,8 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         return arange(distance, total_length, distance)
     # End _build_range method
 
-    def _to_distance(self, geoms: Union[list, 'GeometrySequence'], crs: 'CRS',
-                     unit: Union['LinearUnit', 'DecimalDegrees']) -> float:
+    def _to_distance(self, geoms: Union[list, 'GeometrySequence'],
+                     crs: 'CRS', unit: UNIT) -> float:
         """
         Convert unit to distance
         """
@@ -286,7 +284,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
     # End _to_distance method
 
     @cached_property
-    def _source_unit_cls(self) -> Type['LinearUnit'] | Type['DecimalDegrees']:
+    def _source_unit_cls(self) -> Type[UNIT]:
         """
         Source Unit Class
         """
@@ -317,8 +315,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         return array(distances, dtype=float)
     # End _build_multi_values method
 
-    def _get_units_from_distances(self, distance: str) \
-            -> list[Optional[Union['LinearUnit', 'DecimalDegrees']]]:
+    def _get_units_from_distances(self, distance: str) -> list[UNIT | None]:
         """
         Get Units from Distances
         """
@@ -393,10 +390,10 @@ class AbstractQueryGenerateTransectsAlongLines(AbstractQueryGenerateAlongLines,
     """
     Abstract Query Generate Transects Along Lines
     """
+
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
-                 placement: PLACEMENT, length: LinearUnit | DecimalDegrees,
-                 include_ends: bool, where_clause: str,
-                 distance_type: DistanceTypeOption) -> None:
+                 placement: PLACEMENT, length: UNIT, include_ends: bool,
+                 where_clause: str, distance_type: DistanceTypeOption) -> None:
         """
         Initialize the AbstractQueryGenerateTransectsAlongLines class
         """
@@ -404,7 +401,7 @@ class AbstractQueryGenerateTransectsAlongLines(AbstractQueryGenerateAlongLines,
             source, target=target, placement=placement,
             include_ends=include_ends, distance_type=distance_type,
             where_clause=where_clause)
-        self._length: LinearUnit | DecimalDegrees = length
+        self._length: UNIT = length
     # End init built-in
 
     def _get_target_shape_type(self) -> str:
