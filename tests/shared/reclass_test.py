@@ -155,7 +155,7 @@ class TestManualReclass:
         """
         Test method
         """
-        reclass = ManualReclass([(1, 'a'), (2, 'b'), (3, 'c')])
+        reclass = ManualReclass([(1, 100), (2, -123), (3, 12.345)])
         assert reclass.method == ReclassificationMethod.MANUAL
     # End test_method method
 
@@ -163,10 +163,11 @@ class TestManualReclass:
         """
         Test build breaks
         """
-        reclass = ManualReclass([(1, 'a'), (2, 'b'), (3, 'c')])
-        breaks, labels = reclass._build_breaks(0, 4)
-        assert breaks == [0, 1, 2, 3, 4]
-        assert labels == ['', 'a', 'b', 'c', '']
+        reclass = ManualReclass([(1, 100), (2, -123), (3, 12.345)])
+        breaks = reclass._build_breaks(0, 4)
+        assert breaks == [0, 1, 2, 3]
+        labels = reclass._build_labels(breaks)
+        assert labels == ['0.000000 - 1.000000', '1.000000 - 2.000000', '2.000000 - 3.000000']
     # End test_build_breaks method
 # End TestManualReclass class
 

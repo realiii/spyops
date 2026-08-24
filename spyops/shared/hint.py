@@ -37,9 +37,7 @@ UPDATES_FUDGEO: TypeAlias = list[tuple[int, 'AbstractGeometry']]
 
 NAMES: TypeAlias = list[str] | tuple[str, ...]
 NUMBER: TypeAlias = float | int
-RECLASS_TABLE: TypeAlias = (
-        list[tuple[NUMBER, NUMBER | str]] |
-        tuple[tuple[NUMBER, NUMBER | str], ...])
+RECLASS_TABLE: TypeAlias = (list[tuple[NUMBER, NUMBER]] | tuple[tuple[NUMBER, NUMBER], ...])
 OPT_NUMBER: TypeAlias = NUMBER | None
 
 XY_TOL: TypeAlias = OPT_NUMBER
