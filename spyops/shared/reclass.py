@@ -14,7 +14,6 @@ from fudgeo.constant import COMMA_SPACE
 from numpy import (
     arange, argmin, asarray, cumsum, full, isfinite, ndarray, sort, zeros)
 
-from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import (
     ReclassificationMethod, StandardDeviationOptions)
 from spyops.shared.hint import ELEMENT, NUMBER, RECLASS_TABLE
@@ -39,6 +38,14 @@ class AbstractReclass(metaclass=ABCMeta):
         self._method: ReclassificationMethod = method
         self._reverse: bool = reverse
     # End init built-in
+
+    @abstractmethod
+    def _build_breaks(self, *args, **kwargs) -> list:
+        """
+        Build Breaks
+        """
+        pass
+    # End _build_breaks method
 
     @staticmethod
     def _add_min_max(breaks: list, min_: NUMBER, max_: NUMBER) \
@@ -96,6 +103,13 @@ class AbstractReclass(metaclass=ABCMeta):
         """
         pass
     # End get_breaks method
+
+    def get_codes(self, values: list) -> list[NUMBER]:
+        """
+        Get Codes
+        """
+        return sorted(range(1, len(values)), reverse=self.reverse)
+    # End get_codes method
 # End AbstractReclass class
 
 
@@ -236,20 +250,16 @@ class ManualReclass(AbstractReclass):
             raise TypeError(msg)
     # End _validate method
 
-    def _build_breaks(self, min_: NUMBER, max_: NUMBER) \
-            -> tuple[list[NUMBER], list[str]]:
+    def _build_breaks(self, min_: NUMBER, max_: NUMBER) -> list:
         """
         Build Breaks (and Labels)
         """
         table = sorted(self._table)
         breaks = [b for b, _ in table]
-        add_min, add_max = self._add_min_max(breaks, min_, max_)
-        labels = [str(label) for _, label in table]
-        if add_min:
-            labels.insert(0, EMPTY)
+        _, add_max = self._add_min_max(breaks, min_, max_)
         if add_max:
-            labels.append(EMPTY)
-        return breaks, labels
+            breaks = breaks[:-1]
+        return breaks
     # End _build_breaks method
 
     def get_breaks(self, element: ELEMENT, field: 'Field',
@@ -259,8 +269,21 @@ class ManualReclass(AbstractReclass):
         """
         min_, max_ = _fetch_min_max(
             element, field=field, where_clause=where_clause)
-        return self._build_breaks(min_, max_)
+        breaks = self._build_breaks(min_, max_)
+        labels = self._build_labels(breaks)
+        return breaks, labels
     # End get_breaks method
+
+    def get_codes(self, values: list) -> list[NUMBER]:
+        """
+        Get Codes
+        """
+        table = sorted(self._table)
+        codes = [c for _, c in table]
+        if self.reverse:
+            codes = codes[::-1]
+        return codes
+    # End get_codes method
 # End ManualReclass class
 
 
@@ -277,6 +300,13 @@ class NaturalBreaksReclass(ClassesValidationMixin, AbstractReclass):
         self._validate(classes)
     # End init built-in
 
+    def _build_breaks(self, values: list) -> list:
+        """
+        Build Breaks
+        """
+        return _fisher_jenks(values, self._classes)
+    # End _build_breaks method
+
     def get_breaks(self, element: ELEMENT, field: 'Field',
                    where_clause: str) -> tuple[list[NUMBER], list[str]]:
         """
@@ -285,7 +315,7 @@ class NaturalBreaksReclass(ClassesValidationMixin, AbstractReclass):
         values = _fetch_values(element, field=field, where_clause=where_clause)
         if not values:
             return [], []
-        breaks = _fisher_jenks(values, self._classes)
+        breaks = self._build_breaks(values)
         return breaks, self._build_labels(breaks)
     # End get_breaks method
 # End NaturalBreaksReclass class
@@ -376,6 +406,7 @@ class StandardDeviationReclass(AbstractReclass):
         return labels
     # End _build_extended_labels method
 
+    # noinspection method-overriding
     def _build_breaks(self, avg: NUMBER, dev: NUMBER, min_: NUMBER,
                       max_: NUMBER, half_count: int,
                       size: NUMBER) -> tuple[list, list]:
@@ -443,6 +474,13 @@ class UniqueValuesReclass(AbstractReclass):
         """
         super().__init__(ReclassificationMethod.UNIQUE_VALUES, reverse=reverse)
     # End init built-in
+
+    def _build_breaks(self) -> list:
+        """
+        Build Breaks
+        """
+        pass
+    # End _build_breaks method
 
     def _validate(self, value: Any) -> None:
         """
