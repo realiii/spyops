@@ -556,8 +556,8 @@ class QueryReclassifyField(AbstractQueryFieldUpdater):
         where_clause = self._build_where_clause()
         breaks, labels = self._reclass.get_breaks(
             self.source, field=self._field, where_clause=where_clause)
-        ids = sorted(range(1, len(breaks)), reverse=self._reclass.reverse)
-        break_case = self._make_case(breaks, values=ids)
+        codes = self._reclass.get_codes(breaks)
+        break_case = self._make_case(breaks, values=codes)
         label_case = self._make_case(breaks, values=labels)
         return break_case, label_case
     # End _get_expression method
