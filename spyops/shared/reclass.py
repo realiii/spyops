@@ -222,8 +222,7 @@ class ManualReclass(AbstractReclass):
             raise TypeError(f'table must be a list or tuple, got {type(value)}')
         if not value:
             raise ValueError('table must contain at least one item')
-        msg = ('table must contain lists / tuples with exactly 2 values, '
-               'numeric and numeric / text')
+        msg = 'table must contain lists / tuples with exactly 2 numeric values'
         if not all(isinstance(item, (list, tuple)) for item in value):
             raise TypeError(msg)
         if not all(len(item) == 2 for item in value):
@@ -233,7 +232,7 @@ class ManualReclass(AbstractReclass):
             raise TypeError(msg)
         if len(set(values)) != len(values):
             raise ValueError('table must contain unique break values')
-        if not all(isinstance(label, (Number, str)) for _, label in value):
+        if not all(isinstance(code, Number) for _, code in value):
             raise TypeError(msg)
     # End _validate method
 
