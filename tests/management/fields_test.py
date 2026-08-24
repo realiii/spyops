@@ -570,7 +570,41 @@ class TestReclassifyField:
                 assert len(cursor.fetchall()) == count
     # End test_reclass method
 
-    def test_unique_values(self, inputs, mem_gpkg):
+    @mark.parametrize('table, codes, labels', [
+        ([(10, 1), (30, 2), (100, 5)],  [1, 2, 5], ['0.000000 - 10.000000', '10.000000 - 30.000000', '30.000000 - 100.000000']),
+        ([(10, 1), (30, 2), (100, 5), (10**9, 88)],  [1, 2, 5], ['0.000000 - 10.000000', '10.000000 - 30.000000', '30.000000 - 100.000000']),
+        ([(0, 123), (10, 1), (30, 2), (100, 5)],  [123, 1, 2], ['0.000000 - 10.000000', '10.000000 - 30.000000', '30.000000 - 100.000000']),
+        ([(-100, 999), (10, 1), (30, 2), (100, 5)], [999, 1, 2], ['-100.000000 - 10.000000', '10.000000 - 30.000000', '30.000000 - 100.000000']),
+    ])
+    def test_manual_reclass_labels(self, inputs, mem_gpkg, table, codes, labels):
+        """
+        Test manual reclass labels
+        """
+        where_clause = """FID < 500"""
+        source = inputs['river_p'].copy(
+            name='copy', geopackage=mem_gpkg, where_clause=where_clause)
+        field = Field('distance', data_type=FieldType.real)
+        code = Field('code', data_type=FieldType.integer)
+        label = Field('label', data_type=FieldType.text)
+        source.add_fields([code, label])
+        reclass = ManualReclass(table)
+        reclassify_field(
+            source, field=field, output_field=code, label_field=label,
+            reclass=reclass)
+        with source.geopackage.connection as cin:
+            name = source.escaped_name
+            cursor = cin.execute(
+                f"""SELECT DISTINCT {code.escaped_name} FROM {name}""")
+            assert [c for c, in cursor.fetchall()] == codes
+            cursor = cin.execute(
+                f"""SELECT DISTINCT {label.escaped_name} FROM {name}""")
+            assert [lab for lab, in cursor.fetchall()] == labels
+    # End test_manual_reclass_labels method
+
+    @mark.parametrize('reverse', [
+        True, False
+    ])
+    def test_unique_values(self, inputs, mem_gpkg, reverse):
         """
         Test unique values
         """
@@ -582,12 +616,15 @@ class TestReclassifyField:
         source.add_fields([code])
         reclassify_field(
             source, field=field, output_field=code,
-            reclass=UniqueValuesReclass())
+            reclass=UniqueValuesReclass(reverse=reverse))
         with source.geopackage.connection as cin:
             name = source.escaped_name
             cursor = cin.execute(
                 f"""SELECT DISTINCT {code.escaped_name} FROM {name}""")
             assert len(cursor.fetchall()) == 2
+            cursor = cin.execute(
+                f"""SELECT {code.escaped_name} FROM {name}""")
+            assert cursor.fetchone() == (1 + int(reverse),)
     # End test_unique_values method
 # End TestReclassifyField class
 

@@ -48,6 +48,11 @@ MIT
 
 
 ## Release History
+### v0.2.2
+- include support for `reverse` on `UniqueValuesReclass`
+- improve generated label for `ManualReclass` and retain code values
+- update wiki for `reclassify_field`
+
 ### v0.2.1
 - fix spelling on keyword argument and extract to utility function
 
