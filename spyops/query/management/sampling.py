@@ -18,8 +18,8 @@ from spyops.crs.unit import UNIT_CLASS_MAP, get_unit_name, unit_factory
 from spyops.crs.util import crs_from_srs
 from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.distance import (
-    get_equidistant_details, interpolate_locations, interpolate_transects,
-    make_lines, make_points)
+    get_equidistant_details, interpolate_locations, interpolate_rectangles,
+    interpolate_transects, make_lines, make_points, make_rectangles)
 from spyops.geometry.util import (
     get_coords_and_slices, get_geoms, nada, to_shapely)
 from spyops.query.base import AbstractSourceQuery
@@ -28,8 +28,8 @@ from spyops.shared.constant import SEMI, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import DistanceTypeOption
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    ALONG, ORIENTATION, ORIG_FID, SEQ_NUM, get_geometry_column_name,
-    make_field_names)
+    ALONG, BEGIN_ALONG, END_ALONG, NEXT_NUM, ORIENTATION, ORIG_FID, PREV_NUM,
+    SEQ_NUM, get_geometry_column_name, make_field_names)
 from spyops.shared.hint import FIELDS, PLACEMENT, UNIT
 from spyops.shared.util import safe_float
 
@@ -38,7 +38,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
     from pyproj import CRS
-    from shapely import LineString, Point
+    from shapely import LineString, Point, Polygon
     from shapely.geometry.base import BaseGeometry, GeometrySequence
 
 
@@ -436,9 +436,71 @@ class AbstractQueryGenerateTransectsAlongLines(AbstractQueryGenerateAlongLines,
             records.extend(results)
         geoms = make_lines(
             records, has_z=self.source.has_z, has_m=self.source.has_m)
-        return [(line, attrs) for line, (_, *attrs) in zip(geoms, records)]
+        return [(line, attrs) for line, (_, _, *attrs) in zip(geoms, records)]
     # End _along_planar method
 # End AbstractQueryGenerateTransectsAlongLines class
+
+
+class AbstractQueryGenerateRectanglesAlongLines(
+        AbstractQueryGenerateTransectsAlongLines, metaclass=ABCMeta):
+    """
+    Abstract Query Generate Rectangles Along Lines
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 placement: PLACEMENT, length: UNIT, width: UNIT,
+                 include_ends: bool, where_clause: str,
+                 distance_type: DistanceTypeOption) -> None:
+        """
+        Initialize the AbstractQueryGenerateTransectsAlongLines class
+        """
+        super().__init__(
+            source, target=target, placement=placement,
+            include_ends=include_ends, distance_type=distance_type,
+            where_clause=where_clause, length=length)
+        self._width: UNIT = width
+    # End init built-in
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return (ORIG_FID, SEQ_NUM, BEGIN_ALONG, END_ALONG, ORIENTATION,
+                PREV_NUM, NEXT_NUM)
+    # End _get_unique_fields method
+
+    # noinspection method-overriding
+    def _along_planar(self, features: list[tuple],
+                      geometries: 'ndarray', crs: 'CRS',
+                      getter: Callable) -> list[tuple['Polygon', tuple]]:
+        """
+        Place Points Planar
+        """
+        records = []
+        for details in self._get_placement_details(
+                features, geometries=geometries, crs=crs, getter=getter):
+            length = self._to_distance(
+                details.lines, crs=crs, unit=self._length)
+            width = self._to_distance(
+                details.lines, crs=crs, unit=self._width)
+            results = interpolate_rectangles(
+                details.distances, lengths=details.lengths,
+                length=length, width=width,
+                coordinates=details.coordinates, ids=details.ids,
+                fid=details.fid, include_ends=self._config.include_ends)
+            records.extend(results)
+        geoms = make_rectangles(
+            records, has_z=self.source.has_z, has_m=self.source.has_m)
+        return [(poly, attrs)
+                for poly, (_, _, _, _, *attrs) in zip(geoms, records)]
+    # End _along_planar method
+# End AbstractQueryGenerateRectanglesAlongLines class
 
 
 class AlongLinesPercentageMixin:
@@ -576,6 +638,30 @@ class QueryGenerateTransectsAlongLinesField(
     Query for Generate Transects Along Lines using Field Placement
     """
 # End QueryGenerateTransectsAlongLinesField class
+
+
+class QueryGenerateRectanglesAlongLinesPercentage(
+        AlongLinesPercentageMixin, AbstractQueryGenerateRectanglesAlongLines):
+    """
+    Query for Generate Rectangles Along Lines using Percentage Placement
+    """
+# End QueryGenerateRectanglesAlongLinesPercentage class
+
+
+class QueryGenerateRectanglesAlongLinesDistance(
+        AlongLinesDistanceMixin, AbstractQueryGenerateRectanglesAlongLines):
+    """
+    Query for Generate Rectangles Along Lines using Distance Placement
+    """
+# End QueryGenerateRectanglesAlongLinesDistance class
+
+
+class QueryGenerateRectanglesAlongLinesField(
+        AlongLinesFieldMixin, AbstractQueryGenerateRectanglesAlongLines):
+    """
+    Query for Generate Rectangles Along Lines using Field Placement
+    """
+# End QueryGenerateRectanglesAlongLinesField class
 
 
 if __name__ == '__main__':  # pragma: no cover
