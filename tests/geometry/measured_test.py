@@ -72,6 +72,15 @@ def test_interpolate_measures_out_of_bounds(straight_line, m_value):
 # End test_interpolate_measures_out_of_bounds function
 
 
+def test_interpolate_measures_start(straight_line):
+    """
+    Test start
+    """
+    result = straight_line.interpolate([0])
+    assert result.tolist() == [[0, 0, 0, 0]]
+# End test_interpolate_measures_start function
+
+
 @mark.parametrize(('values', 'expected'), [
     ([0, 10, 35], [0, -36.86, -14.03]),
     ([-10, 90, 10000], [nan, 59.03, nan]),

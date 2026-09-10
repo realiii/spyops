@@ -41,7 +41,7 @@ from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
     ORIG_FID, add_orig_fid, get_geometry_column_name, make_field_names,
     make_unique_fields, validate_fields)
-from spyops.shared.hint import FIELDS, XY_TOL
+from spyops.shared.hint import FIELDS, UNIT, XY_TOL
 from spyops.shared.keywords import (
     CRS_KEY, END_OPTION, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION)
 
@@ -57,7 +57,7 @@ class BufferConfig(NamedTuple):
     """
     Buffer Config
     """
-    distance: Field | LinearUnit | DecimalDegrees
+    distance: Field | UNIT
     buffer_type: BufferTypeOption
     side_option: SideOption
     end_option: EndOption
@@ -71,10 +71,10 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
     Abstract Query Buffer Dissolve Class
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
-                 distance: Field | LinearUnit | DecimalDegrees,
-                 buffer_type: BufferTypeOption, fields: FIELDS | None,
-                 side_option: SideOption, end_option: EndOption,
-                 resolution: int, xy_tolerance: XY_TOL) -> None:
+                 distance: Field | UNIT, buffer_type: BufferTypeOption,
+                 fields: FIELDS | None, side_option: SideOption,
+                 end_option: EndOption, resolution: int,
+                 xy_tolerance: XY_TOL) -> None:
         """
         Initialize the AbstractQueryBufferDissolve class
         """
@@ -265,8 +265,8 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
         return geoms, unique_ids
     # End _dissolve_polygons method
 
-    def _get_units(self, features: list[tuple]) -> tuple[
-            list[LinearUnit | DecimalDegrees | None], 'ndarray']:
+    def _get_units(self, features: list[tuple]) \
+            -> tuple[list[UNIT | None], 'ndarray']:
         """
         Get Units and Conversion Validity
         """
@@ -276,8 +276,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
         return units, valid
     # End _get_units method
 
-    def _get_distances(self, geoms: 'ndarray',
-                       units: list[LinearUnit | DecimalDegrees | None]) \
+    def _get_distances(self, geoms: 'ndarray', units: list[UNIT | None]) \
             -> tuple['ndarray', 'ndarray']:
         """
         Get Distances and Distance Validity
@@ -290,8 +289,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
         return distances, valid
     # End _get_distances method
 
-    def _get_distances_broadcast(self, geoms: 'ndarray',
-                                 unit: LinearUnit | DecimalDegrees) \
+    def _get_distances_broadcast(self, geoms: 'ndarray', unit: UNIT) \
             -> tuple['ndarray', 'ndarray']:
         """
         Get Distances and Distance Validity, broadcasting unit to all geometries
@@ -708,7 +706,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
             yield query, update_sql
     # End iter built-in
 
-    def _make_update_sql(self, distance: LinearUnit | DecimalDegrees) -> str:
+    def _make_update_sql(self, distance: UNIT) -> str:
         """
         Make Update SQL
         """
@@ -722,8 +720,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         """
     # End _make_update_sql method
 
-    def _distances_and_labels(self) \
-            -> tuple[list[LinearUnit | DecimalDegrees], list[str]]:
+    def _distances_and_labels(self) -> tuple[list[UNIT], list[str]]:
         """
         Distances as Units and Corresponding Labels
         """
@@ -737,8 +734,8 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
             return self._distance_labels_sans(unit)
     # End _distances_and_labels method
 
-    def _distances_labels_overlap(self, unit: Type[LinearUnit | DecimalDegrees]) \
-            -> tuple[list[LinearUnit | DecimalDegrees], list[str]]:
+    def _distances_labels_overlap(self, unit: Type[UNIT]) \
+            -> tuple[list[UNIT], list[str]]:
         """
         Distances and Labels for Overlapping Polygons (aka Dissolve NONE)
         """
@@ -756,8 +753,8 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         return units, labels
     # End _distances_labels_overlap method
 
-    def _distance_labels_sans(self, unit: Type[LinearUnit | DecimalDegrees]) \
-            -> tuple[list[LinearUnit | DecimalDegrees], list[str]]:
+    def _distance_labels_sans(self, unit: Type[UNIT]) \
+            -> tuple[list[UNIT], list[str]]:
         """
         Distance Labels for Non-Overlapping Polygons (aka Dissolve ALL)
         """
@@ -769,15 +766,14 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
     # End _distance_labels_sans method
 
     @staticmethod
-    def _make_labels(units: list[LinearUnit | DecimalDegrees]) -> list[str]:
+    def _make_labels(units: list[UNIT]) -> list[str]:
         """
         Make Labels
         """
         return [str(unit) for unit in units]
     # End _make_labels method
 
-    def _include_original_polygon(self, unit: Type[LinearUnit | DecimalDegrees]) \
-            -> list[LinearUnit | DecimalDegrees]:
+    def _include_original_polygon(self, unit: Type[UNIT]) -> list[UNIT]:
         """
         Include Original Polygon
         """

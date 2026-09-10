@@ -81,10 +81,20 @@ ORIG_SEQ: Field = Field(
     'ORIG_SEQ', data_type=FieldType.integer, alias='Original Sequence Number')
 SEQ_NUM: Field = Field(
     'SEQ_NUM', data_type=FieldType.integer, alias='Sequence Number')
+PREV_NUM: Field = Field(
+    'PREV_NUM', data_type=FieldType.integer, alias='Previous Sequence Number')
+NEXT_NUM: Field = Field(
+    'NEXT_NUM', data_type=FieldType.integer, alias='Next Sequence Number')
 ALONG: Field = Field(
     'ALONG', data_type=FieldType.real, alias='Length Along Line')
-ORIENTATION: Field = Field(
-    'ORIENTATION', data_type=FieldType.real, alias='Orientation Along Line')
+BEGIN_ALONG: Field = Field(
+    'BEGIN_ALONG', data_type=FieldType.real,
+    alias='Beginning Length Along Line')
+END_ALONG: Field = Field(
+    'END_ALONG', data_type=FieldType.real, alias='Ending Length Along Line')
+ORIENTATION: Field = Field('ORIENTATION', data_type=FieldType.real)
+
+
 MBG_WIDTH: Field = Field(
     'MBG_WIDTH', data_type=FieldType.real,
     alias='Width of Minimum Bounding Geometry')
@@ -94,8 +104,10 @@ MBG_LENGTH: Field = Field(
 MBG_ORIENTATION: Field = Field(
     'MBG_ORIENTATION', data_type=FieldType.real,
     alias='Orientation of Minimum Bounding Geometry')
+
 REASON: Field = Field(
     'REASON', data_type=FieldType.text, alias='Geometry Check Reason')
+
 POINT_X: Field = Field(
     'POINT_X', data_type=FieldType.real, alias='X Coordinate')
 POINT_Y: Field = Field(
@@ -110,6 +122,7 @@ FIELD_ALIAS: Field = Field(
     'FIELD_ALIAS', data_type=FieldType.text, alias='Alias')
 FIELD_TYPE: Field = Field(
     'FIELD_TYPE', data_type=FieldType.text, alias='Field Type')
+
 MIN_X: Field = Field('minx', data_type=FieldType.real)
 MIN_Y: Field = Field('miny', data_type=FieldType.real)
 MAX_X: Field = Field('maxx', data_type=FieldType.real)

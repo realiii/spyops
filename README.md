@@ -52,6 +52,7 @@ MIT
 ### v0.3.0 (wip)
 - added `generate_points_along_lines` (Management - Sampling)
 - added `generate_transects_along_lines` (Management - Sampling)
+- added `generate_rectangles_along_lines` (Management - Sampling)
 
 ### v0.2.2
 - include support for `reverse` on `UniqueValuesReclass`

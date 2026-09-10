@@ -26,7 +26,8 @@ from spyops.management.indexes import (
     remove_spatial_index)
 from spyops.management.projections import define_projection, project
 from spyops.management.sampling import (
-    generate_points_along_lines, generate_transects_along_lines)
+    generate_points_along_lines, generate_rectangles_along_lines,
+    generate_transects_along_lines)
 from spyops.management.table import (
     copy_rows, create_table, delete_rows, get_count, truncate_table)
 from spyops.management.workspace import (
@@ -106,6 +107,7 @@ __all__ = [
     'project',
 
     'generate_points_along_lines',
+    'generate_rectangles_along_lines',
     'generate_transects_along_lines',
 
     'copy_rows',

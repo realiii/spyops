@@ -101,6 +101,7 @@ ATTRIBUTE_SOURCE: str = 'attribute_source'
 SPATIAL_SORT_OPTION: str = 'spatial_sort_option'
 METHOD: str = 'method'
 LENGTH: str = 'length'
+WIDTH: str = 'width'
 
 
 if __name__ == '__main__':  # pragma: no cover
