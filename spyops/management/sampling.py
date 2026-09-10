@@ -3,32 +3,39 @@
 Data Management for Sampling
 """
 
+from fudgeo import FeatureClass, MemoryGeoPackage
 
-from typing import TYPE_CHECKING
 
+from spyops.environment import OutputMOption, OutputZOption, Setting
+from spyops.environment.context import Swap
 from spyops.management.util import _generate_along_lines
+from spyops.query.management.general import QuerySortFeatureClass
 from spyops.query.management.sampling import (
     QueryGeneratePointsAlongLinesDistance, QueryGeneratePointsAlongLinesField,
     QueryGeneratePointsAlongLinesPercentage,
+    QueryGenerateRectanglesAlongLinesDistance,
+    QueryGenerateRectanglesAlongLinesField,
+    QueryGenerateRectanglesAlongLinesPercentage,
     QueryGenerateTransectsAlongLinesDistance,
     QueryGenerateTransectsAlongLinesField,
     QueryGenerateTransectsAlongLinesPercentage)
-from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
+from spyops.shared.enumeration import (
+    DistanceTypeOption, PlacementOption, SpatialSortOption)
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
-from spyops.shared.hint import DISTANCE, TRANSECT_LENGTH
+from spyops.shared.hint import (
+    DISTANCE, RECT_LENGTH, RECT_WIDTH, TRANSECT_LENGTH)
 from spyops.shared.keywords import (
-    DISTANCE_TYPE, LENGTH, PLACEMENT, PLACEMENT_OPTION, SOURCE)
+    DISTANCE_TYPE, LENGTH, PLACEMENT, PLACEMENT_OPTION, SOURCE,
+    SPATIAL_SORT_OPTION, WIDTH)
+from spyops.shared.records import select_transform_insert
 from spyops.validation import (
     validate_linear_unit, validate_overwrite_source, validate_placement,
     validate_result, validate_source_feature_class, validate_str_enumeration,
     validate_target_feature_class)
 
 
-if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
-
-
-__all__ = ['generate_points_along_lines', 'generate_transects_along_lines']
+__all__ = ['generate_points_along_lines', 'generate_rectangles_along_lines',
+           'generate_transects_along_lines']
 
 
 @validate_result()
@@ -161,6 +168,95 @@ def generate_transects_along_lines(
                 distance_type=distance_type, where_clause=where_clause)
     return _generate_along_lines(query)
 # End generate_transects_along_lines function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=(
+        *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS))
+@validate_target_feature_class()
+@validate_linear_unit(LENGTH, feature_class_name=SOURCE)
+@validate_linear_unit(WIDTH, feature_class_name=SOURCE)
+@validate_str_enumeration(PLACEMENT_OPTION, PlacementOption)
+@validate_str_enumeration(DISTANCE_TYPE, DistanceTypeOption)
+@validate_placement(PLACEMENT, element_name=SOURCE, enum_name=PLACEMENT_OPTION)
+@validate_str_enumeration(SPATIAL_SORT_OPTION, SpatialSortOption)
+@validate_overwrite_source()
+def generate_rectangles_along_lines(
+        source: 'FeatureClass', target: 'FeatureClass',
+        placement: DISTANCE, *, length: RECT_LENGTH, width: RECT_WIDTH,
+        placement_option: PlacementOption = PlacementOption.DISTANCE,
+        include_ends: bool = False,
+        distance_type: DistanceTypeOption = DistanceTypeOption.PLANAR,
+        spatial_sort_option: SpatialSortOption = SpatialSortOption.NONE,
+        where_clause: str = '') -> 'FeatureClass':
+    """
+    Generate Rectangles Along Lines
+
+    Create rectangles along lines (linear rings) at the specified intervals
+    based on the specified placement option.
+
+    Length and Width can be specified as a Linear Unit, Decimal Degrees, a
+    number, or a string.  For example, Meters(100), DecimalDegrees(0.001),
+    100, or '100 meters'.  The length of the rectangle in the direction of the
+    feature and width is perpendicular to the feature.
+
+    Placement option DISTANCE creates rectangles at the specified distance
+    interval, e.g. 100 metres will be placed at 200, 300, 400 meters, etc.
+
+    Placement option PERCENTAGE creates rectangles at the specified percentage
+    interval e.g. 15 percent will be placed at 15, 30, 45, 60, 75, and
+    90 percent of the line length.
+
+    Placement option FIELD creates rectangles differently based on the field
+    data type and field value.
+
+    * Numeric fields are treated as being distances defined in the same units
+      as the source feature class spatial reference. For example, a value of
+      200 will be handled as 200 meters if the source feature class spatial
+      reference is in meters.
+    * Text fields are treated as linear units and can contain one or more
+      values separated by semicolons. If there is only one value in the text
+      field, then it will be handled as an interval, for example, the string
+      value '50 feet' will be used to repeat rectangles along the linear feature
+      at 50 ft intervals (e.g. 50, 100, ... 200, 250 ft, etc.)  If there are
+      multiple values in the text field, then they will be treated as a list of
+      specific distances, for example, the string value '50 feet;175 feet' will
+      be used to place two rectangles, one at 50 ft and the other at 175 ft.
+    * Units for text values can be mixed across features and within the same
+      field. For example, the string value '50 feet;175 meters' will be used to
+      place two rectangles, one at 50 ft and the other at 175 meters.  If a unit
+      value is missing, then it will be assumed to be in the same units as the
+      source feature class spatial reference.
+
+    """
+    scratch = None
+    if spatial_sort_option != SpatialSortOption.NONE:
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.SAME),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.SAME),
+              Swap(Setting.Z_VALUE, None)):
+            scratch = MemoryGeoPackage.create()
+            scratch_target = FeatureClass(geopackage=scratch, name=target.name)
+            query = QuerySortFeatureClass(
+                source=source, target=scratch_target, sort_fields=[],
+                spatial_sort_option=spatial_sort_option)
+            source = select_transform_insert(query)
+    if placement_option == PlacementOption.PERCENTAGE:
+        cls = QueryGenerateRectanglesAlongLinesPercentage
+    elif placement_option == PlacementOption.FIELD:
+        cls = QueryGenerateRectanglesAlongLinesField
+    else:
+        cls = QueryGenerateRectanglesAlongLinesDistance
+    # noinspection bad-argument-type
+    query = cls(source=source, target=target, placement=placement,
+                length=length, width=width, include_ends=include_ends,
+                distance_type=distance_type, where_clause=where_clause)
+    target = _generate_along_lines(query)
+    if scratch:
+        if conn := scratch.connection:
+            conn.close()
+    return target
+# End generate_rectangles_along_lines function
 
 
 if __name__ == '__main__':  # pragma: no cover
