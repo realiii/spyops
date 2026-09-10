@@ -20,7 +20,8 @@ from shapely.measurement import length
 from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.distance import (
     _group_by_line_index, _transect_coordinates,
-    interpolate_locations, make_points, _add_end_locations)
+    interpolate_locations, make_points, _add_end_locations,
+    _group_by_line_indexes)
 from spyops.geometry.util import find_slice_indexes, get_geoms
 
 
@@ -141,10 +142,27 @@ def test_transect_coordinates(length_, location, attributes, expected):
     Test _transect_coordinates
     """
     expected_start, expected_end = expected
-    start, end = _transect_coordinates(length_, location, attributes)
+    start, end = _transect_coordinates(length_, location, attributes[-1])
     assert approx(start, abs=0.001) == expected_start
     assert approx(end, abs=0.001) == expected_end
 # End test_transect_coordinates function
+
+
+@mark.parametrize('lengths, distances, length_, include_ends, expected', [
+    ([50, 80, 120], [25, 100, 200], 100, True, {(0, 2): [(0, 100)], (0, 3): [(25, 125)], (2, 3): [(100, 200)]}),
+    ([50, 80, 120], [0, 10, 15, 20, 200], 100, False, {(0, 2): [(10, 110), (15, 115)]}),
+    ([50, 80, 120], [25, 100, 200], 1000, True, {(0, 3): [(0, 1000), (25, 1025)], (2, 3): [(100, 1100)]}),
+    ([50, 80, 120], [0, 10, 15, 20, 200], 1000, False, {}),
+    ([50, 80, 120], [], 1000, True, {(0, 3): [(0, 1000)]}),
+])
+def test_group_by_line_indexes(lengths, distances, length_, include_ends, expected):
+    """
+    Test group by line indexes
+    """
+    result = _group_by_line_indexes(
+        lengths, distances=distances, length=length_, include_ends=include_ends)
+    assert result == expected
+# End test_group_by_line_indexes function
 
 
 if __name__ == '__main__':  # pragma: no cover
