@@ -87,6 +87,11 @@ NEXT_NUM: Field = Field(
     'NEXT_NUM', data_type=FieldType.integer, alias='Next Sequence Number')
 ALONG: Field = Field(
     'ALONG', data_type=FieldType.real, alias='Length Along Line')
+BEGIN_ALONG: Field = Field(
+    'BEGIN_ALONG', data_type=FieldType.real,
+    alias='Beginning Length Along Line')
+END_ALONG: Field = Field(
+    'END_ALONG', data_type=FieldType.real, alias='Ending Length Along Line')
 ORIENTATION: Field = Field('ORIENTATION', data_type=FieldType.real)
 
 
