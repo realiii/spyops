@@ -54,6 +54,9 @@ MIT
 - added `generate_transects_along_lines` (Management - Sampling)
 - added `generate_rectangles_along_lines` (Management - Sampling)
 
+### v0.2.3
+- add support for `date` and `datetime` in `features_to_geojson`
+
 ### v0.2.2
 - include support for `reverse` on `UniqueValuesReclass`
 - improve generated label for `ManualReclass` and retain code values

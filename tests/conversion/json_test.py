@@ -120,6 +120,18 @@ class TestFeaturesToGeoJSON:
         else:
             assert CRS_KEY not in data
     # End test_geometry_types method
+
+    def test_datetime(self, tmp_path, inputs):
+        """
+        Test datetime handling
+        """
+        source = inputs['gps_p']
+        target = tmp_path / 'gps_p.geojson'
+        path = features_to_geojson(source, target=target)
+        assert path.is_file()
+        data = load(path.open())
+        assert len(data[FEATURES_KEY]) == len(source)
+    # End test_datetime method
 # End TestFeaturesToGeoJSON class
 
 
