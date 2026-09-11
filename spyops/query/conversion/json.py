@@ -6,6 +6,7 @@ Query classes for conversion.json
 
 from abc import abstractmethod
 from collections import defaultdict
+from datetime import date, datetime
 from functools import cache, cached_property
 from json import dump, load
 from math import nan
@@ -42,6 +43,16 @@ from spyops.shared.util import make_valid_field_name
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import SpatialReferenceSystem
+
+
+def _default_serial(obj: Any) -> str:
+    """
+    Default Serial
+    """
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f'Type {type(obj)} not serializable')
+# End _default_serial function
 
 
 class QueryFeaturesToGeoJSON(BaseQuerySelect):
@@ -111,7 +122,7 @@ class QueryFeaturesToGeoJSON(BaseQuerySelect):
         else:
             indent = None
         with path.open('w') as fout:
-            dump(data, fp=fout, indent=indent)
+            dump(data, fp=fout, indent=indent, default=_default_serial)
         return path
     # End _export_to_path method
 
