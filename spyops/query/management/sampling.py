@@ -332,12 +332,12 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         return units
     # End _get_units_from_distances method
     
-    def _accumulate_lengths(self, lines: list['LineString']) \
+    def _accumulate_lengths(self, lines: list['LineString'], crs: 'CRS') \
             -> tuple[list['LineString'], 'ndarray'] | None:
         """
         Accumulate Lengths
         """
-        lengths = length_(lines)
+        lengths = self._get_line_lengths(lines, crs=crs)
         mask = isfinite(lengths) & (lengths > 0)
         if not mask.any():  # pragma: no cover
             return None
@@ -345,6 +345,14 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         lines = [line for line, truth in zip(lines, mask) if truth]
         return lines, lengths
     # End _accumulate_lengths method
+
+    def _get_line_lengths(self, lines: list['LineString'],
+                          crs: 'CRS') -> 'ndarray':
+        """
+        Get Line Lengths
+        """
+        return length_(lines)
+    # End _get_line_lengths method
 
     def _get_placement_details(self, features: list[tuple],
                                geometries: 'ndarray', crs: 'CRS',
@@ -355,7 +363,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         for (_, fid, distance), geom in zip(features, geometries):
             lines = get_geoms(getter(geom))
-            if not (result := self._accumulate_lengths(lines)):
+            if not (result := self._accumulate_lengths(lines, crs=crs)):
                 continue
             lines, lengths = result
             distances = self._get_values(
