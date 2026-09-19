@@ -8,7 +8,7 @@ from fudgeo import FeatureClass, MemoryGeoPackage
 
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
-from spyops.management.util import _generate_along_lines
+from spyops.management.util import generate_along_lines
 from spyops.query.management.general import QuerySortFeatureClass
 from spyops.query.management.sampling import (
     QueryGeneratePointsAlongLinesDistance, QueryGeneratePointsAlongLinesField,
@@ -97,7 +97,7 @@ def generate_points_along_lines(
     query = cls(source=source, target=target, placement=placement,
                 include_ends=include_ends, distance_type=distance_type,
                 where_clause=where_clause)
-    return _generate_along_lines(query)
+    return generate_along_lines(query)
 # End generate_points_along_lines function
 
 
@@ -166,7 +166,7 @@ def generate_transects_along_lines(
     query = cls(source=source, target=target, placement=placement,
                 length=length, include_ends=include_ends,
                 distance_type=distance_type, where_clause=where_clause)
-    return _generate_along_lines(query)
+    return generate_along_lines(query)
 # End generate_transects_along_lines function
 
 
@@ -251,7 +251,7 @@ def generate_rectangles_along_lines(
     query = cls(source=source, target=target, placement=placement,
                 length=length, width=width, include_ends=include_ends,
                 distance_type=distance_type, where_clause=where_clause)
-    target = _generate_along_lines(query)
+    target = generate_along_lines(query)
     if scratch:
         if conn := scratch.connection:
             conn.close()
