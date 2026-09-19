@@ -83,18 +83,22 @@ class TestGetUnitConversion:
 # End TestGetUnitConversion class
 
 
-@mark.parametrize('code, expected', [
-    (4326, 'degree'),
-    (26912, 'metre'),
-    (32057, 'US survey foot'),
-    (6655, 'metre'),
+@mark.parametrize('code, use_horizontal, expected', [
+    (4326, True, 'degree'),
+    (26912, True, 'metre'),
+    (32057, True, 'US survey foot'),
+    (6655, True, 'metre'),
+    (4326, False, None),
+    (26912, False, None),
+    (32057, False, None),
+    (6655, False, 'metre'),
 ])
-def test_get_unit_name(code, expected):
+def test_get_unit_name(code, use_horizontal, expected):
     """
     Test get unit name
     """
     crs = CRS.from_epsg(code)
-    assert get_unit_name(crs) == expected
+    assert get_unit_name(crs, use_horizontal) == expected
 # End test_get_unit_name function
 
 
