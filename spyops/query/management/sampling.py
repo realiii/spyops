@@ -382,6 +382,14 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
     """
     Abstract Query Generate Points Along Lines
     """
+    @property
+    def _is_2d(self) -> bool:
+        """
+        Is 2D
+        """
+        return True
+    # End _is_2d property
+
     def _along_planar(self, features: list[tuple],
                       geometries: 'ndarray', crs: 'CRS',
                       getter: Callable) -> list[tuple['Point', tuple]]:
@@ -394,7 +402,8 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
             results = interpolate_locations(
                 details.distances, lengths=details.lengths,
                 coordinates=details.coordinates, ids=details.ids,
-                fid=details.fid, include_ends=self._config.include_ends)
+                fid=details.fid, include_ends=self._config.include_ends,
+                is_2d=self._is_2d)
             records.extend(results)
         geoms = make_points(
             records, has_z=self.source.has_z, has_m=self.source.has_m)
