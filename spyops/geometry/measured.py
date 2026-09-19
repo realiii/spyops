@@ -134,7 +134,7 @@ class MeasuredLine:
     # End _validate_measures method
 
     def _calculate_measures(self, xs: VALUES, ys: VALUES, zs: VALUES,
-                            is_2d: bool) -> VALUES:
+                            is_2d: bool) -> 'ndarray':
         """
         Calculate measures
         """
@@ -151,7 +151,7 @@ class MeasuredLine:
     # End _calculate_measures method
 
     @staticmethod
-    def _calculate_segment_lengths(a: VALUES, b: VALUES) -> VALUES:
+    def _calculate_segment_lengths(a: VALUES, b: VALUES) -> 'ndarray':
         """
         Calculate Segment Lengths
         """
@@ -199,7 +199,7 @@ class MeasuredLine:
     # End _find_segment method
 
     def _get_start_end(self, measure: float, snap: bool = False) \
-            -> Optional[tuple[Optional['ndarray'], Optional['ndarray']]]:
+            -> Optional[tuple['ndarray', 'ndarray']]:
         """
         Get Start and End
         """
