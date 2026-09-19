@@ -22,6 +22,7 @@ from spyops.geometry.distance import (
     _group_by_line_index, _transect_coordinates,
     interpolate_locations, make_points, _add_end_locations,
     _group_by_line_indexes)
+from spyops.geometry.measured import MeasuredLine
 from spyops.geometry.util import find_slice_indexes, get_geoms
 
 
@@ -111,9 +112,9 @@ def test_add_end_locations(shape_type, geom, expected):
         [Polygon([(0, 0), (0, 5), (5, 5), (5, 0)]),
          Polygon([(10, 10), (10, 15), (15, 15), (15, 10)])]), (0, 3, 8, 13, 18, 23, 28, 33, 38, 40)),
 ])
-def test_interpolate_locations(include_ends, shape_type, geom, expected):
+def test_interpolate_locations_2d(include_ends, shape_type, geom, expected):
     """
-    Test interpolate locations
+    Test interpolate locations using 2D
     """
     fid = 12345
     values = arange(3, 50, 5, dtype=float)
@@ -125,12 +126,53 @@ def test_interpolate_locations(include_ends, shape_type, geom, expected):
     ids = find_slice_indexes(indexes)
     results = interpolate_locations(
         values, lengths=lengths, coordinates=coordinates, ids=ids, fid=fid,
-        include_ends=include_ends)
+        include_ends=include_ends, is_2d=True)
     _, fid, seq, along = zip(*results)
     assert set(fid) == set(fid)
     assert tuple(seq) == tuple(range(1, len(results) + 1))
     assert along == expected
-# End test_interpolate_locations function
+# End test_interpolate_locations_2d function
+
+
+@mark.parametrize('include_ends, shape_type, geom, expected', [
+    (True, ShapeType.linestring, LineString([(0, 0, 0), (0, 20, 10)]), (0, 3, 8, 13, 18, 22.3606)),
+    (True, ShapeType.multi_linestring, LineString([(0, 0, 0), (0, 20, 10)]), (0, 3, 8, 13, 18, 22.3606)),
+    (True, ShapeType.multi_linestring, MultiLineString(
+        [LineString([(0, 0, 0), (0, 10, 5)]), LineString([(0, 10, 5), (0, 20, 10)])]), (0, 3, 8, 13, 18, 22.3606)),
+    (True, ShapeType.polygon, Polygon([(0, 0, 1), (0, 5, 2), (5, 5, 3), (5, 0, 4)]), (0, 3, 8, 13, 18, 21.128)),
+    (True, ShapeType.multi_polygon, Polygon([(0, 0, 1), (0, 5, 2), (5, 5, 3), (5, 0, 4)]), (0, 3, 8, 13, 18, 21.128)),
+    (True, ShapeType.multi_polygon, MultiPolygon(
+        [Polygon([(0, 0, 1), (0, 5, 2), (5, 5, 3), (5, 0, 4)]),
+         Polygon([(10, 10, 5), (10, 15, 10), (15, 15, 15), (15, 10, 20)])]),
+     (0, 3, 8, 13, 18, 23, 28, 33, 38, 43, 48, 53, 58, 58.1526)),
+])
+def test_interpolate_locations_3d(include_ends, shape_type, geom, expected):
+    """
+    Test interpolate locations using 3D
+    """
+    fid = 12345
+    values = arange(3, 60, 5, dtype=float)
+    getter = GEOMETRY_AS_MULTILINE[shape_type]
+    lines = get_geoms(getter(geom))
+
+    lengths = []
+    for line in lines:
+        coords = get_coordinates(line, include_z=True)
+        measured = MeasuredLine(
+            xs=coords[:, 0], ys=coords[:, 1], zs=coords[:, 2])
+        lengths.append(max(measured.measures))
+    lengths = cumsum(lengths)
+    coordinates, indexes = get_coordinates(
+        lines, include_z=True, include_m=True, return_index=True)
+    ids = find_slice_indexes(indexes)
+    results = interpolate_locations(
+        values, lengths=lengths, coordinates=coordinates, ids=ids, fid=fid,
+        include_ends=include_ends, is_2d=False)
+    _, fid, seq, along = zip(*results)
+    assert set(fid) == set(fid)
+    assert tuple(seq) == tuple(range(1, len(results) + 1))
+    assert approx(along, abs=0.001) == expected
+# End test_interpolate_locations_3d function
 
 
 @mark.parametrize('length_, location, attributes, expected', [
