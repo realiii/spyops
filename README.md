@@ -25,6 +25,7 @@ MIT
 
 
 ## Capabilities
+- [3D - Features](https://github.com/realiii/spyops/wiki/3D#features) (v0.3.0)
 - [Analysis - Extract](https://github.com/realiii/spyops/wiki/Analysis#extract)
 - [Analysis - Overlay](https://github.com/realiii/spyops/wiki/Analysis#overlay)
 - [Analysis - Proximity](https://github.com/realiii/spyops/wiki/Analysis#proximity)
@@ -53,6 +54,7 @@ MIT
 - added `generate_points_along_lines` (Management - Sampling)
 - added `generate_transects_along_lines` (Management - Sampling)
 - added `generate_rectangles_along_lines` (Management - Sampling)
+- added `generate_points_along_3d_lines` (3D - Features)
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`
