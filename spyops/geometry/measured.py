@@ -10,9 +10,8 @@ from typing import Optional, TYPE_CHECKING
 
 from bottleneck import nanmax, nanmin
 from numpy import (
-    arctan2, array, cumsum, degrees, diff, flatnonzero, full, hypot, interp,
-    isfinite, searchsorted, zeros_like)
-
+    arctan2, array, cumsum, degrees, diff, full, hypot, interp, isfinite,
+    searchsorted, zeros_like)
 
 from spyops.shared.hint import VALUES
 
@@ -37,6 +36,7 @@ class MeasuredLine:
         if zs is None:
             zs = zeros_like(xs, dtype=float)
         self._validate_inputs(xs, ys=ys, zs=zs, ms=ms, lengths=lengths)
+        zs = self._interpolate_zs(xs=xs, ys=ys, zs=zs)
         ms = self._prepare_measures(
             ms, xs=xs, ys=ys, zs=zs, is_2d=is_2d, validate=validate_measures)
         lengths = self._prepare_measures(
@@ -141,14 +141,22 @@ class MeasuredLine:
         lengths = self._calculate_segment_lengths(xs, ys)
         if is_2d:
             return lengths
+        return self._calculate_segment_lengths(lengths, zs)
+    # End _calculate_measures method
+
+    def _interpolate_zs(self, xs: VALUES, ys: VALUES, zs: VALUES) -> VALUES:
+        """
+        Interpolate Z values
+        """
         mask = ~isfinite(zs)
         if mask.all():
             zs = zeros_like(zs, dtype=float)
         elif mask.any():
             zs = array(zs, dtype=float)
-            zs[mask] = interp(flatnonzero(mask), flatnonzero(~mask), zs[~mask])
-        return self._calculate_segment_lengths(lengths, zs)
-    # End _calculate_measures method
+            lengths = self._calculate_segment_lengths(xs, ys)
+            zs[mask] = interp(lengths[mask], lengths[~mask], zs[~mask])
+        return zs
+    # End _interpolate_zs method
 
     @staticmethod
     def _calculate_segment_lengths(a: VALUES, b: VALUES) -> 'ndarray':
