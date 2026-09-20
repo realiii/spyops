@@ -245,5 +245,32 @@ def test_provide_correct_length_measures():
 # End test_provide_correct_length_measures function
 
 
+def test_non_finite_z_interpolation():
+    """
+    Test interpolation of non-finite Z values based on change in X and Y
+    """
+    xs = [0, 10, 100]
+    ys = [0, 0, 0]
+    zs = [0, nan, 100]
+    line = MeasuredLine(xs=xs, ys=ys, zs=zs)
+    expected_measures = [0, sqrt(200), sqrt(200) + sqrt(16200)]
+    assert approx(line.measures.tolist(), abs=0.001) == expected_measures
+    assert approx(line.coordinates[:, 2].tolist(), abs=0.001) == [0, 10, 100]
+# End test_non_finite_z_interpolation function
+
+
+def test_all_non_finite_z_measure_calculation():
+    """
+    Test measure calculation when all Z values are non-finite
+    """
+    xs = [0, 10, 20]
+    ys = [0, 0, 0]
+    zs = [nan, nan, nan]
+    line = MeasuredLine(xs=xs, ys=ys, zs=zs)
+    assert approx(line.measures.tolist()) == [0, 10, 20]
+    assert approx(line.coordinates[:, 2].tolist(), abs=0.001) == [0, 0, 0]
+# End test_all_non_finite_z_measure_calculation function
+
+
 if __name__ == '__main__':
     pass

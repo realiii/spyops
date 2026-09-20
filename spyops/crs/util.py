@@ -225,6 +225,16 @@ def get_crs_horizontal_component(crs: CRS) -> CRS:
 # End get_crs_horizontal_component function
 
 
+def get_crs_vertical_component(crs: CRS) -> CRS | None:
+    """
+    Get CRS Vertical Component
+    """
+    if not crs.is_compound:
+        return None
+    return _get_crs_component(crs, use_horizontal=False)
+# End get_crs_vertical_component function
+
+
 def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
         -> list[ProjectedCRS | None]:
     """

@@ -24,7 +24,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj import CRS
 
 
-def _generate_along_lines(query) -> 'FeatureClass':
+def generate_along_lines(query) -> 'FeatureClass':
     """
     Generate Along Lines
     """
@@ -44,7 +44,7 @@ def _generate_along_lines(query) -> 'FeatureClass':
             records.clear()
     query.show_warning()
     return query.target
-# End _generate_along_lines function
+# End generate_along_lines function
 
 
 def _build_lines_factory(coords: list[tuple[float, float, float, float]], *,

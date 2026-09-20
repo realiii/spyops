@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Test the project function from spyops.management.sampling module.
+Tests for Sampling
 """
 
 
@@ -24,6 +24,7 @@ class TestGeneratePointsAlongLines:
     """
     Test Generate Points Along Lines
     """
+
     @mark.parametrize('name, count', [
         ('transmission_m_l', 30),
         ('transmission_zm_l', 30),

@@ -10,9 +10,8 @@ from typing import Optional, TYPE_CHECKING
 
 from bottleneck import nanmax, nanmin
 from numpy import (
-    arctan2, array, cumsum, degrees, diff, flatnonzero, full, hypot, interp,
-    isfinite, searchsorted, zeros_like)
-
+    arctan2, array, cumsum, degrees, diff, full, hypot, interp, isfinite,
+    searchsorted, zeros_like)
 
 from spyops.shared.hint import VALUES
 
@@ -37,6 +36,7 @@ class MeasuredLine:
         if zs is None:
             zs = zeros_like(xs, dtype=float)
         self._validate_inputs(xs, ys=ys, zs=zs, ms=ms, lengths=lengths)
+        zs = self._interpolate_zs(xs=xs, ys=ys, zs=zs)
         ms = self._prepare_measures(
             ms, xs=xs, ys=ys, zs=zs, is_2d=is_2d, validate=validate_measures)
         lengths = self._prepare_measures(
@@ -60,7 +60,18 @@ class MeasuredLine:
         return cls(
             xs=coordinates[:, 0], ys=coordinates[:, 1], zs=coordinates[:, 2],
             ms=coordinates[:, 3], is_2d=True, start_length=start_length)
-    # End from_coordinates method
+    # End from_coordinates_2d method
+
+    @classmethod
+    def from_coordinates_3d(cls, coordinates: 'ndarray',
+                            start_length: float = 0.) -> 'MeasuredLine':
+        """
+        From Coordinates stored in array and using 3D length
+        """
+        return cls(
+            xs=coordinates[:, 0], ys=coordinates[:, 1], zs=coordinates[:, 2],
+            ms=coordinates[:, 3], is_2d=False, start_length=start_length)
+    # End from_coordinates_3d method
 
     @property
     def coordinates(self) -> 'ndarray':
@@ -123,24 +134,32 @@ class MeasuredLine:
     # End _validate_measures method
 
     def _calculate_measures(self, xs: VALUES, ys: VALUES, zs: VALUES,
-                            is_2d: bool) -> VALUES:
+                            is_2d: bool) -> 'ndarray':
         """
         Calculate measures
         """
         lengths = self._calculate_segment_lengths(xs, ys)
         if is_2d:
             return lengths
+        return self._calculate_segment_lengths(lengths, zs)
+    # End _calculate_measures method
+
+    def _interpolate_zs(self, xs: VALUES, ys: VALUES, zs: VALUES) -> VALUES:
+        """
+        Interpolate Z values
+        """
         mask = ~isfinite(zs)
         if mask.all():
             zs = zeros_like(zs, dtype=float)
         elif mask.any():
             zs = array(zs, dtype=float)
-            zs[mask] = interp(flatnonzero(mask), flatnonzero(~mask), zs[~mask])
-        return self._calculate_segment_lengths(lengths, zs)
-    # End _calculate_measures method
+            lengths = self._calculate_segment_lengths(xs, ys)
+            zs[mask] = interp(lengths[mask], lengths[~mask], zs[~mask])
+        return zs
+    # End _interpolate_zs method
 
     @staticmethod
-    def _calculate_segment_lengths(a: VALUES, b: VALUES) -> VALUES:
+    def _calculate_segment_lengths(a: VALUES, b: VALUES) -> 'ndarray':
         """
         Calculate Segment Lengths
         """
@@ -188,7 +207,7 @@ class MeasuredLine:
     # End _find_segment method
 
     def _get_start_end(self, measure: float, snap: bool = False) \
-            -> Optional[tuple[Optional['ndarray'], Optional['ndarray']]]:
+            -> Optional[tuple['ndarray', 'ndarray']]:
         """
         Get Start and End
         """

@@ -140,14 +140,15 @@ def get_equidistant_details(geometries: 'ndarray', *, crs: 'CRS',
 
 def interpolate_locations(distances: 'ndarray', *, lengths: 'ndarray',
                           coordinates: 'ndarray', ids: tuple[int, ...],
-                          fid: int, include_ends: bool) -> list[PointRecord]:
+                          fid: int, include_ends: bool,
+                          is_2d: bool) -> list[PointRecord]:
     """
     Interpolate Locations
     """
     grouped = _group_by_line_index(lengths, distances=distances)
     records = _build_locations(
         grouped, coordinates=coordinates, ids=ids, lengths=lengths,
-        offset=int(include_ends), fid=fid)
+        offset=int(include_ends), fid=fid, is_2d=is_2d)
     if include_ends:
         _add_end_locations(coordinates, ids=ids, records=records, fid=fid,
                            total_length=max(lengths))
@@ -221,7 +222,7 @@ def _rectangle_coordinates(width: float,
 
 
 def _make_measured_line(index: int, coordinates: 'ndarray',
-                        ids: tuple[int, ...], lengths: 'ndarray') \
+                        ids: tuple[int, ...], lengths: 'ndarray', is_2d: bool) \
         -> MeasuredLine | None:
     """
     Make Measured Line
@@ -234,13 +235,18 @@ def _make_measured_line(index: int, coordinates: 'ndarray',
         start_length = 0.
     else:
         start_length = lengths[index - 1]
-    return MeasuredLine.from_coordinates_2d(coords, start_length=start_length)
+    if is_2d:
+        return MeasuredLine.from_coordinates_2d(
+            coords, start_length=start_length)
+    else:
+        return MeasuredLine.from_coordinates_3d(
+            coords, start_length=start_length)
 # End _make_measured_line function
 
 
 def _build_locations(grouped: defaultdict[int, list], coordinates: 'ndarray',
                      ids: tuple[int, ...], lengths: 'ndarray',
-                     offset: int, fid: int) -> list[PointRecord]:
+                     offset: int, fid: int, is_2d: bool) -> list[PointRecord]:
     """
     Build Locations along Lines
     """
@@ -248,7 +254,8 @@ def _build_locations(grouped: defaultdict[int, list], coordinates: 'ndarray',
     counter = offset
     for index, values in sorted(grouped.items()):
         if not (measured := _make_measured_line(
-                index, coordinates=coordinates, ids=ids, lengths=lengths)):
+                index, coordinates=coordinates, ids=ids,
+                lengths=lengths, is_2d=is_2d)):
             continue
         results = measured.interpolate(values, use_length=True)
         for pt, value in zip(results, values):
@@ -273,7 +280,8 @@ def _build_locs_with_angles(grouped: defaultdict[int, list],
     counter = offset
     for index, values in sorted(grouped.items()):
         if not (measured := _make_measured_line(
-                index, coordinates=coordinates, ids=ids, lengths=lengths)):
+                index, coordinates=coordinates, ids=ids, lengths=lengths,
+                is_2d=True)):
             continue
         results = measured.interpolate(values, use_length=True)
         angles = measured.find_directions(values, use_length=True)
@@ -373,7 +381,8 @@ def _interpolate_values(index: int, values: list[float], coordinates: 'ndarray',
         return array([coordinates[-1]] * len(values), dtype=float)
     if not (line := measured_lines.get(index)):
         line = _make_measured_line(
-            index, coordinates=coordinates, ids=ids, lengths=lengths)
+            index, coordinates=coordinates, ids=ids,
+            lengths=lengths, is_2d=True)
         measured_lines[index] = line
     return line.interpolate(values, use_length=True)
 # End _interpolate_values method

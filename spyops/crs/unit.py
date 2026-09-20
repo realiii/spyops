@@ -15,7 +15,8 @@ from pyproj.database import get_units_map
 from spyops.crs.constant import EPSG
 from spyops.crs.enumeration import AreaUnit, DistanceUnit, LengthUnit
 from spyops.crs.util import (
-    get_crs_from_source, get_crs_horizontal_component, xy_to_dd)
+    get_crs_from_source, get_crs_horizontal_component,
+    get_crs_vertical_component, xy_to_dd)
 from spyops.shared.constant import EMPTY, SPACE, UNDERSCORE
 from spyops.shared.exception import CoordinateSystemNotSupportedError
 from spyops.shared.hint import NUMBER, UNIT
@@ -69,11 +70,14 @@ def get_linear_unit_conversion_factor(from_name: str, to_name: str) -> float:
 # End get_linear_unit_conversion_factor function
 
 
-def get_unit_name(crs: 'CRS') -> str | None:
+def get_unit_name(crs: 'CRS', use_horizontal: bool = True) -> str | None:
     """
     Get Unit Name from a CRS
     """
-    crs = get_crs_horizontal_component(crs)
+    if use_horizontal:
+        crs = get_crs_horizontal_component(crs)
+    else:
+        crs = get_crs_vertical_component(crs)
     try:
         # noinspection PyUnresolvedReferences
         return crs.coordinate_system.axis_list[0].unit_name

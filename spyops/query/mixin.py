@@ -215,7 +215,6 @@ class UnitTypeMixin:
     """
     Unit Type Mixin
     """
-
     def _convert_unit(self, is_geodesic: bool, crs: 'CRS',
                       geoms: Union[list, 'ndarray'], unit: UNIT,
                       broadcast: bool = True) -> Union['ndarray', float]:
@@ -277,11 +276,12 @@ class UnitTypeMixin:
     # End _convert_units method
 
     @cache
-    def _get_conversion_factor(self, crs: 'CRS') -> float:
+    def _get_conversion_factor(self, crs: 'CRS',
+                               use_horizontal: bool = True) -> float:
         """
         Get Conversion Factor
         """
-        if not (unit_name := get_unit_name(crs)):
+        if not (unit_name := get_unit_name(crs, use_horizontal=use_horizontal)):
             return 1.
         return get_linear_unit_conversion_factor(
             from_name=METRE, to_name=unit_name)

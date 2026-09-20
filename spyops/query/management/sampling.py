@@ -331,6 +331,28 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
             units.append(unit)
         return units
     # End _get_units_from_distances method
+    
+    def _accumulate_lengths(self, lines: list['LineString'], crs: 'CRS') \
+            -> tuple[list['LineString'], 'ndarray'] | None:
+        """
+        Accumulate Lengths
+        """
+        lengths = self._get_line_lengths(lines, crs=crs)
+        mask = isfinite(lengths) & (lengths > 0)
+        if not mask.any():  # pragma: no cover
+            return None
+        lengths = cumsum(lengths[mask])
+        lines = [line for line, truth in zip(lines, mask) if truth]
+        return lines, lengths
+    # End _accumulate_lengths method
+
+    def _get_line_lengths(self, lines: list['LineString'],
+                          crs: 'CRS') -> 'ndarray':
+        """
+        Get Line Lengths
+        """
+        return length_(lines)
+    # End _get_line_lengths method
 
     def _get_placement_details(self, features: list[tuple],
                                geometries: 'ndarray', crs: 'CRS',
@@ -341,13 +363,9 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         for (_, fid, distance), geom in zip(features, geometries):
             lines = get_geoms(getter(geom))
-            # noinspection PyTypeChecker
-            lengths = length_(lines)
-            mask = isfinite(lengths) & (lengths > 0)
-            if not mask.any():  # pragma: no cover
+            if not (result := self._accumulate_lengths(lines, crs=crs)):
                 continue
-            lengths = cumsum(lengths[mask])
-            lines = [line for line, truth in zip(lines, mask) if truth]
+            lines, lengths = result
             distances = self._get_values(
                 lines, total_length=lengths[-1], crs=crs, distance=distance)
             coordinates, ids = get_coords_and_slices(
@@ -364,6 +382,14 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
     """
     Abstract Query Generate Points Along Lines
     """
+    @property
+    def _is_2d(self) -> bool:
+        """
+        Is 2D
+        """
+        return True
+    # End _is_2d property
+
     def _along_planar(self, features: list[tuple],
                       geometries: 'ndarray', crs: 'CRS',
                       getter: Callable) -> list[tuple['Point', tuple]]:
@@ -376,7 +402,8 @@ class AbstractQueryGeneratePointsAlongLines(AbstractQueryGenerateAlongLines,
             results = interpolate_locations(
                 details.distances, lengths=details.lengths,
                 coordinates=details.coordinates, ids=details.ids,
-                fid=details.fid, include_ends=self._config.include_ends)
+                fid=details.fid, include_ends=self._config.include_ends,
+                is_2d=self._is_2d)
             records.extend(results)
         geoms = make_points(
             records, has_z=self.source.has_z, has_m=self.source.has_m)
