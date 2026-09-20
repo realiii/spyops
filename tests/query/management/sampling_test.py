@@ -50,6 +50,13 @@ class TestQueryGeneratePointsAlongLinesPercentage:
             where_clause='', distance_type=DistanceTypeOption.GEODESIC)
     # End _get_query method
 
+    def test_is_2d(self, ntdb_zm_small):
+        """
+        Test is 2D
+        """
+        assert self._get_query(ntdb_zm_small)._is_2d
+    # End test_is_2d method
+
     def test_get_unique_fields(self, ntdb_zm_small):
         """
         Test get unique fields
