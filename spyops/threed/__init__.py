@@ -5,9 +5,12 @@ Package Initialization
 
 
 from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
-from spyops.threed.features import generate_points_along_3d_lines
+from spyops.threed.features import (
+    calculate_missing_z_values, generate_points_along_3d_lines)
+
 
 __all__ = [
+    'calculate_missing_z_values',
     'generate_points_along_3d_lines',
 
     'DistanceTypeOption',

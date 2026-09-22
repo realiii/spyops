@@ -4,8 +4,11 @@
 """
 
 
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
+from fudgeo.constant import FETCH_SIZE
+
+from spyops.geometry.util import filter_features
 from spyops.management.util import generate_along_lines
 from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
@@ -13,7 +16,7 @@ from spyops.shared.hint import DISTANCE
 from spyops.shared.keywords import (
     DISTANCE_TYPE, PLACEMENT, PLACEMENT_OPTION, SOURCE)
 from spyops.query.threed.features import (
-    QueryGeneratePointsAlong3DLinesDistance,
+    QueryCalculateMissingZValues, QueryGeneratePointsAlong3DLinesDistance,
     QueryGeneratePointsAlong3DLinesField,
     QueryGeneratePointsAlong3DLinesPercentage)
 from spyops.validation import (
@@ -24,9 +27,10 @@ from spyops.validation import (
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
 
 
-__all__ = ['generate_points_along_3d_lines']
+__all__ = ['generate_points_along_3d_lines', 'calculate_missing_z_values']
 
 
 @validate_result()
@@ -91,6 +95,34 @@ def generate_points_along_3d_lines(
                 where_clause=where_clause)
     return generate_along_lines(query)
 # End generate_points_along_3d_lines function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=(
+        *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS), has_z=True)
+def calculate_missing_z_values(source: 'FeatureClass',
+                               matcher: Callable[['ndarray'], 'ndarray'],
+                               *, where_clause: str = '') -> 'FeatureClass':
+    """
+    Calculate Missing Z Values
+
+    Calculates missing Z values for lines or polygons based on linear
+    interpolation in the XY plane.  The matcher function is used to identify
+    Z values that are missing, it must return a Boolean array.
+    """
+    with QueryCalculateMissingZValues(source, matcher=matcher,
+                                      where_clause=where_clause) as query:
+        query_insert = query.insert
+        filler = query.z_filler
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                cin.executemany(query_insert, filler(features))
+            cin.execute(query.update)
+    return query.target
+# End calculate_missing_z_values function
 
 
 if __name__ == '__main__':  # pragma: no cover
