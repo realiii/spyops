@@ -55,6 +55,7 @@ MIT
 - added `generate_transects_along_lines` (Management - Sampling)
 - added `generate_rectangles_along_lines` (Management - Sampling)
 - added `generate_points_along_3d_lines` (3D - Features)
+- added `calculate_missing_z_values` (3D - Features)
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`
