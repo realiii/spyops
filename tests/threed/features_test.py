@@ -6,6 +6,7 @@ Tests for Features
 
 from fudgeo import FeatureClass
 from fudgeo.enumeration import ShapeType
+from numpy import isfinite
 from pytest import mark
 
 from spyops.crs.constant import WGS84
@@ -14,7 +15,7 @@ from spyops.environment import Extent, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
 from spyops.threed import generate_points_along_3d_lines
-
+from spyops.threed.features import calculate_missing_z_values
 
 pytestmark = [mark.features, mark.threed]
 
@@ -383,6 +384,33 @@ class TestGeneratePointsAlongLines3D:
             assert result.spatial_reference_system.srs_id == 4326
     # End test_extent method
 # End TestGeneratePointsAlongLines3D class
+
+
+class TestCalculateMissingZValues:
+    """
+    Test Calculate Missing Z Values
+    """
+    @mark.parametrize('fc_name, count', [
+        ('hydro_6654_z_a', 10),
+        ('hydro_6654_zm_a', 10),
+        ('structures_6654_z_ma', 10),
+        ('transmission_z_l', 10),
+        ('transmission_z_ml', 4),
+    ])
+    def test_matcher(self, ntdb_zm_small, mem_gpkg, fc_name, count):
+        """
+        Test matcher example
+        """
+        def matcher(zs):
+            return ~isfinite(zs)
+
+        source = ntdb_zm_small[fc_name].copy(
+            name=fc_name, geopackage=mem_gpkg, where_clause=f"""FID <= 10""")
+        assert len(source) == count
+        calculate_missing_z_values(source, matcher)
+        assert len(source) == count
+    # End test_matcher method
+# End TestCalculateMissingZValues class
 
 
 if __name__ == '__main__':  # pragma: no cover

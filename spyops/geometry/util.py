@@ -8,7 +8,9 @@ from math import nan
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from bottleneck import nanmean, nansum
-from numpy import array, copysign, cross, diff, isfinite, ndarray, nonzero, ones
+from numpy import (
+    array, copysign, cross, cumsum, diff, hypot, interp, isfinite, ndarray,
+    nonzero, ones, ones_like, zeros_like)
 from numpy.linalg import norm
 from shapely import LineString, force_2d, force_3d
 from shapely.coordinates import get_coordinates
@@ -16,6 +18,7 @@ from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid
 
 from spyops.geometry.enumeration import DimensionOption
+from spyops.shared.hint import VALUES
 from spyops.shared.keywords import GEOMS_ATTR
 
 
@@ -212,6 +215,38 @@ def linestring_measures_to_zs(geoms: Union['ndarray', list[LineString]]) \
     #  to be generated, in this case the Z values are measures
     return [LineString(coords[b:e]) for b, e in zip(ids[:-1], ids[1:])]
 # End linestring_measures_to_zs function
+
+
+def calculate_segment_lengths(a: VALUES, b: VALUES) -> 'ndarray':
+    """
+    Calculate Segment Lengths
+    """
+    lengths = zeros_like(a, dtype=float)
+    lengths[1:] = cumsum(hypot(diff(a), diff(b)))
+    return lengths
+# End calculate_segment_lengths method
+
+
+def interpolate_zs(*, xs: VALUES, ys: VALUES, zs: VALUES, value: float = 0.,
+                   matcher: Callable[[VALUES], 'ndarray'] | None = None) \
+        -> VALUES:
+    """
+    Interpolate Z values
+    """
+    if not matcher:
+        mask = ~isfinite(zs)
+    else:
+        mask = matcher(zs)
+    if not mask.any():
+        return zs
+    elif mask.all():
+        return ones_like(zs, dtype=float) * value
+    elif mask.any():
+        zs = array(zs, dtype=float)
+        lengths = calculate_segment_lengths(xs, ys)
+        zs[mask] = interp(lengths[mask], lengths[~mask], zs[~mask])
+    return zs
+# End interpolate_zs method
 
 
 if __name__ == '__main__':  # pragma: no cover

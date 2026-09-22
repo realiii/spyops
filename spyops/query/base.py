@@ -573,11 +573,13 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
     """
     Abstract Source Update Query
     """
-    def __init__(self, source: FeatureClass, where_clause: str = EMPTY) -> None:
+    def __init__(self, source: FeatureClass, where_clause: str = EMPTY,
+                 xy_tolerance: XY_TOL = None) -> None:
         """
         Initialize the AbstractSourceQuery class
         """
-        super().__init__(source, target=source, where_clause=where_clause)
+        super().__init__(source, target=source, where_clause=where_clause,
+                         xy_tolerance=xy_tolerance)
     # End init built-in
 
     @property

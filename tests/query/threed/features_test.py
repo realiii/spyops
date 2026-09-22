@@ -4,6 +4,7 @@ Tests for the Features Query Classes
 """
 
 from math import log, nan
+from sqlite3 import OperationalError
 from warnings import catch_warnings, simplefilter
 
 from fudgeo import FeatureClass, Field
@@ -11,7 +12,7 @@ from fudgeo.enumeration import FieldType, ShapeType
 from numpy import cumsum, isfinite
 from pyproj import CRS
 from pyproj.crs import CompoundCRS
-from pytest import mark, approx
+from pytest import mark, approx, raises
 from shapely.geometry.linestring import LineString
 from shapely.geometry.multilinestring import MultiLineString
 from shapely.geometry.multipolygon import MultiPolygon
@@ -22,10 +23,12 @@ from shapely.measurement import length
 from spyops.crs.constant import WGS84
 from spyops.crs.unit import DecimalDegrees, Feet, Kilometers, Meters
 from spyops.crs.util import crs_from_srs
+from spyops.environment import Extent, Setting
+from spyops.environment.context import Swap
 from spyops.geometry.convert import GEOMETRY_AS_MULTILINE
 from spyops.geometry.util import get_geoms
 from spyops.query.threed.features import (
-    QueryGeneratePointsAlong3DLinesDistance,
+    QueryCalculateMissingZValues, QueryGeneratePointsAlong3DLinesDistance,
     QueryGeneratePointsAlong3DLinesField,
     QueryGeneratePointsAlong3DLinesPercentage)
 from spyops.shared.enumeration import DistanceTypeOption
@@ -1045,6 +1048,85 @@ class TestQueryGeneratePointsAlong3DLinesField:
             assert all(p.y < 1000 for p in points)
     # End test_generate_features_geographic_dd method
 # End TestQueryGeneratePointsAlong3DLinesField class
+
+
+class TestQueryCalculateMissingZValues:
+    """
+    Tests for QueryCalculateMissingZValues
+    """
+    def test_delete_intermediate(self, grid_index):
+        """
+        Test delete intermediate
+        """
+        name = 'grid_zm_a'
+        source = grid_index[name]
+        query = QueryCalculateMissingZValues(source, lambda x: x, where_clause='')
+        with query.source.geopackage.connection as cin:
+            query._delete_intermediate()
+            name = query._intermediate_table
+            assert name.startswith('temp.tmp_grid_zm_a_fill_z_')
+            sql = f"""SELECT * FROM {name}"""
+            cin.execute(sql)
+            query._delete_intermediate()
+            with raises(OperationalError):
+                cin.execute(sql)
+    # End test_delete_intermediate method
+
+    def test_intermediate_fields(self, grid_index):
+        """
+        Test intermediate fields
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryCalculateMissingZValues(source, lambda x: x, where_clause='')
+        assert len(query._intermediate_fields) == 2
+    # End test_intermediate_fields method
+
+    def test_select(self, grid_index):
+        """
+        Test select statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryCalculateMissingZValues(source, lambda x: x, where_clause='')
+        sql = query.select
+        assert 'SELECT geom "[PolygonZM]", fid' in sql
+        assert f'FROM grid_zm_a' in sql
+    # End test_select method
+
+    def test_select_extent(self, grid_index):
+        """
+        Test select statement with extent
+        """
+        source = grid_index['grid_zm_a']
+        with Swap(Setting.EXTENT, Extent.from_bounds(-120, 50, -110, 52, WGS84)):
+            query = QueryCalculateMissingZValues(source, lambda x: x, where_clause='')
+            sql = query.select
+            assert 'SELECT geom "[PolygonZM]", fid' in sql
+            assert 'FROM grid_zm_a' in sql
+            assert 'WHERE minx <= -113.9999' in sql
+    # End test_select_extent method
+
+    def test_insert(self, grid_index):
+        """
+        Test insert statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryCalculateMissingZValues(source, lambda x: x, where_clause='')
+        sql = query.insert
+        assert '(ORIG_FID, SHAPE) ' in sql
+        assert f'temp.tmp_grid_zm_a' in sql
+    # End test_insert method
+
+    def test_update(self, grid_index):
+        """
+        Test update statement
+        """
+        source = grid_index['grid_zm_a']
+        query = QueryCalculateMissingZValues(source, lambda x: x, where_clause='')
+        sql = query.update
+        assert 'UPDATE grid_zm_a ' in sql
+        assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
+    # End test_update method
+# End TestQueryCalculateMissingZValues class
 
 
 if __name__ == '__main__':  # pragma: no cover
