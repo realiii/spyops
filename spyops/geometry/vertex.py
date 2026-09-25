@@ -308,7 +308,6 @@ GEOMETRY_VERTICES_END: dict[str, Callable] = {
     ShapeType.multi_polygon: end_vertices_multi_polygons,
 }
 
-# noinspection PyTypeChecker
 _BOTH_ENDS_GETTER = itemgetter(0, -1)
 both_ends_vertices_multi_points = partial(
     _vertices_multi_points, getter=_BOTH_ENDS_GETTER)
