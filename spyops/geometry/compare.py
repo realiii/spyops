@@ -12,7 +12,7 @@ from shapely.predicates import equals_exact
 
 from spyops.geometry.util import (
     filter_features, get_coords_and_slices, to_shapely)
-from spyops.geometry.wa import make_valid_structure
+from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
 
 

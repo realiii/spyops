@@ -17,7 +17,7 @@ from spyops.crs.unit import (
     USNauticalMiles, USSurveyFeet, USSurveyMiles, USSurveyYards, Yards,
     YardsInternational, YardsUS)
 from spyops.geometry.util import filter_features, to_shapely
-from spyops.geometry.wa import simplify
+from spyops.geometry.wa.simp import simplify
 from spyops.query.editing import QueryGeneralize
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import UNIT_TOLERANCE

@@ -7,7 +7,7 @@ Query Classes for cartography.generalization module
 from typing import Callable, TYPE_CHECKING
 
 from spyops.geometry.smooth import smooth_bezier, smooth_paek
-from spyops.geometry.wa import simplify
+from spyops.geometry.wa.simp import simplify
 from spyops.query.base import AbstractSourceQuery
 from spyops.shared.enumeration import (
     SimplifyAlgorithmOption, SmoothAlgorithmOption)

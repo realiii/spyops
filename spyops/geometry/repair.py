@@ -20,7 +20,7 @@ from spyops.geometry.constant import (
     REASON_SELF_INTERSECTION, REASON_TOO_FEW_POINTS, REASON_VALID_GEOMETRY)
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_geoms_iter, make_none_mask, to_shapely
-from spyops.geometry.wa import make_valid_structure
+from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.hint import UPDATES_FUDGEO, UPDATES_SHAPELY
 
 

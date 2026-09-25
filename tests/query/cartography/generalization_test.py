@@ -12,7 +12,7 @@ from spyops.crs.constant import WGS84
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.geometry.smooth import smooth_bezier, smooth_paek
-from spyops.geometry.wa import simplify
+from spyops.geometry.wa.simp import simplify
 from spyops.query.cartography.generalization import (
     QuerySimplifyLine, QuerySmoothLine)
 from spyops.shared.enumeration import (

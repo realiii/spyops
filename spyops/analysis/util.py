@@ -21,7 +21,7 @@ from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_multi
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.validate import get_validated_geometries
-from spyops.geometry.wa import set_precision
+from spyops.geometry.wa.sp import set_precision
 from spyops.query.analysis.extract import (
     QueryClip, QuerySplitByAttributesFeatureClass, QuerySplitByAttributesTable)
 from spyops.shared.constant import UNDERSCORE

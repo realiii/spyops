@@ -23,7 +23,8 @@ from spyops.geometry.repair import (
     _repair_multi_linestrings, _repair_multi_polygons,
     repair_feature_class_geometry)
 from spyops.geometry.util import to_shapely
-from spyops.geometry.wa import make_valid_structure
+from spyops.geometry.wa.valid import make_valid_structure
+
 
 pytestmark = [mark.geometry]
 

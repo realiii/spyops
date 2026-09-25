@@ -12,7 +12,7 @@ from shapely.lib import force_2d
 
 from spyops.crs.util import get_crs_from_source
 from spyops.geometry.extent import extent_from_feature_class, is_degenerate
-from spyops.geometry.wa import make_valid_structure
+from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.exception import BadExtentError
 
 

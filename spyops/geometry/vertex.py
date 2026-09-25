@@ -13,7 +13,7 @@ from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import to_shapely
-from spyops.geometry.wa import line_interpolate_point
+from spyops.geometry.wa.lip import line_interpolate_point
 from spyops.shared.hint import POINT
 
 

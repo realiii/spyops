@@ -13,8 +13,11 @@ from shapely import (
     LineString, Polygon, from_wkt, MultiLineString, MultiPolygon, MultiPoint,
     get_coordinates)
 
-from spyops.geometry.wa import (
-    USE_WORKAROUNDS, make_valid_structure, set_precision, simplify)
+from spyops.geometry.wa.uwa import (
+    USE_WORKAROUNDS)
+from spyops.geometry.wa.sp import set_precision
+from spyops.geometry.wa.valid import make_valid_structure
+from spyops.geometry.wa.simp import simplify
 from spyops.shared.exception import OperationsWarning
 
 
@@ -50,6 +53,7 @@ def test_use_workarounds():
     assert USE_WORKAROUNDS.point_interpolation is True
     assert USE_WORKAROUNDS.geometry_order_interpolation is True
     assert USE_WORKAROUNDS.dropped_nan_measures is True
+    assert USE_WORKAROUNDS.segmentize is True
 # End test_use_workarounds function
 
 

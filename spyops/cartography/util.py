@@ -9,7 +9,7 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
 from spyops.geometry.util import filter_features, to_shapely
-from spyops.geometry.wa import set_precision
+from spyops.geometry.wa.sp import set_precision
 from spyops.shared.records import extend_records
 
 if TYPE_CHECKING:  # pragma: no cover

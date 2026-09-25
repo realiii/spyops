@@ -46,7 +46,7 @@ from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
-from spyops.geometry.wa import polygonize
+from spyops.geometry.wa.poly import polygonize
 from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
     BaseQuerySelect)
