@@ -27,7 +27,7 @@ DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
 PLACEMENT: TypeAlias = Union['LinearUnit', 'DecimalDegrees', 'Field', float]
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
-UNIT_INPUT = Union[UNIT, str, float, int]
+UNIT_INPUT = Union['LinearUnit', 'DecimalDegrees', str, float, int]
 UNIT_TOLERANCE: TypeAlias = UNIT_INPUT
 TRANSECT_LENGTH: TypeAlias = UNIT_INPUT
 RECT_LENGTH: TypeAlias = UNIT_INPUT
