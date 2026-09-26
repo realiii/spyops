@@ -21,10 +21,10 @@ def line_interpolate_point(line, distance, normalized=False, **kwargs):
     """
     Line Interpolate Point Workaround -- ensures measures are present
     """
-    func = _line_interpolate_point
-    if USE_WORKAROUNDS.line_interpolate_point:
-        if check_has_measure(line):
-            func = _line_interpolate_point_with_measures
+    if USE_WORKAROUNDS.line_interpolate_point and check_has_measure(line):
+        func = _line_interpolate_point_with_measures
+    else:
+        func = _line_interpolate_point
     # noinspection bad-argument-type
     return func(line, distance=distance, normalized=normalized, **kwargs)
 # End line_interpolate_point function
