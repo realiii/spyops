@@ -98,5 +98,22 @@ def linestring_measures_to_zs(geoms: Union['ndarray', list[LineString]]) \
 # End linestring_measures_to_zs function
 
 
+def check_has_measure(geom) -> bool:
+    """
+    Check if geometry or sequence of geometries has measures
+    """
+    if isinstance(geom, (list, tuple, ndarray)):
+        if not len(geom):
+            has_m = False
+        else:
+            geoms = geom[:(min(25, len(geom)))]
+            # noinspection unresolved-references
+            has_m = any(g.has_m for g in geoms)
+    else:
+        has_m = geom.has_m
+    return has_m
+# End check_has_measure function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

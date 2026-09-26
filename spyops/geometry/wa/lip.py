@@ -5,13 +5,13 @@ Line Interpolate Point Workaround
 
 
 from fudgeo.enumeration import ShapeType
-from numpy import ndarray
 from shapely import (
     from_wkb, get_coordinates, get_z,
     line_interpolate_point as _line_interpolate_point)
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.wa.util import ensure_iterable, linestring_measures_to_zs
+from spyops.geometry.wa.util import (
+    check_has_measure, ensure_iterable, linestring_measures_to_zs)
 
 from spyops.geometry.wa.uwa import USE_WORKAROUNDS
 from spyops.shared.constant import SRS_ID_WKB
@@ -23,16 +23,7 @@ def line_interpolate_point(line, distance, normalized=False, **kwargs):
     """
     func = _line_interpolate_point
     if USE_WORKAROUNDS.line_interpolate_point:
-        if isinstance(line, (list, tuple, ndarray)):
-            if not len(line):
-                has_m = False
-            else:
-                geoms = line[:(min(25, len(line)))]
-                # noinspection unresolved-references
-                has_m = any(g.has_m for g in geoms)
-        else:
-            has_m = line.has_m
-        if has_m:
+        if check_has_measure(line):
             func = _line_interpolate_point_with_measures
     # noinspection bad-argument-type
     return func(line, distance=distance, normalized=normalized, **kwargs)
