@@ -4,7 +4,7 @@ Utility Functions in support of Workarounds
 """
 
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import cache
 from math import nan
 from operator import itemgetter
@@ -113,6 +113,15 @@ def check_has_measure(geom) -> bool:
         has_m = geom.has_m
     return has_m
 # End check_has_measure function
+
+
+def get_shape_type_from_geom(geoms: list) -> str:
+    """
+    Get Shape Type from Geometry
+    """
+    (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
+    return geom_type.upper()
+# End get_shape_type_from_geom function
 
 
 if __name__ == '__main__':  # pragma: no cover

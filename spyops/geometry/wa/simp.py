@@ -3,8 +3,6 @@
 Simplify Workaround
 """
 
-
-from collections import Counter
 from math import nan
 from typing import Callable, Type
 
@@ -15,7 +13,7 @@ from shapely import (
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_coords_and_slices, get_geoms_iter, nada
-from spyops.geometry.wa.util import ensure_iterable
+from spyops.geometry.wa.util import ensure_iterable, get_shape_type_from_geom
 from spyops.geometry.wa.uwa import USE_WORKAROUNDS
 from spyops.shared.constant import SRS_ID_WKB
 
@@ -54,8 +52,7 @@ def _simplify_with_measures(geometry, *, tolerance: float,
     is_iterable, geometries = ensure_iterable(geometry)
     geoms = geometries[:(min(25, len(geometries)))]
     has_z = any(g.has_z for g in geoms)
-    (geom_type, _), = Counter([g.geom_type for g in geoms]).most_common(1)
-    shape_type = geom_type.upper()
+    shape_type = get_shape_type_from_geom(geoms)
     if shape_type not in GEOMETRY_SIMPLIFY:
         result = geometries
     else:
