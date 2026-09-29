@@ -21,8 +21,7 @@ from shapely.predicates import is_empty
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
-    DISTANCE_UNIT_LUT, DecimalDegrees, LinearUnit, Meters, get_unit_name,
-    unit_factory)
+    DISTANCE_UNIT_LUT, Meters, get_unit_name, unit_factory)
 from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.core import ZMConfig, zm_config
