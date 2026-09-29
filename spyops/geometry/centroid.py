@@ -116,29 +116,6 @@ def _get_geometric_centers(geoms: 'ndarray', has_z: bool, has_m: bool,
 # End _get_geometric_centers function
 
 
-def _ring_centers(rings: 'ndarray', areas: 'ndarray',
-                  has_z: bool, has_m: bool) -> list:
-    """
-    Ring Centers
-    """
-    centers = []
-    dim = 2 + sum((has_z, has_m))
-    coords, ids = get_coords_and_slices(rings, include_z=has_z, include_m=has_m)
-    for begin, end, signed_area in zip(ids[:-1], ids[1:], areas):
-        if not signed_area:
-            continue
-        cs = coords[begin:end]
-        xs = cs[:, 0]
-        ys = cs[:, 1]
-        factor = (xs[:-1] * ys[1:] - xs[1:] * ys[:-1])
-        center = array([nansum((cs[:, i][:-1] + cs[:, i][1:]) * factor)
-                        for i in range(dim)], dtype=float)
-        center /= (6. * signed_area)
-        centers.append(center)
-    return centers
-# End _raw_ring_centers function
-
-
 def _area_weighted_centroids(geoms: 'ndarray', has_z: bool, has_m: bool,
                              use_xy_length: bool) -> list:
     """
@@ -175,14 +152,6 @@ def _weighted_centroids(geoms: 'ndarray', has_z: bool, has_m: bool,
         centroids.append(nansum((weights * centers), axis=1) / nansum(weights))
     return centroids
 # End _weighted_centroids function
-
-
-def _unit_weight(geoms: list) -> 'ndarray':
-    """
-    Unit Weight
-    """
-    return ones_like(geoms, dtype=float)
-# End _unit_weight function
 
 
 GEOMETRY_CENTROID: dict[str, Callable] = {
