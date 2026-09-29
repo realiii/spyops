@@ -28,7 +28,7 @@ class TestGeneralize:
         ('topography_l', DecimalDegrees(0.0001)),
         ('topography_m_l', Meters(100)),
         ('topography_zm_l', Feet(300)),
-        ('topography_z_l', DecimalDegrees(0.0001)),
+        ('topography_z_l', 0.0001),
     ])
     @mark.parametrize('preserve', [
         True,
