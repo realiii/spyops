@@ -34,7 +34,7 @@ from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
 from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
 from spyops.query.mixin import UnitTypeMixin
-from spyops.shared.constant import DRID, EMPTY, SKIP_FILE_PREFIXES
+from spyops.shared.constant import DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
@@ -857,7 +857,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
                 asarray(geoms), shape_type=shape_type,
                 grid_size=self._xy_tolerance)
         if not self.source.is_multi_part:
-            shape_type = f'MULTI{shape_type}'
+            shape_type = f'{MULTI}{shape_type}'
         fc = memory.create_feature_class(
             name=f'memory_{shape_type}_dissolved', overwrite=True,
             shape_type=shape_type, srs=self.source.spatial_reference_system)

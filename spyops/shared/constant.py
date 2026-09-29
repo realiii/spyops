@@ -25,7 +25,7 @@ PADDED_PIPE: str = f'{SPACE}{PIPE}{SPACE}'
 
 
 SRS_ID_WKB: int = -1  # used where only need WKB
-
+MULTI: str = 'MULTI'
 
 SPYOPS: str = 'spyops'
 DRID: str = '__DRID__'
