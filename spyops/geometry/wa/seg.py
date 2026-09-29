@@ -44,16 +44,20 @@ def _segmentize_with_measures(geometry, max_segment_length, **kwargs):
     """
     Segmentize Workaround -- ensures measures are present
     """
-    has_m = True
     is_iterable, geometries = ensure_iterable(geometry)
+    if not len(geometries):  # pragma: no cover
+        return geometry
     geoms = geometries[:(min(25, len(geometries)))]
-    has_z = any(g.has_z for g in geoms)
     shape_type = get_shape_type_from_geom(geoms)
+    if shape_type not in GEOMETRY_SEGMENTIZE:  # pragma: no cover
+        return geometry
+    has_m = True
+    has_z = any(g.has_z for g in geoms)
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type.replace(MULTI, EMPTY)][has_z, has_m]
     func = GEOMETRY_SEGMENTIZE[shape_type]
     result = func(geometries, max_segment_length=max_segment_length,
                   has_z=has_z, has_m=has_m, geom_cls=cls, **kwargs)
-    if not is_iterable:
+    if not is_iterable:  # pragma: no cover
         return result[0]
     return result
 # End _segmentize_with_measures function

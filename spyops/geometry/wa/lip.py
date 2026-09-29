@@ -37,6 +37,8 @@ def _line_interpolate_point_with_measures(line, distance, normalized=False,
     """
     has_m = True
     is_iterable, lines = ensure_iterable(line)
+    if not len(lines):  # pragma: no cover
+        return line
     geoms = lines[:(min(25, len(lines)))]
     has_z = any(g.has_z for g in geoms)
     cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.point][has_z, has_m]
@@ -55,7 +57,7 @@ def _line_interpolate_point_with_measures(line, distance, normalized=False,
             normalized=normalized, **kwargs))
     result = from_wkb([cls.from_tuple(coords, srs_id=SRS_ID_WKB).wkb
                        for coords in coordinates])
-    if not is_iterable:
+    if not is_iterable:  # pragma: no cover
         return result[0]
     return result
 # End _line_interpolate_point_with_measures function
