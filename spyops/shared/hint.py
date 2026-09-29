@@ -13,6 +13,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geometry import (
         LineString, LineStringM, LineStringZ, LineStringZM,
         MultiLineString, MultiLineStringM, MultiLineStringZ, MultiLineStringZM,
+        MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
         Point, PointM, PointZM, PointZ,
         Polygon, PolygonM, PolygonZ, PolygonZM)
     from numpy import ndarray
@@ -77,6 +78,8 @@ POINT: TypeAlias = Union['Point', 'PointZ', 'PointM', 'PointZM']
 POINT_TYPE: TypeAlias = Union[Type['Point'], Type['PointZ'], Type['PointM'], Type['PointZM']]
 POLY: TypeAlias = Union['Polygon', 'PolygonZ', 'PolygonM', 'PolygonZM']
 POLY_TYPE: TypeAlias = Union[Type['Polygon'], Type['PolygonZ'], Type['PolygonM'], Type['PolygonZM']]
+MULTIPOLY: TypeAlias = Union['MultiPolygon', 'MultiPolygonZ', 'MultiPolygonM', 'MultiPolygonZM']
+MULTIPOLY_TYPE: TypeAlias = Union[Type['MultiPolygon'], Type['MultiPolygonZ'], Type['MultiPolygonM'], Type['MultiPolygonZM']]
 
 
 if __name__ == '__main__':  # pragma: no cover
