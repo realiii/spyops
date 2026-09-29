@@ -2,6 +2,8 @@
 """
 Test Editing
 """
+
+
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
 from pytest import mark
@@ -24,6 +26,9 @@ class TestGeneralize:
         ('hydro_lcc_zm_a', 100),
         ('hydro_lcc_z_a', Feet(300)),
         ('topography_l', DecimalDegrees(0.0001)),
+        ('topography_m_l', DecimalDegrees(0.0001)),
+        ('topography_zm_l', DecimalDegrees(0.0001)),
+        ('topography_z_l', DecimalDegrees(0.0001)),
     ])
     @mark.parametrize('preserve', [
         True,
