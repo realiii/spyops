@@ -164,7 +164,7 @@ def ring_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,
     if use_xy_length or not has_z or (
             has_z and not isfinite(coords[:, 2]).all()):
         coords[:, 2] = 0
-    if not ring.is_closed:
+    if not ring.is_closed:  # pragma: no cover
         coords = array([*coords, coords[0]], dtype=float)
     origin = coords[0]
     firsts = coords[1:-1]

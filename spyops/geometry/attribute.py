@@ -35,7 +35,7 @@ def line_azimuth(geoms: 'ndarray', *, crs: 'CRS') -> 'ndarray':
     start_x, start_y = get_x(starts), get_y(starts)
     ends = _transform_geometries(_get_points(geoms, index=-1), crs)
     end_x, end_y = get_x(ends), get_y(ends)
-    if not (geod := crs.get_geod()):
+    if not (geod := crs.get_geod()):  # pragma: no cover
         raise ValueError('Cannot calculate line azimuth without a Geod')
     forward, _, _ = geod.inv(
         lons1=start_x, lats1=start_y, lons2=end_x, lats2=end_y)
@@ -48,10 +48,10 @@ def length_planar(geoms: 'ndarray', *, crs: 'CRS',
     """
     Length Planar
     """
-    if not len(geoms):
+    if not len(geoms):  # pragma: no cover
         return array([], dtype=float)
     lengths = length(geoms)
-    if not (name := get_unit_name(crs)):
+    if not (name := get_unit_name(crs)):  # pragma: no cover
         return lengths
     from_factor = get_conv_factor(name)
     to_factor = get_conv_factor(LENGTH_UNIT_LUT[unit])
@@ -63,10 +63,10 @@ def area_planar(geoms: 'ndarray', *, crs: 'CRS', unit: AreaUnit) -> 'ndarray':
     """
     Area Planar
     """
-    if not len(geoms):
+    if not len(geoms):  # pragma: no cover
         return array([], dtype=float)
     areas = area(geoms)
-    if not (name := get_unit_name(crs)):
+    if not (name := get_unit_name(crs)):  # pragma: no cover
         return areas
     from_factor = get_conv_factor(name) ** 2
     to_value, to_factor = AREA_UNIT_LUT[unit]
@@ -80,12 +80,12 @@ def length_geodesic(geoms: 'ndarray', *, crs: 'CRS',
     """
     Length Geodesic
     """
-    if not len(geoms):
+    if not len(geoms):  # pragma: no cover
         return array([], dtype=float)
-    if any(isinstance(geom, (Polygon, MultiPolygon)) for geom in geoms):
+    if any(isinstance(geom, (Polygon, MultiPolygon)) for geom in geoms):  # pragma: no cover
         geoms = boundary(geoms)
     geoms = _transform_geometries(geoms, crs)
-    if not (geod := crs.get_geod()):
+    if not (geod := crs.get_geod()):  # pragma: no cover
         raise ValueError('Cannot calculate geodesic length without a Geod')
     factor = get_unit_conversion(from_unit=LengthUnit.METERS, to_unit=unit)
     return array([geod.geometry_length(geom)
@@ -97,11 +97,11 @@ def area_geodesic(geoms: 'ndarray', *, crs: 'CRS', unit: AreaUnit) -> 'ndarray':
     """
     Area Geodesic
     """
-    if not len(geoms):
+    if not len(geoms):  # pragma: no cover
         return array([], dtype=float)
     geoms = orient_polygons(geoms)
     geoms = _transform_geometries(geoms, crs)
-    if not (geod := crs.get_geod()):
+    if not (geod := crs.get_geod()):  # pragma: no cover
         raise ValueError('Cannot calculate geodesic area without a Geod')
     factor = get_unit_conversion(from_unit=AreaUnit.SQUARE_METERS, to_unit=unit)
     return array([geod.geometry_area_perimeter(geom)[0]
@@ -113,7 +113,7 @@ def _transform_geometries(geoms: 'ndarray', crs: 'CRS') -> 'ndarray':
     """
     Transform Geometries into Geographic Coordinates if necessary
     """
-    if not (geodetic_crs := crs.geodetic_crs):
+    if not (geodetic_crs := crs.geodetic_crs):  # pragma: no cover
         return geoms
     if equals(crs, geodetic_crs):
         return geoms

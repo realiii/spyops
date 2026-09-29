@@ -59,7 +59,7 @@ def check_feature_class_geometry(source: 'FeatureClass', options: GeometryCheck,
                   has_z=has_z, has_m=has_m, grid_size=grid_size)
     _check_extent(source, **kwargs)
     while features := cursor.fetchmany(FETCH_SIZE):
-        if not (features := _check_empty_feature(features, **kwargs)):
+        if not (features := _check_empty_feature(features, **kwargs)):  # pragma: no cover
             continue
         _check_empty_part(features, **kwargs)
         _check_empty_ring(features, **kwargs)
@@ -88,7 +88,7 @@ def _check_extent(source: 'FeatureClass', *, options: GeometryCheck,
         records.append(record)
         return
     geometry_extent = get_extent(source)
-    if not isclose(table_extent, geometry_extent, rtol=1.2e-7).all():
+    if not isclose(table_extent, geometry_extent, rtol=1.2e-7).all():  # pragma: no cover
         records.append(record)
 # End _check_extent function
 

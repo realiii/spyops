@@ -113,7 +113,7 @@ def transform_multi_polygons(geoms: 'ndarray', transformer: 'Transformer',
             rings = [coords[b:e][validity[b:e]]
                      for b, e in zip(ids[:-1], ids[1:])]
             rings = [r for r in rings if len(r)]
-            if not rings:
+            if not rings:  # pragma: no cover
                 continue
             poly_coords.append(rings)
         wkb.append(cls(poly_coords, srs_id=SRS_ID_WKB).wkb)

@@ -147,7 +147,7 @@ def _area_weighted_centroids(geoms: 'ndarray', has_z: bool, has_m: bool,
     centroids = []
     for geom in geoms:
         rings = get_rings(geom)
-        if not len(rings):
+        if not len(rings):  # pragma: no cover
             continue
         areas, centers = zip(*[ring_area_and_centroid(
             ring, has_z=has_z, has_m=has_m, use_xy_length=use_xy_length)

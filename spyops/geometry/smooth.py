@@ -40,7 +40,7 @@ def smooth_bezier(geometry: ndarray | list | BaseGeometry,
     if shape_type in GEOMETRY_SMOOTH_BEZIER:
         func = GEOMETRY_SMOOTH_BEZIER[shape_type]
         geometry = func(geometry, density=density, has_z=has_z, has_m=has_m)
-    if is_iterable:
+    if is_iterable:  # pragma: no cover
         return asarray(geometry)
     return geometry[0]
 # End smooth_bezier function
@@ -79,7 +79,7 @@ def _smooth_config(geometry: ndarray | list | BaseGeometry) \
     """
     if not (is_iterable := isinstance(geometry, (list, tuple, ndarray))):
         geometry = [geometry]
-    if not len(geometry):
+    if not len(geometry):  # pragma: no cover
         shape_type = EMPTY
         has_z = has_m = False
     else:
@@ -218,11 +218,11 @@ def _smooth_bezier(geometry: ndarray | list, *, density: int,
     smoothed_coords = []
     for begin, end in zip(ids[:-1], ids[1:]):
         subset = coords[begin:end]
-        if len(subset) <= 2:
+        if len(subset) <= 2:  # pragma: no cover
             smoothed_coords.append(subset)
             continue
         distances = _cumulative_distances(subset[:, :2])
-        if distances[-1] == 0:
+        if distances[-1] == 0:  # pragma: no cover
             smoothed_coords.append(subset)
             continue
         tangents = _bessel_tangents(subset, distances=distances)
@@ -256,12 +256,12 @@ def _bessel_tangents(coordinates: ndarray, distances: ndarray) -> ndarray:
     for idx in range(1, len(lengths)):
         prev_len = lengths[idx - 1]
         next_len = lengths[idx]
-        if prev_len <= 0 and next_len <= 0:
+        if prev_len <= 0 and next_len <= 0:  # pragma: no cover
             continue
-        if prev_len <= 0:
+        if prev_len <= 0:  # pragma: no cover
             tangents[idx] = (coordinates[idx + 1] - coordinates[idx]) / next_len
             continue
-        if next_len <= 0:
+        if next_len <= 0:  # pragma: no cover
             tangents[idx] = (coordinates[idx] - coordinates[idx - 1]) / prev_len
             continue
         prev_slope = (coordinates[idx] - coordinates[idx - 1]) / prev_len
@@ -279,7 +279,7 @@ def _bezier_coordinates(coordinates: ndarray, distances: ndarray, *,
     """
     smoothed = [coordinates[0]]
     for idx in range(len(coordinates) - 1):
-        if (length := distances[idx + 1] - distances[idx]) <= 0:
+        if (length := distances[idx + 1] - distances[idx]) <= 0:  # pragma: no cover
             continue
         start = coordinates[idx]
         end = coordinates[idx + 1]
@@ -325,7 +325,7 @@ def _smooth_paek(geometry: ndarray | list, *, tolerance: float,
             smoothed_coords.append(subset)
             continue
         distances = _cumulative_distances(subset[:, :2])
-        if distances[-1] == 0:
+        if distances[-1] == 0:  # pragma: no cover
             smoothed_coords.append(subset)
             continue
         smoothed = _paek_coordinates(

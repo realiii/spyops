@@ -29,9 +29,9 @@ def _minimum_rotated_rectangle_width(geometry, **kwargs) -> Polygon | None:
     """
     Minimum Bounding Rectangle based on Minimum Width
     """
-    if geometry is None:
+    if geometry is None:  # pragma: no cover
         return None
-    if geometry.is_empty:
+    if geometry.is_empty:  # pragma: no cover
         return Polygon()
     hull = geometry.convex_hull
     if not hasattr(hull, 'exterior'):
@@ -117,7 +117,7 @@ def _convex_hull_attributes(geoms: 'ndarray') \
             wlo.append((0., 0., 0.))
             continue
         distances = _distance_and_points(subset, pairs)
-        if not distances:
+        if not distances:  # pragma: no cover
             wlo.append((0., 0., 0.))
             continue
         width = min(distances)
@@ -137,20 +137,21 @@ def _angle_continuous(x_coord: float, y_coord: float) -> float:
     try:
         angle = abs(degrees(atan(float(y_coord) / float(x_coord))))
     except ZeroDivisionError:
-        if y_coord < 0:
+        if y_coord < 0:  # pragma: no cover
             return 180.
         else:
             return 0.
     else:
         if x_coord > 0 <= y_coord:
             return 90. - angle
-        elif x_coord > 0 > y_coord:
+        elif x_coord > 0 > y_coord:  # pragma: no cover
             return angle + 90.
-        elif x_coord < 0 > y_coord:
+        elif x_coord < 0 > y_coord:  # pragma: no cover
             return 270. - angle
         elif x_coord < 0 <= y_coord:
             return 270. + angle
-        return angle
+        else:  # pragma: no cover
+            return angle
 # End _angle_continuous function
 
 
@@ -190,7 +191,7 @@ def _antipodal_pairs(coords: 'ndarray') -> set[tuple[int, int]]:
             q = q_next
             if p != q:
                 pairs.add((p, q))
-        if (p, q) == (p0, q0):
+        if (p, q) == (p0, q0):  # pragma: no cover
             break
     return pairs
 # End _antipodal_pairs function

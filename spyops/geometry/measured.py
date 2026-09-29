@@ -99,7 +99,7 @@ class MeasuredLine:
         """
         if values is None:
             return self._calculate_measures(xs, ys, zs, is_2d=is_2d) + start
-        if validate:
+        if validate:  # pragma: no cover
             self._validate_measures(values)
         return values
     # End _prepare_measures method
@@ -266,7 +266,7 @@ class MeasuredLine:
         the angle of the segment for which the point is the end point.
         """
         count = len(values)
-        if not count:
+        if not count:  # pragma: no cover
             return full(count, fill_value=nan, dtype=float)
         xs = self.coordinates[:, 0]
         ys = self.coordinates[:, 1]

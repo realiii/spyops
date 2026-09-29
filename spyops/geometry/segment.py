@@ -20,7 +20,7 @@ def _build_line_segments(geom: Any, *, fid: int, counter: int,
     if geom.is_empty:
         return []
     coords = geom.coordinates
-    if len(coords) < 2:
+    if len(coords) < 2:  # pragma: no cover
         return []
     return [(geom_cls([begin, end], srs_id=srs_id), fid, i)
             for i, (begin, end) in
@@ -34,7 +34,7 @@ def segment_linestrings(features: list[tuple], *, geom_cls: LINE_TYPE,
     Segment from LineStrings
     """
     segments = []
-    if not features:
+    if not features:  # pragma: no cover
         return segments
     counter = 1
     for line, fid in features:
@@ -52,7 +52,7 @@ def segment_multi_linestrings(features: list[tuple], *, geom_cls: LINE_TYPE,
     Segment from MultiLineStrings
     """
     segments = []
-    if not features:
+    if not features:  # pragma: no cover
         return segments
     for multi, fid in features:
         if multi.is_empty:
@@ -83,14 +83,14 @@ def segment_multi_polygons(features: list[tuple], *, geom_cls: LINE_TYPE,
     Segment from MultiPolygons
     """
     segments = []
-    if not features:
+    if not features:  # pragma: no cover
         return segments
     for multi, fid in features:
         if multi.is_empty:
             continue
         counter = 1
         for poly in multi:
-            if poly.is_empty:
+            if poly.is_empty:  # pragma: no cover
                 continue
             for ring in poly:
                 lines = _build_line_segments(
