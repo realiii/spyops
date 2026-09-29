@@ -4,6 +4,7 @@ Query Classes for editing
 """
 
 
+from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -19,9 +20,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from spyops.geometry.config import GeometryConfig
 
 
-class QueryGeneralize(AbstractSourceUpdateQuery):
+class AbstractQueryEditing(AbstractSourceUpdateQuery, metaclass=ABCMeta):
     """
-    Query for Generalize
+    Abstract Query for Editing
     """
     @cached_property
     def geometry_config(self) -> 'GeometryConfig':
@@ -32,11 +33,12 @@ class QueryGeneralize(AbstractSourceUpdateQuery):
     # End geometry_config property
 
     @property
+    @abstractmethod
     def _short_name(self) -> str:
         """
         Short Name
         """
-        return 'editing_generalize'
+        pass
     # End _short_name property
 
     def _prepare_source(self) -> None:
@@ -79,7 +81,35 @@ class QueryGeneralize(AbstractSourceUpdateQuery):
             field_names=field_names, from_name=self._intermediate_table,
             from_key_name=key_name, from_field_names=from_field_names)
     # End update property
+# End AbstractQueryEditing class
+
+
+class QueryGeneralize(AbstractQueryEditing):
+    """
+    Query for Generalize
+    """
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'editing_generalize'
+    # End _short_name property
 # End QueryGeneralize class
+
+
+class QueryDensify(AbstractQueryEditing):
+    """
+    Query for Densify
+    """
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'editing_densify'
+    # End _short_name property
+# End QueryDensify class
 
 
 if __name__ == '__main__':  # pragma: no cover

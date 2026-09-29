@@ -12,7 +12,7 @@ from numpy import (
     array, copysign, cross, cumsum, diff, hypot, interp, isfinite, ndarray,
     nonzero, ones, ones_like, zeros_like)
 from numpy.linalg import norm
-from shapely import LineString, force_2d, force_3d
+from shapely import force_2d, force_3d
 from shapely.coordinates import get_coordinates
 from shapely.io import from_wkb
 from shapely.predicates import is_empty, is_valid
@@ -201,20 +201,6 @@ def _get_weighted_dimension(coords: 'ndarray', areas: 'ndarray',
     return nanmean(nansum(
         areas * ((origin + firsts + seconds) / 3), axis=0) / area)
 # End _get_weighted_dimension function
-
-
-def linestring_measures_to_zs(geoms: Union['ndarray', list[LineString]]) \
-        -> list[LineString]:
-    """
-    Move the Measures of a LineString to the Z axis, reducing to LineStringZ
-    from LineStringZM or changing from LineStringM to LineStringZ.
-    """
-    coords, ids = get_coords_and_slices(
-        geoms, include_z=False, include_m=True)
-    # NOTE the current behaviour when passing triplets is for a LineStringZ
-    #  to be generated, in this case the Z values are measures
-    return [LineString(coords[b:e]) for b, e in zip(ids[:-1], ids[1:])]
-# End linestring_measures_to_zs function
 
 
 def calculate_segment_lengths(a: VALUES, b: VALUES) -> 'ndarray':

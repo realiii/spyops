@@ -21,8 +21,7 @@ from shapely.predicates import is_empty
 from spyops.crs.enumeration import DistanceUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
-    DISTANCE_UNIT_LUT, DecimalDegrees, LinearUnit, Meters, get_unit_name,
-    unit_factory)
+    DISTANCE_UNIT_LUT, Meters, get_unit_name, unit_factory)
 from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.core import ZMConfig, zm_config
@@ -34,7 +33,7 @@ from spyops.geometry.util import (
     filter_features, get_validity, make_none_mask, to_shapely)
 from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
 from spyops.query.mixin import UnitTypeMixin
-from spyops.shared.constant import DRID, EMPTY, SKIP_FILE_PREFIXES
+from spyops.shared.constant import DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SideOption)
 from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
@@ -857,7 +856,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
                 asarray(geoms), shape_type=shape_type,
                 grid_size=self._xy_tolerance)
         if not self.source.is_multi_part:
-            shape_type = f'MULTI{shape_type}'
+            shape_type = f'{MULTI}{shape_type}'
         fc = memory.create_feature_class(
             name=f'memory_{shape_type}_dissolved', overwrite=True,
             shape_type=shape_type, srs=self.source.spatial_reference_system)

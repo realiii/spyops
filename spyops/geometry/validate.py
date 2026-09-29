@@ -16,7 +16,7 @@ from shapely import (
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import get_geoms_iter, nada, to_shapely
-from spyops.geometry.wa import make_valid_structure
+from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.exception import GeometryDimensionError
 
 

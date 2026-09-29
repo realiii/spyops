@@ -12,7 +12,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geometry.base import AbstractGeometry
     from fudgeo.geometry import (
         LineString, LineStringM, LineStringZ, LineStringZM,
-        Point, PointM, PointZM, PointZ)
+        MultiLineString, MultiLineStringM, MultiLineStringZ, MultiLineStringZM,
+        MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
+        Point, PointM, PointZM, PointZ,
+        Polygon, PolygonM, PolygonZ, PolygonZM)
     from numpy import ndarray
     from spyops.crs.unit import DecimalDegrees, LinearUnit
     from shapely.geometry import (
@@ -27,7 +30,7 @@ DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
 PLACEMENT: TypeAlias = Union['LinearUnit', 'DecimalDegrees', 'Field', float]
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
-UNIT_INPUT = Union[UNIT, str, float, int]
+UNIT_INPUT = Union['LinearUnit', 'DecimalDegrees', str, float, int]
 UNIT_TOLERANCE: TypeAlias = UNIT_INPUT
 TRANSECT_LENGTH: TypeAlias = UNIT_INPUT
 RECT_LENGTH: TypeAlias = UNIT_INPUT
@@ -69,8 +72,14 @@ POINTS: TypeAlias = list['ShapelyPoint'] | list['MultiPoint']
 FEATURES: TypeAlias = list[tuple['AbstractGeometry', int]]
 LINE: TypeAlias = Union['LineString', 'LineStringZ', 'LineStringM', 'LineStringZM']
 LINE_TYPE: TypeAlias = Union[Type['LineString'], Type['LineStringZ'], Type['LineStringM'], Type['LineStringZM']]
+MULTILINE: TypeAlias = Union['MultiLineString', 'MultiLineStringZ', 'MultiLineStringM', 'MultiLineStringZM']
+MULTILINE_TYPE: TypeAlias = Union[Type['MultiLineString'], Type['MultiLineStringZ'], Type['MultiLineStringM'], Type['MultiLineStringZM']]
 POINT: TypeAlias = Union['Point', 'PointZ', 'PointM', 'PointZM']
 POINT_TYPE: TypeAlias = Union[Type['Point'], Type['PointZ'], Type['PointM'], Type['PointZM']]
+POLY: TypeAlias = Union['Polygon', 'PolygonZ', 'PolygonM', 'PolygonZM']
+POLY_TYPE: TypeAlias = Union[Type['Polygon'], Type['PolygonZ'], Type['PolygonM'], Type['PolygonZM']]
+MULTIPOLY: TypeAlias = Union['MultiPolygon', 'MultiPolygonZ', 'MultiPolygonM', 'MultiPolygonZM']
+MULTIPOLY_TYPE: TypeAlias = Union[Type['MultiPolygon'], Type['MultiPolygonZ'], Type['MultiPolygonM'], Type['MultiPolygonZM']]
 
 
 if __name__ == '__main__':  # pragma: no cover
