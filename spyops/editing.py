@@ -17,11 +17,12 @@ from spyops.crs.unit import (
     USNauticalMiles, USSurveyFeet, USSurveyMiles, USSurveyYards, Yards,
     YardsInternational, YardsUS)
 from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.wa.seg import segmentize
 from spyops.geometry.wa.simp import simplify
-from spyops.query.editing import QueryGeneralize
+from spyops.query.editing import QueryDensify, QueryGeneralize
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
-from spyops.shared.hint import UNIT_TOLERANCE
-from spyops.shared.keywords import SOURCE, TOLERANCE
+from spyops.shared.hint import UNIT_INPUT, UNIT_TOLERANCE
+from spyops.shared.keywords import DISTANCE_ARG, SOURCE, TOLERANCE
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_linear_unit, validate_result, validate_source_feature_class)
@@ -32,6 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 __all__ = [
+    'densify',
     'generalize',
 
     'DecimalDegrees',
@@ -97,6 +99,42 @@ def generalize(source: 'FeatureClass', tolerance: UNIT_TOLERANCE, *,
             query.source.extent = get_extent(query.source)
     return query.source
 # End generalize function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=(
+        *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS))
+@validate_linear_unit(DISTANCE_ARG, feature_class_name=SOURCE, as_number=True)
+def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
+            where_clause: str) -> 'FeatureClass':
+    """
+    Densify
+
+    Add points along line and polygon features.  This is an in place operation
+    with no undo.
+    """
+    records = []
+    tolerance: float
+    with QueryDensify(source, where_clause=where_clause) as query:
+        config = query.geometry_config
+        with (query.source.geopackage.connection as cin,
+              ExecuteMany(connection=cin, table=query.target) as executor):
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(features, transformer=None)
+                geometries = segmentize(
+                    geometries, max_segment_length=distance)
+                results = [(geom, (id_,)) for (_, id_), geom in
+                           zip(features, geometries)]
+                extend_records(results, records=records, config=config)
+            updates = [(geom, id_) for id_, geom in records]
+            executor(sql=query.insert, data=updates)
+            cin.execute(query.update)
+            query.source.extent = get_extent(query.source)
+    return query.source
+# End densify function
 
 
 if __name__ == '__main__':  # pragma: no cover
