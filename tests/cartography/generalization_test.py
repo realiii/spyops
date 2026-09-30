@@ -16,7 +16,7 @@ from spyops.crs.unit import Meters
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.management import add_field, calculate_geometry_attributes
-from spyops.shared.enumeration import GeometryAttribute
+from spyops.shared.enumeration import GeometryAttribute, SmoothAlgorithmOption
 
 
 class TestSimplifyLine:
@@ -254,7 +254,7 @@ class TestSmoothPolygon:
             cursor = cin.execute(sql.format(source.name))
             start_count, = cursor.fetchone()
         smooth_polygon(source, target=target, tolerance=tolerance,
-                    xy_tolerance=xy_tolerance)
+                       xy_tolerance=xy_tolerance)
         calculate_geometry_attributes(
             target, field=field, geometry_attribute=attr)
         with source.geopackage.connection as cin:
@@ -274,7 +274,11 @@ class TestSmoothPolygon:
         'structures_6654_zm_ma',
         'structures_6654_m_ma',
     ])
-    def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small, fc_name):
+    @mark.parametrize('option', [
+        SmoothAlgorithmOption.PAEK,
+        SmoothAlgorithmOption.BEZIER,
+    ])
+    def test_output_crs_and_zm(self, mem_gpkg, ntdb_zm_small, fc_name, option):
         """
         Test output CRS and ZM
         """
@@ -285,7 +289,8 @@ class TestSmoothPolygon:
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(epsg_code)),
               Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
               Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED)):
-            smooth_polygon(source, target=target, tolerance=Meters(100))
+            smooth_polygon(source, algorithm_option=option,
+                           target=target, tolerance=Meters(100))
             assert target.has_z
             assert target.has_m
             assert target.spatial_reference_system.srs_id == epsg_code
