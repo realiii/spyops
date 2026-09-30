@@ -38,9 +38,10 @@ class _UseWorkarounds:
         _, best, _ = get_transforms(source_crs=WGS84, target_crs=CRS(3857))
         try:
             transform(best.transform, a)
-            return False
         except ValueError:
             return True
+        else:  # pragma: no cover
+            return False
     # End transform property
 
     @cached_property

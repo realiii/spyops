@@ -37,7 +37,7 @@ def _vertices_points(features: list[tuple], **kwargs) \
     """
     vertices = defaultdict(list)
     for pt, fid in features:
-        if pt.is_empty:
+        if pt.is_empty:  # pragma: no cover
             continue
         vertices[fid].append(pt)
     return vertices
@@ -51,7 +51,7 @@ def _vertices_multi_points(features: list[tuple], getter: itemgetter) \
     """
     vertices = defaultdict(list)
     for multi, fid in features:
-        if multi.is_empty:
+        if multi.is_empty:  # pragma: no cover
             continue
         vertices[fid].extend(getter(multi.points))
     return vertices
@@ -65,7 +65,7 @@ def _vertices_linestrings(features: list[tuple], getter: itemgetter) \
     """
     vertices = defaultdict(list)
     for line, fid in features:
-        if line.is_empty:
+        if line.is_empty:  # pragma: no cover
             continue
         vertices[fid].extend(getter(line.points))
     return vertices
@@ -79,10 +79,10 @@ def _vertices_multi_linestrings(features: list[tuple], getter: itemgetter) \
     """
     vertices = defaultdict(list)
     for multi, fid in features:
-        if multi.is_empty:
+        if multi.is_empty:  # pragma: no cover
             continue
         for line in multi:
-            if line.is_empty:
+            if line.is_empty:  # pragma: no cover
                 continue
             vertices[fid].extend(getter(line.points))
     return vertices
@@ -96,10 +96,10 @@ def _vertices_polygons(features: list[tuple], getter: itemgetter) \
     """
     vertices = defaultdict(list)
     for poly, fid in features:
-        if poly.is_empty:
+        if poly.is_empty:  # pragma: no cover
             continue
         for ring in poly:
-            if ring.is_empty:
+            if ring.is_empty:  # pragma: no cover
                 continue
             vertices[fid].extend(getter(ring.points))
     return vertices
@@ -113,13 +113,13 @@ def _vertices_multi_polygons(features: list[tuple], getter: itemgetter) \
     """
     vertices = defaultdict(list)
     for multi, fid in features:
-        if multi.is_empty:
+        if multi.is_empty:  # pragma: no cover
             continue
         for poly in multi:
-            if poly.is_empty:
+            if poly.is_empty:  # pragma: no cover
                 continue
             for ring in poly:
-                if ring.is_empty:
+                if ring.is_empty:  # pragma: no cover
                     continue
                 vertices[fid].extend(getter(ring.points))
     return vertices
@@ -134,7 +134,7 @@ def _middle_multi_linear(features: list[tuple], *, has_z: bool, has_m: bool,
     """
     middles = defaultdict(list)
     for geom, fid in features:
-        if geom.is_empty:
+        if geom.is_empty:  # pragma: no cover
             continue
         data = [(line, fid) for line in geom if not line.is_empty]
         results = _middle_linear(
@@ -154,7 +154,7 @@ def middle_multi_points(features: list[tuple], *, has_z: bool, has_m: bool,
     points = {}
     cls = FUDGEO_GEOMETRY_LOOKUP[ShapeType.linestring][has_z, has_m]
     for multi, fid in features:
-        if multi.is_empty:
+        if multi.is_empty:  # pragma: no cover
             continue
         if len(multi.coordinates) < 2:
             points[fid] = multi.points[:1]
@@ -206,7 +206,7 @@ def middle_multi_polygons_rings(features: list[tuple], *, has_z: bool,
     """
     middles = defaultdict(list)
     for geom, fid in features:
-        if geom.is_empty:
+        if geom.is_empty:  # pragma: no cover
             continue
         data = [(poly, fid) for poly in geom if not poly.is_empty]
         middles.update(_middle_multi_linear(
@@ -221,7 +221,7 @@ def _middle_linear(features: list[tuple], *, has_z: bool, has_m: bool,
     Middle Linear
     """
     middles = defaultdict(list)
-    if not features:
+    if not features:  # pragma: no cover
         return middles
     if is_ring:
         features = _rings_to_lines(

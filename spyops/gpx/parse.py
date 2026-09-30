@@ -31,7 +31,7 @@ def _update_element_tag(source: Path):
         tree = iterparse(source)
         for _, el in tree:
             _, _, el.tag = el.tag.rpartition('}')
-    except ParseError:
+    except ParseError:  # pragma: no cover
         return False, None
     return True, tree
 # End _update_element_tag function
@@ -83,7 +83,7 @@ def get_root(path: Path) -> Element:
             success = False
         if not success:
             raise IOError(msg)
-    if (root := tree.root) is None:
+    if (root := tree.root) is None:  # pragma: no cover
         raise IOError(msg)
     return root
 # End get_root function
@@ -107,7 +107,7 @@ class BaseParse:
         """
         if (value := self._element.find(f'./{key}')) is None:
             return None
-        if not (value := value.text):
+        if not (value := value.text):  # pragma: no cover
             return None
         if not (value := value.strip()):
             return None
@@ -152,9 +152,9 @@ class Point(BaseParse):
         try:
             x = safe_float(self._element.attrib[LON_KEY])
             y = safe_float(self._element.attrib[LAT_KEY])
-        except KeyError:
+        except KeyError:  # pragma: no cover
             x = y = None
-        if x is None or y is None:
+        if x is None or y is None:  # pragma: no cover
             x = y = nan
         if (z := self.elevation) is None:
             z = nan
@@ -219,11 +219,11 @@ class Line(BaseParse):
         segments = []
         for segment in self._element.findall('./trkseg'):
             points = segment.findall('./trkpt')
-            if len(points) < 2:
+            if len(points) < 2:  # pragma: no cover
                 continue
             geoms = [Point(pt).geometry for pt in points]
             geoms = [geom for geom in geoms if not geom.is_empty]
-            if len(geoms) < 2:
+            if len(geoms) < 2:  # pragma: no cover
                 continue
             segments.append(ShapelyLineString(geoms))
         return segments

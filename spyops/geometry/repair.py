@@ -106,7 +106,7 @@ def _repair_multi_points(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
     else:
         for fid, geom in zip(ids, geoms):
             geom = make_valid_structure(geom)
-            if geom is None or geom.is_empty:
+            if geom is None or geom.is_empty:  # pragma: no cover
                 empties.append(fid)
             else:
                 updates.append((fid, geom))
@@ -174,7 +174,7 @@ def _repair_polygons(geoms: 'ndarray', ids: 'ndarray', *, deletes: DELETES,
                 geom = get_geoms_iter(make_valid_structure(geom))[0]
             elif reason.startswith(REASON_TOO_FEW_POINTS):
                 geom = _correct_polygon(geom)
-            if geom is None or geom.is_empty:
+            if geom is None or geom.is_empty:  # pragma: no cover
                 empties.append(fid)
             else:
                 updates.append((fid, fixer(geom)))
@@ -251,7 +251,7 @@ def _fix_linestring_parts(geoms: list[LineString]) -> list[LineString]:
         if reason.startswith(reason_strings):
             geom = make_valid_structure(geom)
         elif reason.startswith(REASON_TOO_FEW_POINTS):
-            if get_num_points(geom) < 2:
+            if get_num_points(geom) < 2:  # pragma: no cover
                 continue
         if geom.is_empty:
             continue

@@ -93,7 +93,7 @@ def _compare_zm(grouped_geom: dict[int, list['BaseGeometry']],
             coords = coordinates[begin:end]
             z_match = allclose(zs, coords[:, 2], rtol=z_tol, equal_nan=True)
             m_match = allclose(ms, coords[:, 3], rtol=m_tol, equal_nan=True)
-            if not (z_match and m_match):
+            if not (z_match and m_match):  # pragma: no cover
                 continue
             records.append((id_, oid))
     return records

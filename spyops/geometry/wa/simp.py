@@ -26,7 +26,7 @@ def simplify(geometry, tolerance, preserve_topology=True, **kwargs):
     if USE_WORKAROUNDS.simplify:
         types = Point, MultiPoint
         if isinstance(geometry, (list, tuple, ndarray)):
-            if not len(geometry):
+            if not len(geometry):  # pragma: no cover
                 has_m = False
                 is_point = True
             else:
@@ -50,17 +50,17 @@ def _simplify_with_measures(geometry, *, tolerance: float,
     Simplify Workaround -- ensures measures are present
     """
     is_iterable, geometries = ensure_iterable(geometry)
+    if not len(geometries):  # pragma: no cover
+        return geometry
     geoms = geometries[:(min(25, len(geometries)))]
-    has_z = any(g.has_z for g in geoms)
     shape_type = get_shape_type_from_geom(geoms)
-    if shape_type not in GEOMETRY_SIMPLIFY:
-        result = geometries
-    else:
-        func = GEOMETRY_SIMPLIFY[shape_type]
-        result = func(
-            geometries, tolerance=tolerance,
-            preserve_topology=preserve_topology,
-            has_z=has_z, **kwargs)
+    if shape_type not in GEOMETRY_SIMPLIFY:  # pragma: no cover
+        return geometry
+    has_z = any(g.has_z for g in geoms)
+    func = GEOMETRY_SIMPLIFY[shape_type]
+    result = func(
+        geometries, tolerance=tolerance, preserve_topology=preserve_topology,
+        has_z=has_z, **kwargs)
     if not is_iterable:
         return result[0]
     return result

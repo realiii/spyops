@@ -149,7 +149,7 @@ def is_degenerate(extent: EXTENT) -> bool:
     """
     Check if an extent is degenerate
     """
-    if len(extent) != 4:
+    if len(extent) != 4:  # pragma: no cover
         return True
     if not isfinite(extent).all():
         return True

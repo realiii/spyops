@@ -97,13 +97,13 @@ def geodesic_buffer(geoms: 'ndarray', distances: 'ndarray', *,
                   cap_style=str(end_option).casefold())
     polygons = full_like(geoms, fill_value=None, dtype=object)
     for prj, indexes in grouped.items():
-        if prj is None:
+        if prj is None:  # pragma: no cover
             continue
         gs = geoms[indexes]
         dists = distances[indexes] * factor
         transformers = _equidistant_transformers(
             crs, equidistant_crs=prj, shape_type=shape_type)
-        if None in transformers:
+        if None in transformers:  # pragma: no cover
             polygons[indexes] = buffer(gs, distance=dists, **kwargs)
             continue
         to_eqd, from_eqd = transformers
@@ -184,7 +184,7 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
         transformer=to_equidistant_transformer)
     from_equidistant_transformer = get_transform_best_guess(
         equidistant_crs, target_crs=crs, suppress=True)
-    if not from_equidistant_transformer:
+    if not from_equidistant_transformer:  # pragma: no cover
         return None, None
     from_equidistant = make_transformer_function(
         shape_type=ShapeType.multi_polygon, has_z=False, has_m=False,

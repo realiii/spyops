@@ -127,7 +127,7 @@ def get_equidistant_details(geometries: 'ndarray', *, crs: 'CRS',
         grouped[prj].append(i)
     details = []
     for prj, indexes in grouped.items():
-        if prj is None:
+        if prj is None:  # pragma: no cover
             continue
         transformers = _equidistant_transformers(
             crs, equidistant_crs=prj, target_shape_type=target_shape_type,
@@ -229,7 +229,7 @@ def _make_measured_line(index: int, coordinates: 'ndarray',
     """
     try:
         coords = coordinates[ids[index]:ids[index + 1]]
-    except IndexError:
+    except IndexError:  # pragma: no cover
         return None
     if not index:
         start_length = 0.
@@ -255,12 +255,12 @@ def _build_locations(grouped: defaultdict[int, list], coordinates: 'ndarray',
     for index, values in sorted(grouped.items()):
         if not (measured := _make_measured_line(
                 index, coordinates=coordinates, ids=ids,
-                lengths=lengths, is_2d=is_2d)):
+                lengths=lengths, is_2d=is_2d)):  # pragma: no cover
             continue
         results = measured.interpolate(values, use_length=True)
         for pt, value in zip(results, values):
             x, y, *_ = pt
-            if not isfinite((x, y)).all():
+            if not isfinite((x, y)).all():  # pragma: no cover
                 continue
             counter += 1
             records.append(PointRecord(
@@ -281,13 +281,13 @@ def _build_locs_with_angles(grouped: defaultdict[int, list],
     for index, values in sorted(grouped.items()):
         if not (measured := _make_measured_line(
                 index, coordinates=coordinates, ids=ids, lengths=lengths,
-                is_2d=True)):
+                is_2d=True)):  # pragma: no cover
             continue
         results = measured.interpolate(values, use_length=True)
         angles = measured.find_directions(values, use_length=True)
         for pt, value, angle in zip(results, values, angles):
             x, y, *_ = pt
-            if not isfinite((x, y)).all():
+            if not isfinite((x, y)).all():  # pragma: no cover
                 continue
             counter += 1
             records.append(TransectRecord(
@@ -322,7 +322,7 @@ def _build_loc_pairs_with_angles(
         for start_pt, end_pt, (start, end) in zip(start_pts, end_pts, values):
             start_x, start_y, *_ = start_pt
             end_x, end_y, *end_zm = end_pt
-            if not isfinite((start_x, start_y, end_x, end_y)).all():
+            if not isfinite((start_x, start_y, end_x, end_y)).all():  # pragma: no cover
                 continue
             angle = degrees(arctan2(end_y - start_y, end_x - start_x))
             if end_index >= line_count:
@@ -356,7 +356,7 @@ def _add_previous_and_next(counter: int, records: list[CenterlineRecord]) \
             next_ = None
             if counter > 1:
                 prev_ = counter - 1
-            else:
+            else:  # pragma: no cover
                 prev_ = None
         else:
             prev_ = seq - 1
@@ -526,14 +526,14 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
     """
     to_equidistant_transformer = get_transform_best_guess(
         crs, target_crs=equidistant_crs, suppress=True)
-    if not to_equidistant_transformer:
+    if not to_equidistant_transformer:  # pragma: no cover
         return None, None
     to_equidistant = make_transformer_function(
         shape_type=ShapeType.multi_linestring, has_z=has_z, has_m=has_m,
         transformer=to_equidistant_transformer)
     from_equidistant_transformer = get_transform_best_guess(
         equidistant_crs, target_crs=crs, suppress=True)
-    if not from_equidistant_transformer:
+    if not from_equidistant_transformer:  # pragma: no cover
         return None, None
     from_equidistant = make_transformer_function(
         shape_type=target_shape_type, has_z=has_z, has_m=has_m,

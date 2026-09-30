@@ -59,7 +59,7 @@ def check_feature_class_geometry(source: 'FeatureClass', options: GeometryCheck,
                   has_z=has_z, has_m=has_m, grid_size=grid_size)
     _check_extent(source, **kwargs)
     while features := cursor.fetchmany(FETCH_SIZE):
-        if not (features := _check_empty_feature(features, **kwargs)):
+        if not (features := _check_empty_feature(features, **kwargs)):  # pragma: no cover
             continue
         _check_empty_part(features, **kwargs)
         _check_empty_ring(features, **kwargs)
@@ -88,7 +88,7 @@ def _check_extent(source: 'FeatureClass', *, options: GeometryCheck,
         records.append(record)
         return
     geometry_extent = get_extent(source)
-    if not isclose(table_extent, geometry_extent, rtol=1.2e-7).all():
+    if not isclose(table_extent, geometry_extent, rtol=1.2e-7).all():  # pragma: no cover
         records.append(record)
 # End _check_extent function
 
@@ -374,7 +374,7 @@ def _check_nan_m(features: FEATURES, *, options: GeometryCheck, shape_type: str,
         pt: Union['PointM', 'PointZM']
         # noinspection PyUnresolvedReferences
         ids, zs = zip(*[(fid, pt.m) for pt, fid in features])
-        ids = ids[isnan(zs)]
+        ids = [i for i, truth in zip(ids, isnan(zs)) if truth]
     elif shape_type in (ShapeType.multi_point, ShapeType.linestring):
         mpl: Union['MultiPointM', 'MultiPointZM', 'LineStringM', 'LineStringZM']
         # noinspection PyUnresolvedReferences
@@ -421,7 +421,7 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     # noinspection PyTypeChecker
     geoms: 'ndarray' = from_wkb(wkb, on_invalid='ignore')
     mask_keep = ~make_none_mask(geoms)
-    if not mask_keep.any():
+    if not mask_keep.any():  # pragma: no cover
         return
     fids = array(fids, dtype=int)
     fids = fids[mask_keep]

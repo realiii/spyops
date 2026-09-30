@@ -316,6 +316,26 @@ class TestCheckFeatureClassGeometry:
         assert len(records) == count
     # End test_check_nan_m method
 
+    @mark.parametrize('fc_name, count', [
+        ('toponymy_p', 0),
+        ('toponymy_z_p', 0),
+        ('toponymy_m_p', 0),
+        ('toponymy_zm_p', 0),
+        ('transmission_10tm_ml', 0),
+        ('transmission_10tm_z_ml', 0),
+        ('transmission_10tm_m_ml', 3),
+        ('transmission_10tm_zm_ml', 3),
+    ])
+    def test_check_nan_m_more_shape_types(self, ntdb_zm_small, fc_name, count):
+        """
+        Test check nan m on more shape types
+        """
+        fc = ntdb_zm_small[fc_name]
+        records = check_feature_class_geometry(
+            fc, options=GeometryCheck.NAN_M)
+        assert len(records) == count
+    # End test_check_nan_m_more_shape_types method
+
     @mark.parametrize('fc_name, counts', [
         ('structures_m_ma', (2, 16, 0, 0)),
         ('structures_zm_ma', (2, 16, 1, 0)),

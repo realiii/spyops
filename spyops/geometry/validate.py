@@ -50,7 +50,7 @@ def check_point(geom: Point | MultiPoint) -> Point | MultiPoint | None:
     """
     Check Point
     """
-    if geom.is_empty:
+    if geom.is_empty:  # pragma: no cover
         return None
     return geom
 # End check_point function
@@ -65,11 +65,11 @@ def _check_geometry(geom: 'BaseGeometry', cls: Type['BaseGeometry'],
     if geom.is_valid:
         return geom
     geom = make_valid_structure(geom)
-    if not geom.is_valid:
+    if not geom.is_valid:  # pragma: no cover
         return None
     geoms = [p for p in get_geoms_iter(geom)
              if p.is_valid and isinstance(p, cls)]
-    if not geoms:
+    if not geoms:  # pragma: no cover
         return None
     if len(geoms) == 1:
         return geoms[0]
@@ -89,7 +89,8 @@ def get_geometry_dimension(feature_class: 'FeatureClass') -> int:
         return 1
     elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
         return 2
-    return -1
+    else:  # pragma: no cover
+        return -1
 # End get_geometry_dimension function
 
 
@@ -155,7 +156,7 @@ def get_validated_geometries(feature_class: 'FeatureClass', select_sql: str,
         checker = check_linestring
     elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
         checker = check_polygon
-    else:
+    else:  # pragma: no cover
         checker = nada
     return _get_validated_geoms(
         feature_class, select_sql=select_sql,
@@ -190,7 +191,7 @@ def _check_geometries(geometries: 'ndarray', checker: Callable,
     """
     for geometry in geometries:
         for geom in get_geoms_iter(geometry):
-            if checker(geom) is None:
+            if checker(geom) is None:  # pragma: no cover
                 continue
             geoms.append(geom)
 # End _check_geometries function

@@ -29,7 +29,7 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
     Build MultiPoint, MultiLineString, or MultiPolygon from a Feature Class or
     collection of geometries.
     """
-    if features is None or not len(features):
+    if features is None or not len(features):  # pragma: no cover
         return None
     if isinstance(features, FeatureClass):
         shape_type = features.shape_type

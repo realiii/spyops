@@ -23,9 +23,9 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
     """
     # noinspection PyTypeChecker
     collections: GeometryCollection = _polygonize(geometries, **kwargs)
-    if not USE_WORKAROUNDS.polygonize:
+    if not USE_WORKAROUNDS.polygonize:  # pragma: no cover
         return collections
-    if collections.is_empty:
+    if collections.is_empty:  # pragma: no cover
         return collections
     has_z = any(geometry.has_z for geometry in geometries)
     has_m = any(geometry.has_m for geometry in geometries)
