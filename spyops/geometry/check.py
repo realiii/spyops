@@ -421,7 +421,7 @@ def _check_coordinates(features: FEATURES, *, options: GeometryCheck,
     # noinspection PyTypeChecker
     geoms: 'ndarray' = from_wkb(wkb, on_invalid='ignore')
     mask_keep = ~make_none_mask(geoms)
-    if not mask_keep.any():
+    if not mask_keep.any():  # pragma: no cover
         return
     fids = array(fids, dtype=int)
     fids = fids[mask_keep]
