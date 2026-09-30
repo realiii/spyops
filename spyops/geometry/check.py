@@ -374,7 +374,7 @@ def _check_nan_m(features: FEATURES, *, options: GeometryCheck, shape_type: str,
         pt: Union['PointM', 'PointZM']
         # noinspection PyUnresolvedReferences
         ids, zs = zip(*[(fid, pt.m) for pt, fid in features])
-        ids = ids[isnan(zs)]
+        ids = [i for i, truth in zip(ids, isnan(zs)) if truth]
     elif shape_type in (ShapeType.multi_point, ShapeType.linestring):
         mpl: Union['MultiPointM', 'MultiPointZM', 'LineStringM', 'LineStringZM']
         # noinspection PyUnresolvedReferences
