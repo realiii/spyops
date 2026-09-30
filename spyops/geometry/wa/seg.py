@@ -98,7 +98,7 @@ def _segmentize_multi_linestrings(geometries, *, max_segment_length: float,
         lines = _segmentize_linestrings(
             get_geoms_iter(geometry), max_segment_length=max_segment_length,
             has_z=has_z, has_m=has_m, geom_cls=geom_cls, **kwargs)
-        geoms.append(MultiLineString(lines))
+        geoms.append(MultiLineString(lines.tolist()))
     return asarray(geoms, dtype=object)
 # End _segmentize_multi_linestrings function
 

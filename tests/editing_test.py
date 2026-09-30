@@ -74,6 +74,10 @@ class TestDensify:
         ('structures_m_a', 0.0001),
         ('structures_zm_a', 0.0001),
         ('structures_z_a', Feet(300)),
+        ('structures_10tm_ma', Feet(300)),
+        ('structures_10tm_m_ma', Feet(300)),
+        ('structures_10tm_z_ma', Feet(300)),
+        ('structures_10tm_zm_ma', Feet(300)),
         ('topography_l', DecimalDegrees(0.0001)),
         ('topography_m_l', Meters(100)),
         ('topography_zm_l', Feet(300)),
@@ -82,6 +86,10 @@ class TestDensify:
         ('transmission_m_l', Meters(100)),
         ('transmission_zm_l', Feet(300)),
         ('transmission_z_l', 0.0001),
+        ('transmission_10tm_ml', Meters(100)),
+        ('transmission_10tm_m_ml', Meters(100)),
+        ('transmission_10tm_z_ml', Meters(100)),
+        ('transmission_10tm_zm_ml', Meters(100)),
     ])
     def test_where_clause(self, mem_gpkg, ntdb_zm_small, fc_name, distance):
         """
