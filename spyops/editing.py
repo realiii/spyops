@@ -132,7 +132,6 @@ def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
             updates = [(geom, id_) for id_, geom in records]
             executor(sql=query.insert, data=updates)
             cin.execute(query.update)
-            query.source.extent = get_extent(query.source)
     return query.source
 # End densify function
 
