@@ -65,22 +65,6 @@ class AbstractQueryEditing(AbstractSourceUpdateQuery, metaclass=ABCMeta):
         _, geom = self._intermediate_fields
         return [geom.escaped_name]
     # End _get_field_names method
-
-    @property
-    def update(self) -> str:
-        """
-        Update Query
-        """
-        field_names = self._get_field_names()
-        key_name, *from_field_names = [
-            f.escaped_name for f in self._intermediate_fields]
-        # noinspection PyUnresolvedReferences
-        target_key_name = self.target.primary_key_field.escaped_name
-        return self._make_update_from(
-            element_name=self.target.escaped_name, key_name=target_key_name,
-            field_names=field_names, from_name=self._intermediate_table,
-            from_key_name=key_name, from_field_names=from_field_names)
-    # End update property
 # End AbstractQueryEditing class
 
 
