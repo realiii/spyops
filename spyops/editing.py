@@ -114,7 +114,7 @@ def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
     with no undo.
     """
     records = []
-    tolerance: float
+    distance: float
     with QueryDensify(source, where_clause=where_clause) as query:
         config = query.geometry_config
         with (query.source.geopackage.connection as cin,
