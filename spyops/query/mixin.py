@@ -356,5 +356,53 @@ class UnitTypeMixin:
 # End UnitTypeMixin class
 
 
+class DropEmptyMixin:
+    """
+    Drop Empty Mixin
+    """
+    @property
+    def drop_empty(self) -> str:
+        """
+        Drop Empty Features from Source Feature Class
+        """
+        # noinspection unresolved-references
+        name = self._intermediate_table
+        # noinspection unresolved-references
+        orig_fid, _ = self._intermediate_fields
+        # noinspection PyUnresolvedReferences
+        key_name = self.source.primary_key_field.escaped_name
+        return f"""
+            DELETE FROM {self.source.escaped_name} 
+            WHERE {key_name} IN (SELECT {orig_fid.name} FROM {name})
+        """
+    # End drop_empty property
+
+    @property
+    def truncate(self) -> str:
+        """
+        Truncate Query for Intermediate Table
+        """
+        # noinspection unresolved-references
+        name = self._intermediate_table
+        # noinspection SqlWithoutWhere
+        return f"""DELETE FROM {name}"""
+    # End truncate method
+
+    @property
+    def insert_identifiers(self) -> str:
+        """
+        Insert Query for Identifiers
+        """
+        # noinspection unresolved-references
+        orig_fid, _ = self._intermediate_fields
+        fields = [orig_fid]
+        # noinspection unresolved-references
+        return self._make_insert(
+            self._intermediate_table,
+            field_names=make_field_names(fields), field_count=len(fields))
+    # End insert_identifiers property
+# End DropEmptyMixin class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
