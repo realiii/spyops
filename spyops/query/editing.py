@@ -12,6 +12,7 @@ from fudgeo import Field
 
 from spyops.geometry.config import geometry_config
 from spyops.query.base import AbstractSourceUpdateQuery
+from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.field import ORIG_FID
 from spyops.shared.hint import FIELDS, NAMES
 
@@ -108,6 +109,20 @@ class QueryFlip(AbstractQueryEditing):
         return 'editing_flip'
     # End _short_name property
 # End QueryFlip class
+
+
+class QueryErasePoint(AbstractSourceUpdateQuery, DropEmptyMixin):
+    """
+    Query for Erase Point
+    """
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'editing_erase_point'
+    # End _short_name property
+# End QueryErasePoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
