@@ -12,12 +12,13 @@ from fudgeo import Field
 
 from spyops.geometry.config import geometry_config
 from spyops.query.base import AbstractSourceUpdateQuery
-from spyops.query.mixin import DropEmptyMixin
+from spyops.query.mixin import DropEmptyMixin, OperatorMixin
 from spyops.shared.field import ORIG_FID
 from spyops.shared.hint import FIELDS, NAMES
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import FeatureClass
     from spyops.geometry.config import GeometryConfig
 
 
@@ -111,10 +112,19 @@ class QueryFlip(AbstractQueryEditing):
 # End QueryFlip class
 
 
-class QueryErasePoint(AbstractSourceUpdateQuery, DropEmptyMixin):
+class QueryErasePoint(OperatorMixin, AbstractSourceUpdateQuery, DropEmptyMixin):
     """
     Query for Erase Point
     """
+    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
+                 where_clause: str) -> None:
+        """
+        Initialize the QueryErasePoint class
+        """
+        super().__init__(source, target=source, where_clause=where_clause)
+        self._operator: 'FeatureClass' = operator
+    # End init built-in
+
     @property
     def _short_name(self) -> str:
         """
