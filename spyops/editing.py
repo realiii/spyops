@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.util import get_extent
+from shapely.constructive import reverse
 
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
@@ -19,7 +20,7 @@ from spyops.crs.unit import (
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.wa.seg import segmentize
 from spyops.geometry.wa.simp import simplify
-from spyops.query.editing import QueryDensify, QueryGeneralize
+from spyops.query.editing import QueryDensify, QueryFlip, QueryGeneralize
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import UNIT_INPUT, UNIT_TOLERANCE
 from spyops.shared.keywords import DISTANCE_ARG, SOURCE, TOLERANCE
@@ -34,6 +35,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = [
     'densify',
+    'flip',
     'generalize',
 
     'DecimalDegrees',
@@ -134,6 +136,36 @@ def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
             cin.execute(query.update)
     return query.source
 # End densify function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
+def flip(source: 'FeatureClass', *, where_clause: str) -> 'FeatureClass':
+    """
+    Flip
+
+    Reverse the point order for line features.  This is an in place operation
+    with no undo.
+    """
+    records = []
+    with QueryFlip(source, where_clause=where_clause) as query:
+        config = query.geometry_config
+        with (query.source.geopackage.connection as cin,
+              ExecuteMany(connection=cin, table=query.target) as executor):
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(features, transformer=None)
+                geometries = reverse(geometries)
+                results = [(geom, (id_,)) for (_, id_), geom in
+                           zip(features, geometries)]
+                extend_records(results, records=records, config=config)
+            updates = [(geom, id_) for id_, geom in records]
+            executor(sql=query.insert, data=updates)
+            cin.execute(query.update)
+    return query.source
+# End flip function
 
 
 if __name__ == '__main__':  # pragma: no cover

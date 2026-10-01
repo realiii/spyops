@@ -6,10 +6,10 @@ Test Editing
 
 from fudgeo import Field
 from fudgeo.enumeration import FieldType
-from pytest import mark
+from pytest import approx, mark
 
 from spyops.crs.unit import DecimalDegrees, Feet, Meters
-from spyops.editing import densify, generalize
+from spyops.editing import densify, flip, generalize
 from spyops.management import add_field, calculate_geometry_attributes
 from spyops.shared.enumeration import GeometryAttribute
 
@@ -115,6 +115,50 @@ class TestDensify:
         assert start_count < end_count
     # End test_where_clause method
 # End TestDensify class
+
+
+class TestFlip:
+    """
+    Test Flip
+    """
+    @mark.parametrize('fc_name', [
+        'topography_l',
+        'topography_m_l',
+        'topography_zm_l',
+        'topography_z_l',
+        'transmission_10tm_ml',
+        'transmission_10tm_m_ml',
+        'transmission_10tm_z_ml',
+        'transmission_10tm_zm_ml',
+    ])
+    def test_where_clause(self, mem_gpkg, ntdb_zm_small, fc_name):
+        """
+        Test flip using where clause
+        """
+        where = """PROVIDER >= 2"""
+        source = ntdb_zm_small[fc_name].copy(fc_name, geopackage=mem_gpkg)
+        field = Field('LINE_START_X', data_type=FieldType.integer)
+        add_field(source, fields=[field])
+        attr = GeometryAttribute.LINE_START_X
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attr, where_clause=where)
+        sql = f"""SELECT AVG(LINE_START_X) FROM {source.name}"""
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            pre_x, = cursor.fetchone()
+        flip(source, where_clause=where)
+        calculate_geometry_attributes(
+            source, field=field, geometry_attribute=attr, where_clause=where)
+        with source.geopackage.connection as cin:
+            cursor = cin.execute(sql)
+            post_x, = cursor.fetchone()
+        if '10tm' in fc_name:
+            tol = 1
+        else:
+            tol = 10**-6
+        assert approx(post_x, abs=tol) != pre_x
+    # End test_where_clause method
+# End TestFlip class
 
 
 if __name__ == '__main__':  # pragma: no cover
