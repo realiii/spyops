@@ -112,5 +112,19 @@ class QueryDensify(AbstractQueryEditing):
 # End QueryDensify class
 
 
+class QueryFlip(AbstractQueryEditing):
+    """
+    Query for Flip
+    """
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'editing_flip'
+    # End _short_name property
+# End QueryFlip class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
