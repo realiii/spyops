@@ -7,7 +7,7 @@ Mixins
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from typing import Self, TYPE_CHECKING, Union
+from typing import Callable, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
 from fudgeo import FeatureClass, Field
@@ -16,12 +16,17 @@ from fudgeo.util import escape_name
 from numpy import array, ones_like
 from shapely.constructive import centroid
 from shapely.coordinates import get_coordinates
+from shapely.creation import box
+from shapely.ops import transform
 
+from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
     DecimalDegrees, LinearUnit, degrees_to_meters,
     get_linear_unit_conversion_factor, get_unit_name, unit_factory)
-from spyops.crs.util import crs_from_srs
+from spyops.crs.util import crs_from_srs, get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment.core import HasZM, zm_config
+from spyops.geometry.extent import extent_from_feature_class
 from spyops.shared.constant import DOT, DRID, EMPTY, METRE, SEMI
 
 from spyops.shared.database import add_aggregates, remove_aggregates
@@ -35,6 +40,8 @@ from spyops.shared.sql import IN, TEMP_SCHEMA
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from pyproj import CRS
+    from shapely import Polygon
+    from spyops.environment.core import ZMConfig
 
 
 class AggregateContextMixin:
@@ -402,6 +409,150 @@ class DropEmptyMixin:
             field_names=make_field_names(fields), field_count=len(fields))
     # End insert_identifiers property
 # End DropEmptyMixin class
+
+
+class OperatorMixin:
+    """
+    Operator Mixin
+    """
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        # noinspection unresolved-references
+        has_z = self.source.has_z or self.operator.has_z
+        # noinspection unresolved-references
+        has_m = self.source.has_m or self.operator.has_m
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
+
+    def _shared_extent(self, element: FeatureClass) -> EXTENT:
+        """
+        Shared Extent between source and operator
+        """
+        # noinspection unresolved-references
+        source_box: 'Polygon' = box(*self.source_extent)
+        # noinspection unresolved-references
+        operator_box: 'Polygon' = box(*self.operator_extent)
+        # noinspection unresolved-references
+        if element is self.source:
+            # noinspection unresolved-references
+            transformer = self._get_transformer_or_guess(
+                from_crs=self.operator_crs, to_crs=self.source_crs)
+            if transformer:
+                operator_box = transform(transformer.transform, operator_box)
+        else:
+            # noinspection unresolved-references
+            transformer = self._get_transformer_or_guess(
+                from_crs=self.source_crs, to_crs=self.operator_crs)
+            if transformer:
+                source_box = transform(transformer.transform, source_box)
+        return operator_box.intersection(source_box).bounds
+    # End _shared_extent method
+
+    def _get_extent_where(self, element: FeatureClass) -> str:
+        """
+        Get where clause that accounts for the analysis extent
+        """
+        if not (extent := ANALYSIS_SETTINGS.extent):
+            return EMPTY
+        # noinspection unresolved-references
+        if element is self.source:
+            # noinspection unresolved-references
+            crs = self.source_crs
+        else:
+            crs = self.operator_crs
+        # noinspection unresolved-references
+        polygon = self._get_extent_polygon(extent, crs=crs)
+        # noinspection unresolved-references
+        return self._spatial_index_where(
+            element, extent=polygon.bounds).format(IN)
+    # End _get_extent_where method
+
+    @cached_property
+    def has_intersection(self) -> bool:
+        """
+        Has Intersection between source and operator
+        """
+        # noinspection unresolved-references
+        transformer = self._get_transformer_or_guess(
+            from_crs=self.operator_crs, to_crs=self.source_crs)
+        operator_box: 'Polygon' = box(*self.operator_extent)
+        if transformer:
+            operator_box = transform(transformer.transform, operator_box)
+        # noinspection unresolved-references
+        return operator_box.intersects(box(*self.source_extent))
+    # End has_intersection property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+        """
+        # noinspection unresolved-references
+        return zm_config(self.source, self.operator)
+    # End zm_config property
+
+    @property
+    def select_operator(self) -> str:
+        """
+        Selection Query for Operator
+        """
+        elm = self.operator
+        # noinspection unresolved-references
+        *_, field_names = self._field_names_and_count(elm)
+        # noinspection unresolved-references
+        return self._make_intersection_query(elm, field_names=field_names)
+    # End select_operator property
+
+    @property
+    def select_disjoint(self) -> str:
+        """
+        Selection query for disjoint
+        """
+        # noinspection unresolved-references
+        return self._make_disjoint_select(self.source)
+    # End select_disjoint property
+
+    @property
+    def operator(self) -> FeatureClass:
+        """
+        Operator
+        """
+        # noinspection unresolved-references
+        return self._operator
+    # End operator property
+
+    @cached_property
+    def operator_crs(self) -> CRS:
+        """
+        Operator CRS
+        """
+        return get_crs_from_source(self.operator)
+    # End operator_crs property
+
+    @cached_property
+    def operator_extent(self) -> EXTENT:
+        """
+        Operator Extent
+        """
+        return extent_from_feature_class(self.operator)
+    # End operator_extent property
+
+    @cached_property
+    def operator_transformer(self) -> Callable | None:
+        """
+        Operator Transformer
+        """
+        elm = self.operator
+        # noinspection unresolved-references
+        transformer = self._get_transformer(elm)
+        return make_transformer_function(
+            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
+            transformer=transformer)
+    # End operator_transformer property
+# End OperatorMixin class
 
 
 if __name__ == '__main__':  # pragma: no cover
