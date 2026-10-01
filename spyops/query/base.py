@@ -671,11 +671,9 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         # noinspection PyUnresolvedReferences
         target_key_name = self.target.primary_key_field.escaped_name
         return self._make_update_from(
-            element_name=self.target.escaped_name,
-            key_name=target_key_name,
-            field_names=field_names,
-            from_name=self._intermediate_table, from_key_name=key_name,
-            from_field_names=from_field_names)
+            element_name=self.target.escaped_name, key_name=target_key_name,
+            field_names=field_names, from_name=self._intermediate_table,
+            from_key_name=key_name, from_field_names=from_field_names)
     # End update property
 # End AbstractSourceUpdateQuery class
 
