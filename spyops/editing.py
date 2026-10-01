@@ -75,8 +75,7 @@ def generalize(source: 'FeatureClass', tolerance: UNIT_TOLERANCE, *,
     Generalize
 
     Performs a Douglas-Peucker simplification of line or polygon features using
-    the specified tolerance.  The simplification is performed in place with
-    no undo.
+    the specified tolerance.  This is an in place operation with no undo.
     """
     records = []
     tolerance: float
