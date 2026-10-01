@@ -378,6 +378,7 @@ class DropEmptyMixin:
         orig_fid, _ = self._intermediate_fields
         # noinspection PyUnresolvedReferences
         key_name = self.source.primary_key_field.escaped_name
+        # noinspection unresolved-references
         return f"""
             DELETE FROM {self.source.escaped_name} 
             WHERE {key_name} IN (SELECT {orig_fid.name} FROM {name})
