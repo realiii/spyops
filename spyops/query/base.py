@@ -12,8 +12,8 @@ from warnings import warn
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
 from pyproj import CRS
+from shapely.coordinates import transform
 from shapely.creation import box
-from shapely.ops import transform
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
@@ -195,7 +195,8 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
         """
         polygon = extent.polygon
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
-            polygon = transform(transformer.transform, polygon)
+            polygon = transform(
+                polygon, transformer.transform, interleaved=False)
             if is_degenerate(polygon.bounds):
                 warn('Bad extent polygon after transformation, '
                      'extent will be ignored', category=BadExtentWarning,

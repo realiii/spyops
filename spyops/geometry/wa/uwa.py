@@ -10,10 +10,9 @@ from numpy import isnan
 from pyproj import CRS
 from shapely import MultiLineString, coverage_simplify, set_precision
 from shapely.constructive import make_valid, polygonize, segmentize, simplify
-from shapely.coordinates import get_coordinates
+from shapely.coordinates import get_coordinates, transform
 from shapely.io import from_wkt
 from shapely.linear import line_interpolate_point, line_merge
-from shapely.ops import transform
 
 from spyops.crs.constant import WGS84
 from spyops.crs.transform import get_transforms
@@ -34,14 +33,10 @@ class _UseWorkarounds:
         Use workaround for transform (does not support Z and M because
         set_coordinates does not support Z and M)
         """
-        a = from_wkt('Point (0 0 0 0)')
+        a = from_wkt('Point (0 1 2 3)')
         _, best, _ = get_transforms(source_crs=WGS84, target_crs=CRS(3857))
-        try:
-            transform(best.transform, a)
-        except ValueError:
-            return True
-        else:  # pragma: no cover
-            return False
+        pt = transform(a, best.transform, include_z=True, interleaved=False)
+        return not ((pt.has_m and not isnan(pt.m)) and (pt.has_z and not isnan(pt.z)))
     # End transform property
 
     @cached_property

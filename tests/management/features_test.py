@@ -873,8 +873,8 @@ class TestCalculateGeometryAttributes:
         ('hydro_lcc_a', None, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
         ('hydro_lcc_a', 4326, GeometryAttribute.AREA, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
         ('hydro_lcc_a', 4326, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
-        ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.4, AreaUnit.SQUARE_METERS),
-        ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.7, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA, 507.2, 3_229_175.06, AreaUnit.SQUARE_METERS),
+        ('hydro_lcc_a', 2955, GeometryAttribute.AREA_GEODESIC, 507.1, 3_229_035.28, AreaUnit.SQUARE_METERS),
     ])
     def test_area_and_length(self, ntdb_zm_small, mem_gpkg, fc_name, code, attribute, min_value, max_value, unit):
         """

@@ -22,14 +22,14 @@ requires-python = ">=3.12"
 dependencies = [
     "bottleneck>=1.6.0",
     "fudgeo>=1.5.10",
-    "numpy>=2.5.1",
-    "pyproj>=3.7.2",
-    "shapely>=2.1.2",
+    "numpy>=2.5.3",
+    "pyproj>=3.8.0",
+    "shapely>=2.2.0",
 ]
 
 [dependency-groups]
 dev = [
-    "coverage>=7.15.2",
+    "coverage>=7.16.2",
     "pytest>=9.1.1",
     "pytest-xdist>=3.8.0",
 ]

@@ -1725,7 +1725,7 @@ class TestSymmetricalDifference:
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
-        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674656.0, 5653053.0, 710482.5625, 5681613.5)),
     ])
     @mark.parametrize('op_name', [
         'grid_10tm_a',
@@ -1802,7 +1802,7 @@ class TestSymmetricalDifference:
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
-        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674656.0, 5653053.0, 710482.5625, 5681613.5)),
     ])
     @mark.parametrize('op_name', [
         'grid_10tm_a',
@@ -2239,7 +2239,7 @@ class TestUnion:
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
-        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674656.0, 5653053.0, 710482.5625, 5681613.5)),
     ])
     @mark.parametrize('op_name', [
         'grid_10tm_a',
@@ -2316,7 +2316,7 @@ class TestUnion:
     @mark.transform
     @mark.parametrize('fc_name, auth_name, srs_id, flag, extent', [
         ('hydro_4617_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
-        ('hydro_lcc_zm_a', EPSG, 2955, False, (674655.0625, 5653054.0, 710481.625, 5681614.0)),
+        ('hydro_lcc_zm_a', EPSG, 2955, False, (674656.0, 5653053.0, 710482.5625, 5681613.5)),
     ])
     @mark.parametrize('op_name', [
         'grid_10tm_a',

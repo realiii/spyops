@@ -15,9 +15,8 @@ from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
 from numpy import array, ones_like
 from shapely.constructive import centroid
-from shapely.coordinates import get_coordinates
+from shapely.coordinates import get_coordinates, transform
 from shapely.creation import box
-from shapely.ops import transform
 
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
@@ -442,13 +441,15 @@ class OperatorMixin:
             transformer = self._get_transformer_or_guess(
                 from_crs=self.operator_crs, to_crs=self.source_crs)
             if transformer:
-                operator_box = transform(transformer.transform, operator_box)
+                operator_box = transform(
+                    operator_box, transformer.transform, interleaved=False)
         else:
             # noinspection unresolved-references
             transformer = self._get_transformer_or_guess(
                 from_crs=self.source_crs, to_crs=self.operator_crs)
             if transformer:
-                source_box = transform(transformer.transform, source_box)
+                source_box = transform(
+                    source_box, transformer.transform, interleaved=False)
         return operator_box.intersection(source_box).bounds
     # End _shared_extent method
 
@@ -481,7 +482,8 @@ class OperatorMixin:
             from_crs=self.operator_crs, to_crs=self.source_crs)
         operator_box: 'Polygon' = box(*self.operator_extent)
         if transformer:
-            operator_box = transform(transformer.transform, operator_box)
+            operator_box = transform(
+                operator_box, transformer.transform, interleaved=False)
         # noinspection unresolved-references
         return operator_box.intersects(box(*self.source_extent))
     # End has_intersection property
