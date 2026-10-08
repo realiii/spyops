@@ -107,7 +107,7 @@ def generalize(source: 'FeatureClass', tolerance: UNIT_TOLERANCE, *,
         *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS))
 @validate_linear_unit(DISTANCE_ARG, feature_class_name=SOURCE, as_number=True)
 def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
-            where_clause: str) -> 'FeatureClass':
+            where_clause: str = '') -> 'FeatureClass':
     """
     Densify
 
@@ -139,7 +139,7 @@ def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
 
 @validate_result()
 @validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
-def flip(source: 'FeatureClass', *, where_clause: str) -> 'FeatureClass':
+def flip(source: 'FeatureClass', *, where_clause: str = '') -> 'FeatureClass':
     """
     Flip
 
