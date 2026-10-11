@@ -6,11 +6,15 @@ Query Classes for editing
 
 from abc import ABCMeta, abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from fudgeo import Field
+from numpy import array
+from shapely.predicates import is_empty
+from shapely.set_operations import difference
 
 from spyops.geometry.config import geometry_config
+from spyops.geometry.multi import build_multi
 from spyops.query.base import AbstractSourceUpdateQuery
 from spyops.query.mixin import DropEmptyMixin, OperatorMixin
 from spyops.shared.field import ORIG_FID
@@ -19,6 +23,8 @@ from spyops.shared.hint import FIELDS, NAMES
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
+    from numpy import ndarray
+    from shapely import MultiPolygon
     from spyops.geometry.config import GeometryConfig
 
 
@@ -112,17 +118,18 @@ class QueryFlip(AbstractQueryEditing):
 # End QueryFlip class
 
 
-class QueryErasePoint(OperatorMixin, AbstractSourceUpdateQuery, DropEmptyMixin):
+class QueryErasePoint(OperatorMixin, AbstractQueryEditing, DropEmptyMixin):
     """
     Query for Erase Point
     """
     def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
-                 where_clause: str) -> None:
+                 remove_inside: bool, where_clause: str) -> None:
         """
         Initialize the QueryErasePoint class
         """
-        super().__init__(source, target=source, where_clause=where_clause)
+        super().__init__(source, where_clause=where_clause)
         self._operator: 'FeatureClass' = operator
+        self._remove_inside: bool = remove_inside
     # End init built-in
 
     @property
@@ -132,6 +139,63 @@ class QueryErasePoint(OperatorMixin, AbstractSourceUpdateQuery, DropEmptyMixin):
         """
         return 'editing_erase_point'
     # End _short_name property
+
+    @cached_property
+    def _operator_geometry(self) -> Optional['MultiPolygon']:
+        """
+        Multi-Part Geometry of the Operator Feature Class
+        """
+        # noinspection bad-return
+        return build_multi(
+            self.operator, select_sql=self.select_operator,
+            transformer=self.operator_transformer)
+    # End _operator_geometry property
+
+    @property
+    def eraser(self) -> Callable[['ndarray', list[int]], tuple[list, list]]:
+        """
+        Eraser Function
+        """
+        if self._remove_inside:
+            return self._erase
+        return self._clip
+    # End eraser property
+
+    def _clip(self, geometries: 'ndarray', ids: list[int]) -> tuple[list, list]:
+        """
+        Internal Clip
+        """
+        updates = []
+        geometry = self._operator_geometry
+        if not self.has_intersection or geometry is None:
+            return updates, ids
+        intersects = geometry.intersects(geometries)
+        if not intersects.any():
+            return updates, ids
+        geoms = geometry.intersection(geometries[intersects])
+        ids = array(ids, dtype=int)
+        updates = [(g, (id_,)) for g, id_ in zip(geoms, ids[intersects])]
+        return updates, ids[~intersects].tolist()
+    # End _clip method
+
+    def _erase(self, geometries: 'ndarray', ids: list[int]) -> tuple[list, list]:
+        """
+        Internal Difference
+        """
+        updates = []
+        geometry = self._operator_geometry
+        if not self.has_intersection or geometry is None:
+            return updates, []
+        intersects = geometry.intersects(geometries)
+        if not intersects.any():
+            return updates, []
+        geoms = difference(geometries[intersects], geometry)
+        empties = is_empty(geoms)
+        ids = array(ids, dtype=int)[intersects]
+        updates = [(g, (id_,)) for g, id_ in
+                   zip(geoms[~empties], ids[~empties])]
+        return updates, ids[empties].tolist()
+    # End _erase method
 # End QueryErasePoint class
 
 
