@@ -16,7 +16,8 @@ from shapely.geometry.base import BaseMultipartGeometry
 from spyops.environment import Extent
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.geometry.config import GeometryConfig
-from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
+from spyops.query.mixin import (
+    GroupQueryMixin, IntermediateTableContextMixin, OperatorMixin)
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.hint import (
@@ -147,7 +148,7 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin, AbstractSourceQue
     def update(self) -> str: ...
 
 
-class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
+class AbstractSpatialQuery(OperatorMixin, AbstractSourceQuery, metaclass=ABCMeta):
 
     _element: FeatureClass
     _operator: FeatureClass
@@ -155,26 +156,6 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  operator: FeatureClass, *, xy_tolerance: XY_TOL,
                  where_clause: str = EMPTY) -> None: ...
-    @property
-    def _has_zm(self) -> HasZM: ...
-    def _shared_extent(self, element: FeatureClass) -> EXTENT: ...
-    def _get_extent_where(self, element: FeatureClass) -> str: ...
-    @cached_property
-    def has_intersection(self) -> bool: ...
-    @cached_property
-    def zm_config(self) -> ZMConfig: ...
-    @property
-    def select_operator(self) -> str: ...
-    @property
-    def select_disjoint(self) -> str: ...
-    @property
-    def operator(self) -> FeatureClass: ...
-    @cached_property
-    def operator_crs(self) -> CRS: ...
-    @cached_property
-    def operator_extent(self) -> EXTENT: ...
-    @cached_property
-    def operator_transformer(self) -> Callable | None: ...
 
 
 class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):

@@ -50,6 +50,7 @@ from spyops.geometry.wa.poly import polygonize
 from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
     BaseQuerySelect)
+from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -193,7 +194,7 @@ class QueryCheckGeometry(BaseQuerySelect):
 # End QueryCheckGeometry class
 
 
-class QueryRepairGeometry(AbstractSourceUpdateQuery):
+class QueryRepairGeometry(AbstractSourceUpdateQuery, DropEmptyMixin):
     """
     Query for Repair Geometry
     """
@@ -229,59 +230,6 @@ class QueryRepairGeometry(AbstractSourceUpdateQuery):
         _, geom = self._intermediate_fields
         return [geom.escaped_name]
     # End _get_field_names method
-
-    @property
-    def drop_empty(self) -> str:
-        """
-        Drop Empty Features from Source Feature Class
-        """
-        name = self._intermediate_table
-        orig_fid, _ = self._intermediate_fields
-        # noinspection PyUnresolvedReferences
-        key_name = self.source.primary_key_field.escaped_name
-        return f"""
-            DELETE FROM {self.source.escaped_name} 
-            WHERE {key_name} IN (SELECT {orig_fid.name} FROM {name})
-        """
-    # End drop_empty property
-
-    @property
-    def truncate(self) -> str:
-        """
-        Truncate Query for Intermediate Table
-        """
-        name = self._intermediate_table
-        # noinspection SqlWithoutWhere
-        return f"""DELETE FROM {name}"""
-    # End truncate method
-
-    @property
-    def insert_identifiers(self) -> str:
-        """
-        Insert Query for Identifiers
-        """
-        orig_fid, _ = self._intermediate_fields
-        fields = [orig_fid]
-        return self._make_insert(
-            self._intermediate_table,
-            field_names=make_field_names(fields), field_count=len(fields))
-    # End insert_identifiers property
-
-    @property
-    def update(self) -> str:
-        """
-        Update Query
-        """
-        field_names = self._get_field_names()
-        key_name, *from_field_names = [
-            f.escaped_name for f in self._intermediate_fields]
-        # noinspection PyUnresolvedReferences
-        target_key_name = self.target.primary_key_field.escaped_name
-        return self._make_update_from(
-            element_name=self.target.escaped_name, key_name=target_key_name,
-            field_names=field_names, from_name=self._intermediate_table,
-            from_key_name=key_name, from_field_names=from_field_names)
-    # End update property
 # End QueryRepairGeometry class
 
 

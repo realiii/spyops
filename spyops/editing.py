@@ -20,13 +20,16 @@ from spyops.crs.unit import (
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.geometry.wa.seg import segmentize
 from spyops.geometry.wa.simp import simplify
-from spyops.query.editing import QueryDensify, QueryFlip, QueryGeneralize
-from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
+from spyops.query.editing import (
+    QueryDensify, QueryErasePoint, QueryFlip, QueryGeneralize)
+from spyops.shared.field import (
+    GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.hint import UNIT_INPUT, UNIT_TOLERANCE
 from spyops.shared.keywords import DISTANCE_ARG, SOURCE, TOLERANCE
 from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_linear_unit, validate_result, validate_source_feature_class)
+    validate_linear_unit, validate_operator_feature_class, validate_result,
+    validate_source_feature_class)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -107,7 +110,7 @@ def generalize(source: 'FeatureClass', tolerance: UNIT_TOLERANCE, *,
         *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS))
 @validate_linear_unit(DISTANCE_ARG, feature_class_name=SOURCE, as_number=True)
 def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
-            where_clause: str) -> 'FeatureClass':
+            where_clause: str = '') -> 'FeatureClass':
     """
     Densify
 
@@ -139,7 +142,7 @@ def densify(source: 'FeatureClass', distance: UNIT_INPUT, *,
 
 @validate_result()
 @validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
-def flip(source: 'FeatureClass', *, where_clause: str) -> 'FeatureClass':
+def flip(source: 'FeatureClass', *, where_clause: str = '') -> 'FeatureClass':
     """
     Flip
 
@@ -165,6 +168,47 @@ def flip(source: 'FeatureClass', *, where_clause: str) -> 'FeatureClass':
             cin.execute(query.update)
     return query.source
 # End flip function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=GEOM_TYPE_POINTS)
+@validate_operator_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
+def erase_point(source: 'FeatureClass', operator: 'FeatureClass',
+                remove_inside: bool, *,
+                where_clause: str = '') -> 'FeatureClass':
+    """
+    Erase Point
+
+    Delete points from the source feature class that intersect the polygons
+    of the operator feature class (remove_inside=True e.g. erase) or that are
+    completely outside the operator feature class (remove_inside=False
+    e.g. clip).
+    """
+    updates = []
+    identifiers = []
+    with QueryErasePoint(source, operator=operator, remove_inside=remove_inside,
+                         where_clause=where_clause) as query:
+        eraser = query.eraser
+        config = query.geometry_config
+        with (query.source.geopackage.connection as cin,
+              ExecuteMany(connection=cin, table=query.target) as executor):
+            cursor = cin.execute(query.select)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geometries = to_shapely(features, transformer=None)
+                ids = [id_ for _, id_ in features]
+                results, ids = eraser(geometries, ids)
+                identifiers.extend(ids)
+                extend_records(results, records=updates, config=config)
+            cin.executemany(query.insert_identifiers, [(i,) for i in identifiers])
+            cin.execute(query.drop_empty)
+            cin.execute(query.truncate)
+            executor(sql=query.insert, data=updates)
+            cin.execute(query.update)
+            query.source.extent = get_extent(query.source)
+    return query.source
+# End erase_point function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -17,8 +17,8 @@ from pyproj.enums import WktVersion
 from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
 from pyproj.network import set_network_enabled
+from shapely.coordinates import transform
 from shapely.creation import box
-from shapely.ops import transform
 
 from spyops.crs.authority import Authority, authorities, to_authority
 from spyops.crs.constant import (
@@ -285,7 +285,7 @@ def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> 'Point':
     if not crs.is_projected:
         return pt
     transformer = make_geodetic_transformer(crs)
-    return transform(transformer.transform, pt)
+    return transform(pt, transformer.transform, interleaved=False)
 # End get_geographic_extent_centroid function
 
 

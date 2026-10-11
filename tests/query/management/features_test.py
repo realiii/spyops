@@ -1179,8 +1179,8 @@ class TestQueryFeatureToPolygon:
     # End test_get_points_attributes_sans_label method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8551 if is_windows() else 8572),
-        (10**-5, 8683 if is_windows() else 8695),
+        (None, 8551 if is_windows() else 8574),
+        (10**-5, 8683 if is_windows() else 8694),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1206,7 +1206,7 @@ class TestQueryFeatureToPolygon:
         query = QueryFeatureToPolygon(source, target, None, None)
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
-        count = 4037 if is_windows() else 4044
+        count = 4037 if is_windows() else 4045
         assert len(polygons) == count
     # End test_build_polygons method
 
@@ -1222,11 +1222,11 @@ class TestQueryFeatureToPolygon:
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
         results = query._add_attributes(polygons)
-        count = 5816 if is_windows() else 5823
+        count = 5816 if is_windows() else 5824
         assert len(results) == count
         _, attributes = zip(*results)
         assert len(attributes[0]) == 8
-        count = 3732 if is_windows() else 3739
+        count = 3732 if is_windows() else 3740
         assert attributes.count((None,) * 8) == count
     # End test_add_attributes method
 
@@ -1317,8 +1317,8 @@ class TestQueryFeatureToLine:
     # End test_insert method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8551 if is_windows() else 8572),
-        (10**-5, 8683 if is_windows() else 8695),
+        (None, 8551 if is_windows() else 8574),
+        (10**-5, 8683 if is_windows() else 8694),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """

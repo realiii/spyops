@@ -11,10 +11,9 @@ from warnings import warn
 
 from fudgeo import FeatureClass
 from fudgeo.constant import COMMA_SPACE
-from numpy import isfinite
 from pyproj import CRS
+from shapely.coordinates import transform
 from shapely.creation import box
-from shapely.ops import transform
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
@@ -25,7 +24,8 @@ from spyops.environment.core import HasZM, zm_config
 from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class, is_degenerate
-from spyops.query.mixin import GroupQueryMixin, IntermediateTableContextMixin
+from spyops.query.mixin import (
+    GroupQueryMixin, IntermediateTableContextMixin, OperatorMixin)
 from spyops.shared.constant import (
     DOT, EMPTY, QUESTION, SKIP_FILE_PREFIXES, UNDERSCORE)
 from spyops.shared.element import copy_feature_class, create_feature_class
@@ -195,7 +195,8 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
         """
         polygon = extent.polygon
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
-            polygon = transform(transformer.transform, polygon)
+            polygon = transform(
+                polygon, transformer.transform, interleaved=False)
             if is_degenerate(polygon.bounds):
                 warn('Bad extent polygon after transformation, '
                      'extent will be ignored', category=BadExtentWarning,
@@ -671,16 +672,15 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         # noinspection PyUnresolvedReferences
         target_key_name = self.target.primary_key_field.escaped_name
         return self._make_update_from(
-            element_name=self.target.escaped_name,
-            key_name=target_key_name,
-            field_names=field_names,
-            from_name=self._intermediate_table, from_key_name=key_name,
-            from_field_names=from_field_names)
+            element_name=self.target.escaped_name, key_name=target_key_name,
+            field_names=field_names, from_name=self._intermediate_table,
+            from_key_name=key_name, from_field_names=from_field_names)
     # End update property
 # End AbstractSourceUpdateQuery class
 
 
-class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
+class AbstractSpatialQuery(OperatorMixin, AbstractSourceQuery,
+                           metaclass=ABCMeta):
     """
     Abstract Spatial Query Support
     """
@@ -695,129 +695,6 @@ class AbstractSpatialQuery(AbstractSourceQuery, metaclass=ABCMeta):
                          where_clause=where_clause)
         self._operator: FeatureClass = operator
     # End init built-in
-
-    @property
-    def _has_zm(self) -> HasZM:
-        """
-        Has ZM
-        """
-        has_z = self.source.has_z or self.operator.has_z
-        has_m = self.source.has_m or self.operator.has_m
-        return HasZM(has_z=has_z, has_m=has_m)
-    # End _has_zm property
-
-    def _shared_extent(self, element: FeatureClass) -> EXTENT:
-        """
-        Shared Extent between source and operator
-        """
-        # noinspection PyTypeChecker
-        source_box: 'Polygon' = box(*self.source_extent)
-        # noinspection PyTypeChecker
-        operator_box: 'Polygon' = box(*self.operator_extent)
-        if element is self.source:
-            transformer = self._get_transformer_or_guess(
-                from_crs=self.operator_crs, to_crs=self.source_crs)
-            if transformer:
-                operator_box = transform(transformer.transform, operator_box)
-        else:
-            transformer = self._get_transformer_or_guess(
-                from_crs=self.source_crs, to_crs=self.operator_crs)
-            if transformer:
-                source_box = transform(transformer.transform, source_box)
-        return operator_box.intersection(source_box).bounds
-    # End _shared_extent method
-
-    def _get_extent_where(self, element: FeatureClass) -> str:
-        """
-        Get where clause that accounts for the analysis extent
-        """
-        if not (extent := ANALYSIS_SETTINGS.extent):
-            return EMPTY
-        if element is self.source:
-            crs = self.source_crs
-        else:
-            crs = self.operator_crs
-        polygon = self._get_extent_polygon(extent, crs=crs)
-        return self._spatial_index_where(
-            element, extent=polygon.bounds).format(IN)
-    # End _get_extent_where method
-
-    @cached_property
-    def has_intersection(self) -> bool:
-        """
-        Has Intersection between source and operator
-        """
-        transformer = self._get_transformer_or_guess(
-            from_crs=self.operator_crs, to_crs=self.source_crs)
-        # noinspection PyTypeChecker
-        operator_box: 'Polygon' = box(*self.operator_extent)
-        if transformer:
-            operator_box = transform(transformer.transform, operator_box)
-        # noinspection PyTypeChecker
-        return operator_box.intersects(box(*self.source_extent))
-    # End has_intersection property
-
-    @cached_property
-    def zm_config(self) -> 'ZMConfig':
-        """
-        ZM Configuration
-        """
-        return zm_config(self.source, self.operator)
-    # End zm_config property
-
-    @property
-    def select_operator(self) -> str:
-        """
-        Selection Query for Operator
-        """
-        elm = self.operator
-        *_, field_names = self._field_names_and_count(elm)
-        return self._make_intersection_query(elm, field_names=field_names)
-    # End select_operator property
-
-    @property
-    def select_disjoint(self) -> str:
-        """
-        Selection query for disjoint
-        """
-        return self._make_disjoint_select(self.source)
-    # End select_disjoint property
-
-    @property
-    def operator(self) -> FeatureClass:
-        """
-        Operator
-        """
-        return self._operator
-    # End operator property
-
-    @cached_property
-    def operator_crs(self) -> CRS:
-        """
-        Operator CRS
-        """
-        return get_crs_from_source(self.operator)
-    # End operator_crs property
-
-    @cached_property
-    def operator_extent(self) -> EXTENT:
-        """
-        Operator Extent
-        """
-        return extent_from_feature_class(self.operator)
-    # End operator_extent property
-
-    @cached_property
-    def operator_transformer(self) -> Callable | None:
-        """
-        Operator Transformer
-        """
-        elm = self.operator
-        transformer = self._get_transformer(elm)
-        return make_transformer_function(
-            elm.shape_type, has_z=elm.has_z, has_m=elm.has_m,
-            transformer=transformer)
-    # End operator_transformer property
 # End AbstractSpatialQuery class
 
 

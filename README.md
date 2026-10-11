@@ -58,6 +58,7 @@ MIT
 - added `calculate_missing_z_values` (3D - Features)
 - added `densify` (Editing)
 - added `flip` (Editing)
+- added `erase_point` (Editing)
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`
