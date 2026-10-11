@@ -9,7 +9,7 @@ from fudgeo.enumeration import FieldType
 from pytest import approx, mark
 
 from spyops.crs.unit import DecimalDegrees, Feet, Meters
-from spyops.editing import densify, flip, generalize
+from spyops.editing import densify, erase_point, flip, generalize
 from spyops.management import add_field, calculate_geometry_attributes
 from spyops.shared.enumeration import GeometryAttribute
 
@@ -159,6 +159,58 @@ class TestFlip:
         assert approx(post_x, abs=tol) != pre_x
     # End test_where_clause method
 # End TestFlip class
+
+
+class TestErasePoint:
+    """
+    Test Erase Point
+    """
+    @mark.parametrize('name, remove_inside, expected', [
+        ('structures_p', False, 918),
+        ('structures_m_p', False, 918),
+        ('structures_z_p', False, 918),
+        ('structures_zm_p', False, 918),
+        ('structures_p', True, 2994),
+        ('structures_m_p', True, 2994),
+        ('structures_z_p', True, 2994),
+        ('structures_zm_p', True, 2994),
+    ])
+    def test_points(self, mem_gpkg, ntdb_zm_tile, name, remove_inside, expected):
+        """
+        Test Points
+        """
+        source = ntdb_zm_tile[name].copy(name, geopackage=mem_gpkg)
+        count = source.count
+        operator = ntdb_zm_tile['index_a'].copy(
+            'index_subset_a', geopackage=mem_gpkg, where_clause="""FID = 5""")
+        erase_point(source, operator, remove_inside=remove_inside)
+        assert source.count < count
+        assert source.count == expected
+    # End test_points method    
+    
+    @mark.parametrize('name, remove_inside, expected', [
+        ('toponymy_mp', False, 2),
+        ('toponymy_m_mp', False, 2),
+        ('toponymy_z_mp', False, 2),
+        ('toponymy_zm_mp', False, 2),
+        ('toponymy_mp', True, 6),
+        ('toponymy_m_mp', True, 6),
+        ('toponymy_z_mp', True, 6),
+        ('toponymy_zm_mp', True, 6),
+    ])
+    def test_multi_points(self, mem_gpkg, ntdb_zm_tile, name, remove_inside, expected):
+        """
+        Test Multi Points
+        """
+        source = ntdb_zm_tile[name].copy(name, geopackage=mem_gpkg)
+        count = source.count
+        operator = ntdb_zm_tile['index_a'].copy(
+            'index_subset_a', geopackage=mem_gpkg, where_clause="""FID IN (1, 5)""")
+        erase_point(source, operator, remove_inside=remove_inside)
+        assert source.count < count
+        assert source.count == expected
+    # End test_multi_points method
+# End TestErasePoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
