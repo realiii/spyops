@@ -5,18 +5,21 @@ Abstract Classes in support of Query objects
 
 
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from functools import cache, cached_property
 from typing import Callable, Generator, Optional, TYPE_CHECKING
 from warnings import warn
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from pyproj import CRS
+from shapely import GeometryCollection
 from shapely.constructive import boundary
 from shapely.coordinates import transform
 from shapely.creation import box
 from shapely.set_operations import union_all
+from shapely.strtree import STRtree
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
@@ -29,6 +32,7 @@ from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class, is_degenerate
 from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
+from spyops.geometry.wa.poly import polygonize
 from spyops.query.mixin import (
     GroupQueryMixin, IntermediateTableContextMixin, OperatorMixin)
 from spyops.shared.constant import (
@@ -48,9 +52,9 @@ from spyops.shared.util import make_unique_name
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import Field, MemoryGeoPackage, SpatialReferenceSystem
+    from fudgeo import Field, SpatialReferenceSystem
     from pyproj.transformer import Transformer
-    from shapely import LineString, Polygon
+    from shapely import LineString, Point, Polygon
     from shapely.geometry.base import BaseMultipartGeometry
     from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig
@@ -1049,14 +1053,14 @@ class QueryFeatureToPrepare(BaseQuerySelect):
 # End QueryFeatureToPrepare class
 
 
-class BaseQueryFeatureClasses(AbstractSourceQuery):
+class AbstractQueryFeatureClasses(AbstractSourceQuery):
     """
-    Base Query Feature Classes
+    Abstract Query Feature Classes
     """
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the BaseQueryFeatureClasses class
+        Initialize the AbstractQueryFeatureClasses class
         """
         src, *_ = source
         super().__init__(src, target=target, xy_tolerance=xy_tolerance)
@@ -1166,7 +1170,101 @@ class BaseQueryFeatureClasses(AbstractSourceQuery):
         """
         return tuple([None] * len(self._get_unique_fields()))
     # End _get_null_record method
-# End BaseQueryFeatureClasses class
+# End AbstractQueryFeatureClasses class
+
+
+class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
+    """
+    Abstract Query Feature Classes Polygon
+    """
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    def build_features(self) -> list[tuple[Polygon, tuple]]:
+        """
+        Polygonized Features
+        """
+        scratch = MemoryGeoPackage.create()
+        lines, *_ = self._get_lines(scratch)
+        if conn := scratch.connection:
+            conn.close()
+        if not len(lines):
+            return []
+        if not (polygons := self._build_polygons(lines)):
+            return []
+        return self._add_attributes(polygons)
+    # End build_features method
+
+    def _add_attributes(self, polygons: list[Polygon]) \
+            -> list[tuple[Polygon, tuple]]:
+        """
+        Add Attributes, keeping all matches between label points and planarized
+        """
+        nulls = self._get_null_record()
+        points, attributes = self._get_points_attributes()
+        if not attributes:
+            return [(polygon, nulls) for polygon in polygons]
+        if not (grouper := self._index_overlay(points, polygons)):
+            return [(polygon, nulls) for polygon in polygons]
+        results = []
+        for i, polygon in enumerate(polygons):
+            if i in grouper:
+                results.extend(
+                    [(polygon, attributes[idx]) for idx in grouper[i]])
+            else:
+                results.append((polygon, nulls))
+        return results
+    # End _add_attributes method
+
+    @staticmethod
+    def _index_overlay(points: list['Point'], polygons: list[Polygon]) \
+            -> defaultdict[int, list[int]]:
+        """
+        Build cross-reference between label planarized polygons and label points
+        for use in assigning attributes to polygons
+        """
+        tree = STRtree(polygons)
+        intersects = tree.query(points, predicate='intersects')
+        grouper = defaultdict(list)
+        for pnt_idx, poly_idx in intersects.T.tolist():
+            grouper[poly_idx].append(pnt_idx)
+        return grouper
+    # End _index_overlay method
+
+    @staticmethod
+    def _build_polygons(lines: list[LineString]) -> list[Polygon]:
+        """
+        Build Polygons
+        """
+        collections = polygonize(lines)
+        if isinstance(collections, GeometryCollection):
+            collections = [collections]
+        planarized = []
+        for collection in collections:
+            planarized.extend(get_geoms_iter(collection))
+        return planarized
+    # End _build_polygons method
+
+    @abstractmethod
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        pass
+    # End _get_unique_fields method
+
+    @abstractmethod
+    def _get_points_attributes(self) -> tuple[list['Point'], list[tuple]]:
+        """
+        Get Points and Attributes
+        """
+        pass
+    # End _get_points_attributes method
+# End AbstractQueryFeatureClassesPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover

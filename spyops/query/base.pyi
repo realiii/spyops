@@ -3,14 +3,15 @@
 Type stubs for query.base module
 """
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from collections.abc import Generator
 from functools import cached_property
 from typing import Callable, Optional
 
 from fudgeo import FeatureClass, MemoryGeoPackage, SpatialReferenceSystem
 from pyproj import CRS, Transformer
-from shapely import LineString, Polygon
+from shapely import LineString, Point as ShapelyPoint, Polygon
 from shapely.geometry.base import BaseMultipartGeometry
 
 from spyops.environment import Extent
@@ -243,7 +244,7 @@ class QueryFeatureToPrepare(BaseQuerySelect):
     def _get_unique_fields(self) -> FIELDS: ...
 
 
-class BaseQueryFeatureClasses(AbstractSourceQuery):
+class AbstractQueryFeatureClasses(AbstractSourceQuery):
 
     _source: FEATURE_CLASSES
 
@@ -260,3 +261,17 @@ class BaseQueryFeatureClasses(AbstractSourceQuery):
     @staticmethod
     def _fetch_lines_sizes(query: QueryFeatureToPrepare, lines: list[LineString], sizes: list[GRID_SIZE]) -> None: ...
     def _get_null_record(self) -> tuple: ...
+
+
+class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
+    def _get_target_shape_type(self) -> str: ...
+    def build_features(self) -> list[tuple[Polygon, tuple]]: ...
+    def _add_attributes(self, polygons: list[Polygon]) -> list[tuple[Polygon, tuple]]: ...
+    @staticmethod
+    def _index_overlay(points: list[ShapelyPoint], planarized: list[Polygon]) -> defaultdict[int, list[int]]: ...
+    @staticmethod
+    def _build_polygons(lines: list[LineString]) -> list[Polygon]: ...
+    @abstractmethod
+    def _get_unique_fields(self) -> FIELDS: ...
+    @abstractmethod
+    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]: ...

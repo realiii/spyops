@@ -20,8 +20,9 @@ from shapely import Polygon, Point as ShapelyPoint, LineString
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.query.base import (
-    AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
-    BaseQueryFeatureClasses, BaseQuerySelect)
+    AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
+    AbstractSourceUpdateQuery,
+    AbstractQueryFeatureClasses, BaseQuerySelect)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -313,23 +314,16 @@ class QueryPolygonToLine(BaseQuerySelect):
     def source_transformer(self) -> Callable | None: ...
 
 
-class QueryFeatureToPolygon(BaseQueryFeatureClasses):
+class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
 
     _label: Optional[FeatureClass]
 
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None: ...
-    def _get_target_shape_type(self) -> str: ...
     def _get_unique_fields(self) -> FIELDS: ...
-    def build_features(self) -> list[tuple[Polygon, tuple]]: ...
-    def _add_attributes(self, polygons: list[Polygon]) -> list[tuple[Polygon, tuple]]: ...
     def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]: ...
-    @staticmethod
-    def _index_overlay(points: list[ShapelyPoint], planarized: list[Polygon]) -> defaultdict[int, list[int]]: ...
-    @staticmethod
-    def _build_polygons(lines: list[LineString]) -> list[Polygon]: ...
 
 
-class QueryFeatureToLine(BaseQueryFeatureClasses):
+class QueryFeatureToLine(AbstractQueryFeatureClasses):
 
     _preserve: bool
 

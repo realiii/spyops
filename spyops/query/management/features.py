@@ -21,7 +21,6 @@ from shapely import (
     get_num_coordinates, get_num_geometries)
 from shapely.coordinates import get_coordinates
 from shapely.geometry.multilinestring import MultiLineString
-from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
@@ -44,10 +43,10 @@ from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
-from spyops.geometry.wa.poly import polygonize
 from spyops.query.base import (
-    AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
-    BaseQueryFeatureClasses, BaseQuerySelect)
+    AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
+    AbstractSourceUpdateQuery,
+    AbstractQueryFeatureClasses, BaseQuerySelect)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
@@ -1466,7 +1465,7 @@ class QueryPolygonToLine(BaseQuerySelect):
 # End QueryPolygonToLine class
 
 
-class QueryFeatureToPolygon(BaseQueryFeatureClasses):
+class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
     """
     Query Feature to Polygon
     """
@@ -1479,13 +1478,6 @@ class QueryFeatureToPolygon(BaseQueryFeatureClasses):
         self._label: Optional[FeatureClass] = label
     # End init built-in
 
-    def _get_target_shape_type(self) -> str:
-        """
-        Get Target Shape Type
-        """
-        return ShapeType.polygon
-    # End _get_target_shape_type method
-
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields
@@ -1495,42 +1487,6 @@ class QueryFeatureToPolygon(BaseQueryFeatureClasses):
             return []
         return validate_fields(label, fields=label.fields)
     # End _get_unique_fields method
-
-    def build_features(self) -> list[tuple[Polygon, tuple]]:
-        """
-        Polygonized Features
-        """
-        scratch = MemoryGeoPackage.create()
-        lines, *_ = self._get_lines(scratch)
-        if conn := scratch.connection:
-            conn.close()
-        if not len(lines):
-            return []
-        if not (polygons := self._build_polygons(lines)):
-            return []
-        return self._add_attributes(polygons)
-    # End build_features method
-
-    def _add_attributes(self, polygons: list[Polygon]) \
-            -> list[tuple[Polygon, tuple]]:
-        """
-        Add Attributes, keeping all matches between label points and planarized
-        """
-        nulls = self._get_null_record()
-        points, attributes = self._get_points_attributes()
-        if not attributes:
-            return [(polygon, nulls) for polygon in polygons]
-        if not (grouper := self._index_overlay(points, polygons)):
-            return [(polygon, nulls) for polygon in polygons]
-        results = []
-        for i, polygon in enumerate(polygons):
-            if i in grouper:
-                results.extend(
-                    [(polygon, attributes[idx]) for idx in grouper[i]])
-            else:
-                results.append((polygon, nulls))
-        return results
-    # End _add_attributes method
 
     def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]:
         """
@@ -1559,39 +1515,10 @@ class QueryFeatureToPolygon(BaseQueryFeatureClasses):
                 attributes.extend([feature[1:] for feature in features])
         return points, attributes
     # End _get_points_attributes method
-
-    @staticmethod
-    def _index_overlay(points: list[ShapelyPoint], polygons: list[Polygon]) \
-            -> defaultdict[int, list[int]]:
-        """
-        Build cross-reference between label planarized polygons and label points
-        for use in assigning attributes to polygons
-        """
-        tree = STRtree(polygons)
-        intersects = tree.query(points, predicate='intersects')
-        grouper = defaultdict(list)
-        for pnt_idx, poly_idx in intersects.T.tolist():
-            grouper[poly_idx].append(pnt_idx)
-        return grouper
-    # End _index_overlay method
-
-    @staticmethod
-    def _build_polygons(lines: list[LineString]) -> list[Polygon]:
-        """
-        Build Polygons
-        """
-        collections = polygonize(lines)
-        if isinstance(collections, GeometryCollection):
-            collections = [collections]
-        planarized = []
-        for collection in collections:
-            planarized.extend(get_geoms_iter(collection))
-        return planarized
-    # End _build_polygons method
 # End QueryFeatureToPolygon class
 
 
-class QueryFeatureToLine(BaseQueryFeatureClasses):
+class QueryFeatureToLine(AbstractQueryFeatureClasses):
     """
     Query Feature To Line
     """
