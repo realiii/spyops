@@ -11,6 +11,7 @@ from typing import Any, Callable, TYPE_CHECKING, Type
 from fudgeo.enumeration import ShapeType
 
 from spyops.geometry.validate import get_geometry_dimension
+from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POINTS
 from spyops.shared.keywords import GEOMETRY_ATTRIBUTE, SOURCE
 from spyops.shared.enumeration import (
     DissolveOption, GeometryAttribute, GroupOption, OutputTypeOption,
@@ -306,15 +307,14 @@ class ValidateGeometryAttribute(AbstractValidateType):
         """
         shape_type = source.shape_type
         has_z, has_m = source.has_z, source.has_m
-        if shape_type in (ShapeType.point, ShapeType.multi_point):
+        if shape_type in GEOM_TYPE_POINTS:
             if source.is_multi_part:
                 is_valid = self._validate_multi_points(
                     attribute, has_z=has_z, has_m=has_m)
             else:
                 is_valid = self._validate_points(
                     attribute, has_z=has_z, has_m=has_m)
-        elif shape_type in (ShapeType.linestring,
-                            ShapeType.multi_linestring):
+        elif shape_type in GEOM_TYPE_LINES:
             is_valid = self._validate_lines(attribute, has_z=has_z, has_m=has_m)
         else:
             is_valid = self._validate_polygons(

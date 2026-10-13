@@ -7,7 +7,6 @@ Build Multi Geometry
 from typing import Callable
 
 from fudgeo import FeatureClass
-from fudgeo.enumeration import ShapeType
 from numpy import asarray, ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.constructive import normalize
@@ -18,6 +17,8 @@ from spyops.geometry.util import get_geoms_iter, get_validity
 from spyops.geometry.validate import (
     _check_geometries, _get_validated_geoms, check_linestring, check_point,
     check_polygon)
+from spyops.shared.field import (
+    GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.hint import GRID_SIZE
 from spyops.shared.keywords import GEOMS_ATTR
 
@@ -40,13 +41,13 @@ def build_multi(features: FeatureClass | ndarray | None, select_sql: str | None,
         if transformer:
             features = transformer(features)
             features = features[get_validity(features, transformer=transformer)]
-    if shape_type in (ShapeType.point, ShapeType.multi_point):
+    if shape_type in GEOM_TYPE_POINTS:
         return _multi_point(
             features, select_sql=select_sql, transformer=transformer)
-    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
+    elif shape_type in GEOM_TYPE_LINES:
         return _multi_linestring(
             features, select_sql=select_sql, transformer=transformer)
-    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
+    elif shape_type in GEOM_TYPE_POLYGONS:
         return _multi_polygon(
             features, select_sql=select_sql, transformer=transformer)
     else:  # pragma: no cover
@@ -60,15 +61,15 @@ def build_dissolved(geoms: ndarray, shape_type: str,
     """
     Build MultiPoint, MultiLineString, or MultiPolygon from geometries.
     """
-    if shape_type in (ShapeType.point, ShapeType.multi_point):
+    if shape_type in GEOM_TYPE_POINTS:
         checker = check_point
         cls = MultiPoint
         dissolver = _dissolve_point
-    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
+    elif shape_type in GEOM_TYPE_LINES:
         checker = check_linestring
         cls = MultiLineString
         dissolver = _dissolve_linestring
-    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
+    elif shape_type in GEOM_TYPE_POLYGONS:
         checker = check_polygon
         cls = MultiPolygon
         dissolver = _dissolve_polygon

@@ -20,6 +20,7 @@ from shapely.predicates import is_ccw, is_closed, is_valid
 from spyops.geometry.util import (
     get_coords_and_slices, get_geoms_iter, make_none_mask)
 from spyops.shared.enumeration import GeometryCheck
+from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import FEATURES, GRID_SIZE
 
 
@@ -138,8 +139,7 @@ def _check_empty_ring(features: FEATURES, *, options: GeometryCheck,
     Check Empty Ring, applies to Polygon and MultiPolygon only
     """
     check = GeometryCheck.EMPTY_RING
-    if check not in options or shape_type not in (
-            ShapeType.polygon, ShapeType.multi_polygon):
+    if check not in options or shape_type not in GEOM_TYPE_POLYGONS:
         return
     ids = []
     if shape_type == ShapeType.polygon:
@@ -208,7 +208,7 @@ def _check_polygon(features: FEATURES, *, options: GeometryCheck,
               GeometryCheck.SELF_INTERSECTION, GeometryCheck.OUTSIDE_RING,
               GeometryCheck.OVERLAP_RING, GeometryCheck.POINT_COUNT)
     if (not any(check in options for check in checks) or
-            shape_type not in (ShapeType.polygon, ShapeType.multi_polygon)):
+            shape_type not in GEOM_TYPE_POLYGONS):
         return
     validations = {}
     if shape_type == ShapeType.polygon:
@@ -296,8 +296,7 @@ def _check_line(features: FEATURES, *, options: GeometryCheck, shape_type: str,
     Check Line
     """
     check = GeometryCheck.POINT_COUNT
-    if check not in options or shape_type not in (
-            ShapeType.linestring, ShapeType.multi_linestring):
+    if check not in options or shape_type not in GEOM_TYPE_LINES:
         return
     ids = []
     count = 2

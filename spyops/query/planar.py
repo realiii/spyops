@@ -30,7 +30,8 @@ from spyops.shared.constant import EMPTY
 from spyops.shared.element import create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.field import (
-    get_geometry_column_name, make_field_names, validate_fields)
+    GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS, get_geometry_column_name,
+    make_field_names, validate_fields)
 from spyops.shared.hint import ELEMENT, FIELDS, XY_TOL
 from spyops.shared.util import element_names, make_unique_name
 from spyops.shared.records import extend_records
@@ -48,12 +49,11 @@ def planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
     """
     Planarize Feature Class Factory
     """
-    polygons = ShapeType.polygon, ShapeType.multi_polygon
-    if source.shape_type in polygons:
+    if source.shape_type in GEOM_TYPE_POLYGONS:
         src_cls = PlanarizePolygonSource
     else:
         src_cls = PlanarizeGeneralSource
-    if operator.shape_type in polygons:
+    if operator.shape_type in GEOM_TYPE_POLYGONS:
         op_cls = PlanarizePolygonOperator
     else:
         op_cls = PlanarizeGeneralOperator
@@ -73,17 +73,15 @@ def clean_factory(source: 'FeatureClass', operator: 'FeatureClass',
     """
     Coverage-like Clean and Build Planarization Factory
     """
-    polygons = ShapeType.polygon, ShapeType.multi_polygon
-    lines = ShapeType.linestring, ShapeType.multi_linestring
-    if source.shape_type in polygons:
+    if source.shape_type in GEOM_TYPE_POLYGONS:
         src_cls = PlanarizePolygonSource
-    elif source.shape_type in lines:
+    elif source.shape_type in GEOM_TYPE_LINES:
         src_cls = PlanarizeLineStringSource
     else:
         src_cls = PlanarizePointSource
-    if operator.shape_type in polygons:
+    if operator.shape_type in GEOM_TYPE_POLYGONS:
         op_cls = PlanarizePolygonOperator
-    elif operator.shape_type in lines:
+    elif operator.shape_type in GEOM_TYPE_LINES:
         op_cls = PlanarizeLineStringOperator
     else:
         op_cls = PlanarizePointOperator

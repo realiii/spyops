@@ -18,6 +18,8 @@ from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import get_geoms_iter, nada, to_shapely
 from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.exception import GeometryDimensionError
+from spyops.shared.field import (
+    GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -83,11 +85,11 @@ def get_geometry_dimension(feature_class: 'FeatureClass') -> int:
     Get Geometry Dimension
     """
     shape_type = feature_class.shape_type
-    if shape_type in (ShapeType.point, ShapeType.multi_point):
+    if shape_type in GEOM_TYPE_POINTS:
         return 0
-    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
+    elif shape_type in GEOM_TYPE_LINES:
         return 1
-    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
+    elif shape_type in GEOM_TYPE_POLYGONS:
         return 2
     else:  # pragma: no cover
         return -1
@@ -150,11 +152,11 @@ def get_validated_geometries(feature_class: 'FeatureClass', select_sql: str,
     Get Validated Geometries forced to 2D
     """
     shape_type = feature_class.shape_type
-    if shape_type in (ShapeType.point, ShapeType.multi_point):
+    if shape_type in GEOM_TYPE_POINTS:
         checker = check_point
-    elif shape_type in (ShapeType.linestring, ShapeType.multi_linestring):
+    elif shape_type in GEOM_TYPE_LINES:
         checker = check_linestring
-    elif shape_type in (ShapeType.polygon, ShapeType.multi_polygon):
+    elif shape_type in GEOM_TYPE_POLYGONS:
         checker = check_polygon
     else:  # pragma: no cover
         checker = nada
