@@ -102,6 +102,8 @@ SPATIAL_SORT_OPTION: str = 'spatial_sort_option'
 METHOD: str = 'method'
 LENGTH: str = 'length'
 WIDTH: str = 'width'
+OVERLAP: str = 'overlap'
+MIN_COUNT: str = 'min_count'
 
 
 if __name__ == '__main__':  # pragma: no cover
