@@ -138,6 +138,12 @@ ELEVATION: Field = Field('ELEVATION', data_type=FieldType.real)
 DT: Field = Field('DT', data_type=FieldType.datetime)
 
 
+FEAT_COUNT: Field = Field(
+    'FEAT_COUNT', data_type=FieldType.integer, alias='Feature Count')
+FC_COUNT: Field = Field(
+    'FC_COUNT', data_type=FieldType.integer, alias='Feature Class Count')
+
+
 GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(
     'GNSS_POSITIONSOURCETYPE', data_type=FieldType.text,
     alias='Position Source Type')
