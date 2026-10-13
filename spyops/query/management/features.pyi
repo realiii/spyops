@@ -12,7 +12,7 @@ from sqlite3 import Connection
 from typing import Callable, Generator, Optional, Union
 
 from fudgeo import (
-    FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem, Table)
+    FeatureClass, Field, SpatialReferenceSystem, Table)
 from numpy import ndarray
 from pyproj import CRS
 from shapely import Polygon, Point as ShapelyPoint, LineString
@@ -21,7 +21,7 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.query.base import (
     AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
-    BaseQuerySelect)
+    BaseQueryFeatureClasses, BaseQuerySelect)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -313,32 +313,7 @@ class QueryPolygonToLine(BaseQuerySelect):
     def source_transformer(self) -> Callable | None: ...
 
 
-class QueryFeatureToPrepare(BaseQuerySelect):
-    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
-    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
-    def _get_unique_fields(self) -> FIELDS: ...
-
-
-class BaseQueryFeatureTo(AbstractSourceQuery):
-
-    _source: FEATURE_CLASSES
-
-    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, xy_tolerance: XY_TOL) -> None: ...
-    @cached_property
-    def spatial_reference_system(self) -> Optional[SpatialReferenceSystem]: ...
-    @cached_property
-    def zm_config(self) -> ZMConfig: ...
-    @property
-    def insert(self) -> str: ...
-    @property
-    def _has_zm(self) -> HasZM: ...
-    def _get_lines(self, scratch: MemoryGeoPackage) -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]: ...
-    @staticmethod
-    def _fetch_lines_sizes(query: QueryFeatureToPrepare, lines: list[LineString], sizes: list[GRID_SIZE]) -> None: ...
-    def _get_null_record(self) -> tuple: ...
-
-
-class QueryFeatureToPolygon(BaseQueryFeatureTo):
+class QueryFeatureToPolygon(BaseQueryFeatureClasses):
 
     _label: Optional[FeatureClass]
 
@@ -354,7 +329,7 @@ class QueryFeatureToPolygon(BaseQueryFeatureTo):
     def _build_polygons(lines: list[LineString]) -> list[Polygon]: ...
 
 
-class QueryFeatureToLine(BaseQueryFeatureTo):
+class QueryFeatureToLine(BaseQueryFeatureClasses):
 
     _preserve: bool
 

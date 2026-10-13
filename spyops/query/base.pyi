@@ -8,9 +8,9 @@ from collections.abc import Generator
 from functools import cached_property
 from typing import Callable, Optional
 
-from fudgeo import FeatureClass, SpatialReferenceSystem
+from fudgeo import FeatureClass, MemoryGeoPackage, SpatialReferenceSystem
 from pyproj import CRS, Transformer
-from shapely import Polygon
+from shapely import LineString, Polygon
 from shapely.geometry.base import BaseMultipartGeometry
 
 from spyops.environment import Extent
@@ -21,7 +21,8 @@ from spyops.query.mixin import (
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.hint import (
-    ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
+    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS,
+    XY_TOL)
 
 
 class AbstractElementQuery(metaclass=ABCMeta):
@@ -234,3 +235,28 @@ class AbstractQueryDissolve(AbstractQueryGroup):
                  fields: FIELDS, as_multi_part: bool,
                  xy_tolerance: XY_TOL) -> None: ...
     def dissolved_geometries(self) -> Generator[dict[int, BaseMultipartGeometry], None, None]: ...
+
+
+class QueryFeatureToPrepare(BaseQuerySelect):
+    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+
+
+class BaseQueryFeatureClasses(AbstractSourceQuery):
+
+    _source: FEATURE_CLASSES
+
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, xy_tolerance: XY_TOL) -> None: ...
+    @cached_property
+    def spatial_reference_system(self) -> Optional[SpatialReferenceSystem]: ...
+    @cached_property
+    def zm_config(self) -> ZMConfig: ...
+    @property
+    def insert(self) -> str: ...
+    @property
+    def _has_zm(self) -> HasZM: ...
+    def _get_lines(self, scratch: MemoryGeoPackage) -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]: ...
+    @staticmethod
+    def _fetch_lines_sizes(query: QueryFeatureToPrepare, lines: list[LineString], sizes: list[GRID_SIZE]) -> None: ...
+    def _get_null_record(self) -> tuple: ...

@@ -22,13 +22,13 @@ from spyops.geometry.config import GeometryConfig
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
-    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureToPrepare,
-    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
-    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
-    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
-    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
-    QueryXYTablePoint)
+    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
+    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
+    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
+    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
+    QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
+    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+from spyops.query.base import QueryFeatureToPrepare
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
