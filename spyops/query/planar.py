@@ -57,9 +57,11 @@ def planarize_factory(source: 'FeatureClass', operator: 'FeatureClass',
         op_cls = PlanarizePolygonOperator
     else:
         op_cls = PlanarizeGeneralOperator
+    # noinspection calling-non-callable,argument-list
     source, source_fid = src_cls(
         source, operator=operator, use_full_extent=use_full_extent,
         xy_tolerance=xy_tolerance)()
+    # noinspection calling-non-callable,argument-list
     operator, operator_fid = op_cls(
         source, operator=operator, use_full_extent=use_full_extent,
         xy_tolerance=xy_tolerance)()
@@ -85,9 +87,11 @@ def clean_factory(source: 'FeatureClass', operator: 'FeatureClass',
         op_cls = PlanarizeLineStringOperator
     else:
         op_cls = PlanarizePointOperator
+    # noinspection calling-non-callable,argument-list
     source, source_fid = src_cls(
         source, operator=operator, use_full_extent=use_full_extent,
         xy_tolerance=xy_tolerance)()
+    # noinspection calling-non-callable,argument-list
     operator, operator_fid = op_cls(
         source, operator=operator, use_full_extent=use_full_extent,
         xy_tolerance=xy_tolerance)()
