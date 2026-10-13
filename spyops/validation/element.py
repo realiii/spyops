@@ -9,7 +9,7 @@ from typing import Any, Callable, ClassVar
 
 from fudgeo import FeatureClass, MemoryGeoPackage, Table
 
-from spyops.shared.constant import PADDED_PIPE
+from spyops.shared.constant import EMPTY, MULTI, PADDED_PIPE
 from spyops.shared.exception import OverwriteError
 from spyops.shared.hint import ELEMENT, GPKG, NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateTypeExists
@@ -204,6 +204,21 @@ class ValidateFeatureClasses(ValidateFeatureClass):
     """
     Validate Feature Classes
     """
+    def __init__(self, name: str, *, exists: bool = True,
+                 is_optional: bool = False, has_content: bool = True,
+                 is_output: bool = False, geometry_types: NAMES = (),
+                 has_z: bool = False, has_m: bool = False,
+                 add_index: bool = True, same_type: bool = False) -> None:
+        """
+        Initialize the ValidateFeatureClasses class
+        """
+        super().__init__(name=name, exists=exists, is_optional=is_optional,
+                         is_output=is_output, has_content=has_content,
+                         geometry_types=geometry_types, has_z=has_z,
+                         has_m=has_m, add_index=add_index)
+        self._same_type: bool = same_type
+    # End init built-in
+
     def _get_object(self, kwargs: dict[str, Any]) -> Any:
         """
         Get Object from kwargs and optionally perform some checks
@@ -240,7 +255,22 @@ class ValidateFeatureClasses(ValidateFeatureClass):
         """
         for o in obj:
             super()._validation(o)
+        self._validate_same_type(obj)
     # End _validation method
+
+    def _validate_same_type(self, obj: Any) -> None:
+        """
+        Validate Same Type
+        """
+        if not self._same_type:
+            return
+        types = {o.shape_type.replace(MULTI, EMPTY) for o in obj}
+        if len(types) == 1:
+            return
+        types = PADDED_PIPE.join(types)
+        raise ValueError(
+            f'{self._name} must have the same geometry type, got {types}')
+    # End _validate_same_type method
 # End ValidateFeatureClasses class
 
 
