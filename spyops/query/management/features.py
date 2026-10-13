@@ -1656,7 +1656,7 @@ class QueryFeatureToPolygon(BaseQueryFeatureTo):
         Polygonized Features
         """
         scratch = MemoryGeoPackage.create()
-        lines, _, _ = self._get_lines(scratch)
+        lines, *_ = self._get_lines(scratch)
         if conn := scratch.connection:
             conn.close()
         if not len(lines):
