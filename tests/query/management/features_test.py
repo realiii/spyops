@@ -13,6 +13,7 @@ from fudgeo.geometry import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.linestring import LineString
 from pyproj import CRS
 from pytest import approx, mark, raises
+from shapely.strtree import STRtree
 
 from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import AreaUnit, LengthUnit
@@ -28,7 +29,7 @@ from spyops.query.management.features import (
     QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
     QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
     QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
-from spyops.query.base import QueryFeatureToPrepare
+from spyops.query.base import QueryFeatureIntermediate
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
@@ -1000,7 +1001,7 @@ class TestQueryFeatureToPolygonPrepare:
     def _shared_query(self, inputs, mem_gpkg):
         source = inputs['int_flavor_a']
         target = FeatureClass(mem_gpkg, name=source.name)
-        return QueryFeatureToPrepare(
+        return QueryFeatureIntermediate(
             source, target=target, xy_tolerance=10 ** -6)
     # End _shared_query method
 
@@ -1219,9 +1220,9 @@ class TestQueryFeatureToPolygon:
         label = ntdb_zm_small['structures_4617_zm_p']
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, queries, _ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
-        results = query._add_attributes(polygons)
+        results = query._add_attributes(polygons, queries)
         count = 5816 if is_windows() else 5824
         assert len(results) == count
         _, attributes = zip(*results)
@@ -1242,7 +1243,8 @@ class TestQueryFeatureToPolygon:
         points, _ = query._get_points_attributes()
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
-        grouper = query._index_overlay(points, polygons)
+        tree = STRtree(polygons)
+        grouper = query._index_overlay(tree, points)
         assert len(grouper) == 305
     # End test_index_overlay method
 # End TestQueryFeatureToPolygon class

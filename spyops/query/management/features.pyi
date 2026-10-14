@@ -21,8 +21,8 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
-    AbstractSourceUpdateQuery,
-    AbstractQueryFeatureClasses, BaseQuerySelect)
+    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
+    QueryFeatureIntermediate)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -321,6 +321,7 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None: ...
     def _get_unique_fields(self) -> FIELDS: ...
     def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]: ...
+    def _add_attributes(self, polygons: list[Polygon], queries: list[QueryFeatureIntermediate]) -> list[tuple[Polygon, tuple]]: ...
 
 
 class QueryFeatureToLine(AbstractQueryFeatureClasses):

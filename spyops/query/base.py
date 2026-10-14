@@ -1021,14 +1021,14 @@ class AbstractQueryDissolve(AbstractQueryGroup):
 # End AbstractQueryDissolve class
 
 
-class QueryFeatureToPrepare(BaseQuerySelect):
+class QueryFeatureIntermediate(BaseQuerySelect):
     """
-    Query for each input to Feature to Polygon / Feature to Line
+    Query for each input for use into an intermediate feature class
     """
-    def __init__(self, source: FeatureClass, target: Optional[FeatureClass],
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
                  xy_tolerance: XY_TOL = None) -> None:
         """
-        Initialize the QueryFeatureToPrepare class
+        Initialize the QueryFeatureIntermediate class
         """
         # noinspection PyTypeChecker
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
@@ -1050,7 +1050,7 @@ class QueryFeatureToPrepare(BaseQuerySelect):
         """
         return []
     # End _get_unique_fields method
-# End QueryFeatureToPrepare class
+# End QueryFeatureIntermediate class
 
 
 class AbstractQueryFeatureClasses(AbstractSourceQuery):
@@ -1116,7 +1116,7 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
     # End _has_zm property
 
     def _get_lines(self, scratch: 'MemoryGeoPackage') \
-            -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]:
+            -> tuple[list, list[QueryFeatureIntermediate], GRID_SIZE]:
         """
         Get lines from the input feature classes, the lines will be
         in the Output Coordinate System and planarized.
@@ -1128,7 +1128,7 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
         srs = self.spatial_reference_system
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
             for i, source in enumerate(self._source):
-                query = QueryFeatureToPrepare(
+                query = QueryFeatureIntermediate(
                     source, target=FeatureClass(scratch, name=f'fc_{i}'),
                     xy_tolerance=xy_tol)
                 queries.append(query)
@@ -1145,7 +1145,7 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
     # End _get_lines method
 
     @staticmethod
-    def _fetch_lines_sizes(query: QueryFeatureToPrepare,
+    def _fetch_lines_sizes(query: QueryFeatureIntermediate,
                            lines: list['LineString'],
                            sizes: list[GRID_SIZE]) -> None:
         """
@@ -1189,17 +1189,18 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         Polygonized Features
         """
         scratch = MemoryGeoPackage.create()
-        lines, *_ = self._get_lines(scratch)
+        lines, queries, _ = self._get_lines(scratch)
         if conn := scratch.connection:
             conn.close()
         if not len(lines):
             return []
         if not (polygons := self._build_polygons(lines)):
             return []
-        return self._add_attributes(polygons)
+        return self._add_attributes(polygons, queries)
     # End build_features method
 
-    def _add_attributes(self, polygons: list[Polygon]) \
+    def _add_attributes(self, polygons: list[Polygon],
+                        queries: list[QueryFeatureIntermediate]) \
             -> list[tuple[Polygon, tuple]]:
         """
         Add Attributes, keeping all matches between label points and planarized
@@ -1208,7 +1209,8 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         points, attributes = self._get_points_attributes()
         if not attributes:
             return [(polygon, nulls) for polygon in polygons]
-        if not (grouper := self._index_overlay(points, polygons)):
+        tree = STRtree(polygons)
+        if not (grouper := self._index_overlay(tree, points)):
             return [(polygon, nulls) for polygon in polygons]
         results = []
         for i, polygon in enumerate(polygons):
@@ -1221,13 +1223,12 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End _add_attributes method
 
     @staticmethod
-    def _index_overlay(points: list['Point'], polygons: list[Polygon]) \
+    def _index_overlay(tree: STRtree, points: list['Point']) \
             -> defaultdict[int, list[int]]:
         """
         Build cross-reference between label planarized polygons and label points
         for use in assigning attributes to polygons
         """
-        tree = STRtree(polygons)
         intersects = tree.query(points, predicate='intersects')
         grouper = defaultdict(list)
         for pnt_idx, poly_idx in intersects.T.tolist():

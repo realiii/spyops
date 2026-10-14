@@ -21,6 +21,7 @@ from shapely import (
     get_num_coordinates, get_num_geometries)
 from shapely.coordinates import get_coordinates
 from shapely.geometry.multilinestring import MultiLineString
+from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
@@ -45,8 +46,8 @@ from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
 from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
-    AbstractSourceUpdateQuery,
-    AbstractQueryFeatureClasses, BaseQuerySelect)
+    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
+    QueryFeatureIntermediate)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
