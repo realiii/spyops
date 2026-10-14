@@ -41,8 +41,8 @@ from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
 from spyops.shared.field import (
-    clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
-    validate_fields)
+    ORIG_FID, clone_field, get_geometry_column_name, make_field_names,
+    make_unique_fields, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS,
     XY_TOL)
@@ -1039,16 +1039,19 @@ class QueryFeatureIntermediate(BaseQuerySelect):
         """
         Limit fields to just geometry
         """
-        insert_names = get_geometry_column_name(element)
-        select_names = get_geometry_column_name(element, include_geom_type=True)
-        return 1, insert_names, select_names
+        insert_names = self._concatenate(
+            get_geometry_column_name(element), ORIG_FID.name)
+        select_names = self._concatenate(
+            get_geometry_column_name(element, include_geom_type=True),
+            element.primary_key_field.name)
+        return 2, insert_names, select_names
     # End _field_names_and_count method
 
     def _get_unique_fields(self) -> FIELDS:
         """
         Limit fields to just geometry, sans attributes
         """
-        return []
+        return [ORIG_FID]
     # End _get_unique_fields method
 # End QueryFeatureIntermediate class
 
@@ -1199,27 +1202,14 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         return self._add_attributes(polygons, queries)
     # End build_features method
 
+    @abstractmethod
     def _add_attributes(self, polygons: list[Polygon],
                         queries: list[QueryFeatureIntermediate]) \
             -> list[tuple[Polygon, tuple]]:
         """
         Add Attributes, keeping all matches between label points and planarized
         """
-        nulls = self._get_null_record()
-        points, attributes = self._get_points_attributes()
-        if not attributes:
-            return [(polygon, nulls) for polygon in polygons]
-        tree = STRtree(polygons)
-        if not (grouper := self._index_overlay(tree, points)):
-            return [(polygon, nulls) for polygon in polygons]
-        results = []
-        for i, polygon in enumerate(polygons):
-            if i in grouper:
-                results.extend(
-                    [(polygon, attributes[idx]) for idx in grouper[i]])
-            else:
-                results.append((polygon, nulls))
-        return results
+        pass
     # End _add_attributes method
 
     @staticmethod

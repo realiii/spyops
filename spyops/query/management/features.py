@@ -1471,12 +1471,12 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
     Query Feature to Polygon
     """
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
-                 label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None:
+                 label: FeatureClass | None, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryFeatureToPolygon class
         """
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
-        self._label: Optional[FeatureClass] = label
+        self._label: FeatureClass | None = label
     # End init built-in
 
     def _get_unique_fields(self) -> FIELDS:
@@ -1489,20 +1489,44 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
         return validate_fields(label, fields=label.fields)
     # End _get_unique_fields method
 
-    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]:
+    def _add_attributes(self, polygons: list[Polygon],
+                        queries: list[QueryFeatureIntermediate]) \
+            -> list[tuple[Polygon, tuple]]:
+        """
+        Add Attributes, keeping all matches between label points and planarized
+        """
+        nulls = self._get_null_record()
+        points, attributes = self._get_points_attributes(self._label)
+        if not attributes:
+            return [(polygon, nulls) for polygon in polygons]
+        tree = STRtree(polygons)
+        if not (grouper := self._index_overlay(tree, points)):
+            return [(polygon, nulls) for polygon in polygons]
+        results = []
+        for i, polygon in enumerate(polygons):
+            if i in grouper:
+                results.extend(
+                    [(polygon, attributes[idx]) for idx in grouper[i]])
+            else:
+                results.append((polygon, nulls))
+        return results
+    # End _add_attributes method
+
+    def _get_points_attributes(self, feature_class: FeatureClass | None) \
+            -> tuple[list[ShapelyPoint], list[tuple]]:
         """
         Get Points and Attributes
         """
         points = []
         attributes = []
-        if self._label is None or not self._get_unique_fields():
+        if feature_class is None or not self._get_unique_fields():
             return points, attributes
-        # noinspection PyTypeChecker
-        query = QueryCopyFeatures(self._label, target=None)
+        # noinspection bad-argument-type
+        query = QueryCopyFeatures(feature_class, target=None)
         transformer = query.source_transformer
         srs = self.spatial_reference_system
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs),
-              self._label.geopackage.connection as cin):
+              feature_class.geopackage.connection as cin):
             cursor = cin.execute(query.select)
             while features := cursor.fetchmany(FETCH_SIZE):
                 if not (features := filter_features(features)):

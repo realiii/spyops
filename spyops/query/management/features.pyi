@@ -9,7 +9,7 @@ from collections import defaultdict
 from functools import cached_property
 from operator import itemgetter
 from sqlite3 import Connection
-from typing import Callable, Generator, Optional, Union
+from typing import Callable, Generator, Union
 
 from fudgeo import (
     FeatureClass, Field, SpatialReferenceSystem, Table)
@@ -316,12 +316,12 @@ class QueryPolygonToLine(BaseQuerySelect):
 
 class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
 
-    _label: Optional[FeatureClass]
+    _label: FeatureClass | None
 
-    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None: ...
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: FeatureClass | None, xy_tolerance: XY_TOL) -> None: ...
     def _get_unique_fields(self) -> FIELDS: ...
-    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]: ...
     def _add_attributes(self, polygons: list[Polygon], queries: list[QueryFeatureIntermediate]) -> list[tuple[Polygon, tuple]]: ...
+    def _get_points_attributes(self, feature_class: FeatureClass | None) -> tuple[list[ShapelyPoint], list[tuple]]: ...
 
 
 class QueryFeatureToLine(AbstractQueryFeatureClasses):
