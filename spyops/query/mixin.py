@@ -4,10 +4,12 @@ Mixins
 """
 
 
+from collections import defaultdict
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from typing import Callable, Self, TYPE_CHECKING, Union
+from operator import itemgetter
+from typing import Callable, Optional, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
 from fudgeo import FeatureClass, Field
@@ -25,22 +27,29 @@ from spyops.crs.unit import (
 from spyops.crs.util import crs_from_srs, get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.core import HasZM, zm_config
+from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import extent_from_feature_class
+from spyops.geometry.util import filter_features, to_shapely
 from spyops.shared.constant import DOT, DRID, EMPTY, METRE, SEMI
 
 from spyops.shared.database import add_aggregates, remove_aggregates
 from spyops.shared.field import (
-    NUMBERS, TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
+    FC_COUNT, FEAT_COUNT, NUMBERS, ORIG_FID, ORIG_NAME, OVERLAP_FID,
+    TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
 from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS, UNIT
 from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo import Table
     from numpy import ndarray
     from pyproj import CRS
     from shapely import Polygon
+    from shapely.geometry.base import BaseGeometry
+    from shapely.strtree import STRtree
     from spyops.environment.core import ZMConfig
+    from spyops.query.base import QueryFeatureIntermediate
 
 
 class AggregateContextMixin:
@@ -556,6 +565,143 @@ class OperatorMixin:
             transformer=transformer)
     # End operator_transformer property
 # End OperatorMixin class
+
+
+class CountOverlapMixin:
+    """
+    Count Overlap Mixin
+    """
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return FEAT_COUNT, FC_COUNT
+    # End _get_unique_fields method
+
+    def _build_attribute_groups(self, tree: 'STRtree',
+                                queries: list['QueryFeatureIntermediate']) \
+            -> defaultdict[int, list[tuple]]:
+        """
+        Build Attributes Groups where key is planarized geometry index and
+        values are the list of intersecting (fid, fc_name)
+        """
+        grouped = defaultdict(list)
+        for query in queries:
+            geoms, fids = self._get_geoms_attributes(query.target)
+            if not geoms:
+                continue
+            # noinspection unresolved-references
+            if not (grouper := self._index_overlay(tree, geoms)):
+                continue
+            name = query.source.name
+            attributes = [(fid, name) for fid in fids]
+            for i, indexes in grouper.items():
+                grouped[i].extend([attributes[idx] for idx in indexes])
+        return grouped
+    # End _build_attribute_groups method
+
+    def _add_attributes(self, geometries: list,
+                        queries: list[QueryFeatureIntermediate]) \
+            -> list[tuple['BaseGeometry', tuple]]:
+        """
+        Add Attributes, keeping all matches between planarized geometries
+        (using representative point) and source geometries.
+        """
+        # noinspection unresolved-references
+        tree = self._make_tree(geometries)
+        grouped = self._build_attribute_groups(tree, queries)
+        self._build_overlaps_table(grouped)
+        return self._summarize_by_planarized(geometries, grouped)
+    # End _add_attributes method
+
+    def _summarize_by_planarized(self, geometries: list,
+                                 grouped: defaultdict[int, list[tuple]]) \
+            -> list[tuple[BaseGeometry, tuple]]:
+        """
+        Summarize grouped attributes on a per planarized geometry basis
+        keeping only the geometries that have at least the minimum number of
+        intersecting features.
+        """
+        results = []
+        # noinspection unresolved-references
+        threshold = self._min_count
+        for i, geom in enumerate(geometries):
+            if i not in grouped:
+                continue
+            _, names = zip(*grouped[i])
+            feature_count = len(names)
+            if feature_count < threshold:
+                continue
+            fc_count = len(set(names))
+            results.append((geom, (feature_count, fc_count)))
+        return results
+    # End _summarize_by_planarized method
+
+    def _build_overlaps_table(self, grouped: defaultdict[int, list[tuple]]) -> None:
+        """
+        Build Overlaps table
+        """
+        if not grouped or not self.overlap_table:
+            return
+        records = []
+        # noinspection unresolved-references
+        threshold = self._min_count
+        for i, values in grouped.items():
+            if len(values) < threshold:
+                continue
+            records.extend([(i, fid, name) for fid, name in values])
+        tbl = self.overlap_table
+        names = [f.escaped_name for f in self._get_overlap_fields()]
+        sql_insert = f"""
+            INSERT INTO {tbl.escaped_name} ({', '.join(names)}) 
+            VALUES (?, ?, ?)
+        """
+        with tbl.geopackage.connection as cout:
+            cout.executemany(sql_insert, sorted(records, key=itemgetter(0, 2)))
+    # End _build_overlaps_table method
+
+    @cached_property
+    def overlap_table(self) -> Optional['Table']:
+        """
+        Optional Overlap Table
+        """
+        # noinspection unresolved-references
+        table = self._overlap
+        if table is None:
+            return None
+        return table.geopackage.create_table(
+            table.name, fields=self._get_overlap_fields(),
+            overwrite=ANALYSIS_SETTINGS.overwrite)
+    # End overlap_table property
+
+    @staticmethod
+    def _get_overlap_fields() -> FIELDS:
+        """
+        Get Overlap Fields
+        """
+        return OVERLAP_FID, ORIG_FID, ORIG_NAME
+    # End _get_overlap_fields method
+
+    def _get_geoms_attributes(self, feature_class: FeatureClass | None) \
+            -> tuple[list['BaseGeometry'], list]:
+        """
+        Get Geometries and Attributes
+        """
+        geometries = []
+        fids = []
+        if not feature_class:
+            return geometries, fids
+        cursor = feature_class.select(include_primary=True)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            features, geoms = to_shapely(
+                features, transformer=None, option=DimensionOption.TWO_D)
+            fids.extend([fid for _, fid in features])
+            geometries.extend(geoms)
+        return geometries, fids
+    # End _get_geoms_attributes method
+# End CountOverlapMixin class
 
 
 if __name__ == '__main__':  # pragma: no cover

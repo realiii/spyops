@@ -12,6 +12,7 @@ from typing import Optional, TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from shapely.constructive import point_on_surface
+from shapely.geometry.base import BaseGeometry
 from shapely.strtree import STRtree
 
 from spyops.environment import ANALYSIS_SETTINGS
@@ -22,6 +23,7 @@ from spyops.query.analysis.extract import QueryClip
 from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractSpatialAttribute,
     QueryFeatureIntermediate)
+from spyops.query.mixin import CountOverlapMixin
 from spyops.query.planar import planarize_factory
 from spyops.shared.base import QueryConfig
 from spyops.shared.constant import EMPTY
@@ -36,7 +38,7 @@ from spyops.shared.records import process_disjoint
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field, Table
-    from shapely import Polygon
+    from shapely import Polygon, STRtree
 
 
 class QueryErase(QueryClip):
@@ -413,7 +415,8 @@ class QuerySymmetricalDifferenceClassic(
 # End QuerySymmetricalDifferenceClassic class
 
 
-class QueryCountOverlappingFeaturesPolygon(AbstractQueryFeatureClassesPolygon):
+class QueryCountOverlappingFeaturesPolygon(
+        CountOverlapMixin, AbstractQueryFeatureClassesPolygon):
     """
     Query Count Overlapping Features - Polygon
     """
@@ -428,130 +431,13 @@ class QueryCountOverlappingFeaturesPolygon(AbstractQueryFeatureClassesPolygon):
         self._overlap: Optional['Table'] = overlap
     # End init built-in
 
-    def _get_unique_fields(self) -> FIELDS:
-        """
-        Get Unique Fields
-        """
-        return FEAT_COUNT, FC_COUNT
-    # End _get_unique_fields method
-
-    def _add_attributes(self, polygons: list['Polygon'],
-                        queries: list[QueryFeatureIntermediate]) \
-            -> list[tuple['Polygon', tuple]]:
-        """
-        Add Attributes, keeping all matches between planarized polygons
-        (using representative point) and source geometries.
-        """
-        tree = STRtree(point_on_surface(polygons))
-        grouped = self._build_attribute_groups(tree, queries)
-        self._build_overlaps_table(grouped)
-        return self._summarize_by_polygon(polygons, grouped)
-    # End _add_attributes method
-
-    def _build_attribute_groups(self, tree: STRtree,
-                                queries: list[QueryFeatureIntermediate]) \
-            -> defaultdict[int, list[tuple]]:
-        """
-        Build Attributes Groups where key is polygon index and values
-        are the list of intersecting (fid, fc_name)
-        """
-        grouped = defaultdict(list)
-        for query in queries:
-            geoms, fids = self._get_geoms_attributes(query.target)
-            if not geoms:
-                continue
-            if not (grouper := self._index_overlay(tree, geoms)):
-                continue
-            name = query.source.name
-            attributes = [(fid, name) for fid in fids]
-            for i, indexes in grouper.items():
-                grouped[i].extend([attributes[idx] for idx in indexes])
-        return grouped
-    # End _build_attribute_groups method
-
-    def _summarize_by_polygon(self, polygons: list['Polygon'],
-                              grouped: defaultdict[int, list[tuple]]) \
-            -> list[tuple['Polygon', tuple]]:
-        """
-        Summarize grouped attributes on a per polygon basis keeping only
-        the polygons that have at least the minimum number of intersecting
-        features.
-        """
-        results = []
-        threshold = self._min_count
-        for i, polygon in enumerate(polygons):
-            if i not in grouped:
-                continue
-            _, names = zip(*grouped[i])
-            feature_count = len(names)
-            if feature_count < threshold:
-                continue
-            fc_count = len(set(names))
-            results.append((polygon, (feature_count, fc_count)))
-        return results
-    # End _summarize_by_polygon method
-
-    def _build_overlaps_table(self, grouped: defaultdict[int, list[tuple]]) -> None:
-        """
-        Build Overlaps table
-        """
-        if not grouped or not self.overlap_table:
-            return
-        records = []
-        threshold = self._min_count
-        for i, values in grouped.items():
-            if len(values) < threshold:
-                continue
-            records.extend([(i, fid, name) for fid, name in values])
-        tbl = self.overlap_table
-        names = [f.escaped_name for f in self._get_overlap_fields()]
-        sql_insert = f"""
-            INSERT INTO {tbl.escaped_name} ({', '.join(names)}) 
-            VALUES (?, ?, ?)
-        """
-        with tbl.geopackage.connection as cout:
-            cout.executemany(sql_insert, sorted(records, key=itemgetter(0, 2)))
-    # End _build_overlaps_table method
-
-    @cached_property
-    def overlap_table(self) -> Optional['Table']:
-        """
-        Optional Overlap Table
-        """
-        if self._overlap is None:
-            return None
-        return self._overlap.geopackage.create_table(
-            self._overlap.name, fields=self._get_overlap_fields(),
-            overwrite=ANALYSIS_SETTINGS.overwrite)
-    # End overlap_table property
-
     @staticmethod
-    def _get_overlap_fields() -> FIELDS:
+    def _make_tree(planarized: list) -> STRtree:
         """
-        Get Overlap Fields
+        Make Tree from Planarized geometries.
         """
-        return OVERLAP_FID, ORIG_FID, ORIG_NAME
-    # End _get_overlap_fields method
-
-    def _get_geoms_attributes(self, feature_class: Optional['FeatureClass']) \
-            -> tuple[list['Polygon'], list]:
-        """
-        Get Geometries and Attributes
-        """
-        geometries = []
-        fids = []
-        if not feature_class:
-            return geometries, fids
-        cursor = feature_class.select(include_primary=True)
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            features, geoms = to_shapely(
-                features, transformer=None, option=DimensionOption.TWO_D)
-            fids.extend([fid for _, fid in features])
-            geometries.extend(geoms)
-        return geometries, fids
-    # End _get_geoms_attributes method
+        return STRtree(point_on_surface(planarized))
+    # End _make_tree method
 # End QueryCountOverlappingFeaturesPolygon class
 
 
