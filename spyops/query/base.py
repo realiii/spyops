@@ -1187,19 +1187,30 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         return ShapeType.polygon
     # End _get_target_shape_type method
 
-    def build_features(self) -> list[tuple[Polygon, tuple]]:
+    @staticmethod
+    def _close_scratch(scratch: MemoryGeoPackage) -> None:
+        """
+        Close Scratch GeoPackage
+        """
+        if conn := scratch.connection:
+            conn.close()
+    # End _close_scratch method
+
+    def build_features(self) -> list[tuple['Polygon', tuple]]:
         """
         Polygonized Features
         """
         scratch = MemoryGeoPackage.create()
         lines, queries, _ = self._get_lines(scratch)
-        if conn := scratch.connection:
-            conn.close()
         if not len(lines):
+            self._close_scratch(scratch)
             return []
         if not (polygons := self._build_polygons(lines)):
+            self._close_scratch(scratch)
             return []
-        return self._add_attributes(polygons, queries)
+        results = self._add_attributes(polygons, queries)
+        self._close_scratch(scratch)
+        return results
     # End build_features method
 
     @abstractmethod
