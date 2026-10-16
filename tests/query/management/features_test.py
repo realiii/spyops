@@ -1160,7 +1160,7 @@ class TestQueryFeatureToPolygon:
         target = FeatureClass(mem_gpkg, name='polygons_a')
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(code)):
             query = QueryFeatureToPolygon(source, target, label, None)
-            points, attributes = query._get_points_attributes(label)
+            points, attributes = query._get_geoms_attributes(label)
             assert len(points) == len(attributes)
             assert len(points) == 3912
             point, *_ = points
@@ -1174,7 +1174,7 @@ class TestQueryFeatureToPolygon:
         source = [ntdb_zm_small['hydro_a']]
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, None)
-        points, attributes = query._get_points_attributes(None)
+        points, attributes = query._get_geoms_attributes(None)
         assert len(points) == len(attributes)
         assert len(points) == 0
     # End test_get_points_attributes_sans_label method
@@ -1240,7 +1240,7 @@ class TestQueryFeatureToPolygon:
         label = ntdb_zm_small['structures_4617_zm_p']
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
-        points, _ = query._get_points_attributes(label)
+        points, _ = query._get_geoms_attributes(label)
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_polygons(lines)
         tree = STRtree(polygons)
