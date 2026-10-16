@@ -19,7 +19,6 @@ from shapely.constructive import boundary
 from shapely.coordinates import transform
 from shapely.creation import box
 from shapely.set_operations import union_all
-from shapely.strtree import STRtree
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
@@ -54,7 +53,8 @@ from spyops.shared.util import make_unique_name
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Field, SpatialReferenceSystem
     from pyproj.transformer import Transformer
-    from shapely import LineString, Point, Polygon
+    from shapely import LineString, Polygon
+    from shapely.strtree import STRtree
     from shapely.geometry.base import BaseMultipartGeometry
     from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig
@@ -1214,9 +1214,9 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End build_features method
 
     @abstractmethod
-    def _add_attributes(self, polygons: list[Polygon],
+    def _add_attributes(self, polygons: list['Polygon'],
                         queries: list[QueryFeatureIntermediate]) \
-            -> list[tuple[Polygon, tuple]]:
+            -> list[tuple['Polygon', tuple]]:
         """
         Add Attributes, keeping all matches between label points and planarized
         """
@@ -1238,7 +1238,7 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End _index_overlay method
 
     @staticmethod
-    def _build_polygons(lines: list[LineString]) -> list[Polygon]:
+    def _build_polygons(lines: list['LineString']) -> list['Polygon']:
         """
         Build Polygons
         """
