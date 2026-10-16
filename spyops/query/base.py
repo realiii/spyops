@@ -1224,13 +1224,12 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End _add_attributes method
 
     @staticmethod
-    def _index_overlay(tree: STRtree, points: list['Point']) \
+    def _index_overlay(tree: 'STRtree', geoms: list) \
             -> defaultdict[int, list[int]]:
         """
-        Build cross-reference between label planarized polygons and label points
-        for use in assigning attributes to polygons
+        Build cross-reference between planarized polygons and other geometries
         """
-        intersects = tree.query(points, predicate='intersects')
+        intersects = tree.query(geoms, predicate='intersects')
         grouper = defaultdict(list)
         for pnt_idx, poly_idx in intersects.T.tolist():
             grouper[poly_idx].append(pnt_idx)
