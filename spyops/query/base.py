@@ -1260,12 +1260,12 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End _get_unique_fields method
 
     @abstractmethod
-    def _get_points_attributes(self) -> tuple[list['Point'], list[tuple]]:
+    def _get_geoms_attributes(self) -> tuple[list, list[tuple]]:
         """
-        Get Points and Attributes
+        Get Geometries and Attributes
         """
         pass
-    # End _get_points_attributes method
+    # End _get_geoms_attributes method
 # End AbstractQueryFeatureClassesPolygon class
 
 
