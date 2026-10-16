@@ -4,7 +4,7 @@ Test for Overlay Query Classes
 """
 
 
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType
 from pyproj import CRS
 from pytest import mark, param
@@ -16,11 +16,15 @@ from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.query.analysis.overlay import (
-    QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
+    QueryCountOverlappingFeaturesPolygon, QueryErase, QueryIntersectClassic,
+    QueryIntersectPairwise,
     QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
     QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
+from spyops.shared.field import (
+    FC_COUNT, FEAT_COUNT, ORIG_FID, ORIG_NAME,
+    OVERLAP_FID)
 
 pytestmark = [mark.overlay, mark.query, mark.analysis]
 
@@ -847,6 +851,40 @@ class TestQueryUnionClassic:
         assert query.input_fid_operator.name == 'lmno'
     # End test_input_fid method
 # End TestQueryUnionClassic class
+
+
+class TestQueryCountOverlappingFeaturesPolygon:
+    """
+    Test Query Count Overlapping Features Polygon
+    """
+    def test_get_unique_fields(self):
+        """
+        Test get unique fields
+        """
+        query = QueryCountOverlappingFeaturesPolygon([None], None, 1, None, None)
+        assert query._get_unique_fields() == (FEAT_COUNT, FC_COUNT)
+    # End test_get_unique_fields method
+
+    def test_overlap_table_not_set(self):
+        """
+        Test overlap table, not set
+        """
+        query = QueryCountOverlappingFeaturesPolygon([None], None, 1, None, None)
+        assert query.overlap_table is None
+    # End test_overlap_table_not_set method
+
+    def test_overlap_table(self, mem_gpkg):
+        """
+        Test overlap table, not set
+        """
+        table = Table(name='test', geopackage=mem_gpkg)
+        query = QueryCountOverlappingFeaturesPolygon([None], None, 1, table, None)
+        assert query.overlap_table is not None
+        assert table
+        assert not len(table)
+        assert table.fields[1:] == [OVERLAP_FID, ORIG_FID, ORIG_NAME]
+    # End test_overlap_table method
+# End TestQueryCountOverlappingFeaturesPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover

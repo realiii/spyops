@@ -4,15 +4,21 @@ Type stubs for query.analysis.overlay module
 """
 
 
+from collections import defaultdict
+from functools import cached_property
 from typing import Any
 
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass, Field, Table
+from shapely import Polygon
+from shapely.strtree import STRtree
 
 from spyops.query.analysis.extract import QueryClip
-from spyops.query.base import AbstractSpatialAttribute
+from spyops.query.base import (
+    AbstractQueryFeatureClassesPolygon,
+    AbstractSpatialAttribute, QueryFeatureIntermediate)
 from spyops.shared.base import QueryConfig
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
-from spyops.shared.hint import ELEMENT, FIELDS, XY_TOL
+from spyops.shared.hint import ELEMENT, FEATURE_CLASSES, FIELDS, XY_TOL
 
 
 class QueryErase(QueryClip):
@@ -116,3 +122,21 @@ class QuerySymmetricalDifferenceClassic(ClassicMixin, BaseQuerySymmetricalDiffer
     def _get_insert_fields(self, element: FeatureClass) -> FIELDS: ...
     @property
     def source(self) -> FeatureClass: ...
+
+
+class QueryCountOverlappingFeaturesPolygon(AbstractQueryFeatureClassesPolygon):
+
+    _min_count: int
+    _overlap: Table | None
+
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, min_count: int, overlap: Table | None, xy_tolerance: XY_TOL) -> None: ...
+    def _add_attributes(self, polygons: list[Polygon], queries: list[QueryFeatureIntermediate]) -> list[tuple[Polygon, tuple]]: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+    def _build_attribute_groups(self, tree: STRtree, queries: list[QueryFeatureIntermediate]) -> defaultdict[int, list[tuple]]: ...
+    def _summarize_by_polygon(self, polygons: list[Polygon], grouped: defaultdict[int, list[tuple]]) -> list[tuple[Polygon, tuple]]: ...
+    def _build_overlaps_table(self, grouped: defaultdict[int, list[tuple]]) -> None: ...
+    @cached_property
+    def overlap_table(self) -> Table | None: ...
+    @staticmethod
+    def _get_overlap_fields() -> FIELDS: ...
+    def _get_geoms_attributes(self, feature_class: FeatureClass | None) -> tuple[list[Polygon], list[tuple]]: ...

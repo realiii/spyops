@@ -4,13 +4,13 @@ Tests for Overlay
 """
 
 
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Table
 from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark, param, raises, approx
 
 from spyops.analysis import (
-    erase, intersect, symmetrical_difference, union)
+    count_overlapping_features, erase, intersect, symmetrical_difference, union)
 from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.crs.constant import EPSG, WGS84
@@ -21,6 +21,8 @@ from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
+from spyops.shared.field import (
+    FC_COUNT, FEAT_COUNT, ORIG_FID, ORIG_NAME, OVERLAP_FID)
 
 from tests.util import UseGrids
 
@@ -2389,6 +2391,49 @@ class TestUnion:
             assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs_classic method
 # End TestUnion class
+
+
+class TestCountOverlappingFeatures:
+    """
+    Test Count Overlapping Features
+    """
+    def test_polygon_single(self, ntdb_zm, mem_gpkg):
+        """
+        Test Polygon, single input
+        """
+        fc = ntdb_zm['index_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='rebuilt_index_a')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(fc, target=target, overlap=table)
+        assert len(fc) == 16
+        assert len(target) == 16
+        assert len(table) == 16
+        cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
+        assert set(cursor.fetchall()) == {(1, 1)}
+        cursor = table.select([OVERLAP_FID, ORIG_FID, ORIG_NAME])
+        assert cursor.fetchall() == [
+            (0, 16, 'index_a'), (1, 1, 'index_a'), (2, 2, 'index_a'),
+            (3, 4, 'index_a'), (4, 3, 'index_a'), (5, 13, 'index_a'),
+            (6, 11, 'index_a'), (7, 12, 'index_a'), (8, 5, 'index_a'),
+            (9, 6, 'index_a'), (10, 8, 'index_a'), (11, 7, 'index_a'),
+            (12, 10, 'index_a'), (13, 9, 'index_a'), (14, 14, 'index_a'),
+            (15, 15, 'index_a')]
+    # End test_polygon_single method
+
+    def test_polygon_multiple(self, ntdb_zm_tile, mem_gpkg):
+        """
+        Test Polygon, multiple inputs
+        """
+        fc1 = ntdb_zm_tile['index_a']
+        fc2 = ntdb_zm_tile['hydro_a']
+        fc3 = ntdb_zm_tile['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='rebuilt_index_a')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features([fc1, fc2, fc3], target=target, overlap=table)
+        assert len(target) == 2147
+        assert len(table) == 4163
+    # End test_polygon_multiple method
+# End TestCountOverlappingFeatures class
 
 
 if __name__ == '__main__':  # pragma: no cover
