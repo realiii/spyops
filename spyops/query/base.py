@@ -1231,8 +1231,8 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         """
         intersects = tree.query(geoms, predicate='intersects')
         grouper = defaultdict(list)
-        for pnt_idx, poly_idx in intersects.T.tolist():
-            grouper[poly_idx].append(pnt_idx)
+        for geom_idx, poly_idx in intersects.T.tolist():
+            grouper[poly_idx].append(geom_idx)
         return grouper
     # End _index_overlay method
 
