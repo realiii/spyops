@@ -1496,7 +1496,7 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
         Add Attributes, keeping all matches between label points and planarized
         """
         nulls = self._get_null_record()
-        points, attributes = self._get_points_attributes(self._label)
+        points, attributes = self._get_geoms_attributes(self._label)
         if not attributes:
             return [(polygon, nulls) for polygon in polygons]
         tree = STRtree(polygons)
@@ -1512,10 +1512,10 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
         return results
     # End _add_attributes method
 
-    def _get_points_attributes(self, feature_class: FeatureClass | None) \
+    def _get_geoms_attributes(self, feature_class: FeatureClass | None) \
             -> tuple[list[ShapelyPoint], list[tuple]]:
         """
-        Get Points and Attributes
+        Get Geometries and Attributes
         """
         points = []
         attributes = []
@@ -1539,7 +1539,7 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
                 points.extend(geoms)
                 attributes.extend([feature[1:] for feature in features])
         return points, attributes
-    # End _get_points_attributes method
+    # End _get_geoms_attributes method
 # End QueryFeatureToPolygon class
 
 
