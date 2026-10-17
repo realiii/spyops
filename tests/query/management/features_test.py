@@ -1206,7 +1206,7 @@ class TestQueryFeatureToPolygon:
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, None)
         lines, *_ = query._get_lines(mem_gpkg)
-        polygons = query._build_polygons(lines)
+        polygons = query._build_features(lines)
         count = 4037 if is_windows() else 4045
         assert len(polygons) == count
     # End test_build_polygons method
@@ -1221,7 +1221,7 @@ class TestQueryFeatureToPolygon:
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
         lines, queries, _ = query._get_lines(mem_gpkg)
-        polygons = query._build_polygons(lines)
+        polygons = query._build_features(lines)
         results = query._add_attributes(polygons, queries)
         count = 5816 if is_windows() else 5824
         assert len(results) == count
@@ -1242,7 +1242,7 @@ class TestQueryFeatureToPolygon:
         query = QueryFeatureToPolygon(source, target, label, None)
         points, _ = query._get_geoms_attributes(label)
         lines, *_ = query._get_lines(mem_gpkg)
-        polygons = query._build_polygons(lines)
+        polygons = query._build_features(lines)
         tree = STRtree(polygons)
         grouper = query._index_overlay(tree, points)
         assert len(grouper) == 305

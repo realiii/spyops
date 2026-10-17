@@ -1198,14 +1198,14 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
 
     def build_features(self) -> list[tuple['Polygon', tuple]]:
         """
-        Polygonized Features
+        Planarized Features with Attributes
         """
         scratch = MemoryGeoPackage.create()
         lines, queries, _ = self._get_lines(scratch)
         if not len(lines):
             self._close_scratch(scratch)
             return []
-        if not (polygons := self._build_polygons(lines)):
+        if not (planarized := self._build_features(lines)):
             self._close_scratch(scratch)
             return []
         results = self._add_attributes(polygons, queries)
@@ -1214,8 +1214,9 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End build_features method
 
     @abstractmethod
-    def _add_attributes(self, polygons: list['Polygon'],
-                        queries: list[QueryFeatureIntermediate]) \
+    def _add_attributes(self, geometries: list['Polygon'],
+                        queries: list[QueryFeatureIntermediate],
+                        grid_size: GRID_SIZE) \
             -> list[tuple['Polygon', tuple]]:
         """
         Add Attributes, keeping all matches between label points and planarized
@@ -1227,7 +1228,7 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     def _index_overlay(tree: 'STRtree', geoms: list) \
             -> defaultdict[int, list[int]]:
         """
-        Build cross-reference between planarized polygons and other geometries
+        Build cross-reference between planarized and other geometries
         """
         intersects = tree.query(geoms, predicate='intersects')
         grouper = defaultdict(list)
@@ -1237,9 +1238,9 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End _index_overlay method
 
     @staticmethod
-    def _build_polygons(lines: list['LineString']) -> list['Polygon']:
+    def _build_features(lines: list['LineString']) -> list['Polygon']:
         """
-        Build Polygons
+        Build Features - Polygon
         """
         collections = polygonize(lines)
         if isinstance(collections, GeometryCollection):
@@ -1248,7 +1249,7 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         for collection in collections:
             planarized.extend(get_geoms_iter(collection))
         return planarized
-    # End _build_polygons method
+    # End _build_features method
 
     @abstractmethod
     def _get_unique_fields(self) -> FIELDS:

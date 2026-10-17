@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Callable, Generator, Optional, TYPE_CHECKING, Union
+from typing import Callable, Generator, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
@@ -1489,21 +1489,21 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
         return validate_fields(label, fields=label.fields)
     # End _get_unique_fields method
 
-    def _add_attributes(self, polygons: list[Polygon],
-                        queries: list[QueryFeatureIntermediate]) \
-            -> list[tuple[Polygon, tuple]]:
+    def _add_attributes(self, geometries: list[Polygon],
+                        queries: list[QueryFeatureIntermediate],
+                        grid_size: GRID_SIZE) -> list[tuple[Polygon, tuple]]:
         """
         Add Attributes, keeping all matches between label points and planarized
         """
         nulls = self._get_null_record()
         points, attributes = self._get_geoms_attributes(self._label)
         if not attributes:
-            return [(polygon, nulls) for polygon in polygons]
-        tree = STRtree(polygons)
+            return [(polygon, nulls) for polygon in geometries]
+        tree = STRtree(geometries)
         if not (grouper := self._index_overlay(tree, points)):
-            return [(polygon, nulls) for polygon in polygons]
+            return [(polygon, nulls) for polygon in geometries]
         results = []
-        for i, polygon in enumerate(polygons):
+        for i, polygon in enumerate(geometries):
             if i in grouper:
                 results.extend(
                     [(polygon, attributes[idx]) for idx in grouper[i]])
