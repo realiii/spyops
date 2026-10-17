@@ -424,7 +424,7 @@ class QueryCountOverlappingFeaturesPolygon(
     @staticmethod
     def _make_tree(planarized: list) -> STRtree:
         """
-        Make Tree from Planarized geometries.
+        Make Tree from Planarized geometries
         """
         return STRtree(point_on_surface(planarized))
     # End _make_tree method
