@@ -1201,14 +1201,14 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         Planarized Features with Attributes
         """
         scratch = MemoryGeoPackage.create()
-        lines, queries, _ = self._get_lines(scratch)
+        lines, queries, grid_size = self._get_lines(scratch)
         if not len(lines):
             self._close_scratch(scratch)
             return []
         if not (planarized := self._build_features(lines)):
             self._close_scratch(scratch)
             return []
-        results = self._add_attributes(polygons, queries)
+        results = self._add_attributes(planarized, queries, grid_size)
         self._close_scratch(scratch)
         return results
     # End build_features method
@@ -1225,7 +1225,7 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
     # End _add_attributes method
 
     @staticmethod
-    def _index_overlay(tree: 'STRtree', geoms: list) \
+    def _index_overlay(tree: 'STRtree', geoms: list, grid_size: GRID_SIZE) \
             -> defaultdict[int, list[int]]:
         """
         Build cross-reference between planarized and other geometries

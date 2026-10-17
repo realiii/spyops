@@ -36,7 +36,8 @@ from spyops.shared.database import add_aggregates, remove_aggregates
 from spyops.shared.field import (
     FC_COUNT, FEAT_COUNT, NUMBERS, ORIG_FID, ORIG_NAME, OVERLAP_FID,
     TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
-from spyops.shared.hint import ELEMENT, EXTENT, FIELDS, STATS_FIELDS, UNIT
+from spyops.shared.hint import (
+    ELEMENT, EXTENT, FIELDS, GRID_SIZE, STATS_FIELDS, UNIT)
 from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
@@ -579,7 +580,8 @@ class CountOverlapMixin:
     # End _get_unique_fields method
 
     def _build_attribute_groups(self, tree: 'STRtree',
-                                queries: list['QueryFeatureIntermediate']) \
+                                queries: list['QueryFeatureIntermediate'],
+                                grid_size: GRID_SIZE) \
             -> defaultdict[int, list[tuple]]:
         """
         Build Attributes Groups where key is planarized geometry index and
@@ -591,7 +593,7 @@ class CountOverlapMixin:
             if not geoms:
                 continue
             # noinspection unresolved-references
-            if not (grouper := self._index_overlay(tree, geoms)):
+            if not (grouper := self._index_overlay(tree, geoms, grid_size)):
                 continue
             name = query.source.name
             attributes = [(fid, name) for fid in fids]
@@ -601,7 +603,8 @@ class CountOverlapMixin:
     # End _build_attribute_groups method
 
     def _add_attributes(self, geometries: list,
-                        queries: list[QueryFeatureIntermediate]) \
+                        queries: list[QueryFeatureIntermediate],
+                        grid_size: GRID_SIZE) \
             -> list[tuple['BaseGeometry', tuple]]:
         """
         Add Attributes, keeping all matches between planarized geometries
@@ -609,14 +612,14 @@ class CountOverlapMixin:
         """
         # noinspection unresolved-references
         tree = self._make_tree(geometries)
-        grouped = self._build_attribute_groups(tree, queries)
+        grouped = self._build_attribute_groups(tree, queries, grid_size)
         self._build_overlaps_table(grouped)
         return self._summarize_by_planarized(geometries, grouped)
     # End _add_attributes method
 
     def _summarize_by_planarized(self, geometries: list,
                                  grouped: defaultdict[int, list[tuple]]) \
-            -> list[tuple[BaseGeometry, tuple]]:
+            -> list[tuple['BaseGeometry', tuple]]:
         """
         Summarize grouped attributes on a per planarized geometry basis
         keeping only the geometries that have at least the minimum number of
