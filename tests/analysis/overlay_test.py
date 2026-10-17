@@ -2397,14 +2397,20 @@ class TestCountOverlappingFeatures:
     """
     Test Count Overlapping Features
     """
-    def test_polygon_single(self, ntdb_zm, mem_gpkg):
+    @mark.parametrize('xy_tol', [
+        None,
+        0,
+        0.001,
+    ])
+    def test_polygon_single(self, ntdb_zm, mem_gpkg, xy_tol):
         """
         Test Polygon, single input
         """
         fc = ntdb_zm['index_a']
         target = FeatureClass(geopackage=mem_gpkg, name='rebuilt_index_a')
         table = Table(geopackage=mem_gpkg, name='xref')
-        count_overlapping_features(fc, target=target, overlap=table)
+        count_overlapping_features(
+            fc, target=target, overlap=table, xy_tolerance=xy_tol)
         assert len(fc) == 16
         assert len(target) == 16
         assert len(table) == 16
@@ -2420,7 +2426,12 @@ class TestCountOverlappingFeatures:
             (15, 15, 'index_a')]
     # End test_polygon_single method
 
-    def test_polygon_multiple(self, ntdb_zm_tile, mem_gpkg):
+    @mark.parametrize('xy_tol, target_count, table_count', [
+        (None, 2147, 4163),
+        (0, 2147, 4163),
+        (0.001, 1541, 2712),
+    ])
+    def test_polygon_multiple(self, ntdb_zm_tile, mem_gpkg, xy_tol, target_count, table_count):
         """
         Test Polygon, multiple inputs
         """
@@ -2429,9 +2440,10 @@ class TestCountOverlappingFeatures:
         fc3 = ntdb_zm_tile['structures_a']
         target = FeatureClass(geopackage=mem_gpkg, name='rebuilt_index_a')
         table = Table(geopackage=mem_gpkg, name='xref')
-        count_overlapping_features([fc1, fc2, fc3], target=target, overlap=table)
-        assert len(target) == 2147
-        assert len(table) == 4163
+        count_overlapping_features(
+            [fc1, fc2, fc3], target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(target) == target_count
+        assert len(table) == table_count
     # End test_polygon_multiple method
 # End TestCountOverlappingFeatures class
 
