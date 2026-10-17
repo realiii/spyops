@@ -1550,7 +1550,7 @@ class QueryFeatureToLine(AbstractQueryFeatureClasses):
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QueryFeatureToPolygon class
+        Initialize the QueryFeatureToLine class
         """
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
     # End init built-in
