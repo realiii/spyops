@@ -3,33 +3,23 @@
 Query Classes for analysis.overlay module
 """
 
-
-from collections import defaultdict
 from functools import cache, cached_property
-from operator import itemgetter
 from typing import Optional, TYPE_CHECKING
 
-from fudgeo.constant import FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from shapely.constructive import point_on_surface
-from shapely.geometry.base import BaseGeometry
-from shapely.strtree import STRtree
 
-from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.config import geometry_config
-from spyops.geometry.enumeration import DimensionOption
-from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.vertex import get_midpoints
 from spyops.query.analysis.extract import QueryClip
 from spyops.query.base import (
-    AbstractQueryFeatureClassesPolygon, AbstractSpatialAttribute,
-    QueryFeatureIntermediate)
+    AbstractQueryFeatureClassesPolygon, AbstractSpatialAttribute)
 from spyops.query.mixin import CountOverlapMixin
 from spyops.query.planar import planarize_factory
 from spyops.shared.base import QueryConfig
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
-    FC_COUNT, FEAT_COUNT, ORIG_FID, ORIG_NAME, OVERLAP_FID,
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
 from spyops.shared.hint import ELEMENT, FEATURE_CLASSES, FIELDS, XY_TOL
@@ -38,7 +28,7 @@ from spyops.shared.records import process_disjoint
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field, Table
-    from shapely import Polygon, STRtree
+    from shapely import STRtree
 
 
 class QueryErase(QueryClip):
