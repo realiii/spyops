@@ -1500,7 +1500,7 @@ class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
         if not attributes:
             return [(polygon, nulls) for polygon in geometries]
         tree = STRtree(geometries)
-        if not (grouper := self._index_overlay(tree, points)):
+        if not (grouper := self._index_overlay(tree, points, grid_size)):
             return [(polygon, nulls) for polygon in geometries]
         results = []
         for i, polygon in enumerate(geometries):

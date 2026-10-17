@@ -1222,7 +1222,7 @@ class TestQueryFeatureToPolygon:
         query = QueryFeatureToPolygon(source, target, label, None)
         lines, queries, _ = query._get_lines(mem_gpkg)
         polygons = query._build_features(lines)
-        results = query._add_attributes(polygons, queries)
+        results = query._add_attributes(polygons, queries, None)
         count = 5816 if is_windows() else 5824
         assert len(results) == count
         _, attributes = zip(*results)
@@ -1244,7 +1244,7 @@ class TestQueryFeatureToPolygon:
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_features(lines)
         tree = STRtree(polygons)
-        grouper = query._index_overlay(tree, points)
+        grouper = query._index_overlay(tree, points, None)
         assert len(grouper) == 305
     # End test_index_overlay method
 # End TestQueryFeatureToPolygon class
