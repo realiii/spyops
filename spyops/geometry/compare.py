@@ -4,7 +4,7 @@ Compare Features
 """
 
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from numpy import allclose, array
 from shapely.constructive import normalize
@@ -19,6 +19,15 @@ from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
 if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from shapely.geometry.base import BaseGeometry
+
+
+def remove_repeats(geoms: Union['ndarray', list['BaseGeometry']]) \
+        -> list['BaseGeometry']:
+    """
+    Remove Repeats
+    """
+    return list(set(normalize(geoms)))
+# End remove_repeats function
 
 
 def compare_feature_geometry(features: list[tuple], *,
