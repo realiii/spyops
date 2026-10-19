@@ -12,6 +12,7 @@ from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from numpy import array
 
+from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.base import AbstractQueryDissolve
@@ -42,6 +43,15 @@ class QueryDissolve(StatisticsMixin, AbstractQueryDissolve):
             xy_tolerance=xy_tolerance)
         self._statistics: STATS_FIELDS = statistics
     # End init built-in
+
+    @cached_property
+    def geometry_config(self) -> 'GeometryConfig':
+        """
+        Geometry Configuration
+        """
+        return geometry_config(
+            self.target, cast_geom=self.zm_config.is_different, directed=False)
+    # End geometry_config property
 
     @cache
     def _field_names_and_count(self, element: 'FeatureClass') \
