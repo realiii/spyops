@@ -43,7 +43,8 @@ class GeometryConfig(NamedTuple):
 # End GeometryConfig class
 
 
-def geometry_config(target: 'FeatureClass', cast_geom: bool) -> GeometryConfig:
+def geometry_config(target: 'FeatureClass', cast_geom: bool,
+                    directed: bool = True) -> GeometryConfig:
     """
     Geometry Configuration
     """
@@ -52,7 +53,7 @@ def geometry_config(target: 'FeatureClass', cast_geom: bool) -> GeometryConfig:
     shape_type = target.shape_type
     cls = FUDGEO_GEOMETRY_LOOKUP[shape_type][has_z, has_m]
     filter_types = SHAPELY_GEOMETRY_LOOKUP[shape_type]
-    combiner = _get_combiner(shape_type, has_m=has_m)
+    combiner = get_combiner(shape_type, has_m=has_m, directed=directed)
     srs_id = target.spatial_reference_system.srs_id
     if cast_geom:
         caster = GEOMETRY_CAST[target.shape_type]
@@ -67,19 +68,20 @@ def geometry_config(target: 'FeatureClass', cast_geom: bool) -> GeometryConfig:
 # End geometry_config function
 
 
-def _combine_lines(geom: Union[LineString, MultiLineString]) \
-        -> Union[LineString, MultiLineString]:
+def _combine_lines(geom: Union[LineString, MultiLineString],
+                   directed: bool = True) -> Union[LineString, MultiLineString]:
     """
     Combine Lines using Directed Line Merge
     """
     if hasattr(geom, GEOMS_ATTR):
         # noinspection PyTypeChecker
-        return line_merge(geom, directed=True)
+        return line_merge(geom, directed=directed)
     return geom
 # End _combine_lines function
 
 
-def _combine_lines_workaround(geom: Union[LineString, MultiLineString]) \
+def _combine_lines_workaround(geom: Union[LineString, MultiLineString],
+                              directed: bool = True) \
         -> Union[LineString, MultiLineString]:
     """
     Combine Lines using Directed Line Merge, this will only be applied when a
@@ -87,7 +89,7 @@ def _combine_lines_workaround(geom: Union[LineString, MultiLineString]) \
     """
     if not hasattr(geom, GEOMS_ATTR) or geom.is_empty:
         return geom
-    result = line_merge(geom, directed=True)
+    result = line_merge(geom, directed=directed)
     if result.is_empty:
         return geom
     measures = defaultdict(list)
@@ -126,17 +128,18 @@ def _make_measured_line(geom: LineString, has_z: bool,
 # End _make_measured_line function
 
 
-def _get_combiner(shape_type: str, has_m: bool) -> Callable:
+def get_combiner(shape_type: str, *, has_m: bool,
+                 directed: bool = True) -> Callable:
     """
     Get Combiner Function
     """
     if ShapeType.linestring in shape_type:
         if has_m and USE_WORKAROUNDS.line_merge:
-            return _combine_lines_workaround
+            return partial(_combine_lines_workaround, directed=directed)
         else:
-            return _combine_lines
+            return partial(_combine_lines, directed=directed)
     return nada
-# End _get_combiner function
+# End get_combiner function
 
 
 if __name__ == '__main__':  # pragma: no cover
