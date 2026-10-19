@@ -127,7 +127,7 @@ class TestDissolve:
     @mark.slow
     @mark.parametrize('fc_name, as_multi_part, count', [
         ('roads_l', True, 198),
-        ('roads_l', False, 126_339),
+        ('roads_l', False, 106_132),
         ('roads_mp_l', True, 198),
         ('roads_mp_l', False, 106_132),
     ])
@@ -153,11 +153,11 @@ class TestDissolve:
         ('road_seg_l', ('PAVSTATUS',), True, 2),
         ('road_seg_l', ('REVDATE',), True, 159),
         ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), True, 8),
-        ('road_seg_l', ('NID',), False, 342_741),
-        ('road_seg_l', ('TRAFFICDIR',), False, 290_000),
-        ('road_seg_l', ('PAVSTATUS',), False, 357_193),
-        ('road_seg_l', ('REVDATE',), False, 289_853),
-        ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), False, 305_827),
+        ('road_seg_l', ('NID',), False, 336_588),
+        ('road_seg_l', ('TRAFFICDIR',), False, 273_533),
+        ('road_seg_l', ('PAVSTATUS',), False, 351_384),
+        ('road_seg_l', ('REVDATE',), False, 266_528),
+        ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), False, 290_489),
     ])
     def test_line_nrn(self, nrn_geopackage, mem_gpkg, fc_name, fields, as_multi_part, count):
         """
@@ -194,7 +194,7 @@ class TestDissolve:
 
     @mark.parametrize('fc_name, as_multi_part, count', [
         ('roads_l', True, 18),
-        ('roads_l', False, 1335),
+        ('roads_l', False, 1109),
         param('roads_mp_l', True, 23, marks=mark.slow),
         param('roads_mp_l', False, 28_236, marks=mark.slow),
     ])

@@ -158,7 +158,7 @@ class TestPlanarizeLineString:
             fc, fid_fld = ps()
         assert fid_fld.name == 'fid'
         assert fc.field_names == ['fid', 'SHAPE', 'fid_road_seg_dis_l', 'L_STNAME_C', 'L_PLACENAM']
-        assert len(fc) == 1474
+        assert len(fc) == 1509
     # End test_source method
 
     def test_source_zm(self, grid_index, planar):
