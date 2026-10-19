@@ -5,7 +5,7 @@ Utility Functions
 
 
 from math import hypot
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Union
 
 from numpy import isfinite
 from pyproj.transformer import Transformer
@@ -22,6 +22,7 @@ from spyops.shared.hint import GRID_SIZE, XY_TOL
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, SpatialReferenceSystem
     from pyproj import CRS
+    from spyops.environment.base import FeatureClassProxy
 
 
 def as_title(setting: Setting | str | None) -> str:
@@ -36,7 +37,7 @@ def as_title(setting: Setting | str | None) -> str:
 # End as_title function
 
 
-def tolerance_scale_factor(feature_class: 'FeatureClass') -> float:
+def tolerance_scale_factor(feature_class: Union['FeatureClass', 'FeatureClassProxy']) -> float:
     """
     Scale Factor approximation for 1 metre of XY Tolerance in Decimal Degrees,
     if the extent is invalid or there is not geod then return 1, that is,

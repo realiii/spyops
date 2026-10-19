@@ -38,6 +38,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
     from shapely import Polygon, Point
+    from spyops.environment.base import FeatureClassProxy
 
 
 def configure_grids(data_path: Path | str | None = None,
@@ -54,7 +55,7 @@ def configure_grids(data_path: Path | str | None = None,
 # End configure_grids function
 
 
-def get_crs_from_source(source: Union[CRS, 'FeatureClass', SpatialReferenceSystem]) -> CRS:
+def get_crs_from_source(source: Union[CRS, 'FeatureClass', SpatialReferenceSystem, 'FeatureClassProxy']) -> CRS:
     """
     Returns a CRS object from a Feature Class, Spatial Reference System,
     or CRS object.
