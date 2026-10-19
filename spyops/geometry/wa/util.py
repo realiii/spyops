@@ -13,8 +13,9 @@ from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 from bottleneck import nanmean
 from numpy import ndarray
 from shapely import (
-    LineString, LinearRing, MultiLineString, MultiPoint, Polygon,
-    get_coordinates, get_rings)
+    LineString, LinearRing, MultiLineString, MultiPoint, Polygon, get_rings)
+from shapely.coordinates import get_coordinates
+
 
 from spyops.geometry.util import (
     get_coords_and_slices, get_geoms, get_geoms_iter)
