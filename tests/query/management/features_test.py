@@ -1207,7 +1207,10 @@ class TestQueryFeatureToPolygon:
         query = QueryFeatureToPolygon(source, target, None, None)
         lines, *_ = query._get_lines(mem_gpkg)
         polygons = query._build_features(lines)
-        count = 4037 if is_windows() else 4045
+        if is_windows():
+            count = 4037
+        else:
+            count = 4045
         assert len(polygons) == count
     # End test_build_polygons method
 
@@ -1223,11 +1226,17 @@ class TestQueryFeatureToPolygon:
         lines, queries, _ = query._get_lines(mem_gpkg)
         polygons = query._build_features(lines)
         results = query._add_attributes(polygons, queries, None)
-        count = 5816 if is_windows() else 5824
+        if is_windows():
+            count = 5816
+        else:
+            count = 5824
         assert len(results) == count
         _, attributes = zip(*results)
         assert len(attributes[0]) == 8
-        count = 3732 if is_windows() else 3740
+        if is_windows():
+            count = 3732
+        else:
+            count = 3740
         assert attributes.count((None,) * 8) == count
     # End test_add_attributes method
 
