@@ -9,10 +9,10 @@ from typing import Callable
 from fudgeo import FeatureClass
 from numpy import asarray, ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
-from shapely.constructive import normalize
 from shapely.creation import prepare
 from shapely.set_operations import union_all
 
+from spyops.geometry.compare import remove_repeats
 from spyops.geometry.util import get_geoms_iter, get_validity
 from spyops.geometry.validate import (
     _check_geometries, _get_validated_geoms, check_linestring, check_point,
@@ -99,7 +99,7 @@ def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
         geoms = asarray(geoms, dtype=object)
     if not len(geoms):
         return MultiPolygon()
-    multi = union_all(normalize(geoms))
+    multi = union_all(remove_repeats(geoms))
     if not hasattr(multi, GEOMS_ATTR):
         # noinspection PyTypeChecker
         multi = MultiPolygon([multi])
@@ -168,7 +168,7 @@ def _dissolve_linestring(geoms: ndarray | list,
     Dissolve LineStrings (combining done during extend_records via the
     geometry configuration combiner)
     """
-    lines = union_all(geoms, grid_size=grid_size)
+    lines = union_all(remove_repeats(geoms), grid_size=grid_size)
     if isinstance(lines, MultiLineString):
         return lines
     # noinspection PyTypeChecker
@@ -181,7 +181,7 @@ def _dissolve_polygon(geoms: ndarray | list,
     """
     Dissolve Polygons
     """
-    polys = union_all(normalize(geoms), grid_size=grid_size)
+    polys = union_all(remove_repeats(geoms), grid_size=grid_size)
     if isinstance(polys, MultiPolygon):
         return polys
     # noinspection PyTypeChecker

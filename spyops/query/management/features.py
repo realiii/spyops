@@ -34,6 +34,7 @@ from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
     length_planar, line_azimuth, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
+from spyops.geometry.config import get_combiner
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
@@ -1577,7 +1578,9 @@ class QueryFeatureToLine(AbstractQueryFeatureClasses):
         lines, *_ = self._get_lines(scratch)
         if conn := scratch.connection:
             conn.close()
-        combiner = self.geometry_config.combiner
+        _, has_m = self._has_zm
+        combiner = get_combiner(
+            ShapeType.linestring, has_m=has_m, directed=False)
         lines = get_geoms_iter(combiner(MultiLineString(lines)))
         # noinspection PyTypeChecker
         return [(line, ()) for line in lines]
