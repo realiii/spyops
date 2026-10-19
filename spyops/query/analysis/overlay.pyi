@@ -5,17 +5,17 @@ Type stubs for query.analysis.overlay module
 
 
 from collections import defaultdict
-from functools import cached_property
 from typing import Any
 
-from fudgeo import FeatureClass, Field, Table
-from shapely import Polygon
+from fudgeo import FeatureClass, Field, MemoryGeoPackage, Table
+from shapely.geometry.linestring import LineString
 from shapely.strtree import STRtree
 
 from spyops.query.analysis.extract import QueryClip
 from spyops.query.base import (
-    AbstractQueryFeatureClassesPolygon,
-    AbstractSpatialAttribute, QueryFeatureIntermediate)
+    AbstractQueryFeatureClasses, AbstractQueryFeatureClassesPolygon,
+    AbstractSpatialAttribute)
+from spyops.query.mixin import CountOverlapMixin
 from spyops.shared.base import QueryConfig
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.hint import (
@@ -125,21 +125,27 @@ class QuerySymmetricalDifferenceClassic(ClassicMixin, BaseQuerySymmetricalDiffer
     def source(self) -> FeatureClass: ...
 
 
-class QueryCountOverlappingFeaturesPolygon(AbstractQueryFeatureClassesPolygon):
+class QueryCountOverlappingFeaturesPolygon(CountOverlapMixin, AbstractQueryFeatureClassesPolygon):
 
     _min_count: int
     _overlap: Table | None
 
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, min_count: int, overlap: Table | None, xy_tolerance: XY_TOL) -> None: ...
-    def _add_attributes(self, geometries: list[Polygon], queries: list[QueryFeatureIntermediate], grid_size: GRID_SIZE) -> list[tuple[Polygon, tuple]]: ...
-    def _get_unique_fields(self) -> FIELDS: ...
-    def _build_attribute_groups(self, tree: STRtree, queries: list[QueryFeatureIntermediate], grid_size: GRID_SIZE) -> defaultdict[int, list[tuple]]: ...
-    def _summarize_by_planarized(self, polygons: list[Polygon], grouped: defaultdict[int, list[tuple]]) -> list[tuple[Polygon, tuple]]: ...
-    def _build_overlaps_table(self, grouped: defaultdict[int, list[tuple]]) -> None: ...
-    @cached_property
-    def overlap_table(self) -> Table | None: ...
-    @staticmethod
-    def _get_overlap_fields() -> FIELDS: ...
-    def _get_geoms_attributes(self, feature_class: FeatureClass | None) -> tuple[list[Polygon], list[tuple]]: ...
     @staticmethod
     def _make_tree(self, planarized: list) -> STRtree: ...
+
+
+class QueryCountOverlappingFeaturesLine(CountOverlapMixin, AbstractQueryFeatureClasses):
+
+    _min_count: int
+    _overlap: Table | None
+
+    def __init__(self, source: FEATURE_CLASSES, target: 'FeatureClass', min_count: int, overlap: Table | None, xy_tolerance: XY_TOL) -> None: ...
+    @staticmethod
+    def _make_tree(planarized: list) -> STRtree: ...
+    @staticmethod
+    def _close_scratch(scratch: MemoryGeoPackage) -> None: ...
+    def build_features(self) -> list[tuple[LineString, tuple]]: ...
+    def _index_overlay(self, tree: STRtree, geoms: list, grid_size: GRID_SIZE) -> defaultdict[int, list[int]]: ...
+    def _get_within_distance(self, tree: STRtree, grid_size: GRID_SIZE) -> float: ...
+    def _build_features(self, lines: list[LineString]) -> list[LineString]: ...
