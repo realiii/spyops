@@ -3,17 +3,26 @@
 Query Classes for analysis.overlay module
 """
 
+
+from collections import defaultdict
 from functools import cache, cached_property
 from typing import Optional, TYPE_CHECKING
 
+from fudgeo import MemoryGeoPackage
 from fudgeo.enumeration import ShapeType
+from shapely import MultiPoint
 from shapely.constructive import point_on_surface
+from shapely.strtree import STRtree
 
+from spyops.environment.base import FeatureClassProxy
+from spyops.environment.util import tolerance_scale_factor
 from spyops.geometry.config import geometry_config
+from spyops.geometry.extent import is_degenerate
 from spyops.geometry.vertex import get_midpoints
 from spyops.query.analysis.extract import QueryClip
 from spyops.query.base import (
-    AbstractQueryFeatureClassesPolygon, AbstractSpatialAttribute)
+    AbstractQueryFeatureClasses, AbstractQueryFeatureClassesPolygon,
+    AbstractSpatialAttribute)
 from spyops.query.mixin import CountOverlapMixin
 from spyops.query.planar import planarize_factory
 from spyops.shared.base import QueryConfig
@@ -22,13 +31,14 @@ from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
     get_geometry_column_name, make_field_names, make_unique_fields,
     validate_fields)
-from spyops.shared.hint import ELEMENT, FEATURE_CLASSES, FIELDS, XY_TOL
+from spyops.shared.hint import (
+    ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, XY_TOL)
 from spyops.shared.records import process_disjoint
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field, Table
-    from shapely import STRtree
+    from shapely import LineString
 
 
 class QueryErase(QueryClip):
@@ -429,6 +439,97 @@ class QueryCountOverlappingFeaturesPolygon(
         return STRtree(point_on_surface(planarized))
     # End _make_tree method
 # End QueryCountOverlappingFeaturesPolygon class
+
+
+class QueryCountOverlappingFeaturesLine(
+        CountOverlapMixin, AbstractQueryFeatureClasses):
+    """
+    Query Count Overlapping Features - Line
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: 'FeatureClass',
+                 min_count: int, overlap: Optional['Table'],
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the QueryCountOverlappingFeaturesLine class
+        """
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        self._min_count: int = min_count
+        self._overlap: Optional['Table'] = overlap
+    # End init built-in
+
+    @staticmethod
+    def _make_tree(planarized: list) -> STRtree:
+        """
+        Make Tree from Planarized geometries
+        """
+        return STRtree(get_midpoints(planarized))
+    # End _make_tree method
+
+    @staticmethod
+    def _close_scratch(scratch: MemoryGeoPackage) -> None:
+        """
+        Close Scratch GeoPackage
+        """
+        if conn := scratch.connection:
+            conn.close()
+    # End _close_scratch method
+
+    def build_features(self) -> list[tuple['LineString', tuple]]:
+        """
+        Planarized Features - Lines
+        """
+        scratch = MemoryGeoPackage.create()
+        lines, queries, grid_size = self._get_lines(scratch)
+        if not len(lines):
+            self._close_scratch(scratch)
+            return []
+        if not (planarized := self._build_features(lines)):
+            self._close_scratch(scratch)
+            return []
+        results = self._add_attributes(planarized, queries, grid_size)
+        self._close_scratch(scratch)
+        return results
+    # End build_features method
+
+    def _index_overlay(self, tree: 'STRtree', geoms: list,
+                       grid_size: GRID_SIZE) -> defaultdict[int, list[int]]:
+        """
+        Build cross-reference between planarized and other geometries
+        """
+        distance = self._get_within_distance(tree, grid_size)
+        intersects = tree.query(geoms, predicate='dwithin', distance=distance)
+        grouper = defaultdict(list)
+        for geom_idx, poly_idx in intersects.T.tolist():
+            grouper[poly_idx].append(geom_idx)
+        return grouper
+    # End _index_overlay method
+
+    def _get_within_distance(self, tree: 'STRtree',
+                             grid_size: GRID_SIZE) -> float:
+        """
+        Get Search Distance based on Grid Size when set otherwise derive
+        from the geometry and spatial reference system.
+        """
+        if grid_size:
+            return grid_size
+        milli = 10 ** -3
+        extent = MultiPoint(tree.geometries).bounds
+        srs = self.spatial_reference_system
+        if is_degenerate(extent) or srs is None:
+            return milli
+        fc = FeatureClassProxy(
+            extent=extent, spatial_reference_system=srs)
+        return tolerance_scale_factor(fc) * milli
+    # End _get_within_distance method
+
+    def _build_features(self, lines: list['LineString']) -> list['LineString']:
+        """
+        Build Features - Lines
+        """
+        # noinspection bad-return
+        return list(lines)
+    # End _build_features method
+# End QueryCountOverlappingFeaturesLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

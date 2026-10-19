@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import Any
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, Table
-from shapely.geometry.linestring import LineString
+from shapely import LineString
 from shapely.strtree import STRtree
 
 from spyops.query.analysis.extract import QueryClip
