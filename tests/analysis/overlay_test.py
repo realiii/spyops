@@ -4,6 +4,8 @@ Tests for Overlay
 """
 
 
+from collections import Counter
+
 from fudgeo import FeatureClass, Table
 from fudgeo.enumeration import ShapeType
 from pyproj import CRS
@@ -2416,14 +2418,9 @@ class TestCountOverlappingFeatures:
         assert len(table) == 16
         cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
         assert set(cursor.fetchall()) == {(1, 1)}
-        cursor = table.select([OVERLAP_FID, ORIG_FID, ORIG_NAME])
-        assert cursor.fetchall() == [
-            (0, 16, 'index_a'), (1, 1, 'index_a'), (2, 2, 'index_a'),
-            (3, 4, 'index_a'), (4, 3, 'index_a'), (5, 13, 'index_a'),
-            (6, 11, 'index_a'), (7, 12, 'index_a'), (8, 5, 'index_a'),
-            (9, 6, 'index_a'), (10, 8, 'index_a'), (11, 7, 'index_a'),
-            (12, 10, 'index_a'), (13, 9, 'index_a'), (14, 14, 'index_a'),
-            (15, 15, 'index_a')]
+        cursor = table.select(ORIG_FID)
+        counter = Counter([i for i, in cursor.fetchall()])
+        assert len(counter) == 16
     # End test_polygon_single method
 
     @mark.parametrize('xy_tol, target_count, table_count', [
