@@ -18,7 +18,6 @@ from shapely import GeometryCollection
 from shapely.constructive import boundary
 from shapely.coordinates import transform
 from shapely.creation import box
-from shapely.set_operations import union_all
 
 from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
@@ -28,9 +27,9 @@ from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import HasZM, zm_config
 from spyops.environment.util import get_geographic_transformation, get_grid_size
-from spyops.geometry.compare import remove_repeats
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class, is_degenerate
+from spyops.geometry.planar import planarize
 from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.wa.poly import polygonize
 from spyops.query.mixin import (
@@ -1143,7 +1142,7 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
         if not lines:
             return lines, queries, None
         grid_size = max([s for s in sizes if s is not None], default=None)
-        lines = get_geoms_iter(union_all(remove_repeats(lines, grid_size=grid_size), grid_size=grid_size))
+        lines = get_geoms_iter(planarize(lines, grid_size=grid_size))
         # noinspection PyTypeChecker
         return lines, queries, grid_size
     # End _get_lines method

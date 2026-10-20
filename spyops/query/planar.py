@@ -17,12 +17,11 @@ from numpy import array, concatenate
 from shapely import GeometryCollection
 from shapely.constructive import boundary, point_on_surface
 from shapely.strtree import STRtree
-from shapely.set_operations import union_all
 
 from spyops.environment.core import zm_config
 from spyops.environment.util import tolerance_scale_factor
-from spyops.geometry.compare import remove_repeats
 from spyops.geometry.config import geometry_config
+from spyops.geometry.planar import planarize
 from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.vertex import get_midpoints
 from spyops.geometry.wa.poly import polygonize
@@ -338,9 +337,7 @@ class AbstractPlanarizePolygon(AbstractPlanarize, metaclass=ABCMeta):
         """
         Make Planarized Geometry
         """
-        lines = union_all(remove_repeats(boundary(geoms)))
-        lines = get_geoms_iter(lines)
-        collections = polygonize(lines)
+        collections = polygonize(get_geoms_iter(planarize(boundary(geoms))))
         if isinstance(collections, GeometryCollection):
             collections = [collections]
         planarized = []
@@ -448,7 +445,7 @@ class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
         Make Planarized Geometry
         """
         # noinspection PyTypeChecker
-        return list(get_geoms_iter(union_all(remove_repeats(geoms))))
+        return list(get_geoms_iter(planarize(geoms)))
     # End _make_planarized_geometry method
 # End AbstractPlanarizeLineString class
 
