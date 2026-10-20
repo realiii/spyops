@@ -12,8 +12,9 @@ from shapely.predicates import equals_exact
 
 from spyops.geometry.util import (
     filter_features, get_coords_and_slices, to_shapely)
+from spyops.geometry.wa.sp import set_precision
 from spyops.geometry.wa.valid import make_valid_structure
-from spyops.shared.hint import M_TOL, XY_TOL, Z_TOL
+from spyops.shared.hint import GRID_SIZE, M_TOL, XY_TOL, Z_TOL
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -21,11 +22,13 @@ if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry
 
 
-def remove_repeats(geoms: Union['ndarray', list['BaseGeometry']]) \
-        -> list['BaseGeometry']:
+def remove_repeats(geoms: Union['ndarray', list['BaseGeometry']], *,
+                   grid_size: GRID_SIZE = None) -> list['BaseGeometry']:
     """
     Remove Repeats
     """
+    if grid_size:
+        geoms = set_precision(geoms, grid_size)
     return list(set(normalize(geoms)))
 # End remove_repeats function
 

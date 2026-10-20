@@ -4,9 +4,13 @@ Test Compare Geometry
 """
 
 
+from numpy import array
 from pytest import mark
+from shapely import (
+    Point, LineString, Polygon, MultiPoint, MultiLineString)
+from shapely.constructive import normalize
 
-from spyops.geometry.compare import compare_feature_geometry
+from spyops.geometry.compare import compare_feature_geometry, remove_repeats
 
 pytestmark = [mark.geometry]
 
@@ -164,6 +168,107 @@ class TestCompareGeometry:
                            (17, 33), (17, 34), (17, 35)]
     # End test_multi_poly method
 # End TestCompareGeometry class
+
+
+class TestRemoveRepeats:
+    """
+    Test Remove Repeats
+    """
+    @mark.parametrize('geoms, grid_size', [
+        ([], None),
+        (array([]), None),
+        ([], 1),
+        (array([]), 1),
+    ])
+    def test_empty(self, geoms, grid_size):
+        """
+        Test empty
+        """
+        assert not len(remove_repeats(geoms, grid_size=grid_size))
+    # End test_empty method
+
+    @mark.parametrize('grid_size, expected', [
+        (None, [Point(0.25, 0.5)]),
+        (1, [Point(0, 1)]),
+        (10, [Point(0, 0)]),
+    ])
+    def test_points(self, grid_size, expected):
+        """
+        Test points
+        """
+        geom = Point(0.25, 0.5)
+        assert remove_repeats([geom] * 3, grid_size=grid_size) == expected
+    # End test_points method
+
+    @mark.parametrize('grid_size, expected', [
+        (None, [MultiPoint([Point(0.25, 0.5)] * 2)]),
+        (1, [MultiPoint([Point(0, 1)] * 2)]),
+        (10, [MultiPoint([Point(0, 0)] * 2)]),
+    ])
+    def test_multi_points(self, grid_size, expected):
+        """
+        Test points
+        """
+        geom = MultiPoint([Point(0.25, 0.5)] * 2)
+        assert remove_repeats([geom] * 3, grid_size=grid_size) == expected
+    # End test_multi_points method
+
+    @mark.parametrize('grid_size, expected', [
+        (None, [LineString([(0.25, 0.5), (0.75, 1.5)])]),
+        (1, [LineString([(0, 1), (1, 2)])]),
+        (0.5, [LineString([(0.5, 0.5), (1, 1.5)])]),
+        (10, [LineString()]),
+    ])
+    def test_lines(self, grid_size, expected):
+        """
+        Test lines
+        """
+        geom = LineString([(0.25, 0.5), (0.75, 1.5)])
+        assert remove_repeats([geom] * 3, grid_size=grid_size) == expected
+    # End test_lines method
+
+    @mark.parametrize('grid_size, expected', [
+        (None, [MultiLineString([LineString([(0.25, 0.5), (0.75, 1.5)])] * 2)]),
+        (1, [MultiLineString([LineString([(0, 1), (1, 2)])] * 2)]),
+        (0.5, [MultiLineString([LineString([(0.5, 0.5), (1, 1.5)])] * 2)]),
+        (10, [MultiLineString()]),
+    ])
+    def test_multi_lines(self, grid_size, expected):
+        """
+        Test multi lines
+        """
+        geom = MultiLineString([LineString([(0.25, 0.5), (0.75, 1.5)])] * 2)
+        assert remove_repeats([geom] * 3, grid_size=grid_size) == expected
+    # End test_multi_lines method
+
+    @mark.parametrize('grid_size, expected', [
+        (None, [Polygon([(0.25, 0.25), (0.75, 0.25), (0.75, 1.25), (0.25, 0.75)])]),
+        (1, [Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])]),
+        (0.5, [Polygon([(0.5, 0.5), (1, 0.5), (1, 1.5), (0.5, 1)])]),
+        (10, [Polygon()]),
+    ])
+    def test_polygons(self, grid_size, expected):
+        """
+        Test polygons
+        """
+        geom = Polygon([(0.25, 0.25), (0.75, 0.25), (0.75, 1.25), (0.25, 0.75)])
+        assert remove_repeats([geom] * 3, grid_size=grid_size) == normalize(expected)
+    # End test_polygons method
+
+    @mark.parametrize('grid_size, expected', [
+        (None, [LineString([(0, 0.5), (0, 1.5)]), LineString([(0, 0.75), (0, 2)])]),
+        (1, [LineString([(0, 1), (0, 2)])]),
+        (10, [LineString()]),
+    ])
+    def test_overlaps_lines(self, grid_size, expected):
+        """
+        Test overlaps lines
+        """
+        lines = [LineString([(0, 0.5), (0, 1.5)]),
+                 LineString([(0, 0.75), (0, 2)])]
+        assert set(remove_repeats(lines, grid_size=grid_size)) == set(expected)
+    # End test_overlaps_lines method
+# End TestRemoveRepeats class
 
 
 if __name__ == '__main__':  # pragma: no cover
