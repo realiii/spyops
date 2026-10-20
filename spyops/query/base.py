@@ -1143,8 +1143,7 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
         if not lines:
             return lines, queries, None
         grid_size = max([s for s in sizes if s is not None], default=None)
-        lines = get_geoms_iter(union_all(
-            remove_repeats(lines), grid_size=grid_size))
+        lines = get_geoms_iter(union_all(remove_repeats(lines, grid_size=grid_size), grid_size=grid_size))
         # noinspection PyTypeChecker
         return lines, queries, grid_size
     # End _get_lines method

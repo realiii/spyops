@@ -1181,7 +1181,7 @@ class TestQueryFeatureToPolygon:
 
     @mark.parametrize('xy_tol, count', [
         (None, 8551 if is_windows() else 8564),
-        (10**-5, 8683 if is_windows() else 8695),
+        (10**-5, 8683 if is_windows() else 8595),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1329,7 +1329,7 @@ class TestQueryFeatureToLine:
 
     @mark.parametrize('xy_tol, count', [
         (None, 8551 if is_windows() else 8564),
-        (10**-5, 8683 if is_windows() else 8695),
+        (10**-5, 8683 if is_windows() else 8595),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """

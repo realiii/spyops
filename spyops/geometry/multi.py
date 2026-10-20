@@ -168,7 +168,7 @@ def _dissolve_linestring(geoms: ndarray | list,
     Dissolve LineStrings (combining done during extend_records via the
     geometry configuration combiner)
     """
-    lines = union_all(remove_repeats(geoms), grid_size=grid_size)
+    lines = union_all(remove_repeats(geoms, grid_size=grid_size), grid_size=grid_size)
     if isinstance(lines, MultiLineString):
         return lines
     # noinspection PyTypeChecker
@@ -181,7 +181,7 @@ def _dissolve_polygon(geoms: ndarray | list,
     """
     Dissolve Polygons
     """
-    polys = union_all(remove_repeats(geoms), grid_size=grid_size)
+    polys = union_all(remove_repeats(geoms, grid_size=grid_size), grid_size=grid_size)
     if isinstance(polys, MultiPolygon):
         return polys
     # noinspection PyTypeChecker
