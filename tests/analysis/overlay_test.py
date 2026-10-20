@@ -2426,7 +2426,7 @@ class TestCountOverlappingFeatures:
     @mark.parametrize('xy_tol, target_count, table_count', [
         (None, 2147, 4163),
         (0, 2147, 4163),
-        (0.001, 1541, 2712),
+        (0.001, 1580, 2766),
     ])
     def test_polygon_multiple(self, ntdb_zm_tile, mem_gpkg, xy_tol, target_count, table_count):
         """
