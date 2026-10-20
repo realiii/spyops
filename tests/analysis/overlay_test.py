@@ -2442,6 +2442,53 @@ class TestCountOverlappingFeatures:
         assert len(target) == target_count
         assert len(table) == table_count
     # End test_polygon_multiple method
+
+    @mark.parametrize('xy_tol', [
+        None,
+        0,
+        0.001,
+        1,
+    ])
+    def test_line_single(self, ntdb_zm_small, mem_gpkg, xy_tol):
+        """
+        Test line, single input but repeated
+        """
+        fc = ntdb_zm_small['transmission_utm11_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='transmission_l')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(
+            [fc] * 2, target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(fc) == 66
+        assert len(target) == 95
+        assert len(table) == 190
+        cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
+        assert set(cursor.fetchall()) == {(2, 1)}
+        cursor = table.select(ORIG_FID)
+        counter = Counter([i for i, in cursor.fetchall()])
+        assert len(counter) == 66
+    # End test_line_single method
+
+    @mark.parametrize('xy_tol, target_count, table_count', [
+        (None, 407, 814),
+        (0, 407, 814),
+        (0.001, 95, 190),
+        (1, 95, 190),
+    ])
+    def test_line_multiple(self, ntdb_zm_small, mem_gpkg, xy_tol, target_count, table_count):
+        """
+        Test line, multiple inputs where the lines are almost but not fully coincident
+        """
+        fc1 = ntdb_zm_small['transmission_10tm_l']
+        fc2 = ntdb_zm_small['transmission_utm11_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='mixed_l')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        with UseGrids(True):
+            count_overlapping_features(
+                [fc1, fc2], target=target, overlap=table, xy_tolerance=xy_tol)
+        assert target.spatial_reference_system == fc1.spatial_reference_system
+        assert len(target) == target_count
+        assert len(table) == table_count
+    # End test_line_multiple method
 # End TestCountOverlappingFeatures class
 
 
