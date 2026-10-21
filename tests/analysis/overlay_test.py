@@ -2489,6 +2489,54 @@ class TestCountOverlappingFeatures:
         assert len(target) == target_count
         assert len(table) == table_count
     # End test_line_multiple method
+
+    @mark.parametrize('xy_tol, target_count, table_count, expected_counts', [
+        (None, 142, 284, {(2, 1)}),
+        (0, 142, 284, {(2, 1)}),
+        (0.001, 139, 290, {(2, 1), (4, 1)}),
+        (1, 1, 284, {(284, 1)}),
+    ])
+    def test_point_single(self, ntdb_zm_small, mem_gpkg, xy_tol, target_count,
+                          table_count, expected_counts):
+        """
+        Test point, single input but repeated
+        """
+        fc = ntdb_zm_small['toponymy_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='toponymy_p')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(
+            [fc] * 2, target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(fc) == 142
+        assert len(target) == target_count
+        assert len(table) == table_count
+        cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
+        assert set(cursor.fetchall()) == expected_counts
+        cursor = table.select(ORIG_FID)
+        counter = Counter([i for i, in cursor.fetchall()])
+        assert len(counter) == 142
+    # End test_point_single method
+
+    @mark.parametrize('xy_tol, target_count, table_count', [
+        (None, 206, 412),
+        (0, 206, 412),
+        (0.001, 142, 284),
+        (1, 142, 284),
+    ])
+    def test_point_multiple(self, ntdb_zm_small, mem_gpkg, xy_tol, target_count, table_count):
+        """
+        Test point, multiple inputs where the points are almost but not fully coincident
+        """
+        fc1 = ntdb_zm_small['toponymy_10tm_mp']
+        fc2 = ntdb_zm_small['toponymy_utm11_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='mixed_p')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        with UseGrids(True):
+            count_overlapping_features(
+                [fc1, fc2], target=target, overlap=table, xy_tolerance=xy_tol)
+        assert target.spatial_reference_system == fc1.spatial_reference_system
+        assert len(target) == target_count
+        assert len(table) == table_count
+    # End test_point_multiple method
 # End TestCountOverlappingFeatures class
 
 
