@@ -1575,7 +1575,7 @@ class QueryFeatureToLine(AbstractQueryFeatureClasses):
         LineString Features
         """
         scratch = MemoryGeoPackage.create()
-        lines, *_ = self._get_lines(scratch)
+        lines, *_ = self._get_geoms(scratch)
         if conn := scratch.connection:
             conn.close()
         _, has_m = self._has_zm

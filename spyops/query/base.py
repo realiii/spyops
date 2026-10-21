@@ -55,7 +55,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj.transformer import Transformer
     from shapely import LineString, Polygon
     from shapely.strtree import STRtree
-    from shapely.geometry.base import BaseMultipartGeometry
+    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
     from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig
     from spyops.geometry.config import GeometryConfig
@@ -1118,14 +1118,13 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
         return HasZM(has_z=has_z, has_m=has_m)
     # End _has_zm property
 
-    def _get_lines(self, scratch: 'MemoryGeoPackage') \
+    def _get_geoms(self, scratch: 'MemoryGeoPackage') \
             -> tuple[list, list[QueryFeatureIntermediate], GRID_SIZE]:
         """
-        Get lines from the input feature classes, the lines will be
-        in the Output Coordinate System and planarized.
+        Get lines / points from the input feature classes, the lines / points
+        will be in the Output Coordinate System and planarized.
         """
-        sizes = []
-        lines = []
+        geoms = []
         queries = []
         xy_tol = self._xy_tolerance
         srs = self.spatial_reference_system
@@ -1138,21 +1137,21 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
                 fc = select_transform_insert(query)
                 if not len(fc):
                     continue
-                self._fetch_lines_sizes(query, lines=lines, sizes=sizes)
-        if not lines:
-            return lines, queries, None
+                self._fetch_geoms(query, geometries=geoms)
+        if not geoms:
+            return geoms, queries, None
+        sizes = [q.grid_size for q in queries]
         grid_size = max([s for s in sizes if s is not None], default=None)
-        lines = get_geoms_iter(planarize(lines, grid_size=grid_size))
+        geoms = get_geoms_iter(planarize(geoms, grid_size=grid_size))
         # noinspection PyTypeChecker
-        return lines, queries, grid_size
-    # End _get_lines method
+        return geoms, queries, grid_size
+    # End _get_geoms method
 
     @staticmethod
-    def _fetch_lines_sizes(query: QueryFeatureIntermediate,
-                           lines: list['LineString'],
-                           sizes: list[GRID_SIZE]) -> None:
+    def _fetch_geoms(query: QueryFeatureIntermediate,
+                     geometries: list['BaseGeometry']) -> None:
         """
-        Fetch Lines from memory feature classes and grid sizes from query
+        Fetch Geometries from memory feature classes
         """
         fc = query.target
         cursor = fc.select(include_primary=True)
@@ -1163,9 +1162,12 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
             _, geoms = to_shapely(features, transformer=None)
             if is_polygon:
                 geoms = boundary(geoms)
-            lines.extend(geoms)
-            sizes.append(query.grid_size)
-    # End _fetch_lines_sizes method
+            if fc.is_multi_part or is_polygon:
+                for geom in geoms:
+                    geometries.extend(get_geoms_iter(geom))
+            else:
+                geometries.extend(geoms)
+    # End _fetch_geoms method
 
     def _get_null_record(self) -> tuple:
         """
@@ -1201,7 +1203,7 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         Planarized Features with Attributes
         """
         scratch = MemoryGeoPackage.create()
-        lines, queries, grid_size = self._get_lines(scratch)
+        lines, queries, grid_size = self._get_geoms(scratch)
         if not len(lines):
             self._close_scratch(scratch)
             return []

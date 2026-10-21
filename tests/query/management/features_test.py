@@ -1180,8 +1180,8 @@ class TestQueryFeatureToPolygon:
     # End test_get_points_attributes_sans_label method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8551 if is_windows() else 8564),
-        (10**-5, 8683 if is_windows() else 8595),
+        (None, 8551 if is_windows() else 7686),
+        (10**-5, 8683 if is_windows() else 7743),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1191,7 +1191,7 @@ class TestQueryFeatureToPolygon:
         source = [ntdb_zm_small[name] for name in names]
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, xy_tol)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, *_ = query._get_geoms(mem_gpkg)
         assert len(lines) == count
         assert all(line.has_z for line in lines)
         assert all(line.has_m for line in lines)
@@ -1205,7 +1205,7 @@ class TestQueryFeatureToPolygon:
         source = [ntdb_zm_small[name] for name in names]
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, None)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, *_ = query._get_geoms(mem_gpkg)
         polygons = query._build_features(lines)
         if is_windows():
             count = 4037
@@ -1223,7 +1223,7 @@ class TestQueryFeatureToPolygon:
         label = ntdb_zm_small['structures_4617_zm_p']
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
-        lines, queries, _ = query._get_lines(mem_gpkg)
+        lines, queries, _ = query._get_geoms(mem_gpkg)
         polygons = query._build_features(lines)
         results = query._add_attributes(polygons, queries, None)
         if is_windows():
@@ -1250,7 +1250,7 @@ class TestQueryFeatureToPolygon:
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
         points, _ = query._get_geoms_attributes(label)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, *_ = query._get_geoms(mem_gpkg)
         polygons = query._build_features(lines)
         tree = STRtree(polygons)
         grouper = query._index_overlay(tree, points, None)
@@ -1328,8 +1328,8 @@ class TestQueryFeatureToLine:
     # End test_insert method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8551 if is_windows() else 8564),
-        (10**-5, 8683 if is_windows() else 8595),
+        (None, 8551 if is_windows() else 7686),
+        (10**-5, 8683 if is_windows() else 7743),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1339,7 +1339,7 @@ class TestQueryFeatureToLine:
         source = [ntdb_zm_small[name] for name in names]
         target = FeatureClass(mem_gpkg, name='lines_l')
         query = QueryFeatureToLine(source, target, xy_tol)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, *_ = query._get_geoms(mem_gpkg)
         assert len(lines) == count
         assert all(line.has_z for line in lines)
         assert all(line.has_m for line in lines)
