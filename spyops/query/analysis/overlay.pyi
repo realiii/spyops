@@ -4,11 +4,13 @@ Type stubs for query.analysis.overlay module
 """
 
 
+from abc import abstractmethod
 from collections import defaultdict
 from typing import Any
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, Table
-from shapely import LineString
+from shapely import LineString, Point
+from shapely.geometry.base import BaseGeometry
 from shapely.strtree import STRtree
 
 from spyops.query.analysis.extract import QueryClip
@@ -135,17 +137,30 @@ class QueryCountOverlappingFeaturesPolygon(CountOverlapMixin, AbstractQueryFeatu
     def _make_tree(self, planarized: list) -> STRtree: ...
 
 
-class QueryCountOverlappingFeaturesLine(CountOverlapMixin, AbstractQueryFeatureClasses):
+class AbstractQueryFeatureClassesGeneral(CountOverlapMixin, AbstractQueryFeatureClasses): 
 
     _min_count: int
     _overlap: Table | None
 
-    def __init__(self, source: FEATURE_CLASSES, target: 'FeatureClass', min_count: int, overlap: Table | None, xy_tolerance: XY_TOL) -> None: ...
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, min_count: int, overlap: Table | None, xy_tolerance: XY_TOL) -> None: ...
     @staticmethod
+    @abstractmethod
     def _make_tree(planarized: list) -> STRtree: ...
     @staticmethod
     def _close_scratch(scratch: MemoryGeoPackage) -> None: ...
-    def build_features(self) -> list[tuple[LineString, tuple]]: ...
+    def build_features(self) -> list[tuple[BaseGeometry, tuple]]: ...
     def _index_overlay(self, tree: STRtree, geoms: list, grid_size: GRID_SIZE) -> defaultdict[int, list[int]]: ...
     def _get_within_distance(self, tree: STRtree, grid_size: GRID_SIZE) -> float: ...
-    def _build_features(self, lines: list[LineString]) -> list[LineString]: ...
+    def _build_features(self, geoms: list[BaseGeometry]) -> list[BaseGeometry]: ...
+
+
+class QueryCountOverlappingFeaturesLine(AbstractQueryFeatureClassesGeneral):
+    @staticmethod
+    def _make_tree(planarized: list) -> STRtree: ...
+    def _build_features(self, geoms: list[LineString]) -> list[LineString]: ...
+
+
+class QueryCountOverlappingFeaturesPoint(AbstractQueryFeatureClassesGeneral):
+    @staticmethod
+    def _make_tree(planarized: list) -> STRtree: ...
+    def _build_features(self, geoms: list[Point]) -> list[Point]: ...

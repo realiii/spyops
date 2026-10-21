@@ -14,10 +14,10 @@ from spyops.analysis.util import (
 from spyops.geometry.convert import get_geometry_converters
 from spyops.geometry.validate import get_validated_geometries
 from spyops.query.analysis.overlay import (
+    QueryCountOverlappingFeaturesLine, QueryCountOverlappingFeaturesPoint,
     QueryCountOverlappingFeaturesPolygon, QueryErase, QueryIntersectClassic,
-    QueryIntersectPairwise,
-    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
-    QueryUnionClassic, QueryUnionPairwise)
+    QueryIntersectPairwise, QuerySymmetricalDifferenceClassic,
+    QuerySymmetricalDifferencePairwise, QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.keywords import (
     ALGORITHM_OPTION, ATTRIBUTE_OPTION, MIN_COUNT, OPERATOR, OUTPUT_TYPE_OPTION,
     OVERLAP, SOURCE, TARGET)
@@ -229,6 +229,10 @@ def count_overlapping_features(source: FEATURE_CLASSES, target: 'FeatureClass',
     src, *_ = source
     if src.shape_type in GEOM_TYPE_POLYGONS:
         cls = QueryCountOverlappingFeaturesPolygon
+    elif src.shape_type in GEOM_TYPE_LINES:
+        cls = QueryCountOverlappingFeaturesLine
+    else:
+        cls = QueryCountOverlappingFeaturesPoint
     query = cls(source, target=target, min_count=min_count,
                 overlap=overlap, xy_tolerance=xy_tolerance)
     with (query.target.geopackage.connection as cout,

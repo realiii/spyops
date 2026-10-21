@@ -4,6 +4,7 @@ Query Classes for analysis.overlay module
 """
 
 
+from abc import abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property
 from typing import Optional, TYPE_CHECKING
@@ -38,7 +39,7 @@ from spyops.shared.records import process_disjoint
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Field, Table
-    from shapely import LineString
+    from shapely.geometry.base import BaseGeometry
 
 
 class QueryErase(QueryClip):
@@ -441,28 +442,29 @@ class QueryCountOverlappingFeaturesPolygon(
 # End QueryCountOverlappingFeaturesPolygon class
 
 
-class QueryCountOverlappingFeaturesLine(
+class AbstractQueryFeatureClassesGeneral(
         CountOverlapMixin, AbstractQueryFeatureClasses):
     """
-    Query Count Overlapping Features - Line
+    Abstract Query Feature Classes General
     """
     def __init__(self, source: FEATURE_CLASSES, target: 'FeatureClass',
                  min_count: int, overlap: Optional['Table'],
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QueryCountOverlappingFeaturesLine class
+        Initialize the AbstractQueryFeatureClassesGeneral class
         """
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._min_count: int = min_count
         self._overlap: Optional['Table'] = overlap
     # End init built-in
-
+    
     @staticmethod
+    @abstractmethod
     def _make_tree(planarized: list) -> STRtree:
         """
         Make Tree from Planarized geometries
         """
-        return STRtree(get_midpoints(planarized))
+        pass
     # End _make_tree method
 
     @staticmethod
@@ -474,16 +476,16 @@ class QueryCountOverlappingFeaturesLine(
             conn.close()
     # End _close_scratch method
 
-    def build_features(self) -> list[tuple['LineString', tuple]]:
+    def build_features(self) -> list[tuple['BaseGeometry', tuple]]:
         """
         Planarized Features - Lines
         """
         scratch = MemoryGeoPackage.create()
-        lines, queries, grid_size = self._get_lines(scratch)
-        if not len(lines):
+        geoms, queries, grid_size = self._get_geoms(scratch)
+        if not len(geoms):
             self._close_scratch(scratch)
             return []
-        if not (planarized := self._build_features(lines)):
+        if not (planarized := self._build_features(geoms)):
             self._close_scratch(scratch)
             return []
         results = self._add_attributes(planarized, queries, grid_size)
@@ -491,7 +493,7 @@ class QueryCountOverlappingFeaturesLine(
         return results
     # End build_features method
 
-    def _index_overlay(self, tree: 'STRtree', geoms: list,
+    def _index_overlay(self, tree: STRtree, geoms: list,
                        grid_size: GRID_SIZE) -> defaultdict[int, list[int]]:
         """
         Build cross-reference between planarized and other geometries
@@ -504,7 +506,7 @@ class QueryCountOverlappingFeaturesLine(
         return grouper
     # End _index_overlay method
 
-    def _get_within_distance(self, tree: 'STRtree',
+    def _get_within_distance(self, tree: STRtree,
                              grid_size: GRID_SIZE) -> float:
         """
         Get Search Distance based on Grid Size when set otherwise derive
@@ -522,14 +524,42 @@ class QueryCountOverlappingFeaturesLine(
         return tolerance_scale_factor(fc) * milli
     # End _get_within_distance method
 
-    def _build_features(self, lines: list['LineString']) -> list['LineString']:
+    def _build_features(self, geoms: list['BaseGeometry']) \
+            -> list['BaseGeometry']:
         """
-        Build Features - Lines
+        Build Features
         """
-        # noinspection bad-return
-        return list(lines)
+        return list(geoms)
     # End _build_features method
+# End AbstractQueryFeatureClassesGeneral class
+
+
+class QueryCountOverlappingFeaturesLine(AbstractQueryFeatureClassesGeneral):
+    """
+    Query Count Overlapping Features - Line
+    """
+    @staticmethod
+    def _make_tree(planarized: list) -> STRtree:
+        """
+        Make Tree from Planarized geometries
+        """
+        return STRtree(get_midpoints(planarized))
+    # End _make_tree method
 # End QueryCountOverlappingFeaturesLine class
+
+
+class QueryCountOverlappingFeaturesPoint(AbstractQueryFeatureClassesGeneral):
+    """
+    Query Count Overlapping Features - Point
+    """
+    @staticmethod
+    def _make_tree(planarized: list) -> STRtree:
+        """
+        Make Tree from Planarized geometries
+        """
+        return STRtree(planarized)
+    # End _make_tree method
+# End QueryCountOverlappingFeaturesPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
