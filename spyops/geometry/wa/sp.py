@@ -18,7 +18,7 @@ def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
     """
     Set Precision Workaround -- just a warning
     """
-    if USE_WORKAROUNDS.set_precision and grid_size > 0:
+    if USE_WORKAROUNDS.set_precision and grid_size:
         types = Polygon, MultiPolygon
         if isinstance(geometry, (list, tuple, ndarray)):
             if not len(geometry):

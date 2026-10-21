@@ -13,6 +13,7 @@ from fudgeo.geometry import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.linestring import LineString
 from pyproj import CRS
 from pytest import approx, mark, raises
+from shapely.strtree import STRtree
 
 from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import AreaUnit, LengthUnit
@@ -22,13 +23,13 @@ from spyops.geometry.config import GeometryConfig
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
-    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureToPrepare,
-    QueryFeatureVerticesToPoints, QueryMinimumBoundingGeometryAll,
-    QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
-    QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
-    QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
-    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
-    QueryXYTablePoint)
+    QueryFeatureToPoint, QueryFeatureToPolygon, QueryFeatureVerticesToPoints,
+    QueryMinimumBoundingGeometryAll, QueryMinimumBoundingGeometryList,
+    QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
+    QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
+    QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
+    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+from spyops.query.base import QueryFeatureIntermediate
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import (
@@ -1000,7 +1001,7 @@ class TestQueryFeatureToPolygonPrepare:
     def _shared_query(self, inputs, mem_gpkg):
         source = inputs['int_flavor_a']
         target = FeatureClass(mem_gpkg, name=source.name)
-        return QueryFeatureToPrepare(
+        return QueryFeatureIntermediate(
             source, target=target, xy_tolerance=10 ** -6)
     # End _shared_query method
 
@@ -1021,8 +1022,8 @@ class TestQueryFeatureToPolygonPrepare:
         """
         query = self._shared_query(inputs, mem_gpkg)
         sql = query.insert
-        assert 'INTO int_flavor_a(SHAPE)' in sql
-        assert 'VALUES (?)' in sql
+        assert 'INTO int_flavor_a(SHAPE, ORIG_FID)' in sql
+        assert 'VALUES (?, ?)' in sql
     # End test_insert method
 
     def test_source_transformer(self, inputs, mem_gpkg):
@@ -1159,7 +1160,7 @@ class TestQueryFeatureToPolygon:
         target = FeatureClass(mem_gpkg, name='polygons_a')
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, CRS(code)):
             query = QueryFeatureToPolygon(source, target, label, None)
-            points, attributes = query._get_points_attributes()
+            points, attributes = query._get_geoms_attributes(label)
             assert len(points) == len(attributes)
             assert len(points) == 3912
             point, *_ = points
@@ -1173,14 +1174,14 @@ class TestQueryFeatureToPolygon:
         source = [ntdb_zm_small['hydro_a']]
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, None)
-        points, attributes = query._get_points_attributes()
+        points, attributes = query._get_geoms_attributes(None)
         assert len(points) == len(attributes)
         assert len(points) == 0
     # End test_get_points_attributes_sans_label method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8551 if is_windows() else 8574),
-        (10**-5, 8683 if is_windows() else 8694),
+        (None, 8551 if is_windows() else 7686),
+        (10**-5, 8683 if is_windows() else 7743),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1190,7 +1191,7 @@ class TestQueryFeatureToPolygon:
         source = [ntdb_zm_small[name] for name in names]
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, xy_tol)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, *_ = query._get_geoms(mem_gpkg)
         assert len(lines) == count
         assert all(line.has_z for line in lines)
         assert all(line.has_m for line in lines)
@@ -1204,9 +1205,12 @@ class TestQueryFeatureToPolygon:
         source = [ntdb_zm_small[name] for name in names]
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, None, None)
-        lines, *_ = query._get_lines(mem_gpkg)
-        polygons = query._build_polygons(lines)
-        count = 4037 if is_windows() else 4045
+        lines, *_ = query._get_geoms(mem_gpkg)
+        polygons = query._build_features(lines)
+        if is_windows():
+            count = 4037
+        else:
+            count = 4045
         assert len(polygons) == count
     # End test_build_polygons method
 
@@ -1219,14 +1223,20 @@ class TestQueryFeatureToPolygon:
         label = ntdb_zm_small['structures_4617_zm_p']
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
-        lines, *_ = query._get_lines(mem_gpkg)
-        polygons = query._build_polygons(lines)
-        results = query._add_attributes(polygons)
-        count = 5816 if is_windows() else 5824
+        lines, queries, _ = query._get_geoms(mem_gpkg)
+        polygons = query._build_features(lines)
+        results = query._add_attributes(polygons, queries, None)
+        if is_windows():
+            count = 5816
+        else:
+            count = 5824
         assert len(results) == count
         _, attributes = zip(*results)
         assert len(attributes[0]) == 8
-        count = 3732 if is_windows() else 3740
+        if is_windows():
+            count = 3732
+        else:
+            count = 3740
         assert attributes.count((None,) * 8) == count
     # End test_add_attributes method
 
@@ -1239,10 +1249,11 @@ class TestQueryFeatureToPolygon:
         label = ntdb_zm_small['structures_4617_zm_p']
         target = FeatureClass(mem_gpkg, name='polygons_a')
         query = QueryFeatureToPolygon(source, target, label, None)
-        points, _ = query._get_points_attributes()
-        lines, *_ = query._get_lines(mem_gpkg)
-        polygons = query._build_polygons(lines)
-        grouper = query._index_overlay(points, polygons)
+        points, _ = query._get_geoms_attributes(label)
+        lines, *_ = query._get_geoms(mem_gpkg)
+        polygons = query._build_features(lines)
+        tree = STRtree(polygons)
+        grouper = query._index_overlay(tree, points, None)
         assert len(grouper) == 305
     # End test_index_overlay method
 # End TestQueryFeatureToPolygon class
@@ -1317,8 +1328,8 @@ class TestQueryFeatureToLine:
     # End test_insert method
 
     @mark.parametrize('xy_tol, count', [
-        (None, 8551 if is_windows() else 8574),
-        (10**-5, 8683 if is_windows() else 8694),
+        (None, 8551 if is_windows() else 7686),
+        (10**-5, 8683 if is_windows() else 7743),
     ])
     def test_get_lines(self, ntdb_zm_small, mem_gpkg, xy_tol, count):
         """
@@ -1328,7 +1339,7 @@ class TestQueryFeatureToLine:
         source = [ntdb_zm_small[name] for name in names]
         target = FeatureClass(mem_gpkg, name='lines_l')
         query = QueryFeatureToLine(source, target, xy_tol)
-        lines, *_ = query._get_lines(mem_gpkg)
+        lines, *_ = query._get_geoms(mem_gpkg)
         assert len(lines) == count
         assert all(line.has_z for line in lines)
         assert all(line.has_m for line in lines)

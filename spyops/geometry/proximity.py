@@ -147,6 +147,8 @@ def _dissolve_polygons(polygons: 'ndarray', xy_tolerance: XY_TOL) -> 'ndarray':
     """
     Dissolve Polygons and Enforce MultiPolygon
     """
+    # NOTE this does not use planarize function because we rely on the union
+    #  being applied elementwise and not across all geometries in the array
     # noinspection PyTypeChecker
     return _to_multi(union_all(normalize(polygons).reshape(-1, 1),
                                grid_size=xy_tolerance, axis=1))

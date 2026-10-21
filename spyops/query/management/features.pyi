@@ -9,10 +9,10 @@ from collections import defaultdict
 from functools import cached_property
 from operator import itemgetter
 from sqlite3 import Connection
-from typing import Callable, Generator, Optional, Union
+from typing import Callable, Generator, Union
 
 from fudgeo import (
-    FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem, Table)
+    FeatureClass, Field, SpatialReferenceSystem, Table)
 from numpy import ndarray
 from pyproj import CRS
 from shapely import Polygon, Point as ShapelyPoint, LineString
@@ -20,8 +20,9 @@ from shapely import Polygon, Point as ShapelyPoint, LineString
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.query.base import (
-    AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
-    BaseQuerySelect)
+    AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
+    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
+    QueryFeatureIntermediate)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -313,48 +314,17 @@ class QueryPolygonToLine(BaseQuerySelect):
     def source_transformer(self) -> Callable | None: ...
 
 
-class QueryFeatureToPrepare(BaseQuerySelect):
-    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
-    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
+class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
+
+    _label: FeatureClass | None
+
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: FeatureClass | None, xy_tolerance: XY_TOL) -> None: ...
     def _get_unique_fields(self) -> FIELDS: ...
+    def _add_attributes(self, geometries: list[Polygon], queries: list[QueryFeatureIntermediate], grid_size: GRID_SIZE) -> list[tuple[Polygon, tuple]]: ...
+    def _get_geoms_attributes(self, feature_class: FeatureClass | None) -> tuple[list[ShapelyPoint], list[tuple]]: ...
 
 
-class BaseQueryFeatureTo(AbstractSourceQuery):
-
-    _source: FEATURE_CLASSES
-
-    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, xy_tolerance: XY_TOL) -> None: ...
-    @cached_property
-    def spatial_reference_system(self) -> Optional[SpatialReferenceSystem]: ...
-    @cached_property
-    def zm_config(self) -> ZMConfig: ...
-    @property
-    def insert(self) -> str: ...
-    @property
-    def _has_zm(self) -> HasZM: ...
-    def _get_lines(self, scratch: MemoryGeoPackage) -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]: ...
-    @staticmethod
-    def _fetch_lines_sizes(query: QueryFeatureToPrepare, lines: list[LineString], sizes: list[GRID_SIZE]) -> None: ...
-    def _get_null_record(self) -> tuple: ...
-
-
-class QueryFeatureToPolygon(BaseQueryFeatureTo):
-
-    _label: Optional[FeatureClass]
-
-    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None: ...
-    def _get_target_shape_type(self) -> str: ...
-    def _get_unique_fields(self) -> FIELDS: ...
-    def build_features(self) -> list[tuple[Polygon, tuple]]: ...
-    def _add_attributes(self, polygons: list[Polygon]) -> list[tuple[Polygon, tuple]]: ...
-    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]: ...
-    @staticmethod
-    def _index_overlay(points: list[ShapelyPoint], planarized: list[Polygon]) -> defaultdict[int, list[int]]: ...
-    @staticmethod
-    def _build_polygons(lines: list[LineString]) -> list[Polygon]: ...
-
-
-class QueryFeatureToLine(BaseQueryFeatureTo):
+class QueryFeatureToLine(AbstractQueryFeatureClasses):
 
     _preserve: bool
 

@@ -74,6 +74,9 @@ FREQUENCY: Field = Field('FREQUENCY', data_type=FieldType.integer)
 ORIG_FID: Field = Field(
     'ORIG_FID', data_type=FieldType.integer,
     alias='Original Feature Identifier')
+ORIG_NAME: Field = Field(
+    'ORIG_NAME', data_type=FieldType.text,
+    alias='Original Feature Class Name')
 REPEAT_FID: Field = Field(
     'REPEAT_FID', data_type=FieldType.integer,
     alias='Repeat Feature Identifier')
@@ -136,6 +139,15 @@ COMMENT: Field = Field('COMMENT', data_type=FieldType.text)
 SYMBOL: Field = Field('SYMBOL', data_type=FieldType.text)
 ELEVATION: Field = Field('ELEVATION', data_type=FieldType.real)
 DT: Field = Field('DT', data_type=FieldType.datetime)
+
+
+FEAT_COUNT: Field = Field(
+    'FEAT_COUNT', data_type=FieldType.integer, alias='Feature Count')
+FC_COUNT: Field = Field(
+    'FC_COUNT', data_type=FieldType.integer, alias='Feature Class Count')
+OVERLAP_FID: Field = Field(
+    'OVERLAP_FID', data_type=FieldType.integer,
+    alias='Overlap Feature Identifier')
 
 
 GNSS_POSITION_SOURCE_TYPE_FIELD: Field = Field(

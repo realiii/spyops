@@ -4,13 +4,15 @@ Tests for Overlay
 """
 
 
-from fudgeo import FeatureClass
+from collections import Counter
+
+from fudgeo import FeatureClass, Table
 from fudgeo.enumeration import ShapeType
 from pyproj import CRS
 from pytest import mark, param, raises, approx
 
 from spyops.analysis import (
-    erase, intersect, symmetrical_difference, union)
+    count_overlapping_features, erase, intersect, symmetrical_difference, union)
 from spyops.environment import Extent
 from spyops.environment.core import zm_config
 from spyops.crs.constant import EPSG, WGS84
@@ -21,6 +23,8 @@ from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.shared.exception import OperationsError
 from spyops.environment.context import Swap
+from spyops.shared.field import (
+    FC_COUNT, FEAT_COUNT, ORIG_FID, ORIG_NAME, OVERLAP_FID)
 
 from tests.util import UseGrids
 
@@ -2389,6 +2393,151 @@ class TestUnion:
             assert approx(result.extent, abs=0.001) == extent
     # End test_different_crs_classic method
 # End TestUnion class
+
+
+class TestCountOverlappingFeatures:
+    """
+    Test Count Overlapping Features
+    """
+    @mark.parametrize('xy_tol', [
+        None,
+        0,
+        0.001,
+    ])
+    def test_polygon_single(self, ntdb_zm, mem_gpkg, xy_tol):
+        """
+        Test Polygon, single input
+        """
+        fc = ntdb_zm['index_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='rebuilt_index_a')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(
+            fc, target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(fc) == 16
+        assert len(target) == 16
+        assert len(table) == 16
+        cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
+        assert set(cursor.fetchall()) == {(1, 1)}
+        cursor = table.select(ORIG_FID)
+        counter = Counter([i for i, in cursor.fetchall()])
+        assert len(counter) == 16
+    # End test_polygon_single method
+
+    @mark.parametrize('xy_tol, target_count, table_count', [
+        (None, 2147, 4163),
+        (0, 2147, 4163),
+        (0.001, 1580, 2766),
+    ])
+    def test_polygon_multiple(self, ntdb_zm_tile, mem_gpkg, xy_tol, target_count, table_count):
+        """
+        Test Polygon, multiple inputs
+        """
+        fc1 = ntdb_zm_tile['index_a']
+        fc2 = ntdb_zm_tile['hydro_a']
+        fc3 = ntdb_zm_tile['structures_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='rebuilt_index_a')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(
+            [fc1, fc2, fc3], target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(target) == target_count
+        assert len(table) == table_count
+    # End test_polygon_multiple method
+
+    @mark.parametrize('xy_tol', [
+        None,
+        0,
+        0.001,
+        1,
+    ])
+    def test_line_single(self, ntdb_zm_small, mem_gpkg, xy_tol):
+        """
+        Test line, single input but repeated
+        """
+        fc = ntdb_zm_small['transmission_utm11_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='transmission_l')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(
+            [fc] * 2, target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(fc) == 66
+        assert len(target) == 95
+        assert len(table) == 190
+        cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
+        assert set(cursor.fetchall()) == {(2, 1)}
+        cursor = table.select(ORIG_FID)
+        counter = Counter([i for i, in cursor.fetchall()])
+        assert len(counter) == 66
+    # End test_line_single method
+
+    @mark.parametrize('xy_tol, target_count, table_count', [
+        (None, 407, 814),
+        (0, 407, 814),
+        (0.001, 95, 190),
+        (1, 95, 190),
+    ])
+    def test_line_multiple(self, ntdb_zm_small, mem_gpkg, xy_tol, target_count, table_count):
+        """
+        Test line, multiple inputs where the lines are almost but not fully coincident
+        """
+        fc1 = ntdb_zm_small['transmission_10tm_l']
+        fc2 = ntdb_zm_small['transmission_utm11_l']
+        target = FeatureClass(geopackage=mem_gpkg, name='mixed_l')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        with UseGrids(True):
+            count_overlapping_features(
+                [fc1, fc2], target=target, overlap=table, xy_tolerance=xy_tol)
+        assert target.spatial_reference_system == fc1.spatial_reference_system
+        assert len(target) == target_count
+        assert len(table) == table_count
+    # End test_line_multiple method
+
+    @mark.parametrize('xy_tol, target_count, table_count, expected_counts', [
+        (None, 142, 284, {(2, 1)}),
+        (0, 142, 284, {(2, 1)}),
+        (0.001, 139, 290, {(2, 1), (4, 1)}),
+        (1, 1, 284, {(284, 1)}),
+    ])
+    def test_point_single(self, ntdb_zm_small, mem_gpkg, xy_tol, target_count,
+                          table_count, expected_counts):
+        """
+        Test point, single input but repeated
+        """
+        fc = ntdb_zm_small['toponymy_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='toponymy_p')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        count_overlapping_features(
+            [fc] * 2, target=target, overlap=table, xy_tolerance=xy_tol)
+        assert len(fc) == 142
+        assert len(target) == target_count
+        assert len(table) == table_count
+        cursor = target.select([FEAT_COUNT, FC_COUNT], include_geometry=False)
+        assert set(cursor.fetchall()) == expected_counts
+        cursor = table.select(ORIG_FID)
+        counter = Counter([i for i, in cursor.fetchall()])
+        assert len(counter) == 142
+    # End test_point_single method
+
+    @mark.parametrize('xy_tol, target_count, table_count', [
+        (None, 206, 412),
+        (0, 206, 412),
+        (0.001, 142, 284),
+        (1, 142, 284),
+    ])
+    def test_point_multiple(self, ntdb_zm_small, mem_gpkg, xy_tol, target_count, table_count):
+        """
+        Test point, multiple inputs where the points are almost but not fully coincident
+        """
+        fc1 = ntdb_zm_small['toponymy_10tm_mp']
+        fc2 = ntdb_zm_small['toponymy_utm11_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='mixed_p')
+        table = Table(geopackage=mem_gpkg, name='xref')
+        with UseGrids(True):
+            count_overlapping_features(
+                [fc1, fc2], target=target, overlap=table, xy_tolerance=xy_tol)
+        assert target.spatial_reference_system == fc1.spatial_reference_system
+        assert len(target) == target_count
+        assert len(table) == table_count
+    # End test_point_multiple method
+# End TestCountOverlappingFeatures class
 
 
 if __name__ == '__main__':  # pragma: no cover

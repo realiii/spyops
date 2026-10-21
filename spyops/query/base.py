@@ -5,13 +5,17 @@ Abstract Classes in support of Query objects
 
 
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from functools import cache, cached_property
 from typing import Callable, Generator, Optional, TYPE_CHECKING
 from warnings import warn
 
-from fudgeo import FeatureClass
-from fudgeo.constant import COMMA_SPACE
+from fudgeo import FeatureClass, MemoryGeoPackage
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
+from fudgeo.enumeration import ShapeType
 from pyproj import CRS
+from shapely import GeometryCollection
+from shapely.constructive import boundary
 from shapely.coordinates import transform
 from shapely.creation import box
 
@@ -19,11 +23,15 @@ from spyops.crs.transform import (
     get_transform_best_guess, make_transformer_function)
 from spyops.crs.util import (
     crs_from_srs, get_crs_from_source, srs_from_crs)
-from spyops.environment import ANALYSIS_SETTINGS
+from spyops.environment import ANALYSIS_SETTINGS, Setting
+from spyops.environment.context import Swap
 from spyops.environment.core import HasZM, zm_config
 from spyops.environment.util import get_geographic_transformation, get_grid_size
 from spyops.geometry.config import geometry_config
 from spyops.geometry.extent import extent_from_feature_class, is_degenerate
+from spyops.geometry.planar import planarize
+from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
+from spyops.geometry.wa.poly import polygonize
 from spyops.query.mixin import (
     GroupQueryMixin, IntermediateTableContextMixin, OperatorMixin)
 from spyops.shared.constant import (
@@ -32,10 +40,12 @@ from spyops.shared.element import copy_feature_class, create_feature_class
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.exception import BadExtentWarning
 from spyops.shared.field import (
-    clone_field, get_geometry_column_name, make_field_names, make_unique_fields,
-    validate_fields)
+    ORIG_FID, clone_field, get_geometry_column_name, make_field_names,
+    make_unique_fields, validate_fields)
 from spyops.shared.hint import (
-    ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
+    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS,
+    XY_TOL)
+from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID
 from spyops.shared.util import make_unique_name
 
@@ -43,8 +53,9 @@ from spyops.shared.util import make_unique_name
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import Field, SpatialReferenceSystem
     from pyproj.transformer import Transformer
-    from shapely import Polygon
-    from shapely.geometry.base import BaseMultipartGeometry
+    from shapely import LineString, Polygon
+    from shapely.strtree import STRtree
+    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
     from spyops.environment.base import Extent
     from spyops.environment.core import ZMConfig
     from spyops.geometry.config import GeometryConfig
@@ -195,6 +206,7 @@ class AbstractFeatureClassQuery(AbstractElementQuery, metaclass=ABCMeta):
         """
         polygon = extent.polygon
         if transformer := self._get_transformer_or_guess(extent.crs, crs):
+            # noinspection bad-argument-type
             polygon = transform(
                 polygon, transformer.transform, interleaved=False)
             if is_degenerate(polygon.bounds):
@@ -1007,6 +1019,256 @@ class AbstractQueryDissolve(AbstractQueryGroup):
         pass
     # End dissolved_geometries method
 # End AbstractQueryDissolve class
+
+
+class QueryFeatureIntermediate(BaseQuerySelect):
+    """
+    Query for each input for use into an intermediate feature class
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass | None,
+                 xy_tolerance: XY_TOL = None) -> None:
+        """
+        Initialize the QueryFeatureIntermediate class
+        """
+        # noinspection PyTypeChecker
+        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+    # End init built-in
+
+    @cache
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
+        """
+        Limit fields to just geometry
+        """
+        insert_names = self._concatenate(
+            get_geometry_column_name(element), ORIG_FID.name)
+        select_names = self._concatenate(
+            get_geometry_column_name(element, include_geom_type=True),
+            element.primary_key_field.name)
+        return 2, insert_names, select_names
+    # End _field_names_and_count method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Limit fields to just geometry, sans attributes
+        """
+        return [ORIG_FID]
+    # End _get_unique_fields method
+# End QueryFeatureIntermediate class
+
+
+class AbstractQueryFeatureClasses(AbstractSourceQuery):
+    """
+    Abstract Query Feature Classes
+    """
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
+                 xy_tolerance: XY_TOL) -> None:
+        """
+        Initialize the AbstractQueryFeatureClasses class
+        """
+        src, *_ = source
+        super().__init__(src, target=target, xy_tolerance=xy_tolerance)
+        self._source: FEATURE_CLASSES = source
+    # End init built-in
+
+    @cached_property
+    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
+        """
+        Spatial Reference System, the output coordinate system of the query
+        which is determined by the output coordinate system of the analysis
+        environment and if not set, the spatial reference system of the first
+        feature class in the source.
+        """
+        crs = ANALYSIS_SETTINGS.output_coordinate_system
+        if isinstance(crs, CRS):
+            return srs_from_crs(crs)
+        source, *_ = self._source
+        return source.spatial_reference_system
+    # End spatial_reference_system property
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+        """
+        return zm_config(*self._source)
+    # End zm_config property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert SQL
+        """
+        elm = self.target
+        fields = self._get_unique_fields()
+        insert_field_names = make_field_names(fields)
+        insert_field_names = self._concatenate(
+            get_geometry_column_name(elm), insert_field_names)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=len(fields) + 1)
+    # End insert property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        has_z = any(source.has_z for source in self._source)
+        has_m = any(source.has_m for source in self._source)
+        return HasZM(has_z=has_z, has_m=has_m)
+    # End _has_zm property
+
+    def _get_geoms(self, scratch: 'MemoryGeoPackage') \
+            -> tuple[list, list[QueryFeatureIntermediate], GRID_SIZE]:
+        """
+        Get lines / points from the input feature classes, the lines / points
+        will be in the Output Coordinate System and planarized.
+        """
+        geoms = []
+        queries = []
+        xy_tol = self._xy_tolerance
+        srs = self.spatial_reference_system
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
+            for i, source in enumerate(self._source):
+                query = QueryFeatureIntermediate(
+                    source, target=FeatureClass(scratch, name=f'fc_{i}'),
+                    xy_tolerance=xy_tol)
+                queries.append(query)
+                fc = select_transform_insert(query)
+                if not len(fc):
+                    continue
+                self._fetch_geoms(query, geometries=geoms)
+        if not geoms:
+            return geoms, queries, None
+        sizes = [q.grid_size for q in queries]
+        grid_size = max([s for s in sizes if s is not None], default=None)
+        geoms = get_geoms_iter(planarize(geoms, grid_size=grid_size))
+        # noinspection PyTypeChecker
+        return geoms, queries, grid_size
+    # End _get_geoms method
+
+    @staticmethod
+    def _fetch_geoms(query: QueryFeatureIntermediate,
+                     geometries: list['BaseGeometry']) -> None:
+        """
+        Fetch Geometries from memory feature classes
+        """
+        fc = query.target
+        cursor = fc.select(include_primary=True)
+        is_polygon = ShapeType.polygon in fc.shape_type
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            _, geoms = to_shapely(features, transformer=None)
+            if is_polygon:
+                geoms = boundary(geoms)
+            if fc.is_multi_part or is_polygon:
+                for geom in geoms:
+                    geometries.extend(get_geoms_iter(geom))
+            else:
+                geometries.extend(geoms)
+    # End _fetch_geoms method
+
+    def _get_null_record(self) -> tuple:
+        """
+        Get Null Record
+        """
+        return tuple([None] * len(self._get_unique_fields()))
+    # End _get_null_record method
+# End AbstractQueryFeatureClasses class
+
+
+class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
+    """
+    Abstract Query Feature Classes Polygon
+    """
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.polygon
+    # End _get_target_shape_type method
+
+    @staticmethod
+    def _close_scratch(scratch: MemoryGeoPackage) -> None:
+        """
+        Close Scratch GeoPackage
+        """
+        if conn := scratch.connection:
+            conn.close()
+    # End _close_scratch method
+
+    def build_features(self) -> list[tuple['Polygon', tuple]]:
+        """
+        Planarized Features with Attributes
+        """
+        scratch = MemoryGeoPackage.create()
+        lines, queries, grid_size = self._get_geoms(scratch)
+        if not len(lines):
+            self._close_scratch(scratch)
+            return []
+        if not (planarized := self._build_features(lines)):
+            self._close_scratch(scratch)
+            return []
+        results = self._add_attributes(planarized, queries, grid_size)
+        self._close_scratch(scratch)
+        return results
+    # End build_features method
+
+    @abstractmethod
+    def _add_attributes(self, geometries: list['Polygon'],
+                        queries: list[QueryFeatureIntermediate],
+                        grid_size: GRID_SIZE) \
+            -> list[tuple['Polygon', tuple]]:
+        """
+        Add Attributes, keeping all matches between label points and planarized
+        """
+        pass
+    # End _add_attributes method
+
+    @staticmethod
+    def _index_overlay(tree: 'STRtree', geoms: list, grid_size: GRID_SIZE) \
+            -> defaultdict[int, list[int]]:
+        """
+        Build cross-reference between planarized and other geometries
+        """
+        intersects = tree.query(geoms, predicate='intersects')
+        grouper = defaultdict(list)
+        for geom_idx, poly_idx in intersects.T.tolist():
+            grouper[poly_idx].append(geom_idx)
+        return grouper
+    # End _index_overlay method
+
+    @staticmethod
+    def _build_features(lines: list['LineString']) -> list['Polygon']:
+        """
+        Build Features - Polygon
+        """
+        collections = polygonize(lines)
+        if isinstance(collections, GeometryCollection):
+            collections = [collections]
+        planarized = []
+        for collection in collections:
+            planarized.extend(get_geoms_iter(collection))
+        return planarized
+    # End _build_features method
+
+    @abstractmethod
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        pass
+    # End _get_unique_fields method
+
+    @abstractmethod
+    def _get_geoms_attributes(self) -> tuple[list, list[tuple]]:
+        """
+        Get Geometries and Attributes
+        """
+        pass
+    # End _get_geoms_attributes method
+# End AbstractQueryFeatureClassesPolygon class
 
 
 if __name__ == '__main__':  # pragma: no cover

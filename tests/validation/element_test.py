@@ -263,7 +263,7 @@ def test_validate_feature_classes_geometry(world_features, name, geometry_types,
 ])
 def test_validate_feature_classes_zm(world_features, name, has_z, has_m):
     """
-    Test validate feature class ZM
+    Test validate feature classes ZM
     """
     @validate_feature_classes('feature_class', has_z=has_z, has_m=has_m)
     def fc_function(feature_class):
@@ -275,6 +275,27 @@ def test_validate_feature_classes_zm(world_features, name, has_z, has_m):
     else:
         assert fc_function(fc) == [fc]
 # End test_validate_feature_classes_zm function
+
+
+@mark.parametrize('names, is_valid', [
+    (('eraser_a', 'clipper_a'), True),
+    (('eraser_a',), True),
+    (('eraser_a', 'mbg_l'), False),
+])
+def test_validate_feature_classes_same_type(inputs, names, is_valid):
+    """
+    Test validate feature classes Same Type
+    """
+    @validate_feature_classes('feature_class', same_type=True)
+    def fc_function(feature_class):
+        return feature_class
+    fcs = [inputs[name] for name in names]
+    if is_valid:
+        assert fc_function(fcs) == fcs
+    else:
+        with raises(ValueError):
+            fc_function(fcs)
+# End test_validate_feature_classes_same_type function
 
 
 def test_validate_table_with_setting(world_tables, world_features):

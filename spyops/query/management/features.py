@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Callable, Generator, Optional, TYPE_CHECKING, Union
+from typing import Callable, Generator, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
@@ -19,10 +19,8 @@ from pyproj import CRS
 from shapely import (
     GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
     get_num_coordinates, get_num_geometries)
-from shapely.constructive import boundary
 from shapely.coordinates import get_coordinates
 from shapely.geometry.multilinestring import MultiLineString
-from shapely.set_operations import union_all
 from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
@@ -36,6 +34,7 @@ from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
     length_planar, line_azimuth, line_end, line_start)
 from spyops.geometry.centroid import GEOMETRY_CENTROID
+from spyops.geometry.config import get_combiner
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
@@ -46,10 +45,10 @@ from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
-from spyops.geometry.wa.poly import polygonize
 from spyops.query.base import (
-    AbstractQueryGroup, AbstractSourceQuery, AbstractSourceUpdateQuery,
-    BaseQuerySelect)
+    AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
+    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
+    QueryFeatureIntermediate)
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
@@ -62,7 +61,6 @@ from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, LINE_TYPE, NAMES, POINT_TYPE,
     SORT_FIELDS, XY_TOL)
 from spyops.shared.keywords import HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
-from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import SQL_ALL_ID
 
 
@@ -1469,177 +1467,18 @@ class QueryPolygonToLine(BaseQuerySelect):
 # End QueryPolygonToLine class
 
 
-class QueryFeatureToPrepare(BaseQuerySelect):
-    """
-    Query for each input to Feature to Polygon / Feature to Line
-    """
-    def __init__(self, source: FeatureClass, target: Optional[FeatureClass],
-                 xy_tolerance: XY_TOL = None) -> None:
-        """
-        Initialize the QueryFeatureToPrepare class
-        """
-        # noinspection PyTypeChecker
-        super().__init__(source, target=target, xy_tolerance=xy_tolerance)
-    # End init built-in
-
-    @cache
-    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]:
-        """
-        Limit fields to just geometry
-        """
-        insert_names = get_geometry_column_name(element)
-        select_names = get_geometry_column_name(element, include_geom_type=True)
-        return 1, insert_names, select_names
-    # End _field_names_and_count method
-
-    def _get_unique_fields(self) -> FIELDS:
-        """
-        Limit fields to just geometry, sans attributes
-        """
-        return []
-    # End _get_unique_fields method
-# End QueryFeatureToPrepare class
-
-
-class BaseQueryFeatureTo(AbstractSourceQuery):
-    """
-    Base Query Feature To
-    """
-    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
-                 xy_tolerance: XY_TOL) -> None:
-        """
-        Initialize the BaseQueryFeatureTo class
-        """
-        src, *_ = source
-        super().__init__(src, target=target, xy_tolerance=xy_tolerance)
-        self._source: FEATURE_CLASSES = source
-    # End init built-in
-
-    @cached_property
-    def spatial_reference_system(self) -> Optional['SpatialReferenceSystem']:
-        """
-        Spatial Reference System, the output coordinate system of the query
-        which is determined by the output coordinate system of the analysis
-        environment and if not set, the spatial reference system of the first
-        feature class in the source.
-        """
-        crs = ANALYSIS_SETTINGS.output_coordinate_system
-        if isinstance(crs, CRS):
-            return srs_from_crs(crs)
-        source, *_ = self._source
-        return source.spatial_reference_system
-    # End spatial_reference_system property
-
-    @cached_property
-    def zm_config(self) -> 'ZMConfig':
-        """
-        ZM Configuration
-        """
-        return zm_config(*self._source)
-    # End zm_config property
-
-    @property
-    def insert(self) -> str:
-        """
-        Insert SQL
-        """
-        elm = self.target
-        fields = self._get_unique_fields()
-        insert_field_names = make_field_names(fields)
-        insert_field_names = self._concatenate(
-            get_geometry_column_name(elm), insert_field_names)
-        return self._make_insert(
-            elm.escaped_name, field_names=insert_field_names,
-            field_count=len(fields) + 1)
-    # End insert property
-
-    @property
-    def _has_zm(self) -> HasZM:
-        """
-        Has ZM
-        """
-        has_z = any(source.has_z for source in self._source)
-        has_m = any(source.has_m for source in self._source)
-        return HasZM(has_z=has_z, has_m=has_m)
-    # End _has_zm property
-
-    def _get_lines(self, scratch: MemoryGeoPackage) \
-            -> tuple[list, list[QueryFeatureToPrepare], GRID_SIZE]:
-        """
-        Get lines from the input feature classes, the lines will be
-        in the Output Coordinate System and planarized.
-        """
-        sizes = []
-        lines = []
-        queries = []
-        xy_tol = self._xy_tolerance
-        srs = self.spatial_reference_system
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs):
-            for i, source in enumerate(self._source):
-                query = QueryFeatureToPrepare(
-                    source, target=FeatureClass(scratch, name=f'fc_{i}'),
-                    xy_tolerance=xy_tol)
-                queries.append(query)
-                fc = select_transform_insert(query)
-                if not len(fc):
-                    continue
-                self._fetch_lines_sizes(query, lines=lines, sizes=sizes)
-        if not lines:
-            return lines, queries, None
-        grid_size = max([s for s in sizes if s is not None], default=None)
-        lines = get_geoms_iter(union_all(lines, grid_size=grid_size))
-        # noinspection PyTypeChecker
-        return lines, queries, grid_size
-    # End _get_lines method
-
-    @staticmethod
-    def _fetch_lines_sizes(query: QueryFeatureToPrepare,
-                           lines: list[LineString],
-                           sizes: list[GRID_SIZE]) -> None:
-        """
-        Fetch Lines from memory feature classes and grid sizes from query
-        """
-        fc = query.target
-        cursor = fc.select(include_primary=True)
-        is_polygon = ShapeType.polygon in fc.shape_type
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            _, geoms = to_shapely(features, transformer=None)
-            if is_polygon:
-                geoms = boundary(geoms)
-            lines.extend(geoms)
-            sizes.append(query.grid_size)
-    # End _fetch_lines_sizes method
-
-    def _get_null_record(self) -> tuple:
-        """
-        Get Null Record
-        """
-        return tuple([None] * len(self._get_unique_fields()))
-    # End _get_null_record method
-# End BaseQueryFeatureTo class
-
-
-class QueryFeatureToPolygon(BaseQueryFeatureTo):
+class QueryFeatureToPolygon(AbstractQueryFeatureClassesPolygon):
     """
     Query Feature to Polygon
     """
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
-                 label: Optional[FeatureClass], xy_tolerance: XY_TOL) -> None:
+                 label: FeatureClass | None, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryFeatureToPolygon class
         """
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
-        self._label: Optional[FeatureClass] = label
+        self._label: FeatureClass | None = label
     # End init built-in
-
-    def _get_target_shape_type(self) -> str:
-        """
-        Get Target Shape Type
-        """
-        return ShapeType.polygon
-    # End _get_target_shape_type method
 
     def _get_unique_fields(self) -> FIELDS:
         """
@@ -1651,34 +1490,21 @@ class QueryFeatureToPolygon(BaseQueryFeatureTo):
         return validate_fields(label, fields=label.fields)
     # End _get_unique_fields method
 
-    def build_features(self) -> list[tuple[Polygon, tuple]]:
-        """
-        Polygonized Features
-        """
-        scratch = MemoryGeoPackage.create()
-        lines, _, _ = self._get_lines(scratch)
-        if conn := scratch.connection:
-            conn.close()
-        if not len(lines):
-            return []
-        if not (polygons := self._build_polygons(lines)):
-            return []
-        return self._add_attributes(polygons)
-    # End build_features method
-
-    def _add_attributes(self, polygons: list[Polygon]) \
-            -> list[tuple[Polygon, tuple]]:
+    def _add_attributes(self, geometries: list[Polygon],
+                        queries: list[QueryFeatureIntermediate],
+                        grid_size: GRID_SIZE) -> list[tuple[Polygon, tuple]]:
         """
         Add Attributes, keeping all matches between label points and planarized
         """
         nulls = self._get_null_record()
-        points, attributes = self._get_points_attributes()
+        points, attributes = self._get_geoms_attributes(self._label)
         if not attributes:
-            return [(polygon, nulls) for polygon in polygons]
-        if not (grouper := self._index_overlay(points, polygons)):
-            return [(polygon, nulls) for polygon in polygons]
+            return [(polygon, nulls) for polygon in geometries]
+        tree = STRtree(geometries)
+        if not (grouper := self._index_overlay(tree, points, grid_size)):
+            return [(polygon, nulls) for polygon in geometries]
         results = []
-        for i, polygon in enumerate(polygons):
+        for i, polygon in enumerate(geometries):
             if i in grouper:
                 results.extend(
                     [(polygon, attributes[idx]) for idx in grouper[i]])
@@ -1687,20 +1513,21 @@ class QueryFeatureToPolygon(BaseQueryFeatureTo):
         return results
     # End _add_attributes method
 
-    def _get_points_attributes(self) -> tuple[list[ShapelyPoint], list[tuple]]:
+    def _get_geoms_attributes(self, feature_class: FeatureClass | None) \
+            -> tuple[list[ShapelyPoint], list[tuple]]:
         """
-        Get Points and Attributes
+        Get Geometries and Attributes
         """
         points = []
         attributes = []
-        if self._label is None or not self._get_unique_fields():
+        if feature_class is None or not self._get_unique_fields():
             return points, attributes
-        # noinspection PyTypeChecker
-        query = QueryCopyFeatures(self._label, target=None)
+        # noinspection bad-argument-type
+        query = QueryCopyFeatures(feature_class, target=None)
         transformer = query.source_transformer
         srs = self.spatial_reference_system
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, srs),
-              self._label.geopackage.connection as cin):
+              feature_class.geopackage.connection as cin):
             cursor = cin.execute(query.select)
             while features := cursor.fetchmany(FETCH_SIZE):
                 if not (features := filter_features(features)):
@@ -1713,47 +1540,18 @@ class QueryFeatureToPolygon(BaseQueryFeatureTo):
                 points.extend(geoms)
                 attributes.extend([feature[1:] for feature in features])
         return points, attributes
-    # End _get_points_attributes method
-
-    @staticmethod
-    def _index_overlay(points: list[ShapelyPoint], polygons: list[Polygon]) \
-            -> defaultdict[int, list[int]]:
-        """
-        Build cross-reference between label planarized polygons and label points
-        for use in assigning attributes to polygons
-        """
-        tree = STRtree(polygons)
-        intersects = tree.query(points, predicate='intersects')
-        grouper = defaultdict(list)
-        for pnt_idx, poly_idx in intersects.T.tolist():
-            grouper[poly_idx].append(pnt_idx)
-        return grouper
-    # End _index_overlay method
-
-    @staticmethod
-    def _build_polygons(lines: list[LineString]) -> list[Polygon]:
-        """
-        Build Polygons
-        """
-        collections = polygonize(lines)
-        if isinstance(collections, GeometryCollection):
-            collections = [collections]
-        planarized = []
-        for collection in collections:
-            planarized.extend(get_geoms_iter(collection))
-        return planarized
-    # End _build_polygons method
+    # End _get_geoms_attributes method
 # End QueryFeatureToPolygon class
 
 
-class QueryFeatureToLine(BaseQueryFeatureTo):
+class QueryFeatureToLine(AbstractQueryFeatureClasses):
     """
     Query Feature To Line
     """
     def __init__(self, source: FEATURE_CLASSES, target: FeatureClass,
                  xy_tolerance: XY_TOL) -> None:
         """
-        Initialize the QueryFeatureToPolygon class
+        Initialize the QueryFeatureToLine class
         """
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
     # End init built-in
@@ -1777,10 +1575,12 @@ class QueryFeatureToLine(BaseQueryFeatureTo):
         LineString Features
         """
         scratch = MemoryGeoPackage.create()
-        lines, *_ = self._get_lines(scratch)
+        lines, *_ = self._get_geoms(scratch)
         if conn := scratch.connection:
             conn.close()
-        combiner = self.geometry_config.combiner
+        _, has_m = self._has_zm
+        combiner = get_combiner(
+            ShapeType.linestring, has_m=has_m, directed=False)
         lines = get_geoms_iter(combiner(MultiLineString(lines)))
         # noinspection PyTypeChecker
         return [(line, ()) for line in lines]

@@ -4,10 +4,11 @@ Test for Overlay Query Classes
 """
 
 
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType
-from pyproj import CRS
-from pytest import mark, param
+from pytest import mark, param, approx
+from shapely import Point
+from shapely.strtree import STRtree
 
 from spyops.crs.constant import WGS84
 from spyops.environment import Extent
@@ -16,11 +17,15 @@ from spyops.environment.core import zm_config
 from spyops.environment.enumeration import (
     OutputMOption, OutputZOption, Setting)
 from spyops.query.analysis.overlay import (
-    QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
-    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
-    QueryUnionClassic, QueryUnionPairwise)
+    QueryCountOverlappingFeaturesLine, QueryCountOverlappingFeaturesPoint,
+    QueryCountOverlappingFeaturesPolygon, QueryErase, QueryIntersectClassic,
+    QueryIntersectPairwise, QuerySymmetricalDifferenceClassic,
+    QuerySymmetricalDifferencePairwise, QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
+from spyops.shared.field import (
+    FC_COUNT, FEAT_COUNT, ORIG_FID, ORIG_NAME, OVERLAP_FID)
+
 
 pytestmark = [mark.overlay, mark.query, mark.analysis]
 
@@ -847,6 +852,142 @@ class TestQueryUnionClassic:
         assert query.input_fid_operator.name == 'lmno'
     # End test_input_fid method
 # End TestQueryUnionClassic class
+
+
+class TestQueryCountOverlappingFeaturesPolygon:
+    """
+    Test Query Count Overlapping Features Polygon
+    """
+    def test_get_unique_fields(self):
+        """
+        Test get unique fields
+        """
+        query = QueryCountOverlappingFeaturesPolygon([None], None, 1, None, None)
+        assert query._get_unique_fields() == (FEAT_COUNT, FC_COUNT)
+    # End test_get_unique_fields method
+
+    def test_overlap_table_not_set(self):
+        """
+        Test overlap table, not set
+        """
+        query = QueryCountOverlappingFeaturesPolygon([None], None, 1, None, None)
+        assert query.overlap_table is None
+    # End test_overlap_table_not_set method
+
+    def test_overlap_table(self, mem_gpkg):
+        """
+        Test overlap table, not set
+        """
+        table = Table(name='test', geopackage=mem_gpkg)
+        query = QueryCountOverlappingFeaturesPolygon([None], None, 1, table, None)
+        assert query.overlap_table is not None
+        assert table
+        assert not len(table)
+        assert table.fields[1:] == [OVERLAP_FID, ORIG_FID, ORIG_NAME]
+    # End test_overlap_table method
+# End TestQueryCountOverlappingFeaturesPolygon class
+
+
+class TestQueryCountOverlappingFeaturesLine:
+    """
+    Test Query Count Overlapping Features Line
+    """
+    def test_get_unique_fields(self):
+        """
+        Test get unique fields
+        """
+        query = QueryCountOverlappingFeaturesLine([None], None, 1, None, None)
+        assert query._get_unique_fields() == (FEAT_COUNT, FC_COUNT)
+    # End test_get_unique_fields method
+
+    def test_overlap_table_not_set(self):
+        """
+        Test overlap table, not set
+        """
+        query = QueryCountOverlappingFeaturesLine([None], None, 1, None, None)
+        assert query.overlap_table is None
+    # End test_overlap_table_not_set method
+
+    def test_overlap_table(self, mem_gpkg):
+        """
+        Test overlap table
+        """
+        table = Table(name='test', geopackage=mem_gpkg)
+        query = QueryCountOverlappingFeaturesLine([None], None, 1, table, None)
+        assert query.overlap_table is not None
+        assert table
+        assert not len(table)
+        assert table.fields[1:] == [OVERLAP_FID, ORIG_FID, ORIG_NAME]
+    # End test_overlap_table method
+
+    @mark.parametrize('grid_size, expected', [
+        (0, 1.1337e-8),
+        (None, 1.1337e-8),
+        (1, 1),
+        (0.001, 0.001),
+    ])
+    def test_get_within_distance(self, ntdb_zm_small, grid_size, expected):
+        """
+        Test get within distance
+        """
+        fc = ntdb_zm_small['transmission_l']
+        query = QueryCountOverlappingFeaturesLine([fc], None, 1, None, None)
+        tree = STRtree([Point(-110, 45), Point(-112, 50)])
+        distance = query._get_within_distance(tree, grid_size)
+        assert approx(distance, abs=5e-12) == expected
+    # End test_get_within_distance method
+# End TestQueryCountOverlappingFeaturesLine class
+
+
+class TestQueryCountOverlappingFeaturesPoint:
+    """
+    Test Query Count Overlapping Features Point
+    """
+    def test_get_unique_fields(self):
+        """
+        Test get unique fields
+        """
+        query = QueryCountOverlappingFeaturesPoint([None], None, 1, None, None)
+        assert query._get_unique_fields() == (FEAT_COUNT, FC_COUNT)
+    # End test_get_unique_fields method
+
+    def test_overlap_table_not_set(self):
+        """
+        Test overlap table, not set
+        """
+        query = QueryCountOverlappingFeaturesPoint([None], None, 1, None, None)
+        assert query.overlap_table is None
+    # End test_overlap_table_not_set method
+
+    def test_overlap_table(self, mem_gpkg):
+        """
+        Test overlap table
+        """
+        table = Table(name='test', geopackage=mem_gpkg)
+        query = QueryCountOverlappingFeaturesPoint([None], None, 1, table, None)
+        assert query.overlap_table is not None
+        assert table
+        assert not len(table)
+        assert table.fields[1:] == [OVERLAP_FID, ORIG_FID, ORIG_NAME]
+    # End test_overlap_table method
+
+    @mark.parametrize('grid_size, expected', [
+        (0, 1.1337e-8),
+        (None, 1.1337e-8),
+        (1, 1),
+        (0.001, 0.001),
+    ])
+    def test_get_within_distance(self, ntdb_zm_small, grid_size, expected):
+        """
+        Test get within distance
+        """
+        fc = ntdb_zm_small['transmission_p']
+        query = QueryCountOverlappingFeaturesPoint([fc], None, 1, None, None)
+        tree = STRtree([Point(-110, 45), Point(-112, 50)])
+        distance = query._get_within_distance(tree, grid_size)
+        assert approx(distance, abs=5e-12) == expected
+    # End test_get_within_distance method
+# End TestQueryCountOverlappingFeaturesPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -8,7 +8,7 @@ from spyops.analysis.extract import (
     clip, extract_features, extract_rows,
     select, split, split_by_attributes, table_select)
 from spyops.analysis.overlay import (
-    erase, intersect, symmetrical_difference, union)
+    count_overlapping_features, erase, intersect, symmetrical_difference, union)
 from spyops.analysis.proximity import (
     buffer, create_thiessen_polygons, multiple_buffer)
 from spyops.analysis.statistics import frequency, statistics
@@ -33,6 +33,7 @@ from spyops.shared.stats import (
 
 __all__ = [
     'clip',
+    'count_overlapping_features',
     'extract_features',
     'extract_rows',
     'select',

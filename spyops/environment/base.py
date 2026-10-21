@@ -4,7 +4,7 @@ Base Classes for Environment
 """
 
 
-from typing import Self, TYPE_CHECKING
+from typing import NamedTuple, Self, TYPE_CHECKING
 
 from shapely import Polygon
 from shapely.creation import box
@@ -17,8 +17,17 @@ from spyops.shared.exception import BadExtentError
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, SpatialReferenceSystem
     from pyproj import CRS
+
+
+class FeatureClassProxy(NamedTuple):
+    """
+    Feature Class Proxy
+    """
+    extent: tuple[float, float, float, float]
+    spatial_reference_system: 'SpatialReferenceSystem'
+# End FeatureClassProxy class
 
 
 class Extent:

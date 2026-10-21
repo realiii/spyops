@@ -16,6 +16,8 @@ from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.util import get_coords_and_slices, get_geoms, nada
 from spyops.shared.enumeration import OutputTypeOption
+from spyops.shared.field import (
+    GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.keywords import GEOMS_ATTR
 
 
@@ -61,16 +63,15 @@ def _use_boundary_factory(source_shape_type: str, operator_shape_type: str,
     operation.  Based on output type option and shape types of source and
     operator feature classes.
     """
-    points = ShapeType.point, ShapeType.multi_point
-    polygons = ShapeType.polygon, ShapeType.multi_polygon
-    lines = ShapeType.linestring, ShapeType.multi_linestring
     if (output_type_option == OutputTypeOption.SAME or
-            source_shape_type in points):
+            source_shape_type in GEOM_TYPE_POINTS):
         return False, False
-    if source_shape_type in polygons and operator_shape_type in polygons:
+    if (source_shape_type in GEOM_TYPE_POLYGONS and
+            operator_shape_type in GEOM_TYPE_POLYGONS):
         return True, True
     if output_type_option == OutputTypeOption.POINT:
-        if source_shape_type in lines and operator_shape_type in polygons:
+        if (source_shape_type in GEOM_TYPE_LINES and
+                operator_shape_type in GEOM_TYPE_POLYGONS):
             return False, True
     return False, False
 # End get_geometry_converters function

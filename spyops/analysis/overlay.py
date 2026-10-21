@@ -4,7 +4,9 @@ Overlay
 """
 
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from fudgeo.context import ExecuteMany
 
 from spyops.analysis.util import (
     _difference, _get_converted_operator,
@@ -12,29 +14,32 @@ from spyops.analysis.util import (
 from spyops.geometry.convert import get_geometry_converters
 from spyops.geometry.validate import get_validated_geometries
 from spyops.query.analysis.overlay import (
-    QueryErase, QueryIntersectClassic, QueryIntersectPairwise,
-    QuerySymmetricalDifferenceClassic, QuerySymmetricalDifferencePairwise,
-    QueryUnionClassic, QueryUnionPairwise)
+    QueryCountOverlappingFeaturesLine, QueryCountOverlappingFeaturesPoint,
+    QueryCountOverlappingFeaturesPolygon, QueryErase, QueryIntersectClassic,
+    QueryIntersectPairwise, QuerySymmetricalDifferenceClassic,
+    QuerySymmetricalDifferencePairwise, QueryUnionClassic, QueryUnionPairwise)
 from spyops.shared.keywords import (
-    ALGORITHM_OPTION, ATTRIBUTE_OPTION, OPERATOR, OUTPUT_TYPE_OPTION, SOURCE,
-    TARGET)
+    ALGORITHM_OPTION, ATTRIBUTE_OPTION, MIN_COUNT, OPERATOR, OUTPUT_TYPE_OPTION,
+    OVERLAP, SOURCE, TARGET)
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, OutputTypeOption)
-from spyops.shared.field import GEOM_TYPE_POLYGONS
-from spyops.shared.hint import XY_TOL
+from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
+from spyops.shared.hint import FEATURE_CLASSES, XY_TOL
+from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_str_enumeration, validate_geometry_dimension,
-    validate_operator_feature_class, validate_output_type,
-    validate_overwrite_input, validate_result, validate_supported_crs,
-    validate_source_feature_class, validate_target_feature_class,
-    validate_xy_tolerance)
+    validate_feature_classes, validate_range, validate_str_enumeration,
+    validate_geometry_dimension, validate_operator_feature_class,
+    validate_output_type, validate_overwrite_input, validate_result,
+    validate_supported_crs, validate_source_feature_class, validate_table,
+    validate_target_feature_class, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, Table
 
 
-__all__ = ['erase', 'intersect', 'symmetrical_difference', 'union']
+__all__ = ['erase', 'intersect', 'symmetrical_difference', 'union',
+           'count_overlapping_features']
 
 
 @validate_result()
@@ -198,6 +203,46 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
     return _intersect(query=query, op_features=op_features, op_geoms=op_geoms,
                       src_convert=src_convert)
 # End union function
+
+
+@validate_result()
+@validate_feature_classes(SOURCE, same_type=True)
+@validate_target_feature_class()
+@validate_range(MIN_COUNT, default=1, min_value=1, max_value=100_000, type_=int)
+@validate_table(OVERLAP, exists=False, is_output=True, is_optional=True)
+@validate_xy_tolerance()
+@validate_overwrite_input(TARGET, SOURCE)
+@validate_overwrite_input(OVERLAP, SOURCE)
+def count_overlapping_features(source: FEATURE_CLASSES, target: 'FeatureClass',
+                               *, min_count: int = 1,
+                               overlap: Optional['Table'] = None,
+                               xy_tolerance: XY_TOL = None) \
+        -> tuple['FeatureClass', Optional['Table']]:
+    """
+    Count Overlapping Features
+
+    Creates a planarized representation of the source feature class(es) with a
+    count of overlapping features and count of overlapping features class(es).
+    Optionally create an overlap table of cross-references between the
+    target feature class FID and the overlapping source features FID.
+    """
+    src, *_ = source
+    if src.shape_type in GEOM_TYPE_POLYGONS:
+        cls = QueryCountOverlappingFeaturesPolygon
+    elif src.shape_type in GEOM_TYPE_LINES:
+        cls = QueryCountOverlappingFeaturesLine
+    else:
+        cls = QueryCountOverlappingFeaturesPoint
+    query = cls(source, target=target, min_count=min_count,
+                overlap=overlap, xy_tolerance=xy_tolerance)
+    with (query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        records = []
+        results = query.build_features()
+        extend_records(results, records=records, config=query.geometry_config)
+        executor(sql=query.insert, data=records)
+    return query.target, query.overlap_table
+# End count_overlapping_features function
 
 
 if __name__ == '__main__':  # pragma: no cover

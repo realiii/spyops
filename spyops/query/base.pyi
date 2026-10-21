@@ -3,15 +3,17 @@
 Type stubs for query.base module
 """
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from collections.abc import Generator
 from functools import cached_property
 from typing import Callable, Optional
 
-from fudgeo import FeatureClass, SpatialReferenceSystem
+from fudgeo import FeatureClass, MemoryGeoPackage, SpatialReferenceSystem
 from pyproj import CRS, Transformer
-from shapely import Polygon
-from shapely.geometry.base import BaseMultipartGeometry
+from shapely import LineString, Polygon
+from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+from shapely.strtree import STRtree
 
 from spyops.environment import Extent
 from spyops.environment.core import HasZM, ZMConfig
@@ -21,7 +23,8 @@ from spyops.query.mixin import (
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.hint import (
-    ELEMENT, EXTENT, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS, XY_TOL)
+    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS,
+    XY_TOL)
 
 
 class AbstractElementQuery(metaclass=ABCMeta):
@@ -234,3 +237,45 @@ class AbstractQueryDissolve(AbstractQueryGroup):
                  fields: FIELDS, as_multi_part: bool,
                  xy_tolerance: XY_TOL) -> None: ...
     def dissolved_geometries(self) -> Generator[dict[int, BaseMultipartGeometry], None, None]: ...
+
+
+class QueryFeatureIntermediate(BaseQuerySelect):
+    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
+    def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+
+
+class AbstractQueryFeatureClasses(AbstractSourceQuery):
+
+    _source: FEATURE_CLASSES
+
+    def __init__(self, source: FEATURE_CLASSES, target: FeatureClass, xy_tolerance: XY_TOL) -> None: ...
+    @cached_property
+    def spatial_reference_system(self) -> Optional[SpatialReferenceSystem]: ...
+    @cached_property
+    def zm_config(self) -> ZMConfig: ...
+    @property
+    def insert(self) -> str: ...
+    @property
+    def _has_zm(self) -> HasZM: ...
+    def _get_geoms(self, scratch: MemoryGeoPackage) -> tuple[list, list[QueryFeatureIntermediate], GRID_SIZE]: ...
+    @staticmethod
+    def _fetch_geoms(query: QueryFeatureIntermediate, geometries: list[BaseGeometry]) -> None: ...
+    def _get_null_record(self) -> tuple: ...
+
+
+class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
+    def _get_target_shape_type(self) -> str: ...
+    @staticmethod
+    def _close_scratch(scratch: MemoryGeoPackage) -> None: ...
+    def build_features(self) -> list[tuple[Polygon, tuple]]: ...
+    @abstractmethod
+    def _add_attributes(self, geometries: list[Polygon], queries: list[QueryFeatureIntermediate], grid_size: GRID_SIZE) -> list[tuple[Polygon, tuple]]: ...
+    @staticmethod
+    def _index_overlay(tree: STRtree, geoms: list, grid_size: GRID_SIZE) -> defaultdict[int, list[int]]: ...
+    @staticmethod
+    def _build_features(lines: list[LineString]) -> list[Polygon]: ...
+    @abstractmethod
+    def _get_unique_fields(self) -> FIELDS: ...
+    @abstractmethod
+    def _get_geoms_attributes(self, feature_class: FeatureClass | None) -> tuple[list, list[tuple]]: ...

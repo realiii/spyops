@@ -5,7 +5,7 @@ Extent functions
 
 
 from math import nan
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 from bottleneck import nanmax, nanmin
 from fudgeo.util import get_extent
@@ -21,6 +21,7 @@ from spyops.shared.hint import EXTENT
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
+    from spyops.environment.base import FeatureClassProxy
 
 
 def set_extent(feature_class: 'FeatureClass') -> None:
@@ -35,7 +36,7 @@ def set_extent(feature_class: 'FeatureClass') -> None:
 # End set_extent function
 
 
-def extent_from_feature_class(feature_class: 'FeatureClass') -> EXTENT:
+def extent_from_feature_class(feature_class: Union['FeatureClass', 'FeatureClassProxy']) -> EXTENT:
     """
     Returns the extent from a feature class, use the extent if it has
     been set, if not check the spatial index extent, failing over to
