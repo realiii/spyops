@@ -910,7 +910,7 @@ class TestQueryCountOverlappingFeaturesLine:
 
     def test_overlap_table(self, mem_gpkg):
         """
-        Test overlap table, not set
+        Test overlap table
         """
         table = Table(name='test', geopackage=mem_gpkg)
         query = QueryCountOverlappingFeaturesLine([None], None, 1, table, None)
