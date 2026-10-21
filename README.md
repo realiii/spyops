@@ -59,6 +59,7 @@ MIT
 - added `densify` (Editing)
 - added `flip` (Editing)
 - added `erase_point` (Editing)
+- added `count_overlapping_features` (Analysis - Overlay)
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`
