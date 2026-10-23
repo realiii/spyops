@@ -48,13 +48,13 @@ class IdenticalMixin:
         """
         fields = self._get_unique_fields()
         insert_names = make_field_names(fields)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self._make_insert(
             self.target.escaped_name, field_names=insert_names,
             field_count=len(fields))
     # End insert property
 
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     @property
     def repeats(self) -> str:
         """
@@ -91,7 +91,7 @@ class IdenticalMixin:
         """
         Target Empty
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self._target.geopackage.create_table(
             self._target.name, fields=self._get_unique_fields(),
             description='Results from Find Identical',
@@ -109,7 +109,7 @@ class IntermediateTableContextDeleteMixin(IntermediateTableContextMixin):
         """
         Delete
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         source = self.source
         return f"""
             DELETE FROM {source.escaped_name} 
@@ -238,7 +238,7 @@ class BaseQueryIdenticalFeatureClass(IdenticalMixin,
             return EMPTY
         elm = self.source
         geom_type = get_geometry_column_name(elm, include_geom_type=True)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         select_names = self._concatenate(geom_type, elm.primary_key_field.name)
         where_clause = self._build_spatial_rank(elm)
         return self._make_select(
@@ -283,7 +283,7 @@ class QuerySortTable(BaseQuerySelectOrderBy):
         """
         Initialize the QuerySortTable class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source=source, target=target, sort_fields=sort_fields)
     # End init built-in
 
@@ -299,7 +299,7 @@ class QuerySortTable(BaseQuerySelectOrderBy):
         Get Select Fields
         """
         _, *fields = self._get_unique_fields()
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return [self.source.primary_key_field, *fields]
     # End _get_select_fields method
 
@@ -312,6 +312,7 @@ class QuerySortTable(BaseQuerySelectOrderBy):
         return self._add_order_by(sql)
     # End select property
 
+    # noinspection method-overriding
     @cached_property
     def target_empty(self) -> 'Table':
         """
@@ -334,7 +335,7 @@ class QuerySortFeatureClass(QuerySortTable):
         """
         Initialize the QuerySortFeatureClass class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source=source, target=target, sort_fields=sort_fields)
         self._spatial_sort_option: SpatialSortOption = spatial_sort_option
     # End init built-in
@@ -349,7 +350,7 @@ class QuerySortFeatureClass(QuerySortTable):
         sorts = self._concatenate(spatial_sorts, sorts)
         name = feature_class.escaped_name
         index_name = feature_class.spatial_index_name
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         key_name = feature_class.primary_key_field.escaped_name
         return f"""
             SELECT A.* 
@@ -411,6 +412,7 @@ class QuerySortFeatureClass(QuerySortTable):
         return sql
     # End select property
 
+    # noinspection method-overriding
     @cached_property
     def target_empty(self) -> 'FeatureClass':
         """

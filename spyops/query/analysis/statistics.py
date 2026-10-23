@@ -69,7 +69,7 @@ class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
         Select
         """
         elm = self.source
-        # noinspection PyArgumentList
+        # noinspection argument-list
         *_, select_field_names = self._field_names_and_count(elm)
         where_clause = self._get_where_clause()
         if not self._group_names:
@@ -88,7 +88,7 @@ class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
         """
         Insert
         """
-        # noinspection PyArgumentList
+        # noinspection argument-list
         field_count, insert_names, _ = self._field_names_and_count(self.target)
         return self._make_insert(
             self.target.escaped_name, field_names=insert_names,

@@ -71,7 +71,7 @@ def _build_planar_lines(coordinates: 'ndarray', *, srs_id: int,
     """
     Build Planar Lines
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return [LineString(_interpolate_coordinates(point_count, values),
                        srs_id=srs_id) for values in coordinates]
 # End _build_planar_lines function
@@ -91,7 +91,7 @@ def _build_geodesic_lines(coordinates: 'ndarray', *, srs_id: int, crs: 'CRS',
         coords = array(geod.npts(
             *values, npts=npts, initial_idx=0, terminus_idx=0), dtype=float)
         coords = _prepare_intermediates(coords, crs=crs)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         lines.append(LineString(coords, srs_id=srs_id))
     return lines
 # End _build_geodesic_lines function

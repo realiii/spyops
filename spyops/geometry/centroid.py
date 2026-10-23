@@ -81,9 +81,9 @@ def centroid_multi_polygons(geoms: 'ndarray', has_z: bool, has_m: bool,
     centroids = []
     for geom in geoms:
         parts = get_geoms(geom)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         weights = area(parts)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         centers = array(_area_weighted_centroids(
             parts, has_z=has_z, has_m=has_m, use_xy_length=use_xy_length),
             dtype=float).T

@@ -103,7 +103,7 @@ def to_shapely(features: list[tuple], transformer: Callable | None,
     coordinate reference system as the geometries e.g., the coordinate system
     prior to transformation.
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     geometries: 'ndarray' = from_wkb(
         [g.wkb for g, *_ in features], on_invalid=on_invalid)
     if extent:

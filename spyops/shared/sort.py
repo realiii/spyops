@@ -44,7 +44,7 @@ class AbstractSortField(metaclass=ABCMeta):
         """
         Representation Override
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.field.escaped_name
         if self.sort_order == SortOrder.DESCENDING:
             return f'{name} DESC'

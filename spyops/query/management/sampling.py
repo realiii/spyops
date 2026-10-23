@@ -119,6 +119,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         Insert Query
         """
         elm = self.target
+        # noinspection argument-list
         field_count, insert_field_names, _ = self._field_names_and_count(elm)
         return self._make_insert(
             elm.escaped_name, field_names=insert_field_names,
@@ -172,7 +173,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         distance = self._config.distance
         if self._is_distance_from_field:
             category = UnitParseWarning
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             msg = (f'Unable to parse {counter} distance(s) '
                    f'from {distance.name}')
         else:
@@ -363,6 +364,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
         """
         for (_, fid, distance), geom in zip(features, geometries):
             lines = get_geoms(getter(geom))
+            # noinspection bad-argument-type
             if not (result := self._accumulate_lengths(lines, crs=crs)):
                 continue
             lines, lengths = result

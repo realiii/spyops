@@ -63,7 +63,7 @@ class ClassicMixin:
     """
     Mixin for Shared Classic Capabilities
     """
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields and Rename Primary Key Columns if included
@@ -82,7 +82,7 @@ class ClassicMixin:
             return [*src_fields, *op_fields]
     # End _get_unique_fields method
 
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     @cache
     def _field_names_and_count(self, element: ELEMENT) -> tuple[int, str, str]:
         """
@@ -95,7 +95,7 @@ class ClassicMixin:
         return 0, EMPTY, self._concatenate(geom_type, select_names)
     # End _field_names_and_count method
 
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     def _get_fields(self, element: ELEMENT) -> FIELDS:
         """
         Get Fields from Element based on Attribute Option
@@ -109,11 +109,11 @@ class ClassicMixin:
                 fields = [self.output_fid_operator]
         if self._attr_option in (AttributeOption.ALL, AttributeOption.ONLY_FID):
             fields = [element.primary_key_field, *fields]
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return fields
     # End _get_fields method
 
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     @property
     def input_fid_source(self) -> 'Field':
         """
@@ -122,7 +122,7 @@ class ClassicMixin:
         return self._input_fid_source
     # End input_fid_source property
 
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     @property
     def input_fid_operator(self) -> 'Field':
         """

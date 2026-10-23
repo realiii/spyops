@@ -68,13 +68,13 @@ def _clip(*, source: FeatureClass, operator: FeatureClass,
             if not (features := filter_features(features)):
                 continue
             features, geometries = to_shapely(features, transformer=transformer)
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             intersects = geometry.intersects(geometries)
             if not intersects.any():
                 continue
             keepers = [f for f, has_intersection in zip(features, intersects)
                        if has_intersection]
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             geoms = geometry.intersection(
                 geometries[intersects], grid_size=grid_size)
             results = [(g, attrs) for g, (_, *attrs) in zip(geoms, keepers)]
@@ -275,7 +275,7 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
                 op_attr = op_features[op_idx][1:]
                 op_geom = op_geoms[op_idx]
                 src_attrs = [features[idx][1:] for idx in indexes]
-                # noinspection PyUnresolvedReferences
+                # noinspection unresolved-references
                 intersections = op_geom.intersection(
                     geometries[indexes], grid_size=grid_size)
                 results.extend([

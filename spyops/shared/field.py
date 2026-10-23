@@ -219,12 +219,12 @@ def validate_fields(element: ELEMENT, fields: FIELDS | FIELD_NAMES,
     visited = set()
     field_lookup = {f.name.casefold(): f for f in element.fields}
     if not isinstance(fields, (list, tuple)):
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         fields = fields,
     for f in fields:
         if not isinstance(f, (Field, str)):
             continue
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = getattr(f, 'name', f).casefold()
         if name in visited:
             continue
@@ -392,7 +392,7 @@ def find_field_data_type(field_names: NAMES, data: dict[str, list],
         return ()
     if not data:
         return tuple(FieldType.text for _ in field_names)
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return tuple(_guess_data_type(data.get(name), str_source=str_source)
                  for name in field_names)
 # End find_field_data_type function

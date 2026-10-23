@@ -119,7 +119,7 @@ class ValidateField(AbstractValidateType):
         obj = self._make_iterable(obj)
         if len(fields) != len(obj):
             found = {f.name.casefold() for f in fields}
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             names = [getattr(i, NAME_ATTR, i) for i in obj
                      if getattr(i, NAME_ATTR, i).casefold() not in found]
             raise ValueError(f'{names} not found in {element.name}')
@@ -217,7 +217,7 @@ class ValidateDistance(ValidateField):
         :param name: Name of the argument to validate
         :param element_name: Argument Name of the element to validate against
         """
-        # noinspection PyArgumentEqualDefault
+        # noinspection argument-equal-default
         super().__init__(
             name=name, data_types=TEXT_AND_NUMBERS, element_name=element_name,
             exists=True, single=True, exclude_geometry=True,
@@ -341,7 +341,7 @@ class ValidateStatisticField(ValidateField):
         :param element_name: Argument Name of the element to validate against
         :param is_optional: Field argument is not required
         """
-        # noinspection PyArgumentEqualDefault
+        # noinspection argument-equal-default
         super().__init__(name=name, element_name=element_name, exists=True,
                          single=False, exclude_geometry=True,
                          exclude_primary=False, is_optional=is_optional)
@@ -382,13 +382,13 @@ class ValidateStatisticField(ValidateField):
             field = o.field
             if not isinstance(field, (Field, str)):
                 continue
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             fields[getattr(field, NAME_ATTR, field).casefold()] = field
         fields = super()._find_field(list(fields.values()), element=element)
         fields = {field.name.casefold(): field for field in fields}
         for o in obj:
             field = o.field
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             o.field = fields.get(getattr(field, NAME_ATTR, field).casefold())
         return [o for o in obj if o.field]
     # End _find_field method

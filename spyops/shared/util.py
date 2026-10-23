@@ -47,7 +47,7 @@ def element_names(geopackage: GPKG) -> set[str]:
 # End element_names function
 
 
-def make_valid_table_name(name: str, prefix: str) -> str:
+def make_valid_table_name(name: str | None, prefix: str) -> str:
     """
     Make Valid Table Name
     """
@@ -114,7 +114,7 @@ def safe_int(value: Any, strict: bool = False) -> int | None:
         if strict:
             return int(value)
         else:
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             return int(safe_float(value))
     except (AttributeError, ValueError, TypeError):
         return None

@@ -67,6 +67,7 @@ def planar_buffer(geoms: 'ndarray', distances: 'ndarray', *,
     factor, single_sided = _get_side_settings(side_option)
     kwargs = dict(quad_segs=resolution, single_sided=single_sided,
                   cap_style=str(end_option).casefold())
+    # noinspection bad-argument-type
     polygons = buffer(geoms, distance=distances * factor, **kwargs)
     polygons = _outside_only(
         geoms, polygons=polygons, distances=distances,
@@ -104,9 +105,11 @@ def geodesic_buffer(geoms: 'ndarray', distances: 'ndarray', *,
         transformers = _equidistant_transformers(
             crs, equidistant_crs=prj, shape_type=shape_type)
         if None in transformers:  # pragma: no cover
+            # noinspection bad-argument-type
             polygons[indexes] = buffer(gs, distance=dists, **kwargs)
             continue
         to_eqd, from_eqd = transformers
+        # noinspection bad-argument-type
         polygons[indexes] = from_eqd(_to_multi(buffer(
             to_eqd(gs), distance=dists, **kwargs)))
     polygons = _outside_only(
@@ -149,7 +152,7 @@ def _dissolve_polygons(polygons: 'ndarray', xy_tolerance: XY_TOL) -> 'ndarray':
     """
     # NOTE this does not use planarize function because we rely on the union
     #  being applied elementwise and not across all geometries in the array
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return _to_multi(union_all(normalize(polygons).reshape(-1, 1),
                                grid_size=xy_tolerance, axis=1))
 # End _dissolve_polygons function
@@ -191,7 +194,7 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
     from_equidistant = make_transformer_function(
         shape_type=ShapeType.multi_polygon, has_z=False, has_m=False,
         transformer=from_equidistant_transformer)
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return to_equidistant, from_equidistant
 # End _equidistant_transformers function
 

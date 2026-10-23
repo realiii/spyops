@@ -89,7 +89,7 @@ def copy_rows(source: 'Table', target: 'Table', *,
     Copy rows from a table using a where clause (optional) and write results
     to a target table.
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return copy_element(source=source, target=target, where_clause=where_clause)
 # End copy_rows function
 

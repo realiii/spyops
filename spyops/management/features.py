@@ -439,7 +439,7 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
     """
     records = []
     fields = x_field, y_field, z_field, m_field
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     query = QueryXYTablePoint(source, target=target, fields=fields,
                               coordinate_system=coordinate_system)
     cls = query.point_class
@@ -497,7 +497,7 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
     """
     records = []
     fields: tuple[Field, Field, Field, Field]
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     fields = start_x_field, start_y_field, end_x_field, end_y_field
     query = QueryXYTableLine(source, target=target, fields=fields,
                              coordinate_system=coordinate_system)

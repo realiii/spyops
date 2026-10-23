@@ -69,7 +69,7 @@ def build_coordinates(result: Union['BaseGeometry', 'BaseMultipartGeometry'],
     else:
         coords = []
         getter = get_rings
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         for part in get_geoms(result):
             coords.append(_build_linear(
                 part, getter=getter, has_z=has_z, slicer=slicer, lookup=lookup))

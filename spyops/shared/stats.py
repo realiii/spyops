@@ -64,7 +64,7 @@ def _first_quartile(values: list) -> float | None:
     """
     First Quartile
     """
-    # noinspection PyArgumentEqualDefault
+    # noinspection argument-equal-default
     return _quantiles(values, n=4)[0]
 # End _first_quartile function
 
@@ -73,7 +73,7 @@ def _third_quartile(values: list) -> float | None:
     """
     Third Quartile
     """
-    # noinspection PyArgumentEqualDefault
+    # noinspection argument-equal-default
     return _quantiles(values, n=4)[-1]
 # End _third_quartile function
 
@@ -82,7 +82,7 @@ def _interquartile_range(values: list) -> float | None:
     """
     Interquartile Range
     """
-    # noinspection PyArgumentEqualDefault
+    # noinspection argument-equal-default
     a, _, c = _quantiles(values, n=4)
     return c - a
 # End _interquartile_range function
@@ -92,7 +92,7 @@ def _count_outlier(values: list) -> int | None:
     """
     Outlier Count
     """
-    # noinspection PyArgumentEqualDefault
+    # noinspection argument-equal-default
     a, _, c = _quantiles(values, n=4)
     if not (rng := 1.5 * (c - a)):
         return None
@@ -219,7 +219,7 @@ def count_outlier(values: list) -> int | None:
     Calculate Outlier Count, ignoring Null values and non-finite values.
     If a non-number is encountered, the result is None.
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return _calculate_stat(_count_outlier, values)
 # End count_outlier function
 
@@ -266,11 +266,11 @@ def _calculate_stat(func: Callable, values: list | float | None) -> float | None
     """
     Calculate Statistic, ignoring Null values and non-finite values.
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     if not (values := _filter_none(values)):
         return None
     try:
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         if not (values := [v for v in values if isfinite(v)]):
             return None
     except TypeError:
@@ -282,7 +282,7 @@ def _calculate_stat(func: Callable, values: list | float | None) -> float | None
 # End _calculate_stat function
 
 
-def _filter_none(values: list) -> list:
+def _filter_none(values: list | None) -> list:
     """
     Filter None's out of a list
     """
@@ -624,7 +624,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Output Field
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return Field(name=self.output_name, data_type=self.data_type,
                      size=self.field.size)
     # End output_field property
@@ -649,7 +649,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Get Data Type
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return simplify_type(self.field)
     # End _get_data_type method
 
@@ -682,7 +682,7 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         Output Name
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f'{self.prefix}{UNDERSCORE}{self.field.name}'
     # End output_name property
 
@@ -705,7 +705,7 @@ class _BaseStatisticField(AbstractStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f'{self.prefix}({self.field.escaped_name})'
     # End aggregate property
 # End _BaseStatisticField class
@@ -722,7 +722,7 @@ class _NumericStatisticField(_BaseStatisticField):
         super().validate()
         if (data_type := self._get_data_type()) in NUMBERS:
             return
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         raise ValueError(
             f'Expected {self.field.name} field to be numeric, got {data_type}')
     # End validate method
@@ -749,7 +749,7 @@ class _NumericDateStatisticField(_BaseStatisticField):
         data_type = self._get_data_type()
         if data_type in NUMBERS or self._is_date:
             return
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         raise ValueError(
             f'Expected {self.field.name} field to be numeric or date, '
             f'got {data_type}')
@@ -767,7 +767,7 @@ class _FunctionStatisticField(AbstractStatisticField):
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f'{name}({self.field.escaped_name})'
     # End aggregate property
 # End _FunctionStatisticField class
@@ -782,12 +782,12 @@ class _FunctionStatisticNumericDateField(_NumericDateStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         escaped_name = self.field.escaped_name
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
         if not self._is_date:
             return f'{name}({escaped_name})'
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f"{name}_date(unixepoch({escaped_name}, 'subsecond'))"
     # End aggregate property
 # End _FunctionStatisticNumericDateField class
@@ -803,7 +803,7 @@ class _FunctionNumericStatisticField(_NumericStatisticField):
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f'{name}({self.field.escaped_name})'
     # End aggregate property
 # End _FunctionNumericStatisticField class
@@ -835,7 +835,7 @@ class Average(_NumericDateStatisticField):
         """
         if not self._is_date:
             return super().aggregate
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return (f"datetime({self.prefix}(unixepoch({self.field.escaped_name}, "
                 f"'subsecond')), 'unixepoch')")
     # End aggregate property
@@ -860,7 +860,7 @@ class Median(_FunctionStatisticNumericDateField):
         """
         if not self._is_date:
             return super().aggregate
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         escaped_name = self.field.escaped_name
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
         agg = f"{name}(unixepoch({escaped_name}, 'subsecond'))"
@@ -927,7 +927,7 @@ class Range(_NumericDateStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.field.escaped_name
         if not self._is_date:
             return f'(MAX({name}) - MIN({name}))'
@@ -1029,7 +1029,7 @@ class CountNull(_BaseStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.field.escaped_name
         return f'SUM(CASE WHEN {name} IS NULL THEN 1 ELSE 0 END)'
     # End aggregate property
@@ -1052,7 +1052,7 @@ class CountNonNull(_BaseStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.field.escaped_name
         return f'SUM(CASE WHEN {name} IS NOT NULL THEN 1 ELSE 0 END)'
     # End aggregate property
@@ -1125,7 +1125,7 @@ class Unique(AbstractStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f'COUNT(DISTINCT {self.field.escaped_name})'
     # End aggregate property
 
@@ -1312,7 +1312,7 @@ class Concatenate(AbstractStatisticField):
         """
         Function Stub
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f"group_concat({self.field.escaped_name}, '{self._delimiter}')"
     # End aggregate property
 

@@ -117,13 +117,13 @@ class ClassesValidationMixin:
     """
     Classes Validation Mixin
     """
-    # noinspection PyMethodMayBeStatic
+    # noinspection method-may-be-static
     def _validate(self, value: int) -> None:
         """
         Validate
         """
         if not isinstance(value, Integral):
-            # noinspection PyStringConversionWithoutDunderMethod
+            # noinspection string-conversion-without-dunder-method
             raise TypeError(
                 f'classes must be an integer, got {type(value)}')
         min_, max_ = 1, 256

@@ -21,7 +21,7 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
     """
     Polygonize Workaround -- ensures measures are present
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     collections: GeometryCollection = _polygonize(geometries, **kwargs)
     if not USE_WORKAROUNDS.polygonize:  # pragma: no cover
         return collections
@@ -38,11 +38,11 @@ def polygonize(geometries, **kwargs) -> GeometryCollection:
                     geom, include_z=has_z, include_m=True):
                 lookup[tuple(key)].append(m)
     if isinstance(collections, GeometryCollection):
-        # noinspection PyTypeChecker
+        # noinspection bad-assignment
         collections = [collections]
     wkb = []
     slicer = get_slicer(has_z=has_z, has_m=has_m)
-    # noinspection PyTypeChecker
+    # noinspection not-iterable
     for collections in collections:
         for geom in get_geoms_iter(collections):
             coords = build_coordinates(

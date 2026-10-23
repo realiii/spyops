@@ -244,7 +244,7 @@ def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
     and will be transformed to latitude / longitude if CRS is projected.
     """
     projections = []
-    # noinspection PyTypeChecker
+    # noinspection bad-assignment
     geodetic_crs: CRS = crs.geodetic_crs
     coordinates = xy_to_dd(crs, coordinates=coordinates).round(-1)
     for lon, lat in coordinates:
@@ -270,7 +270,7 @@ def get_equidistant_from_extent(source: 'FeatureClass') -> ProjectedCRS | None:
     digits = -1
     pt = get_geographic_extent_centroid(crs, extent=extent)
     lat, lon = round(pt.y, digits), round(pt.x, digits)
-    # noinspection PyTypeChecker
+    # noinspection bad-assignment
     geodetic_crs: CRS = crs.geodetic_crs
     return _equidistant_projection(geodetic_crs, lat=lat, lon=lon)
 # End get_equidistant_from_extent function
@@ -280,12 +280,13 @@ def get_geographic_extent_centroid(crs: CRS, extent: EXTENT) -> 'Point':
     """
     Get Geographic Centroid from an Extent
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-assignment
     poly: 'Polygon' = box(*extent)
     pt = poly.centroid
     if not crs.is_projected:
         return pt
     transformer = make_geodetic_transformer(crs)
+    # noinspection bad-argument-type
     return transform(pt, transformer.transform, interleaved=False)
 # End get_geographic_extent_centroid function
 

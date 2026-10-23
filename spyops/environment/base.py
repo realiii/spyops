@@ -119,7 +119,7 @@ class Extent:
             extent = extent_from_feature_class(feature_class)
         except BadExtentError:
             return cls(None, crs=crs)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return cls(box(*extent), crs=crs)
     # End from_feature_class method
 # End Extent class

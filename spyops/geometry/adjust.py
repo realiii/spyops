@@ -4,7 +4,7 @@ Adjust Z
 """
 
 
-from typing import Any, Callable, TYPE_CHECKING, TypeAlias
+from typing import Callable, TYPE_CHECKING, TypeAlias
 
 from fudgeo.enumeration import ShapeType
 from fudgeo.geometry import (
@@ -35,7 +35,7 @@ def adjust_points(features: list[tuple[PointZ | PointZM, int]],
     Adjust Z value on Points
     """
     for point, _ in features:
-        # noinspection PyTypeChecker
+        # noinspection bad-assignment,bad-argument-type
         point.z = adjuster(point.z)
     return _to_gpkg(features)
 # End adjust_points function

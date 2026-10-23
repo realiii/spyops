@@ -33,7 +33,7 @@ def check_polygon(polygon: Polygon | MultiPolygon) \
     """
     Check Polygon
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return _check_geometry(polygon, cls=Polygon, multi_cls=MultiPolygon)
 # End check_polygon function
 
@@ -43,7 +43,7 @@ def check_linestring(geom: LineString | MultiLineString) \
     """
     Check LineString
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return _check_geometry(geom, cls=LineString, multi_cls=MultiLineString)
 # End check_linestring function
 
@@ -75,7 +75,7 @@ def _check_geometry(geom: 'BaseGeometry', cls: Type['BaseGeometry'],
         return None
     if len(geoms) == 1:
         return geoms[0]
-    # noinspection PyArgumentList
+    # noinspection bad-return,argument-list
     return multi_cls(geoms)
 # End _check_geometry function
 

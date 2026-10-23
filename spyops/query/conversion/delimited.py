@@ -97,12 +97,13 @@ class QueryDelimitedFileToTable(AbstractSourceQuery):
         """
         Initialize the QueryDelimitedFileToTable class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source=None, target=target)
         self._source: Path = source
         self._delimiter: str = delimiter
     # End init built-in
 
+    # noinspection method-overriding
     @property
     def target(self) -> 'Table':
         """
@@ -111,6 +112,7 @@ class QueryDelimitedFileToTable(AbstractSourceQuery):
         return self.target_empty
     # End target property
 
+    # noinspection method-overriding
     @cached_property
     def target_empty(self) -> 'Table':
         """

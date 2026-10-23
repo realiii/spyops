@@ -140,7 +140,7 @@ def extent_from_parts(geoms: 'ndarray') -> list[MultiPolygon]:
     """
     extents = []
     for geom in geoms:
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         extents.append(MultiPolygon(envelope(get_geoms_iter(geom))))
     return extents
 # End extent_from_parts function

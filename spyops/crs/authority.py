@@ -200,7 +200,7 @@ class Authority:
         if not crs.srs:
             return cls(names=NONE, codes=NONE, crs=crs)
         if authority := _from_json(crs):
-            # noinspection PyTypeChecker
+            # noinspection bad-return
             return authority
         if crs.is_compound:
             crs_list = crs.sub_crs_list

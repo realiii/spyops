@@ -26,6 +26,7 @@ from spyops.shared.hint import FIELDS, STATS_FIELDS, XY_TOL
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from shapely.geometry.base import BaseMultipartGeometry
+    from spyops.geometry.config import GeometryConfig
 
 
 class QueryDissolve(StatisticsMixin, AbstractQueryDissolve):
@@ -98,9 +99,10 @@ class QueryDissolve(StatisticsMixin, AbstractQueryDissolve):
         Selection Query
         """
         elm = self.source
+        # noinspection argument-list
         *_, select_field_names = self._field_names_and_count(elm)
         dr_select_names = make_field_names(self._fields)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         dr_select_stats = make_field_names([s.field for s in self.statistics])
         dr_select_names = self._concatenate(dr_select_names, dr_select_stats)
         index_where = self._spatial_index_where(elm)

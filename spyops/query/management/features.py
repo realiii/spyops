@@ -171,6 +171,7 @@ class QueryCheckGeometry(BaseQuerySelect):
         return self._xy_tolerance
     # End grid_size property
 
+    # noinspection method-overriding
     @property
     def target(self) -> 'Table':
         """
@@ -179,6 +180,7 @@ class QueryCheckGeometry(BaseQuerySelect):
         return self.target_empty
     # End target property
 
+    # noinspection method-overriding
     @cached_property
     def target_empty(self) -> 'Table':
         """
@@ -521,7 +523,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
         """
         Initialize the QueryXYTablePoint class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=target, xy_tolerance=None)
         self._fields: tuple[Field | None, ...] = fields
         self._coord_sys: CRS | SpatialReferenceSystem = coordinate_system
@@ -1128,7 +1130,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         Selection Query
         """
         elm = self.source
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.source.primary_key_field.escaped_name
         if self.add_attributes:
             index = 4
@@ -1154,7 +1156,7 @@ class QueryMinimumBoundingGeometryNone(AbstractQueryMinimumBoundingGeometry):
         elm = self.source
         geom = get_geometry_column_name(elm, include_geom_type=True)
         index_where = self._spatial_index_where(elm)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.source.primary_key_field.escaped_name
         geom_and_fid = self._concatenate(geom, name)
         return f"""
@@ -1582,7 +1584,7 @@ class QueryFeatureToLine(AbstractQueryFeatureClasses):
         combiner = get_combiner(
             ShapeType.linestring, has_m=has_m, directed=False)
         lines = get_geoms_iter(combiner(MultiLineString(lines)))
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return [(line, ()) for line in lines]
     # End build_features method
 # End QueryFeatureToLine class
@@ -1677,7 +1679,7 @@ class AbstractQueryPointsToLine(AbstractQueryGroup):
         features = []
         cls = self._line_class
         coords = self._get_coordinates(points)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         srs_id = self.spatial_reference_system.srs_id
         attributes = self._get_segment_attrs(attributes)
         for id_, coords in coords.items():
@@ -1688,6 +1690,7 @@ class AbstractQueryPointsToLine(AbstractQueryGroup):
                 for start, end, attrs in
                 zip(coords[:-1], coords[1:], attributes[id_])])
         features, geoms = to_shapely(features, transformer=None)
+        # noinspection bad-return
         return [(g, attrs) for g, (_, *attrs) in zip(geoms, features)]
     # End _build_segments method
 
@@ -1700,15 +1703,16 @@ class AbstractQueryPointsToLine(AbstractQueryGroup):
         features = []
         cls = self._line_class
         coords = self._get_coordinates(points)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         srs_id = self.spatial_reference_system.srs_id
         attributes = self._get_line_attrs(attributes)
         for id_, coords in coords.items():
             if id_ not in attributes:
                 continue
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             features.append((cls(coords, srs_id=srs_id), *attributes[id_]))
         features, geoms = to_shapely(features, transformer=None)
+        # noinspection bad-return
         return [(g, attrs) for g, (_, *attrs) in zip(geoms, features)]
     # End _build_lines method
 
@@ -1903,7 +1907,7 @@ class QueryPointsToLineStart(AbstractQueryPointsToLine):
         """
         self._close_segment_attrs(attributes)
         for id_ in attributes:
-            # noinspection PyArgumentEqualDefault
+            # noinspection argument-equal-default
             attributes[id_].pop(-1)
         return attributes
     # End _get_segment_attrs method

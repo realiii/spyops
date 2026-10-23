@@ -81,7 +81,7 @@ def add_field(source: ELEMENT, *, fields: FIELDS = (),
     fields: list[Field]
     fields = list(fields)
     for element in elements:
-        # noinspection PyProtectedMember
+        # noinspection protected-member
         fields.extend(element._validate_fields(element.fields))
     if not fields:
         return source
@@ -159,7 +159,7 @@ def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
     """
     Add GPS Metadata Fields
 
-    Add GNSS GPS Metadata fields to a Feautre Class, if a field name already
+    Add GNSS GPS Metadata fields to a Feature Class, if a field name already
     exists in the Feature Class, it is not overwritten.  If not already
     enabled, the Schema Extension is enabled in the GeoPackage.
     """
@@ -178,7 +178,7 @@ def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
             satellite_range = RangeConstraint(
                 name='num_sats_domain', min_value=0, max_value=99,
                 description='Number of Satellites')
-            # noinspection PyTypeChecker
+            # noinspection bad-assignment
             schema: Schema = source.geopackage.schema
             schema.add_constraints([source_type, fix_type, satellite_range])
             schema.add_column_definition(
@@ -195,7 +195,7 @@ def add_gps_metadata_fields(source: 'FeatureClass') -> 'FeatureClass':
         return source
     if source.add_fields(GNSS_POLY_LINE_FIELDS):
         if source.geopackage.enable_schema_extension():
-            # noinspection PyTypeChecker
+            # noinspection bad-assignment
             schema: Schema = source.geopackage.schema
             schema.add_constraints([fix_type])
             schema.add_column_definition(
@@ -222,7 +222,7 @@ def calculate_end_time(source: ELEMENT, *,
     The End Values derived from the next value in the Start Field row / feature
     as defined by the underlying table order or based on supplied sort fields.
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     query = QueryCalculateEndTime(
         source, start_field=start_field, end_field=end_field,
         sort_fields=sort_fields)
@@ -302,7 +302,7 @@ def standardize_field(source: ELEMENT, field: Field | str,
     kwargs = dict(source=source, field=field, output_field=output_field,
                   where_clause=where_clause)
     if method == StandardizationMethod.MIN_MAX:
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         kwargs.update(dict(min_value=min(min_value, max_value),
                            max_value=max(min_value, max_value)))
     with cls(**kwargs) as query:

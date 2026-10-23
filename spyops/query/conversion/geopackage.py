@@ -30,7 +30,7 @@ class AbstractQueryElementToGeoPackage(BaseQuerySelect, metaclass=ABCMeta):
         Initialize the AbstractQueryElementToGeoPackage class
         """
         target = self._make_target(element, geopackage)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source=element, target=target)
     # End init built-in
 
@@ -106,12 +106,13 @@ class QueryExportTable(BaseQuerySelectOrderBy):
         """
         Initialize the QueryExportTable class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(
             source=source, target=target, where_clause=where_clause,
             sort_fields=sort_fields)
     # End init built-in
 
+    # noinspection method-overriding
     @property
     def target(self) -> 'Table':
         """
@@ -120,12 +121,13 @@ class QueryExportTable(BaseQuerySelectOrderBy):
         return self.target_empty
     # End target property
 
+    # noinspection method-overriding
     @cached_property
     def target_empty(self) -> 'Table':
         """
         Target Empty
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return copy_element(
             self.source, target=self._target, where_clause=SQL_NO_ID)
     # End target_empty property

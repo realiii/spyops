@@ -351,7 +351,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Create Feature Class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return create_feature_class(
             geopackage=self._target.geopackage, name=self._target.name,
             shape_type=shape_type, fields=self._get_unique_fields(),
@@ -384,7 +384,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         if not (extent := ANALYSIS_SETTINGS.extent):
             return self.source_extent
         polygon = self._get_extent_polygon(extent, crs=self.source_crs)
-        # noinspection PyTypeChecker
+        # noinspection bad-assignment
         polygon: 'Polygon' = polygon.intersection(box(*self.source_extent))
         return polygon.bounds
     # End _shared_extent method
@@ -476,7 +476,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         if not (extent := ANALYSIS_SETTINGS.extent):
             return True
         polygon = self._get_extent_polygon(extent, crs=self.source_crs)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return bool(polygon.intersects(box(*self.source_extent)))
     # End has_intersection property
 
@@ -523,7 +523,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         Select from Source including FID
         """
         fields = validate_fields(self.source, fields=self.source.fields)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return self._build_select([self.source.primary_key_field, *fields])
     # End select_with_fid property
 
@@ -532,7 +532,7 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
         """
         Select from Source using only the FID for attributes
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return self._build_select([self.source.primary_key_field])
     # End select_only_fid property
 
@@ -661,7 +661,7 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         """
         geom_type = get_geometry_column_name(
             self.source, include_geom_type=True)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         key_name = self.source.primary_key_field.escaped_name
         select_names = self._concatenate(geom_type, key_name)
         where_clause = self._get_where_clause()
@@ -681,7 +681,7 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         field_names = self._get_field_names()
         key_name, *from_field_names = [
             f.escaped_name for f in self._intermediate_fields]
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         target_key_name = self.target.primary_key_field.escaped_name
         return self._make_update_from(
             element_name=self.target.escaped_name, key_name=target_key_name,
@@ -702,7 +702,7 @@ class AbstractSpatialQuery(OperatorMixin, AbstractSourceQuery,
         """
         Initialize the AbstractSpatialQuery class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=target, xy_tolerance=xy_tolerance,
                          where_clause=where_clause)
         self._operator: FeatureClass = operator
@@ -746,7 +746,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             fields = []
         if self._attr_option in (AttributeOption.ALL, AttributeOption.ONLY_FID):
             fields = [element.primary_key_field, *fields]
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return fields
     # End _get_fields method
 
@@ -809,7 +809,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Input FID for Source
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return self.source.primary_key_field
     # End input_fid_source property
 
@@ -818,7 +818,7 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         """
         Input FID for Operator
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return self.operator.primary_key_field
     # End input_fid_operator property
 
@@ -863,7 +863,7 @@ class BaseQuerySelect(AbstractSourceQuery):
         """
         Initialize the BaseQuerySelect class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
         self._where_clause: str = where_clause
     # End init built-in
@@ -1030,7 +1030,7 @@ class QueryFeatureIntermediate(BaseQuerySelect):
         """
         Initialize the QueryFeatureIntermediate class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
     # End init built-in
 
@@ -1143,7 +1143,7 @@ class AbstractQueryFeatureClasses(AbstractSourceQuery):
         sizes = [q.grid_size for q in queries]
         grid_size = max([s for s in sizes if s is not None], default=None)
         geoms = get_geoms_iter(planarize(geoms, grid_size=grid_size))
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return geoms, queries, grid_size
     # End _get_geoms method
 

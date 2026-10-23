@@ -80,7 +80,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
         super().__init__(
             source, target=target, fields=fields or [], as_multi_part=True,
             xy_tolerance=xy_tolerance)
-        # noinspection PyArgumentList
+        # noinspection argument-list
         self._config: BufferConfig = BufferConfig(
             distance=distance, buffer_type=buffer_type, side_option=side_option,
             end_option=end_option, resolution=resolution)
@@ -130,7 +130,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
         """
         if not self._is_distance_from_field:
             return EMPTY
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self._config.distance.escaped_name
         distance = f'{COMMA_SPACE}{name}'
         if not self._is_numeric_field:
@@ -182,7 +182,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
         distance = self._config.distance
         if self._is_distance_from_field:
             category = UnitParseWarning
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             msg = (f'Unable to parse {counter} distance(s) '
                    f'from {distance.name}')
         else:
@@ -298,6 +298,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
             geoms=geoms, unit=unit)
         valid = isfinite(distances)
         self._counter += (~valid).sum()
+        # noinspection bad-return
         return distances, valid
     # End _get_distances_broadcast method
 # End AbstractQueryBufferDissolve class
@@ -392,7 +393,7 @@ class QueryBufferDissolveList(AbstractQueryBufferDissolve):
                     cin, sql=sql, size=size, step=step)
                 if not features:
                     continue
-                # noinspection PyTypeChecker
+                # noinspection bad-argument-type
                 distances, valid = self._get_distances_broadcast(
                     geometries, unit=unit)
                 if not valid.any():
@@ -497,7 +498,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
                     continue
                 _, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
-                # noinspection PyTypeChecker
+                # noinspection bad-argument-type
                 distances = self._convert_unit(
                     is_geodesic, crs=crs, geoms=geometries, unit=unit)
                 # NOTE distance validity
@@ -527,7 +528,7 @@ class QueryBufferDissolveAll(AbstractQueryBufferDissolve):
             geometries = array(list(dissolved.values()))
             # NOTE grid size is used here since we are dealing with
             #  geometry post-transformation
-            # noinspection PyTypeChecker
+            # noinspection bad-assignment
             result: MultiPolygon = build_dissolved(
                 geometries, shape_type=ShapeType.multi_polygon,
                 grid_size=self.grid_size)
@@ -553,7 +554,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         Selection Query
         """
         elm = self.source
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.source.primary_key_field.escaped_name
         field_names = make_field_names(self._get_unique_fields()[1:])
         # NOTE double up on the key name, first value is used for lookup in
@@ -576,7 +577,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         geom = get_geometry_column_name(elm, include_geom_type=True)
         index_where = self._spatial_index_where(elm)
         distance = self._build_distance_field()
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.source.primary_key_field.escaped_name
         geom_and_fid = self._concatenate(geom, name)
         return f"""
@@ -639,7 +640,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
                     continue
                 features, geometries = to_shapely(
                     features, transformer=None, option=DimensionOption.TWO_D)
-                # noinspection PyTypeChecker
+                # noinspection bad-argument-type
                 distances, valid = self._get_distances_broadcast(
                     geometries, unit=unit)
                 if not valid.any():
@@ -653,6 +654,7 @@ class QueryBufferDissolveNone(AbstractQueryBufferDissolve):
         yield dissolved
     # End _from_distance method
 
+    # noinspection method-overriding
     def _dissolve_polygons(self, geoms: 'ndarray', ids: 'ndarray') \
             -> tuple['ndarray', 'ndarray']:
         """
@@ -695,7 +697,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         config = self._config
         units, labels = self._distances_and_labels()
         for unit, label in reversed(list(zip(units, labels))):
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             query = QueryBufferDissolveNone(
                 source=self.source, target=None, buffer_type=self.buffer_type,
                 fields=None, distance=unit, side_option=config.side_option,
@@ -797,6 +799,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         return Field(name, data_type=FieldType.text)
     # End _distance_field property
 
+    # noinspection method-overriding
     def dissolved_geometries(self) -> list[tuple[MultiPolygon, tuple]]:
         """
         Overload
@@ -809,7 +812,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         source = self._create_dissolved_source(scratch)
         units, labels = self._distances_and_labels()
         for unit, label in zip(units, labels):
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             query = QueryBufferDissolveAll(
                 source=source, target=None, buffer_type=self.buffer_type,
                 fields=None, distance=unit, side_option=config.side_option,
@@ -933,7 +936,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         Selection Query
         """
         elm = self.source
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         name = self.source.primary_key_field.escaped_name
         fields = self._get_unique_fields()[1:]
         if self._distance_field:
@@ -1074,8 +1077,9 @@ class QueryCreateThiessenPolygons(BaseQuerySelect):
             extent = Extent.from_bounds(
                 x_min=min_x - dx, y_min=min_y - dy,
                 x_max=max_x + dx, y_max=max_y + dy, crs=self.source_crs)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         crs = crs_from_srs(self.spatial_reference_system)
+        # noinspection bad-return
         return self._get_extent_polygon(extent, crs=crs).envelope
     # End extent property
 

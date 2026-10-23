@@ -50,7 +50,7 @@ def _as_lines(geoms: 'ndarray') -> 'ndarray':
     """
     Convert Polygons to LineStrings
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return boundary(geoms)
 # End _as_lines function
 
@@ -214,9 +214,11 @@ def _line_as_multilinestring(geom: Union['LineString', MultiLineString]) \
     LineString as MultiLineString
     """
     if hasattr(geom, GEOMS_ATTR):
+        # noinspection bad-return
         return geom
+    # noinspection bad-argument-type
     return MultiLineString([geom])
-# End _polygon_as_multilinestring function
+# End _line_as_multilinestring function
 
 
 GEOMETRY_CAST: dict[str, Callable] = {
