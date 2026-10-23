@@ -76,12 +76,20 @@ class AbstractQueryDissolveStatistics(StatisticsMixin, AbstractQueryDissolve):
         return field_count, insert_names, select_names
     # End _field_names_and_count method
 
-    @abstractmethod
     def _get_target_shape_type(self) -> str:
         """
         Get Target Shape Type based on Output Type Option and Source Shape Type
         """
-        pass
+        if (self._as_multi_part and self.source.is_multi_part) or (
+                not self._as_multi_part and not self.source.is_multi_part):
+            return self.source.shape_type
+        lut = {ShapeType.polygon: ShapeType.multi_polygon,
+               ShapeType.linestring: ShapeType.multi_linestring,
+               ShapeType.point: ShapeType.multi_point,
+               ShapeType.multi_point: ShapeType.point,
+               ShapeType.multi_linestring: ShapeType.linestring,
+               ShapeType.multi_polygon: ShapeType.polygon}
+        return lut[self.source.shape_type]
     # End _get_target_shape_type method
 
     @property
