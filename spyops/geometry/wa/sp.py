@@ -35,7 +35,7 @@ def set_precision(geometry, grid_size, mode='valid_output', **kwargs):
                  f'measure value for the last point in the polygon. '
                  f'ref shapely/shapely#2402', category=ShapelyWarning,
                  skip_file_prefixes=SKIP_FILE_PREFIXES)
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return _set_precision(geometry, grid_size=grid_size, mode=mode, **kwargs)
 # End set_precision function
 

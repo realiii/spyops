@@ -4,194 +4,24 @@ Query Classes for management.generalization module
 """
 
 
-from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
-from functools import cache, cached_property, partial
-from typing import Generator, TYPE_CHECKING
+from functools import partial
+from typing import Callable
 
-from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
-from fudgeo.enumeration import ShapeType
-from numpy import array
-
-from spyops.geometry.config import geometry_config
 from spyops.geometry.multi import build_dissolved
-from spyops.geometry.util import filter_features, to_shapely
-from spyops.query.base import AbstractQueryDissolve
-from spyops.query.mixin import StatisticsMixin
-from spyops.shared.constant import DRID
-from spyops.shared.field import (
-    get_geometry_column_name, make_field_names)
-from spyops.shared.hint import FIELDS, STATS_FIELDS, XY_TOL
+from spyops.query.management.shared import AbstractQueryDissolveStatistics
 
 
-if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
-    from shapely.geometry.base import BaseMultipartGeometry
-
-
-class QueryDissolve(StatisticsMixin, AbstractQueryDissolve):
+class QueryDissolve(AbstractQueryDissolveStatistics):
     """
     Queries for Dissolve
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
-                 fields: FIELDS, statistics: STATS_FIELDS, as_multi_part: bool,
-                 xy_tolerance: XY_TOL) -> None:
+    def _get_builder(self, shape_type: str) -> Callable:
         """
-        Initialize the QueryDissolve class
+        Get Builder based on Shape Type
         """
-        super().__init__(
-            source, target=target, fields=fields, as_multi_part=as_multi_part,
-            xy_tolerance=xy_tolerance)
-        self._statistics: STATS_FIELDS = statistics
-    # End init built-in
-
-    @cached_property
-    def geometry_config(self) -> 'GeometryConfig':
-        """
-        Geometry Configuration
-        """
-        return geometry_config(
-            self.target, cast_geom=self.zm_config.is_different, directed=False)
-    # End geometry_config property
-
-    @cache
-    def _field_names_and_count(self, element: 'FeatureClass') \
-            -> tuple[int, str, str]:
-        """
-        Field Names for Select and Insert + Derive Field Count
-        """
-        fields = self._fields
-        stats = self.statistics
-        field_count = len(fields) + len(stats) + 1
-
-        select_names = insert_names = make_field_names(fields)
-        select_names = self._concatenate(DRID, select_names)
-        select_stats = COMMA_SPACE.join([s.aggregate for s in stats])
-        select_names = self._concatenate(select_names, select_stats)
-
-        stats_fields = self._get_unique_fields()[len(fields):]
-        insert_stats = make_field_names(stats_fields)
-        insert_names = self._concatenate(insert_names, insert_stats)
-        geom = get_geometry_column_name(element)
-        insert_names = self._concatenate(geom, insert_names)
-        return field_count, insert_names, select_names
-    # End _field_names_and_count method
-
-    def _get_target_shape_type(self) -> str:
-        """
-        Get Target Shape Type based on Output Type Option and Source Shape Type
-        """
-        if (self._as_multi_part and self.source.is_multi_part) or (
-                not self._as_multi_part and not self.source.is_multi_part):
-            return self.source.shape_type
-        lut = {ShapeType.polygon: ShapeType.multi_polygon,
-               ShapeType.linestring: ShapeType.multi_linestring,
-               ShapeType.point: ShapeType.multi_point,
-               ShapeType.multi_point: ShapeType.point,
-               ShapeType.multi_linestring: ShapeType.linestring,
-               ShapeType.multi_polygon: ShapeType.polygon}
-        return lut[self.source.shape_type]
-    # End _get_target_shape_type method
-
-    @property
-    def select(self) -> str:
-        """
-        Selection Query
-        """
-        elm = self.source
-        *_, select_field_names = self._field_names_and_count(elm)
-        dr_select_names = make_field_names(self._fields)
-        # noinspection PyTypeChecker
-        dr_select_stats = make_field_names([s.field for s in self.statistics])
-        dr_select_names = self._concatenate(dr_select_names, dr_select_stats)
-        index_where = self._spatial_index_where(elm)
-        return f"""
-            SELECT {select_field_names}
-            FROM (SELECT dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS {DRID}, {dr_select_names} 
-                  FROM {elm.escaped_name} {index_where})
-            GROUP BY {DRID} 
-        """
-    # End select property
-
-    @property
-    def select_geometry(self) -> str:
-        """
-        Select Geometry
-        """
-        elm = self.source
-        geom = get_geometry_column_name(elm, include_geom_type=True)
-        index_where = self._spatial_index_where(elm)
-        return f"""
-            SELECT * 
-            FROM (SELECT {geom}, dense_rank() OVER (
-                    ORDER BY {self._group_names}) AS {DRID}
-                  FROM {elm.escaped_name} {index_where})
-            WHERE {DRID} BETWEEN ? AND ?
-        """
-    # End select_geometry property
-
-    def dissolved_geometries(self) -> Generator[
-            dict[int, 'BaseMultipartGeometry'], None, None]:
-        """
-        Dissolved Geometries stored as a dictionary of Dense Rank IDs
-        and Multi-Part Geometries.  Page over the number of groups to
-        avoid loading all geometries into memory at once.
-
-        This method builds up a dictionary of geometries and yields it when it
-        reaches (or exceeds) fetch size.  There is an expectation that when a
-        geometry is stitched together with its aggregate row that the geometry
-        will be popped from the dictionary.
-        """
-        dissolved = {}
-        size = FETCH_SIZE // 5
-        steps, remainder = divmod(self.group_count, size)
-        steps += bool(remainder)
-        sql = self.select_geometry
-        shape_type = self.source.shape_type
-        is_point = ShapeType.point in shape_type
-        builder = partial(build_dissolved, shape_type=shape_type,
-                          grid_size=self.grid_size)
-        with self.source.geopackage.connection as cin:
-            for step in range(steps):
-                start = 1 + (step * size)
-                end = (step + 1) * size
-                cursor = cin.execute(sql, (start, end))
-                features = filter_features(cursor.fetchall())
-                features, geometries = to_shapely(
-                    features, transformer=self.source_transformer)
-                if not features:
-                    continue
-                ids = array([i for _, i in features], dtype=int)
-                unique_ids = set(ids)
-                if is_point:
-                    results = {i: builder(geometries[ids == i])
-                               for i in unique_ids}
-                else:
-                    parts = [geometries[ids == i] for i in unique_ids]
-                    with PoolExecutor() as executor:
-                        results = executor.map(builder, parts)
-                        results = dict(zip(unique_ids, results))
-                dissolved.update(results)
-                if len(dissolved) >= FETCH_SIZE:
-                    yield dissolved
-        yield dissolved
-    # End dissolved_geometries method
-
-    @cached_property
-    def group_count(self) -> int:
-        """
-        Group Count
-        """
-        elm = self.source
-        with elm.geopackage.connection as cin:
-            cursor = cin.execute(f"""
-                SELECT COUNT(*) AS CNT 
-                FROM (SELECT DISTINCT {self._group_names} 
-                      FROM {elm.escaped_name})
-            """)
-            count, = cursor.fetchone()
-        return count
-    # End group_count property
+        return partial(
+            build_dissolved, shape_type=shape_type, grid_size=self.grid_size)
+    # End _get_builder method
 # End QueryDissolve class
 
 

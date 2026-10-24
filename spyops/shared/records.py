@@ -45,7 +45,7 @@ def bulk_records(query: 'BaseQuerySelect') -> 'Table':
         cursor = cin.execute(query.select)
         while rows := cursor.fetchmany(FETCH_SIZE):
             executor(sql=insert_sql, data=rows)
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return query.target
 # End bulk_records function
 
@@ -136,7 +136,7 @@ def _extend_measures(refined: list, cls: Type['AbstractGeometry']) -> list:
         for geom, attrs in refined:
             if not geom.has_m:
                 values, = get_coordinates(geom, **kwargs)
-                # noinspection PyUnresolvedReferences
+                # noinspection unresolved-references
                 geom = from_wkb(cls.from_tuple(
                     (*values, nan), srs_id=SRS_ID_WKB).wkb)
             corrected.append((geom, attrs))
@@ -145,7 +145,7 @@ def _extend_measures(refined: list, cls: Type['AbstractGeometry']) -> list:
         for geom, attrs in refined:
             if not geom.has_m:
                 coords = get_coordinates(geom, **kwargs)
-                # noinspection PyArgumentList
+                # noinspection argument-list
                 geom = from_wkb(cls(coords, srs_id=SRS_ID_WKB).wkb)
             corrected.append((geom, attrs))
     return corrected

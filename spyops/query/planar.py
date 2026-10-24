@@ -276,7 +276,7 @@ class AbstractPlanarize(AbstractSpatialAttribute, metaclass=ABCMeta):
         select_names = make_field_names(fields)
         geom_type = get_geometry_column_name(element, include_geom_type=True)
         alias = self.temporary_fid_field.escaped_name
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         primary = f'{element.primary_key_field.escaped_name} AS {alias}'
         geom_primary = f'{geom_type}{COMMA_SPACE}{primary}'
         return 0, EMPTY, self._concatenate(geom_primary, select_names)
@@ -356,11 +356,11 @@ class PlanarizeSourceMixin:
         """
         Make Class Callable
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         element = self.source
         self._distance_element = element
         fid = element.primary_key_field
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self._planarize(element, sql=self.select), fid
     # End call built-in
 
@@ -369,7 +369,7 @@ class PlanarizeSourceMixin:
         """
         Temporary FID Field
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self.output_fid_source
     # End temporary_fid_field property
 # End PlanarizeSourceMixin class
@@ -383,11 +383,11 @@ class PlanarizeOperatorMixin:
         """
         Make Class Callable
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         element = self.operator
         self._distance_element = element
         fid = element.primary_key_field
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self._planarize(element, sql=self.select_operator), fid
     # End call built-in
 
@@ -396,7 +396,7 @@ class PlanarizeOperatorMixin:
         """
         Temporary FID Field
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self.output_fid_operator
     # End temporary_fid_field property
 # End PlanarizeOperatorMixin class
@@ -444,7 +444,7 @@ class AbstractPlanarizeLineString(AbstractPlanarize, metaclass=ABCMeta):
         """
         Make Planarized Geometry
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return list(get_geoms_iter(planarize(geoms)))
     # End _make_planarized_geometry method
 # End AbstractPlanarizeLineString class
@@ -505,7 +505,7 @@ class PlanarizeGeneralSource(AbstractPlanarizeGeneral):
         """
         Make Class Callable
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-assignment
         fid: 'Field' = self.source.primary_key_field
         return self._planarize(self.source, sql=self.select), fid
     # End call built-in
@@ -536,7 +536,7 @@ class PlanarizeGeneralOperator(AbstractPlanarizeGeneral):
         """
         Make Class Callable
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-assignment
         fid: 'Field' = self.operator.primary_key_field
         return self._planarize(self.operator, sql=self.select_operator), fid
     # End call built-in

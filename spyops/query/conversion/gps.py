@@ -49,7 +49,7 @@ class AbstractQueryFeaturesToGPX(AbstractSourceQuery):
         """
         Initialize the AbstractQueryFeaturesToGPX class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=None, where_clause=where_clause)
         self._fields: tuple[OPT_FIELD, ...] = (
             name_field, description_field, z_field, date_field)
@@ -205,7 +205,7 @@ class QueryFeaturesToGPXMultiLineString(QueryFeaturesToGPXLineString):
         tracks = []
         for geom in geometries:
             geoms = get_geoms_iter(geom)
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             tracks.extend(super()._build_records(geoms, attributes))
         return tracks
     # End _build_records method
@@ -258,7 +258,7 @@ class QueryFeaturesToGPXMultiPoint(QueryFeaturesToGPXPoint):
         for geom, attrs in zip(geometries, attributes):
             geoms = get_geoms_iter(geom)
             attrs = [attrs] * len(geoms)
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             waypoints.extend(super()._build_records(geoms, attrs))
         return waypoints
     # End _build_records method
@@ -273,7 +273,7 @@ class AbstractQueryGPXToFeatures(AbstractSourceQuery):
         """
         Initialize the AbstractQueryGPXToFeatures class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source=None, target=target)
     # End init built-in
 

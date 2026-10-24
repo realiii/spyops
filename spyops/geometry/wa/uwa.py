@@ -35,7 +35,9 @@ class _UseWorkarounds:
         """
         a = from_wkt('Point (0 1 2 3)')
         _, best, _ = get_transforms(source_crs=WGS84, target_crs=CRS(3857))
+        # noinspection bad-argument-type,unresolved-references
         pt = transform(a, best.transform, include_z=True, interleaved=False)
+        # noinspection unresolved-references
         return not ((pt.has_m and not isnan(pt.m)) and (pt.has_z and not isnan(pt.z)))
     # End transform property
 
@@ -56,8 +58,9 @@ class _UseWorkarounds:
         """
         a = from_wkt('LINESTRING (0 0 0 0, 1 1 1 1)')
         b = from_wkt('LINESTRING (1 1 1 1, 2 2 2 2)')
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         result = line_merge(MultiLineString([a, b]))
+        # noinspection unresolved-references
         return not result.has_m
     # End line_merge property
 
@@ -67,7 +70,7 @@ class _UseWorkarounds:
         Use workaround for line_interpolate_point?
         """
         a = from_wkt('LINESTRING (0 0 0 0, 10 20 30 40, 100 200 300 400)')
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         result = line_interpolate_point(a, distance=0.5, normalized=True)
         return not result.has_m
     # End line_interpolate_point property
@@ -88,7 +91,7 @@ class _UseWorkarounds:
         Use workaround for coverage_simplify?
         """
         a = from_wkt('Polygon ((0 0 0 0, 0 1 1 1, 1 1 2 3, 1 0 4 5, 0 0 6 7))')
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         result: BaseGeometry = coverage_simplify(a, tolerance=0.001)
         return not result.has_m
     # End coverage_simplify property
@@ -149,7 +152,7 @@ class _UseWorkarounds:
         """
         a = from_wkt('LineString (0 0 100 200, 10 0 300 400)')
         b = from_wkt('Point (2 0)')
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return a.intersection(b).z != 140
     # End point_interpolation property
 
@@ -174,7 +177,7 @@ class _UseWorkarounds:
         b = from_wkt('LineString (0 0 1 2, 3 0 3 4, 6 0 5 6, 8 0 7 8)')
         bad = from_wkt('LineString (2 0 1111 2222, 3 0 3 4)')
         result = a.intersection(b)
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return bad in set(get_geoms(result))
     # End inconsistent_zm_source property
 
@@ -186,7 +189,7 @@ class _UseWorkarounds:
         """
         line_a = from_wkt('LineString (0 0 0 NaN, 10 0 123 NaN)')
         line_b = from_wkt('LineString (4 -5 999 NaN, 5 5 456 NaN, 6 -6 678 NaN)')
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         line_b = MultiLineString([line_b])
         result = line_a.intersection(line_b)
         return not result.has_m

@@ -64,7 +64,7 @@ def delete(source: ELEMENT | ELEMENTS) -> bool:
     """
     if not source:
         return False
-    # noinspection PyTypeChecker
+    # noinspection not-iterable
     for element in source:
         element.drop()
     return True
@@ -78,7 +78,7 @@ def rename(source: ELEMENT, name: str) -> ELEMENT:
     Rename Table or Feature Class
     """
     source.rename(name)
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return source.geopackage[name]
 # End rename function
 
@@ -114,7 +114,7 @@ def find_identical(source: ELEMENT, target: Table,
         cls = QueryFindIdenticalTable
     else:
         cls = QueryFindIdenticalFeatureClass
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     query = cls(source, target=target, fields=fields,
                 include_geometry=include_geometry,
                 xy_tolerance=xy_tolerance, z_tolerance=z_tolerance,

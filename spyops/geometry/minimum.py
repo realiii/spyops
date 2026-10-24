@@ -207,7 +207,7 @@ def _distance_and_points(coords: 'ndarray', pairs: set[tuple[int, int]]) \
     for begin, end in pairs:
         bx, by = coords[begin]
         ex, ey = coords[end]
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         distance: float = hypot(bx - ex, by - ey)
         data[distance] = ((bx, by), (ex, ey))
     return data

@@ -87,7 +87,7 @@ class ValidateXYTolerance(AbstractValidate):
                 tolerance = function_tol
             else:
                 tolerance = settings_tol
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         return max(0, tolerance)
     # End _validate_value method
 # End ValidateXYTolerance class

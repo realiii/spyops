@@ -25,6 +25,7 @@ from spyops.geometry.wa.uwa import USE_WORKAROUNDS
 from spyops.shared.constant import SRS_ID_WKB
 from spyops.shared.keywords import GEOMS_ATTR, HAS_M_KEY, HAS_Z_KEY, SRS_ID_KEY
 
+
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -74,7 +75,7 @@ def _combine_lines(geom: Union[LineString, MultiLineString],
     Combine Lines using Directed Line Merge
     """
     if hasattr(geom, GEOMS_ATTR):
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return line_merge(geom, directed=directed)
     return geom
 # End _combine_lines function
@@ -100,7 +101,7 @@ def _combine_lines_workaround(geom: Union[LineString, MultiLineString],
     for *key, m in get_coordinates(geom, include_z=has_z, include_m=True):
         measures[tuple(key)].append(m)
     if isinstance(result, LineString):
-        # noinspection PyTypeChecker
+        # noinspection bad-return
         return from_wkb(_make_measured_line(
             result, has_z=has_z, cls=cls, measures=measures))
     else:

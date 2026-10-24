@@ -46,7 +46,7 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
             source.shape_type, has_z=source.has_z, has_m=source.has_m,
             transformer=transformer)
     geopackage = target.geopackage
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     srs = validate_srs(geopackage, srs=srs)
     # NOTE simple copy if no change in ZM and no change in CRS
     if not zm.is_different and not transformer:
@@ -58,7 +58,7 @@ def copy_feature_class(source: FeatureClass, target: FeatureClass, *,
         fields = validate_fields(source, fields=source.fields)
         # NOTE send in source has_z and has_m, rely on handling of zm in the
         #  create_feature_class function
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         target = create_feature_class(
             geopackage, name=target.name, shape_type=source.shape_type, srs=srs,
             fields=fields, description=target.description,
@@ -101,7 +101,7 @@ def create_feature_class(geopackage: GPKG, name: str, shape_type: str,
             is_different=False, z_enabled=z_enabled, m_enabled=m_enabled)
     else:
         zm = zm_config(HasZM(has_z=z_enabled, has_m=m_enabled))
-    # noinspection PyArgumentEqualDefault
+    # noinspection argument-equal-default
     return FeatureClass.create(
         geopackage=geopackage, name=name, shape_type=shape_type, srs=srs,
         z_enabled=zm.z_enabled, m_enabled=zm.m_enabled, fields=fields,
@@ -118,7 +118,7 @@ def copy_element(source: ELEMENT, target: ELEMENT, *,
     try:
         if isinstance(source, FeatureClass):
             zm = zm_config(source)
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             element = copy_feature_class(
                 source=source, target=target, where_clause=where_clause, zm=zm)
         else:

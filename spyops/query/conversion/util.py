@@ -31,7 +31,7 @@ def _make_unique_fields(fields: list[Field]) -> FIELDS:
             visited.add(lower)
             continue
         field, = make_unique_fields(fields, [field])
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         fields[i] = field
     return tuple(fields)
 # End _make_unique_fields method

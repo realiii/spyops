@@ -40,7 +40,7 @@ class QueryCalculateEndTime(AbstractSourceQuery):
         """
         Initialize the QueryCalculateEndTime class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=source)
         self._start_field: Field = start_field
         self._end_field: Field = end_field
@@ -54,7 +54,7 @@ class QueryCalculateEndTime(AbstractSourceQuery):
         """
         cte = 'lead_values'
         tbl = self.source.escaped_name
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         key_name = self.source.primary_key_field.escaped_name
         if self._sort_fields:
             sort_names = make_field_names(self._sort_fields)
@@ -171,7 +171,7 @@ class AbstractFieldStatisticsToTableQuery(StatisticsMixin,
         records = []
         count = len(self._fields)
         head = slice(0, count)
-        # noinspection PyArgumentEqualDefault
+        # noinspection argument-equal-default
         tail = slice(count, None)
         select_stub = self.select
         classes, _ = zip(*self._stat_classes)
@@ -245,7 +245,7 @@ class AbstractQueryFieldUpdater(AggregateContextMixin, AbstractSourceQuery):
         """
         Initialize the AbstractQueryFieldUpdater class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source, target=source, where_clause=where_clause)
         self._field: Field = field
         self._output_field: Field = output_field
@@ -288,7 +288,7 @@ class AbstractQueryFieldUpdater(AggregateContextMixin, AbstractSourceQuery):
         element = self.source
         tbl = element.escaped_name
         cte = 'update_field_values'
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         key_name = element.primary_key_field.escaped_name
         where_clause = self._build_where_clause()
         return f"""
@@ -549,6 +549,7 @@ class QueryReclassifyField(AbstractQueryFieldUpdater):
         self._label_field: Field | None = label_field
     # End init built-in
 
+    # noinspection method-overriding
     def _get_expression(self) -> tuple[str, str]:
         """
         Get Expression

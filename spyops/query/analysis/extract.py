@@ -27,7 +27,7 @@ class QuerySelect(BaseQuerySelect):
 # End QuerySelect class
 
 
-# noinspection PyUnresolvedReferences
+# noinspection unresolved-references
 class SplitByAttributesMixin:
     """
     Split By Attributes Mixin

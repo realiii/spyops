@@ -61,7 +61,7 @@ class AggregateContextMixin:
         """
         Context Manager Enter
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         add_aggregates(self.source.geopackage.connection)
         return self
     # End enter built-in
@@ -70,7 +70,7 @@ class AggregateContextMixin:
         """
         Context Manager Exit
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         remove_aggregates(self.source.geopackage.connection)
         return False
     # End exit built-in
@@ -85,7 +85,7 @@ class StatisticsMixin(AggregateContextMixin):
         """
         Get Unique Fields
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         fields = self._fields
         stat_fields = [stat.output_field for stat in self.statistics]
         stat_fields = make_unique_fields(fields, stat_fields)
@@ -99,7 +99,7 @@ class StatisticsMixin(AggregateContextMixin):
         """
         keepers = []
         names = set()
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         for stat in self._statistics:
             name = stat.output_name.casefold()
             if name in names:
@@ -115,7 +115,7 @@ class GroupQueryMixin:
     """
     Group Query Mixin
     """
-    # noinspection PyUnusedLocal
+    # noinspection unused-parameter
     def _spatial_index_where(self, element: ELEMENT,
                              extent: EXTENT = (0, 0, 0, 0)) -> str:
         """
@@ -124,13 +124,13 @@ class GroupQueryMixin:
         """
         if not isinstance(element, FeatureClass):
             return EMPTY
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         if not (extent := ANALYSIS_SETTINGS.extent):
             return EMPTY
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         polygon = self._get_extent_polygon(
             extent, crs=crs_from_srs(element.spatial_reference_system))
-        # noinspection PyProtectedMember,PyUnresolvedReferences
+        # noinspection protected-member,unresolved-references
         if index_where := super()._spatial_index_where(
                 element, extent=polygon.bounds):
             index_where = f'WHERE ({index_where.format(IN)})'
@@ -141,10 +141,10 @@ class GroupQueryMixin:
         """
         Build Spatial Rank
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         primary = element.primary_key_field.escaped_name
         index_where = self._spatial_index_where(element)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return f"""
             {primary} IN (SELECT {primary}
             FROM (SELECT {primary}, 
@@ -164,7 +164,7 @@ class IntermediateTableContextMixin:
         """
         Context Manager Enter
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         self._prepare_source()
         self._delete_intermediate()
         _ = self._intermediate_table
@@ -184,7 +184,7 @@ class IntermediateTableContextMixin:
         Delete Intermediate
         """
         name = self._intermediate_name
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         with self.source.geopackage.connection as cin:
             cin.execute(f"""DROP TABLE IF EXISTS {TEMP_SCHEMA}{DOT}{name}""")
     # End _delete_intermediate method
@@ -195,9 +195,9 @@ class IntermediateTableContextMixin:
         Intermediate Table
         """
         name = self._intermediate_name
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         defs = COMMA_SPACE.join(repr(f) for f in self._intermediate_fields)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         with self.source.geopackage.connection as cin:
             cin.execute(f"""CREATE TEMPORARY TABLE {name} ({defs})""")
         return f'{TEMP_SCHEMA}{DOT}{name}'
@@ -209,7 +209,7 @@ class IntermediateTableContextMixin:
         Intermediate Name
         """
         now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return escape_name(f'tmp_{self.source.name}_{self._short_name}_{now}')
     # End _intermediate_name property
 
@@ -218,7 +218,7 @@ class IntermediateTableContextMixin:
         """
         Insert Query
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self._make_insert(
             self._intermediate_table,
             field_names=make_field_names(self._intermediate_fields),
@@ -242,6 +242,7 @@ class UnitTypeMixin:
                 value = unit.meters
             else:
                 coordinates = get_coordinates(centroid(geoms))
+                # noinspection bad-argument-type
                 values = degrees_to_meters(
                     crs, coordinates=coordinates, value=unit.value)
                 if not broadcast:
@@ -251,10 +252,12 @@ class UnitTypeMixin:
             if isinstance(unit, LinearUnit):
                 value = unit.meters
                 # NOTE return in units of the CRS
+                # noinspection argument-list,unresolved-references
                 value *= self._get_conversion_factor(crs)
             else:
                 value = unit.value
         if not broadcast:
+            # noinspection bad-return
             return value
         return ones_like(geoms, dtype=float) * value
     # End _convert_unit method
@@ -284,6 +287,7 @@ class UnitTypeMixin:
             has_linear, _ = self._unit_types
             if has_linear:
                 # NOTE return in units of the CRS
+                # noinspection argument-list
                 return meters * self._get_conversion_factor(crs)
             else:
                 # NOTE this will be in decimal degrees
@@ -308,7 +312,7 @@ class UnitTypeMixin:
         """
         Is Distance from Field?
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return isinstance(self._config.distance, Field)
     # End _is_distance_from_field property
 
@@ -323,7 +327,7 @@ class UnitTypeMixin:
         for data_type in NUMBERS:
             aliases.update(TYPE_ALIAS_LUT[data_type])
         aliases = tuple(a.casefold() for a in aliases)
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self._config.distance.data_type.casefold().startswith(aliases)
     # End _is_numeric_field property
 
@@ -332,20 +336,20 @@ class UnitTypeMixin:
         """
         Check for Linear and Angular Units, return tuple of truth
         """
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         elm = self.source
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         distance = self._config.distance
         if not self._is_distance_from_field:
             is_linear = isinstance(distance, LinearUnit)
             return is_linear, not is_linear
         if self._is_numeric_field:
-            # noinspection PyUnresolvedReferences
+            # noinspection unresolved-references
             is_projected = self.source_crs.is_projected
             return is_projected, not is_projected
         distance: Field
         null_clause = f'{distance.escaped_name} IS NOT NULL'
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         if index_where := self._spatial_index_where(elm):
             where_clause = f'{index_where} AND {null_clause}'
             where_clause = where_clause.format(IN)
@@ -385,7 +389,7 @@ class DropEmptyMixin:
         name = self._intermediate_table
         # noinspection unresolved-references
         orig_fid, _ = self._intermediate_fields
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         key_name = self.source.primary_key_field.escaped_name
         # noinspection unresolved-references
         return f"""
@@ -655,11 +659,14 @@ class CountOverlapMixin:
             records.extend([(i, fid, name) for fid, name in values])
         tbl = self.overlap_table
         names = [f.escaped_name for f in self._get_overlap_fields()]
+        # noinspection SqlInsertValues
         sql_insert = f"""
             INSERT INTO {tbl.escaped_name} ({', '.join(names)}) 
             VALUES (?, ?, ?)
         """
+        # noinspection unresolved-references
         with tbl.geopackage.connection as cout:
+            # noinspection bad-argument-type
             cout.executemany(sql_insert, sorted(records, key=itemgetter(0, 2)))
     # End _build_overlaps_table method
 

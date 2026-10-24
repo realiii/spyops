@@ -29,14 +29,14 @@ from spyops.query.management.features import (
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
     QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
     QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
-    QueryRepairGeometry, QuerySplitLineAtVertices, QueryXYTableLine,
-    QueryXYTablePoint)
+    QueryRepairGeometry, QuerySplitLineAtVertices, QueryUnsplitLine,
+    QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.keywords import (
     AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD,
     END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS,
     GROUP_OPTION, LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
-    POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD, START_Y_FIELD, TARGET,
-    WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
+    POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD, START_Y_FIELD,
+    STATISTICS, TARGET, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
     AttributeSource, DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck,
     GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
@@ -45,7 +45,7 @@ from spyops.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_MULTI, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD_STR, SORT_FIELDS,
-    XY_TOL)
+    STATS_FIELDS, XY_TOL)
 from spyops.shared.records import (
     extend_records, insert_many_features, select_transform_insert)
 from spyops.validation import (
@@ -53,7 +53,7 @@ from spyops.validation import (
     validate_geometry_group_option, validate_group_option,
     validate_int_flag_enumeration, validate_overwrite_input, validate_range,
     validate_sort_field, validate_source_element, validate_source_numeric_field,
-    validate_str_enumeration, validate_feature_class,
+    validate_statistic_field, validate_str_enumeration, validate_feature_class,
     validate_geometry_attribute, validate_overwrite_source, validate_result,
     validate_source_feature_class, validate_supported_crs,
     validate_target_feature_class, validate_target_table, validate_xy_tolerance)
@@ -71,7 +71,7 @@ __all__ = [
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
     'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
     'polygon_to_line', 'feature_to_polygon', 'feature_to_line',
-    'points_to_line', 'adjust_3d_z']
+    'points_to_line', 'adjust_3d_z', 'unsplit_line']
 
 
 @validate_result()
@@ -439,7 +439,7 @@ def xy_table_to_point(source: ELEMENT, target: 'FeatureClass',
     """
     records = []
     fields = x_field, y_field, z_field, m_field
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     query = QueryXYTablePoint(source, target=target, fields=fields,
                               coordinate_system=coordinate_system)
     cls = query.point_class
@@ -497,7 +497,7 @@ def xy_to_line(source: ELEMENT, target: 'FeatureClass',
     """
     records = []
     fields: tuple[Field, Field, Field, Field]
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     fields = start_x_field, start_y_field, end_x_field, end_y_field
     query = QueryXYTableLine(source, target=target, fields=fields,
                              coordinate_system=coordinate_system)
@@ -926,6 +926,48 @@ def adjust_3d_z(source: 'FeatureClass',
             cin.execute(query.update)
     return query.target
 # End adjust_3d_z function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
+@validate_target_feature_class()
+@validate_field(GROUP_FIELDS, element_name=SOURCE)
+@validate_statistic_field(STATISTICS, element_name=SOURCE)
+@validate_xy_tolerance()
+@validate_overwrite_source()
+def unsplit_line(source: 'FeatureClass', target: 'FeatureClass',
+                 group_fields: FIELDS | FIELD_NAMES, *,
+                 statistics: STATS_FIELDS | None = None,
+                 as_multi_part: bool = True,
+                 xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Unsplit Line
+
+    Join line features that have coincident end points.  Optionally perform
+    the operation within a group of lines based one or more group fields.
+    Optionally generate statistics for attributes.  The as_multi_part option
+    controls whether the output is a single-part or multipart feature class.
+    """
+    records = []
+    group_fields: FIELDS
+    statistics: STATS_FIELDS
+    with QueryUnsplitLine(source, target=target, fields=group_fields,
+                          statistics=statistics, as_multi_part=as_multi_part,
+                          xy_tolerance=xy_tolerance) as query:
+        insert_sql = query.insert
+        config = query.geometry_config
+        with (query.source.geopackage.connection as cin,
+              query.target.geopackage.connection as cout,
+              ExecuteMany(connection=cout, table=query.target) as executor):
+            cursor = cin.execute(query.select)
+            for geoms in query.dissolved_geometries():
+                rows = cursor.fetchmany(FETCH_SIZE)
+                results = [(geoms.pop(i, None), attrs) for i, *attrs in rows]
+                extend_records(results, records=records, config=config)
+                executor(sql=insert_sql, data=records)
+                records.clear()
+    return query.target
+# End unsplit_line function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

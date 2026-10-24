@@ -65,7 +65,7 @@ def get_linear_unit_conversion_factor(from_name: str, to_name: str) -> float:
     to_unit = _get_unit_by_name(to_name)
     if None in (from_unit, to_unit):
         return 1.
-    # noinspection PyUnresolvedReferences
+    # noinspection unresolved-references
     return from_unit.conv_factor / to_unit.conv_factor
 # End get_linear_unit_conversion_factor function
 
@@ -79,7 +79,7 @@ def get_unit_name(crs: 'CRS', use_horizontal: bool = True) -> str | None:
     else:
         crs = get_crs_vertical_component(crs)
     try:
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return crs.coordinate_system.axis_list[0].unit_name
     except (AttributeError, IndexError):  # pragma: no cover
         return None
@@ -98,16 +98,16 @@ def get_unit_conversion(from_unit: LengthUnit | AreaUnit,
     if from_unit == to_unit:
         return 1.
     if is_length:
-        # noinspection PyTypeChecker
+        # noinspection bad-index
         from_factor = get_conv_factor(LENGTH_UNIT_LUT[from_unit])
-        # noinspection PyTypeChecker
+        # noinspection bad-index
         to_factor = get_conv_factor(LENGTH_UNIT_LUT[to_unit])
         return from_factor / to_factor
     else:
-        # noinspection PyTypeChecker
+        # noinspection bad-index
         from_value, from_factor = AREA_UNIT_LUT[from_unit]
         from_factor *= get_conv_factor(from_value) ** 2
-        # noinspection PyTypeChecker
+        # noinspection bad-index
         to_value, to_factor = AREA_UNIT_LUT[to_unit]
         to_factor *= get_conv_factor(to_value) ** 2
         return from_factor / to_factor
@@ -137,7 +137,7 @@ def unit_factory(value: str) -> Optional[UNIT]:
     if len(parts) != 2:
         return None
     value, name = parts
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     if (value := safe_float(value)) is None:
         return None
     if (unit_class := UNIT_CLASS_MAP.get(name.strip().casefold())) is None:
@@ -152,7 +152,7 @@ def unit_from_number(value: NUMBER, feature_class: 'FeatureClass',
     Build a Linear Unit or Decimal Degrees from a number and the unit of
     the spatial reference system of the feature class
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-assignment
     unit_name: str = get_unit_name(get_crs_from_source(feature_class))
     if cls := UNIT_CLASS_MAP.get(unit_name.casefold()):
         return cls(value)
@@ -248,7 +248,7 @@ class LinearUnit:
         """
         if self.value is None:
             return None
-        # noinspection PyUnresolvedReferences
+        # noinspection unresolved-references
         return self.value * get_unit_conversion(
             from_unit=self.unit, to_unit=LengthUnit.METERS)
     # End meters property

@@ -118,7 +118,7 @@ def _transform_geometries(geoms: 'ndarray', crs: 'CRS') -> 'ndarray':
     if equals(crs, geodetic_crs):
         return geoms
     transformer = make_geodetic_transformer(crs)
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return transform(
         geoms, transformation=transformer.transform, interleaved=False)
 # End _transform_geometries function
@@ -128,7 +128,7 @@ def get_hole_count(geoms: 'ndarray') -> list[int]:
     """
     Get Hole Count for Polygons or MultiPolygons
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return [sum(get_num_interior_rings(get_geoms_iter(g))) for g in geoms]
 # End get_hole_count function
 

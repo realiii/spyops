@@ -191,7 +191,7 @@ def _repair_multi_linestrings(geoms: 'ndarray', ids: 'ndarray', *,
         geoms, ids=ids, deletes=deletes, updates=updates,
         empties=empties, fixer=None)
     for fid, geom in zip(ids, geoms):
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         if not (parts := _fix_linestring_parts(get_geoms_iter(geom))):
             empties.append(fid)
         else:
@@ -210,7 +210,7 @@ def _repair_multi_polygons(geoms: 'ndarray', ids: 'ndarray', *,
         geoms, ids=ids, deletes=deletes, updates=updates,
         empties=empties, fixer=fixer)
     for fid, geom in zip(ids, geoms):
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         if not (parts := _fix_polygon_parts(get_geoms_iter(geom))):
             empties.append(fid)
         else:
@@ -341,7 +341,7 @@ def _correct_polygon(geom: Polygon) -> Polygon | None:
     if get_num_points(exterior) < required:
         return None
     holes = geom.interiors
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     holes = [hole for hole, count in zip(holes, get_num_points(holes))
              if count >= required]
     return Polygon(exterior, holes=holes)

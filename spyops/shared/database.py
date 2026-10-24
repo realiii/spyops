@@ -117,7 +117,7 @@ def remove_aggregates(connection: 'Connection') -> None:
     Remove Aggregate Classes
     """
     for name in STATS_FUNCS:
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         connection.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
 # End remove_aggregates function
 

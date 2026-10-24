@@ -20,7 +20,7 @@ def make_valid(geometry, *, method='linework', keep_collapsed=True, **kwargs):
     """
     Make Valid Workaround
     """
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     result: 'BaseGeometry' = _make_valid(
         geometry, method=method, keep_collapsed=keep_collapsed, **kwargs)
     has_m = geometry.has_m

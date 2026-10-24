@@ -11,7 +11,7 @@ from numpy import asarray, ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.creation import prepare
 
-
+from spyops.geometry.compare import remove_repeats
 from spyops.geometry.planar import planarize
 from spyops.geometry.util import get_geoms_iter, get_validity
 from spyops.geometry.validate import (
@@ -101,10 +101,10 @@ def _multi_polygon(features: FeatureClass | ndarray, select_sql: str | None,
         return MultiPolygon()
     multi = planarize(geoms)
     if not hasattr(multi, GEOMS_ATTR):
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         multi = MultiPolygon([multi])
     prepare(multi)
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return multi
 # End _multi_polygon function
 
@@ -157,7 +157,7 @@ def _dissolve_point(geoms: ndarray | list, grid_size: GRID_SIZE) -> MultiPoint:
     points = planarize(geoms, grid_size=grid_size)
     if isinstance(points, MultiPoint):
         return points
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return MultiPoint(get_geoms_iter(points))
 # End _dissolve_point function
 
@@ -165,15 +165,34 @@ def _dissolve_point(geoms: ndarray | list, grid_size: GRID_SIZE) -> MultiPoint:
 def _dissolve_linestring(geoms: ndarray | list,
                          grid_size: GRID_SIZE) -> MultiLineString:
     """
-    Dissolve LineStrings (combining done during extend_records via the
-    geometry configuration combiner)
+    Dissolve LineStrings
+
+    This is merely the preparation step since combining is done during
+    extend_records via the geometry configuration combiner.
     """
     lines = planarize(geoms, grid_size=grid_size)
     if isinstance(lines, MultiLineString):
         return lines
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return MultiLineString(get_geoms_iter(lines))
 # End _dissolve_linestring function
+
+
+def join_linestring(geoms: ndarray | list,
+                    grid_size: GRID_SIZE) -> MultiLineString:
+    """
+    Join LineStrings at end points. Use remove_repeats to apply the grid size
+    and reduce processing by dropping repeated geometries.
+
+    This is merely the preparation step since combining is done during
+    extend_records via the geometry configuration combiner.
+    """
+    lines = []
+    geoms = remove_repeats(geoms, grid_size=grid_size)
+    for geom in geoms:
+        lines.extend(get_geoms_iter(geom))
+    return MultiLineString(lines)
+# End join_linestring function
 
 
 def _dissolve_polygon(geoms: ndarray | list,
@@ -184,7 +203,7 @@ def _dissolve_polygon(geoms: ndarray | list,
     polys = planarize(geoms, grid_size=grid_size)
     if isinstance(polys, MultiPolygon):
         return polys
-    # noinspection PyTypeChecker
+    # noinspection bad-argument-type
     return MultiPolygon(get_geoms_iter(polys))
 # End _dissolve_polygon function
 

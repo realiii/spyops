@@ -227,7 +227,7 @@ class AbstractQueryGeoJSONToFeatures(AbstractSourceQuery):
         """
         Initialize the AbstractQueryGeoJSONToFeatures class
         """
-        # noinspection PyTypeChecker
+        # noinspection bad-argument-type
         super().__init__(source=None, target=target)
         self._source: Path = source
     # End init built-in
@@ -513,7 +513,7 @@ class QueryGeoJSONToFeaturesPoint(AbstractQueryGeoJSONToFeatures):
             coords = feature[GEOMETRY_KEY][COORDINATES_KEY]
             coords = self._adjust_coordinates(coords, count)
             attrs = feature[PROPERTIES_KEY].values()
-            # noinspection PyTypeChecker
+            # noinspection bad-argument-type
             geom = cls.from_tuple(coords, srs_id=srs_id)
             records.append((geom, *attrs))
         return self._make_shapely_records(records)
@@ -695,7 +695,7 @@ def geojson_query_factory(path: Path, geometry_type: GeoJSONGeometryType) \
     prefix = f'{multi}{UNDERSCORE}'
     types = ShapeType.point, ShapeType.linestring, ShapeType.polygon
     lut = {t.casefold(): f'{prefix}{t.casefold()}' for t in types}
-    # noinspection PyProtectedMember
+    # noinspection protected-member
     features = AbstractQueryGeoJSONToFeatures._valid_features(features)
     shape_types = [f[GEOMETRY_KEY][TYPE_KEY].casefold() for f in features]
     counter = Counter(shape_types)

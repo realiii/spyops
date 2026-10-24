@@ -538,7 +538,7 @@ def _equidistant_transformers(crs: 'CRS', equidistant_crs: 'CRS',
     from_equidistant = make_transformer_function(
         shape_type=target_shape_type, has_z=has_z, has_m=has_m,
         transformer=from_equidistant_transformer)
-    # noinspection PyTypeChecker
+    # noinspection bad-return
     return to_equidistant, from_equidistant
 # End _equidistant_transformers function
 
