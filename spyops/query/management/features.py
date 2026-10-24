@@ -40,6 +40,7 @@ from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
+from spyops.geometry.multi import join_linestring
 from spyops.geometry.segment import GEOMETRY_SEGMENT
 from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
@@ -49,6 +50,7 @@ from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
     AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
     QueryFeatureIntermediate)
+from spyops.query.management.shared import AbstractQueryDissolveStatistics
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.constant import DRID, EMPTY
 from spyops.shared.enumeration import (
@@ -2000,6 +2002,19 @@ class QueryAdjust3DZ(AbstractSourceUpdateQuery):
         return partial(adjust_z, adjuster=self._adjuster)
     # End z_adjuster property
 # End QueryAdjust3DZ class
+
+
+class QueryUnsplitLine(AbstractQueryDissolveStatistics):
+    """
+    Queries for Unsplit Line
+    """
+    def _get_builder(self, shape_type: str) -> Callable:
+        """
+        Get Builder
+        """
+        return partial(join_linestring, grid_size=self.grid_size)
+    # End _get_builder method
+# End QueryUnsplitLine class
 
 
 if __name__ == '__main__':  # pragma: no cover

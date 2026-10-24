@@ -23,6 +23,7 @@ from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
     AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
     QueryFeatureIntermediate)
+from spyops.query.management.shared import AbstractQueryDissolveStatistics
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -391,3 +392,7 @@ class QueryAdjust3DZ(AbstractSourceUpdateQuery):
     def __init__(self, source: FeatureClass, adjuster: Callable[['ndarray'], 'ndarray'], where_clause: str) -> None: ...
     @property
     def z_adjuster(self) -> Callable: ...
+
+
+class QueryUnsplitLine(AbstractQueryDissolveStatistics):
+    def _get_builder(self, shape_type: str) -> Callable: ...
