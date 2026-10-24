@@ -165,8 +165,10 @@ def _dissolve_point(geoms: ndarray | list, grid_size: GRID_SIZE) -> MultiPoint:
 def _dissolve_linestring(geoms: ndarray | list,
                          grid_size: GRID_SIZE) -> MultiLineString:
     """
-    Dissolve LineStrings (combining done during extend_records via the
-    geometry configuration combiner)
+    Dissolve LineStrings
+
+    This is merely the preparation step since combining is done during
+    extend_records via the geometry configuration combiner.
     """
     lines = planarize(geoms, grid_size=grid_size)
     if isinstance(lines, MultiLineString):
