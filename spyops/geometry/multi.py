@@ -11,7 +11,7 @@ from numpy import asarray, ndarray
 from shapely import MultiLineString, MultiPoint, MultiPolygon, force_2d
 from shapely.creation import prepare
 
-
+from spyops.geometry.compare import remove_repeats
 from spyops.geometry.planar import planarize
 from spyops.geometry.util import get_geoms_iter, get_validity
 from spyops.geometry.validate import (
@@ -174,6 +174,23 @@ def _dissolve_linestring(geoms: ndarray | list,
     # noinspection bad-argument-type
     return MultiLineString(get_geoms_iter(lines))
 # End _dissolve_linestring function
+
+
+def join_linestring(geoms: ndarray | list,
+                    grid_size: GRID_SIZE) -> MultiLineString:
+    """
+    Join LineStrings at end points. Use remove_repeats to apply the grid size
+    and reduce processing by dropping repeated geometries.
+
+    This is merely the preparation step since combining is done during
+    extend_records via the geometry configuration combiner.
+    """
+    lines = []
+    geoms = remove_repeats(geoms, grid_size=grid_size)
+    for geom in geoms:
+        lines.extend(get_geoms_iter(geom))
+    return MultiLineString(lines)
+# End join_linestring function
 
 
 def _dissolve_polygon(geoms: ndarray | list,
