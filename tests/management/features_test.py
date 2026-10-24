@@ -20,21 +20,20 @@ from spyops.environment.core import zm_config
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.management import (
     add_xy_coordinates, adjust_3d_z, calculate_geometry_attributes,
-    copy_features,
-    delete_features, feature_envelope_to_polygon, feature_to_line,
-    feature_to_point,
-    feature_vertices_to_points, multipart_to_singlepart, points_to_line,
-    polygon_to_line,
-    split_line_at_vertices, xy_to_line, check_geometry,
+    copy_features, delete_features, feature_envelope_to_polygon,
+    feature_to_line, feature_to_point, feature_vertices_to_points,
+    multipart_to_singlepart, points_to_line, polygon_to_line,
+    split_line_at_vertices, unsplit_line, xy_to_line, check_geometry,
     minimum_bounding_geometry, repair_geometry, xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI, WGS84
 from spyops.management.features import feature_to_polygon
 from spyops.shared.enumeration import (
     AttributeSource, GeometryAttribute, GeometryCheck, GroupOption,
-    LineTypeOption,
-    MinimumGeometryOption, PointTypeOption, WeightOption)
+    LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
 from spyops.shared.field import ORIG_FID, POINT_M, POINT_X, POINT_Y, POINT_Z
 from spyops.shared.sort import Ascending
+from spyops.shared.stats import Average
+
 
 from tests.util import UseGrids
 
@@ -2404,6 +2403,131 @@ class TestAdjust3DZ:
         assert len(source) == count
     # End test_adder method
 # End TestAdjust3DZ class
+
+
+class TestUnsplitLine:
+    """
+    Test Unsplit Line
+    """
+    @mark.slow
+    @mark.parametrize('fc_name, as_multi_part, count', [
+        ('roads_l', True, 198),
+        ('roads_l', False, 43_564),
+        ('roads_mp_l', True, 198),
+        ('roads_mp_l', False, 106_116),
+    ])
+    def test_line(self, world_features, mem_gpkg, fc_name, as_multi_part, count):
+        """
+        Test dissolve using lines
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        fields = 'ISO_CC',
+        stats = Average(source.primary_key_field),
+        result = unsplit_line(
+            source, target=target, group_fields=fields, statistics=stats,
+            as_multi_part=as_multi_part)
+        assert result.is_multi_part is as_multi_part
+        assert len(result) == count
+    # End test_line method
+
+    @mark.slow
+    @mark.parametrize('fc_name, fields, as_multi_part, count', [
+        ('road_seg_l', ('NID',), True, 336_572),
+        ('road_seg_l', ('TRAFFICDIR',), True, 4),
+        ('road_seg_l', ('PAVSTATUS',), True, 2),
+        ('road_seg_l', ('REVDATE',), True, 159),
+        ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), True, 8),
+        ('road_seg_l', ('NID',), False, 336_572),
+        ('road_seg_l', ('TRAFFICDIR',), False, 272_051),
+        ('road_seg_l', ('PAVSTATUS',), False, 348_159),
+        ('road_seg_l', ('REVDATE',), False, 264_118),
+        ('road_seg_l', ('PAVSTATUS', 'TRAFFICDIR'), False, 289_031),
+    ])
+    def test_line_nrn(self, nrn_geopackage, mem_gpkg, fc_name, fields, as_multi_part, count):
+        """
+        Test dissolve using lines and NRN dataset
+        """
+        source = nrn_geopackage[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        result = unsplit_line(
+            source, target=target, group_fields=fields, statistics=[],
+            as_multi_part=as_multi_part)
+        assert result.is_multi_part is as_multi_part
+        assert len(result) == count
+    # End test_line_nrn method
+
+    @mark.parametrize('fc_name, as_multi_part, count', [
+        ('roads_l', True, 18),
+        ('roads_l', False, 625),
+        param('roads_mp_l', True, 23, marks=mark.slow),
+        param('roads_mp_l', False, 28_231, marks=mark.slow),
+    ])
+    @mark.parametrize('xy_tolerance', [
+        0.000_001,
+    ])
+    def test_line_extent(self, world_features, mem_gpkg, fc_name, as_multi_part, count, xy_tolerance):
+        """
+        Test dissolve using lines and Extent
+        """
+        source = world_features[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        fields = 'ISO_CC',
+        stats = Average(source.primary_key_field),
+        with Swap(Setting.EXTENT, Extent.from_bounds(-12.5, 7, 15, 27, crs=WGS84)):
+            result = unsplit_line(
+                source, target=target, group_fields=fields, statistics=stats,
+                as_multi_part=as_multi_part, xy_tolerance=xy_tolerance)
+        assert result.is_multi_part is as_multi_part
+        assert len(result) == count
+    # End test_line_extent method
+
+    @mark.zm
+    @mark.transform
+    @mark.parametrize('fc_name, auth_name, srs_id, flag, extent, count', [
+        ('transmission_4617_m_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5), 4),
+        ('transmission_4617_z_l', EPSG, 2955, False, (674555.1875, 5652839.5, 710282.9375, 5681615.5), 4),
+        ('transmission_4617_m_l', ESRI, 102179, False, (34973.9453125, 5647476.0, 70037.765625, 5675522.0), 4),
+        ('transmission_4617_z_l', ESRI, 102179, False, (34973.9453125, 5647476.0, 70037.765625, 5675522.0), 4),
+        ('transmission_4617_m_l', ESRI, 102179, True, (34970.6953125, 5647467.0, 70035.03125, 5675514.0), 4),
+        ('transmission_4617_z_l', ESRI, 102179, True, (34970.6953125, 5647467.0, 70035.03125, 5675514.0), 4),
+    ])
+    @mark.parametrize('output_z', [
+        OutputZOption.SAME,
+        param(OutputZOption.ENABLED, marks=mark.large),
+        param(OutputZOption.DISABLED, marks=mark.large),
+    ])
+    @mark.parametrize('output_m', [
+        OutputMOption.SAME,
+        param(OutputMOption.ENABLED, marks=mark.large),
+        param(OutputMOption.DISABLED, marks=mark.large),
+    ])
+    def test_output_crs(self, ntdb_zm_small, mem_gpkg, fc_name, auth_name,
+                        srs_id, flag, extent, count, output_z, output_m):
+        """
+        Test select with output CRS and different input spatial reference systems
+        """
+        source = ntdb_zm_small[fc_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
+        fields = 'ENTITY', 'ENTITY_NAME', 'DATANAME'
+        stats = Average('ACCURACY'),
+        crs = CRS.from_authority(auth_name=auth_name, code=srs_id)
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs),
+              Swap(Setting.OUTPUT_Z_OPTION, output_z),
+              Swap(Setting.OUTPUT_M_OPTION, output_m),
+              Swap(Setting.Z_VALUE, 123.456),
+              UseGrids(flag)):
+            zm = zm_config(source)
+            result = unsplit_line(
+                source, target=target, group_fields=fields, statistics=stats)
+            assert result.spatial_reference_system.srs_id == srs_id
+            assert result.spatial_reference_system.org_coord_sys_id == srs_id
+            assert len(result) == count
+            assert approx(result.extent, abs=0.001) == extent
+            assert result.has_z == zm.z_enabled
+            assert result.has_m == zm.m_enabled
+    # End test_output_crs method
+# End TestUnsplitLine class
 
 
 if __name__ == '__main__':  # pragma: no cover
