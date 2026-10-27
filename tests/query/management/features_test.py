@@ -20,6 +20,7 @@ from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.geometry.config import GeometryConfig
+from spyops.geometry.util import to_shapely
 from spyops.query.management.features import (
     QueryAddXYCoordinates, QueryAdjust3DZ, QueryCalculateGeometryAttributes,
     QueryCheckGeometry, QueryFeatureEnvelopeToPolygon, QueryFeatureToLine,
@@ -28,7 +29,8 @@ from spyops.query.management.features import (
     QueryMinimumBoundingGeometryNone, QueryMultiPartToSinglePart,
     QueryPointsToLineBoth, QueryPointsToLineEnd, QueryPointsToLineNone,
     QueryPointsToLineStart, QueryPolygonToLine, QueryRepairGeometry,
-    QuerySplitLineAtVertices, QueryXYTableLine, QueryXYTablePoint)
+    QuerySplitLineAtPoint, QuerySplitLineAtVertices, QueryXYTableLine,
+    QueryXYTablePoint)
 from spyops.query.base import QueryFeatureIntermediate
 from spyops.shared.enumeration import (
     GeometryAttribute, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -1534,6 +1536,189 @@ class TestQueryAdjust3DZ:
         assert 'WHERE grid_zm_a.fid = temp.tmp_grid_zm_a_' in sql
     # End test_update method
 # End TestQueryAdjust3DZ class
+
+
+class TestQuerySplitLineAtPoint:
+    """
+    Test Query Split Line at Point
+    """
+    @mark.parametrize('distance, expected', [
+        (10, 10),
+        (None, None),
+        (0, 0),
+    ])
+    def test_max_distance(self, ntdb_zm_small, distance, expected):
+        """
+        Test max distance
+        """
+        source = ntdb_zm_small['transmission_l']
+        query = QuerySplitLineAtPoint(
+            source, target=None, operator=None, distance=distance,
+            xy_tolerance=None, where_clause='')
+        assert query._distance == expected
+        assert query._max_distance == expected
+    # End test_max_distance method
+
+    def test_get_unique_fields(self, ntdb_zm_small):
+        """
+        Test get unique fields
+        """
+        source = ntdb_zm_small['transmission_l']
+        query = QuerySplitLineAtPoint(
+            source, target=None, operator=None, distance=None,
+            xy_tolerance=None, where_clause='')
+        assert [f.name for f in query._get_unique_fields()] == [
+            'ORIG_FID', 'ORIG_SEQ', 'FEATURE_ID', 'PART_ID', 'ENTITY',
+            'ENTITY_NAME', 'VALDATE', 'PROVIDER', 'DATANAME', 'ACCURACY',
+            'FILE_NAME', 'CODE']
+    # End test_get_unique_fields method
+
+    def test_get_target_shape_type(self, ntdb_zm_small):
+        """
+        Test get target shape type
+        """
+        source = ntdb_zm_small['transmission_l']
+        query = QuerySplitLineAtPoint(
+            source, target=None, operator=None, distance=None,
+            xy_tolerance=None, where_clause='')
+        assert query._get_target_shape_type() == ShapeType.linestring
+    # End test_get_target_shape_type method
+
+    def test_select(self, ntdb_zm_small):
+        """
+        Test select
+        """
+        source = ntdb_zm_small['transmission_l']
+        query = QuerySplitLineAtPoint(
+            source, target=None, operator=None, distance=None,
+            xy_tolerance=None, where_clause='')
+        assert query.select.strip().startswith(
+            'SELECT SHAPE "[LineString]", fid, FEATURE_ID, ')
+    # End test_select method
+
+    def test_insert(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test insert
+        """
+        source = ntdb_zm_small['transmission_l']
+        operator = ntdb_zm_small['structures_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='test')
+        query = QuerySplitLineAtPoint(
+            source, target=target, operator=operator, distance=None,
+            xy_tolerance=None, where_clause='')
+        assert query.insert.strip().startswith(
+            'INSERT INTO test(SHAPE, ORIG_FID, ORIG_SEQ, FEATURE_ID')
+    # End test_insert method
+
+    def test_geometry(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test geometry
+        """
+        source = ntdb_zm_small['transmission_l']
+        operator = ntdb_zm_small['structures_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='test')
+        query = QuerySplitLineAtPoint(
+            source, target=target, operator=operator, distance=None,
+            xy_tolerance=None, where_clause='')
+        count = 3912
+        assert len(operator) == count
+        assert len(query.geometry.geoms) == count
+        assert len(query._tree.geometries) == count
+    # End test_geometry method
+
+    @mark.parametrize('distance, empties', [
+        (None, 0),
+        (2000, 21),
+    ])
+    def test_build_points_lookup(self, ntdb_zm_small, mem_gpkg, distance, empties):
+        """
+        Test build points lookup
+        """
+        source = ntdb_zm_small['transmission_10tm_l']
+        operator = ntdb_zm_small['toponymy_10tm_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='test')
+        query = QuerySplitLineAtPoint(
+            source, target=target, operator=operator, distance=distance,
+            xy_tolerance=None, where_clause='')
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            assert len(features) == 66
+            features, geoms = to_shapely(
+                features, transformer=query.source_transformer)
+            lookup = query._build_points_lookup(geoms)
+            assert len(lookup) == len(features)
+            assert sum(not pts for pts in lookup.values()) == empties
+    # End test_build_points_lookup method
+
+    @mark.parametrize('distance, count', [
+        (None, 66),
+        (0, 66),
+        (2000, 73),
+        (10_000, 105),
+    ])
+    def test_split_lines(self, ntdb_zm_small, mem_gpkg, distance, count):
+        """
+        Test split lines
+        """
+        source = ntdb_zm_small['transmission_10tm_l']
+        operator = ntdb_zm_small['toponymy_10tm_p']
+        target = FeatureClass(geopackage=mem_gpkg, name='test')
+        query = QuerySplitLineAtPoint(
+            source, target=target, operator=operator, distance=distance,
+            xy_tolerance=None, where_clause='')
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            assert len(features) == 66
+            results = query.split_lines(features)
+            assert len(results) == count
+    # End test_split_lines method
+
+    @mark.parametrize('source_name, operator_name, distance, count', [
+        ('transmission_10tm_l', 'toponymy_10tm_p', None, 66),
+        ('transmission_10tm_l', 'toponymy_10tm_p', 0, 66),
+        ('transmission_10tm_l', 'toponymy_10tm_p', 2000, 73),
+        ('transmission_10tm_l', 'toponymy_10tm_p', 10_000, 105),
+        ('transmission_10tm_l', 'toponymy_10tm_mp', None, 66),
+        ('transmission_10tm_l', 'toponymy_10tm_mp', 2000, 73),
+    ])
+    def test_split_lines(self, ntdb_zm_small, mem_gpkg, source_name, operator_name, distance, count):
+        """
+        Test split lines
+        """
+        source = ntdb_zm_small[source_name]
+        operator = ntdb_zm_small[operator_name]
+        target = FeatureClass(geopackage=mem_gpkg, name='test')
+        query = QuerySplitLineAtPoint(
+            source, target=target, operator=operator, distance=distance,
+            xy_tolerance=None, where_clause='')
+        with query.source.geopackage.connection as cin:
+            cursor = cin.execute(query.select)
+            features = cursor.fetchall()
+            assert len(features) == 66
+            results = query.split_lines(features)
+            assert len(results) == count
+    # End test_split_lines method
+
+    @mark.parametrize('source_name, operator_name, has_zm', [
+        ('transmission_10tm_l', 'toponymy_10tm_p', (False, False)),
+        ('transmission_10tm_l', 'toponymy_10tm_zm_mp', (False, False)),
+        ('transmission_10tm_zm_l', 'toponymy_10tm_p', (True, True)),
+        ('transmission_10tm_zm_l', 'toponymy_10tm_zm_mp', (True, True)),
+    ])
+    def test_zm(self, ntdb_zm_small, source_name, operator_name, has_zm):
+        """
+        Test ZM
+        """
+        source = ntdb_zm_small[source_name]
+        operator = ntdb_zm_small[operator_name]
+        query = QuerySplitLineAtPoint(
+            source, target=None, operator=operator, distance=None,
+            xy_tolerance=None, where_clause='')
+        assert query._has_zm == has_zm
+    # End test_zm method
+# End TestQuerySplitLineAtPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
