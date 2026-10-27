@@ -989,8 +989,9 @@ def split_line_at_point(source: 'FeatureClass', operator: 'FeatureClass',
 
     Split line features based on intersection and/or distance to point features.
     When distance is specified all the points within that distance from a line
-    are used to split the line.  When distance is not specified (e.g. 0 or None)
-    only the closest point to each line is used.
+    are used to split the line.  When distance is not specified (e.g. None)
+    only the closest point to each line is used.  When distance is 0 then only
+    the points that intersect the line are used.
     """
     records = []
     query = QuerySplitLineAtPoint(
