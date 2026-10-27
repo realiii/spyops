@@ -29,14 +29,14 @@ from spyops.query.management.features import (
     QueryMinimumBoundingGeometryList, QueryMinimumBoundingGeometryNone,
     QueryMultiPartToSinglePart, QueryPointsToLineBoth, QueryPointsToLineEnd,
     QueryPointsToLineNone, QueryPointsToLineStart, QueryPolygonToLine,
-    QueryRepairGeometry, QuerySplitLineAtVertices, QueryUnsplitLine,
-    QueryXYTableLine, QueryXYTablePoint)
+    QueryRepairGeometry, QuerySplitLineAtPoint, QuerySplitLineAtVertices,
+    QueryUnsplitLine, QueryXYTableLine, QueryXYTablePoint)
 from spyops.shared.keywords import (
-    AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, END_X_FIELD,
-    END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE, GROUP_FIELDS,
-    GROUP_OPTION, LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD, POINT_COUNT,
-    POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD, START_Y_FIELD,
-    STATISTICS, TARGET, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
+    AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, DISTANCE_ARG,
+    END_X_FIELD, END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE,
+    GROUP_FIELDS, GROUP_OPTION, LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD,
+    POINT_COUNT, POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD,
+    START_Y_FIELD, STATISTICS, TARGET, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
     AttributeSource, DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck,
     GroupOption, LineTypeOption, MinimumGeometryOption, PointTypeOption,
@@ -45,13 +45,14 @@ from spyops.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_MULTI, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, FIELD_NAMES, OPT_FIELD_STR, SORT_FIELDS,
-    STATS_FIELDS, XY_TOL)
+    STATS_FIELDS, UNIT_INPUT, XY_TOL)
 from spyops.shared.records import (
     extend_records, insert_many_features, select_transform_insert)
 from spyops.validation import (
     validate_coordinate_system, validate_feature_classes, validate_field,
     validate_geometry_group_option, validate_group_option,
-    validate_int_flag_enumeration, validate_overwrite_input, validate_range,
+    validate_int_flag_enumeration, validate_linear_unit,
+    validate_operator_feature_class, validate_overwrite_input, validate_range,
     validate_sort_field, validate_source_element, validate_source_numeric_field,
     validate_statistic_field, validate_str_enumeration, validate_feature_class,
     validate_geometry_attribute, validate_overwrite_source, validate_result,
@@ -71,7 +72,7 @@ __all__ = [
     'feature_envelope_to_polygon', 'minimum_bounding_geometry',
     'feature_to_point', 'feature_vertices_to_points', 'split_line_at_vertices',
     'polygon_to_line', 'feature_to_polygon', 'feature_to_line',
-    'points_to_line', 'adjust_3d_z', 'unsplit_line']
+    'points_to_line', 'adjust_3d_z', 'unsplit_line', 'split_line_at_point']
 
 
 @validate_result()
@@ -968,6 +969,47 @@ def unsplit_line(source: 'FeatureClass', target: 'FeatureClass',
                 records.clear()
     return query.target
 # End unsplit_line function
+
+
+@validate_result()
+@validate_source_feature_class(geometry_types=GEOM_TYPE_LINES)
+@validate_operator_feature_class(geometry_types=GEOM_TYPE_POINTS)
+@validate_target_feature_class()
+@validate_linear_unit(DISTANCE_ARG, feature_class_name=SOURCE,
+                      as_number=True, is_optional=True)
+@validate_xy_tolerance()
+@validate_overwrite_source()
+def split_line_at_point(source: 'FeatureClass', operator: 'FeatureClass',
+                        target: 'FeatureClass', *,
+                        distance: UNIT_INPUT | None = None,
+                        where_clause: str = '',
+                        xy_tolerance: XY_TOL = None) -> 'FeatureClass':
+    """
+    Split Line at Point
+
+    Split line features based on intersection and/or distance to point features.
+    When distance is specified all the points within that distance from a line
+    are used to split the line.  When distance is not specified (e.g. None)
+    only the closest point to each line is used.  When distance is 0 then only
+    the points that intersect the line are used.
+    """
+    records = []
+    query = QuerySplitLineAtPoint(
+        source, operator=operator, target=target, distance=distance,
+        where_clause=where_clause, xy_tolerance=xy_tolerance)
+    insert_sql = query.insert
+    config = query.geometry_config
+    with (query.source.geopackage.connection as cin,
+          query.target.geopackage.connection as cout,
+          ExecuteMany(connection=cout, table=query.target) as executor):
+        cursor = cin.execute(query.select)
+        while features := cursor.fetchmany(FETCH_SIZE):
+            results = query.split_lines(features)
+            extend_records(results, records=records, config=config)
+            executor(sql=insert_sql, data=records)
+            records.clear()
+    return query.target
+# End split_line_at_point function
 
 
 explode: Callable[['FeatureClass', 'FeatureClass'], 'FeatureClass'] = multipart_to_singlepart

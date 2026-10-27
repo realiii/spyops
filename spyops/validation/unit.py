@@ -34,7 +34,8 @@ class ValidateLinearUnit(AbstractValidate):
     Validate Linear Unit
     """
     def __init__(self, name: str, *, feature_class_name: str,
-                 as_number: bool = False, use_source_crs: bool = True) -> None:
+                 as_number: bool = False, use_source_crs: bool = True,
+                 is_optional: bool = False) -> None:
         """
         Initialize the ValidateLinearUnit class
 
@@ -46,12 +47,15 @@ class ValidateLinearUnit(AbstractValidate):
         :param use_source_crs: If True, the unit will be returned in the
             coordinate system of the feature class, otherwise in the output
             coordinate system
+        :param is_optional: If True, the unit will be returned as None if the
+            value is None
         """
         super().__init__()
         self._name: str = name
         self._feature_class_name: str = feature_class_name
         self._as_number: bool = as_number
         self._use_source_crs: bool = use_source_crs
+        self._is_optional: bool = is_optional
     # End init built-in
 
     def __call__(self, func: Callable) -> Callable:
@@ -81,19 +85,23 @@ class ValidateLinearUnit(AbstractValidate):
         return kwargs[self._name]
     # End _get_object method
 
-    def _set_object(self, obj: UNIT, kwargs: dict[str, Any]) -> None:
+    def _set_object(self, obj: UNIT | float | None,
+                    kwargs: dict[str, Any]) -> None:
         """
         Set Object into the kwargs
         """
         kwargs[self._name] = obj
     # End _set_object method
 
-    def _validate_value(self, obj: UNIT_TOLERANCE,
-                        feature_class: 'FeatureClass') -> UNIT | float:
+    def _validate_value(self, obj: UNIT_TOLERANCE | None,
+                        feature_class: 'FeatureClass') \
+            -> UNIT | float| None:
         """
         Validate Value
         """
         if not isinstance(obj, (LinearUnit, DecimalDegrees, float, int, str)):
+            if self._is_optional and obj is None:
+                return None
             raise TypeError(f'Invalid type for {self._name}: {type(obj)}')
         unit = obj
         if isinstance(obj, (float, int)):

@@ -15,14 +15,15 @@ from fudgeo import (
     FeatureClass, Field, SpatialReferenceSystem, Table)
 from numpy import ndarray
 from pyproj import CRS
-from shapely import Polygon, Point as ShapelyPoint, LineString
+from shapely import Polygon, Point as ShapelyPoint, LineString, MultiPoint
+from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment.core import HasZM, ZMConfig
 from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
-    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
-    QueryFeatureIntermediate)
+    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses,
+    AbstractSpatialQuery, BaseQuerySelect, QueryFeatureIntermediate)
 from spyops.query.management.shared import AbstractQueryDissolveStatistics
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.enumeration import (
@@ -396,3 +397,33 @@ class QueryAdjust3DZ(AbstractSourceUpdateQuery):
 
 class QueryUnsplitLine(AbstractQueryDissolveStatistics):
     def _get_builder(self, shape_type: str) -> Callable: ...
+
+
+
+class QuerySplitLineAtPoint(AbstractSpatialQuery):
+
+    _distance: float | None
+
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass, *, distance: float | None,
+                 xy_tolerance: XY_TOL, where_clause: str) -> None: ...
+    @cached_property
+    def _max_distance(self) -> float | None: ...
+    def _get_unique_fields(self) -> FIELDS: ...
+    def _get_target_shape_type(self) -> str: ...
+    def split_lines(self, features: list[tuple]) -> list[tuple]: ...
+    @staticmethod
+    def _split_lines(features: list[tuple], geoms: ndarray, line_points: dict[int, list[ShapelyPoint]]) -> list[tuple]: ...
+    def _build_points_lookup(self, geoms: ndarray) -> dict[int, list[ShapelyPoint]]: ...
+    @cached_property
+    def zm_config(self) -> ZMConfig: ...
+    @property
+    def _has_zm(self) -> HasZM: ...
+    @property
+    def select(self) -> str: ...
+    @cached_property
+    def _tree(self) -> STRtree: ...
+    @cached_property
+    def geometry(self) -> MultiPoint | None: ...
+    @property
+    def insert(self) -> str: ...

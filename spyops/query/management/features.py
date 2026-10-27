@@ -8,19 +8,20 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Callable, Generator, TYPE_CHECKING, Union
+from typing import Any, Callable, Generator, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
 from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.geometry import Point
-from numpy import array
+from numpy import array, arange
 from pyproj import CRS
 from shapely import (
-    GeometryCollection, LineString, Point as ShapelyPoint, Polygon,
-    get_num_coordinates, get_num_geometries)
+    GeometryCollection, LineString, MultiLineString, MultiPoint,
+    Point as ShapelyPoint, Polygon, get_num_coordinates, get_num_geometries)
+# noinspection unresolved-references,protected-member
+from shapely.constructive import split
 from shapely.coordinates import get_coordinates
-from shapely.geometry.multilinestring import MultiLineString
 from shapely.strtree import STRtree
 
 from spyops.crs.enumeration import AreaUnit, LengthUnit
@@ -29,6 +30,7 @@ from spyops.crs.util import get_crs_from_source, srs_from_crs
 from spyops.environment import ANALYSIS_SETTINGS, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import HasZM, ZMConfig, zm_config
+from spyops.environment.util import get_grid_size
 from spyops.geometry.adjust import GEOMETRY_ADJUST_Z
 from spyops.geometry.attribute import (
     area_geodesic, area_planar, get_hole_count, get_inside_xy, length_geodesic,
@@ -40,16 +42,17 @@ from spyops.geometry.extent import (
     extent_from_geometry, extent_from_parts, extent_maximum, extent_minimum)
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.minimum import GEOMETRY_MINIMUM, GEOMETRY_MINIMUM_ATTRS
-from spyops.geometry.multi import join_linestring
+from spyops.geometry.multi import build_multi, join_linestring
 from spyops.geometry.segment import GEOMETRY_SEGMENT
 from spyops.geometry.util import filter_features, get_geoms_iter, to_shapely
 from spyops.geometry.vertex import (
     GEOMETRY_VERTICES_ALL, GEOMETRY_VERTICES_BOTH_ENDS, GEOMETRY_VERTICES_END,
     GEOMETRY_VERTICES_MIDDLE, GEOMETRY_VERTICES_START)
+from spyops.geometry.wa.sp import set_precision
 from spyops.query.base import (
     AbstractQueryFeatureClassesPolygon, AbstractQueryGroup, AbstractSourceQuery,
-    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses, BaseQuerySelect,
-    QueryFeatureIntermediate)
+    AbstractSourceUpdateQuery, AbstractQueryFeatureClasses,
+    AbstractSpatialQuery, BaseQuerySelect, QueryFeatureIntermediate)
 from spyops.query.management.shared import AbstractQueryDissolveStatistics
 from spyops.query.mixin import DropEmptyMixin
 from spyops.shared.constant import DRID, EMPTY
@@ -2015,6 +2018,158 @@ class QueryUnsplitLine(AbstractQueryDissolveStatistics):
         return partial(join_linestring, grid_size=self.grid_size)
     # End _get_builder method
 # End QueryUnsplitLine class
+
+
+class QuerySplitLineAtPoint(AbstractSpatialQuery):
+    """
+    Query Split Line at Point
+    """
+    def __init__(self, source: FeatureClass, target: FeatureClass,
+                 operator: FeatureClass, *, distance: float | None,
+                 xy_tolerance: XY_TOL, where_clause: str) -> None:
+        """
+        Initialize the QuerySplitLineAtPoint class
+        """
+        super().__init__(source, operator=operator, target=target,
+                         xy_tolerance=xy_tolerance, where_clause=where_clause)
+        self._distance: float | None = distance
+    # End init built-in
+
+    @cached_property
+    def _max_distance(self) -> float | None:
+        """
+        Max Distance
+        """
+        return get_grid_size(
+            source=self.source, xy_tolerance=self._distance,
+            target_srs=self.spatial_reference_system)
+    # End _max_distance property
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields and add ORIG_FID and ORIG_SEQ
+        """
+        fields = validate_fields(self.source, fields=self.source.fields)
+        return add_key_fields(list(fields), [ORIG_FID, ORIG_SEQ])
+    # End _get_unique_fields method
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    def split_lines(self, features: list[tuple]) -> list[tuple]:
+        """
+        Split Lines
+        """
+        features, geoms = to_shapely(
+            features, transformer=self.source_transformer)
+        if self.grid_size is not None:
+            geoms = set_precision(geoms, grid_size=self.grid_size)
+        line_points = self._build_points_lookup(geoms)
+        return self._split_lines(features, geoms, line_points)
+    # End split_lines method
+
+    @staticmethod
+    def _split_lines(features: list[tuple], geoms: 'ndarray',
+                     line_points: dict[int, list[ShapelyPoint]]) -> list[tuple]:
+        """
+        Split Lines
+        """
+        results = []
+        for idx, points in line_points.items():
+            line = geoms[idx]
+            _, *(fid, *attrs) = features[idx]
+            if not points:
+                results.append((line, (fid, 1, *attrs)))
+                continue
+            collection = split(
+                line, MultiPoint(line.interpolate(line.project(points))))
+            for i, geom in enumerate(get_geoms_iter(collection), 1):
+                results.append((geom, (fid, i, *attrs)))
+        return results
+    # End _split_lines method
+
+    def _build_points_lookup(self, geoms: 'ndarray') \
+            -> dict[int, list[ShapelyPoint]]:
+        """
+        Build Points Lookup for each line, key is the line geometry index
+        """
+        if self._max_distance is None:
+            point_indexes = self._tree.nearest(geoms)
+            points = self._tree.geometries[point_indexes]
+            line_points = {idx: [pt] for idx, pt in enumerate(points)}
+        else:
+            # noinspection bad-argument-type
+            line_indexes, point_indexes = self._tree.query(
+                geoms, predicate='dwithin', distance=self._max_distance)
+            points = self._tree.geometries[point_indexes]
+            line_points = defaultdict(list)
+            for idx, pt in zip(line_indexes, points):
+                line_points[idx].append(pt)
+            for idx in (set(arange(len(geoms))) - set(line_indexes)):
+                line_points[idx].extend([])
+        return line_points
+    # End split_lines method
+
+    @cached_property
+    def zm_config(self) -> 'ZMConfig':
+        """
+        ZM Configuration
+        """
+        return zm_config(self.source)
+    # End zm_config property
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM
+        """
+        return HasZM(has_z=self.source.has_z, has_m=self.source.has_m)
+    # End _has_zm property
+
+    @property
+    def select(self) -> str:
+        """
+        Select Statement
+        """
+        return self.select_with_fid
+    # End select property
+
+    @cached_property
+    def _tree(self) -> STRtree:
+        """
+        Tree using input operator points
+        """
+        # noinspection bad-argument-type
+        return STRtree(get_geoms_iter(self.geometry))
+    # End _tree property
+
+    @cached_property
+    def geometry(self) -> MultiPoint | None:
+        """
+        Multi-Part Geometry of the Operator Feature Class
+        """
+        # noinspection bad-return
+        return build_multi(
+            self.operator, select_sql=self.select_operator,
+            transformer=self.operator_transformer)
+    # End geometry property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        elm = self.target
+        field_count, insert_field_names, _ = self._field_names_and_count(elm)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End insert property
+# End QuerySplitLineAtPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover
