@@ -26,7 +26,7 @@ from spyops.management import (
     split_line_at_vertices, unsplit_line, xy_to_line, check_geometry,
     minimum_bounding_geometry, repair_geometry, xy_table_to_point)
 from spyops.crs.constant import EPSG, ESRI, WGS84
-from spyops.management.features import feature_to_polygon
+from spyops.management.features import feature_to_polygon, split_line_at_point
 from spyops.shared.enumeration import (
     AttributeSource, GeometryAttribute, GeometryCheck, GroupOption,
     LineTypeOption, MinimumGeometryOption, PointTypeOption, WeightOption)
@@ -2418,7 +2418,7 @@ class TestUnsplitLine:
     ])
     def test_line(self, world_features, mem_gpkg, fc_name, as_multi_part, count):
         """
-        Test dissolve using lines
+        Test unsplit line
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -2446,7 +2446,7 @@ class TestUnsplitLine:
     ])
     def test_line_nrn(self, nrn_geopackage, mem_gpkg, fc_name, fields, as_multi_part, count):
         """
-        Test dissolve using lines and NRN dataset
+        Test unsplit line
         """
         source = nrn_geopackage[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -2468,7 +2468,7 @@ class TestUnsplitLine:
     ])
     def test_line_extent(self, world_features, mem_gpkg, fc_name, as_multi_part, count, xy_tolerance):
         """
-        Test dissolve using lines and Extent
+        Test unsplit line with Extent
         """
         source = world_features[fc_name]
         target = FeatureClass(geopackage=mem_gpkg, name=fc_name)
@@ -2528,6 +2528,36 @@ class TestUnsplitLine:
             assert result.has_m == zm.m_enabled
     # End test_output_crs method
 # End TestUnsplitLine class
+
+
+class TestSplitLineAtPoint:
+    """
+    Test Split Line at Point
+    """
+    @mark.parametrize('source_name, operator_name, distance, count', [
+        ('transmission_10tm_l', 'toponymy_10tm_p', None, 66),
+        ('transmission_10tm_l', 'toponymy_10tm_p', 0, 66),
+        ('transmission_10tm_l', 'toponymy_10tm_p', 2000, 73),
+        ('transmission_10tm_l', 'toponymy_10tm_p', 10_000, 105),
+        ('transmission_10tm_l', 'toponymy_10tm_mp', None, 66),
+        ('transmission_10tm_l', 'toponymy_10tm_mp', 2000, 73),
+    ])
+    def test_point_no_distance(self, ntdb_zm_small, mem_gpkg, source_name, operator_name, distance, count):
+        """
+        Test splitting with points and no distance
+        """
+        source = ntdb_zm_small[source_name]
+        operator = ntdb_zm_small[operator_name]
+        target = FeatureClass(geopackage=mem_gpkg, name=source_name)
+        crs = CRS(6654)
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, crs):
+            result = split_line_at_point(
+                source, target=target, operator=operator, distance=distance)
+            assert result.has_z == source.has_z
+            assert result.has_m == source.has_m
+            assert len(result) == count
+    # End test_point_no_distance method
+# End TestSplitLineAtPoint class
 
 
 if __name__ == '__main__':  # pragma: no cover

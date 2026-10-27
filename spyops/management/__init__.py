@@ -13,8 +13,8 @@ from spyops.management.features import (
     feature_envelope_to_polygon, feature_to_line, feature_to_point,
     feature_to_polygon, feature_vertices_to_points, minimum_bounding_geometry,
     multipart_to_singlepart, points_to_line, polygon_to_line, repair_geometry,
-    split_line_at_vertices, unsplit_line, xy_table_to_line, xy_table_to_point,
-    xy_to_line)
+    split_line_at_point, split_line_at_vertices, unsplit_line, xy_table_to_line,
+    xy_table_to_point, xy_to_line)
 from spyops.management.fields import (
     add_field, add_gps_metadata_fields, alter_field, calculate_end_time,
     calculate_field, delete_field, field_statistics_to_table, reclassify_field,
@@ -74,6 +74,7 @@ __all__ = [
     'points_to_line',
     'polygon_to_line',
     'repair_geometry',
+    'split_line_at_point',
     'split_line_at_vertices',
     'unsplit_line',
     'xy_table_to_line',
