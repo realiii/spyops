@@ -44,6 +44,15 @@ class DistanceTypeOption(StrEnum):
 # End DistanceTypeOption class
 
 
+class SearchRadiusOption(StrEnum):
+    """
+    Search Radius Options
+    """
+    GEODESIC = auto()
+    PLANAR = auto()
+# End SearchRadiusOption class
+
+
 class SideOption(StrEnum):
     """
     Side Options
