@@ -11,6 +11,7 @@ from pyproj.crs import ProjectedCRS
 from pytest import approx, mark, raises
 
 from spyops.crs.constant import WGS84
+from spyops.environment import Extent
 from tests.constants import (
     CUSTOM_THIRD_PARTY_AUTHORITY,
     NAD_1927_StatePlane_Texas_North_Central_FIPS_4202, NAD_1927_UTM_Zone_15N,
@@ -212,7 +213,8 @@ def test_get_equidistant_from_extent(ntdb_zm_small, name):
     Test get equidistant projection from extent
     """
     source = ntdb_zm_small[name]
-    result = get_equidistant_from_extent(source)
+    extent = Extent.from_feature_class(source)
+    result = get_equidistant_from_extent(extent)
     assert isinstance(result, ProjectedCRS)
 # End test_get_equidistant_from_extent function
 
