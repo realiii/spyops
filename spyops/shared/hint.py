@@ -28,6 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 DISTANCE: TypeAlias = Union[
     'LinearUnit', 'DecimalDegrees', 'Field', str, float, int]
+RADIUS: TypeAlias = DISTANCE
 PLACEMENT: TypeAlias = Union['LinearUnit', 'DecimalDegrees', 'Field', float]
 UNIT: TypeAlias = Union['LinearUnit', 'DecimalDegrees']
 UNIT_INPUT = Union['LinearUnit', 'DecimalDegrees', str, float, int]
