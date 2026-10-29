@@ -83,6 +83,7 @@ END_OPTION: str = 'end_option'
 DISSOLVE_OPTION: str = 'dissolve_option'
 BUFFER_TYPE: str = 'buffer_type'
 RESOLUTION: str = 'resolution'
+RADIUS_ARG: str = 'radius'
 DISTANCE_ARG: str = 'distance'
 DISTANCE_TYPE: str = 'distance_type'
 PLACEMENT: str = 'placement'
@@ -104,6 +105,7 @@ LENGTH: str = 'length'
 WIDTH: str = 'width'
 OVERLAP: str = 'overlap'
 MIN_COUNT: str = 'min_count'
+SEARCH_OPTION: str = 'search_option'
 
 
 if __name__ == '__main__':  # pragma: no cover
