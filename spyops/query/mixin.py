@@ -641,19 +641,15 @@ class CountOverlapMixin:
         return results
     # End _summarize_by_planarized method
 
-    def _build_overlaps_table(self, grouped: defaultdict[int, list[tuple]]) -> None:
+    def _build_overlaps_table(self, grouped: dict[int, list[tuple]]) -> None:
         """
         Build Overlaps table
         """
         if not grouped or not self.overlap_table:
             return
         records = []
-        # noinspection unresolved-references
-        threshold = self._min_count
-        for i, values in grouped.items():
-            if len(values) < threshold:
-                continue
-            records.extend([(i, fid, name) for fid, name in values])
+        for i, (_, attrs) in enumerate(grouped.items(), 1):
+            records.extend([(i, fid, name) for fid, name in attrs])
         tbl = self.overlap_table
         names = [f.escaped_name for f in self._get_overlap_fields()]
         # noinspection SqlInsertValues
