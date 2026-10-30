@@ -584,8 +584,7 @@ class CountOverlapMixin:
 
     def _build_attribute_groups(self, tree: 'STRtree',
                                 queries: list['QueryFeatureIntermediate'],
-                                grid_size: GRID_SIZE) \
-            -> defaultdict[int, list[tuple]]:
+                                grid_size: GRID_SIZE) -> dict[int, list[tuple]]:
         """
         Build Attributes Groups where key is planarized geometry index and
         values are the list of intersecting (fid, fc_name)
@@ -602,7 +601,10 @@ class CountOverlapMixin:
             attributes = [(fid, name) for fid in fids]
             for i, indexes in grouper.items():
                 grouped[i].extend([attributes[idx] for idx in indexes])
-        return grouped
+        # noinspection unresolved-references
+        threshold = self._min_count
+        return {idx: attrs for idx, attrs in grouped.items()
+                if len(attrs) >= threshold}
     # End _build_attribute_groups method
 
     def _add_attributes(self, geometries: list,
