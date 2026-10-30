@@ -8,7 +8,6 @@ from collections import defaultdict
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from operator import itemgetter
 from typing import Callable, Optional, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
@@ -666,8 +665,7 @@ class CountOverlapMixin:
         """
         # noinspection unresolved-references
         with tbl.geopackage.connection as cout:
-            # noinspection bad-argument-type
-            cout.executemany(sql_insert, sorted(records, key=itemgetter(0, 2)))
+            cout.executemany(sql_insert, records)
     # End _build_overlaps_table method
 
     @cached_property
