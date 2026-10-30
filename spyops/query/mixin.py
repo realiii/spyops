@@ -660,7 +660,7 @@ class CountOverlapMixin:
         names = [f.escaped_name for f in self._get_overlap_fields()]
         # noinspection SqlInsertValues
         sql_insert = f"""
-            INSERT INTO {tbl.escaped_name} ({', '.join(names)}) 
+            INSERT INTO {tbl.escaped_name} ({COMMA_SPACE.join(names)}) 
             VALUES (?, ?, ?)
         """
         # noinspection unresolved-references
