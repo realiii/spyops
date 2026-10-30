@@ -622,8 +622,9 @@ class CountOverlapMixin:
         return self._summarize_by_planarized(geometries, grouped)
     # End _add_attributes method
 
-    def _summarize_by_planarized(self, geometries: list,
-                                 grouped: defaultdict[int, list[tuple]]) \
+    @staticmethod
+    def _summarize_by_planarized(geometries: list,
+                                 grouped: dict[int, list[tuple]]) \
             -> list[tuple['BaseGeometry', tuple]]:
         """
         Summarize grouped attributes on a per planarized geometry basis
@@ -631,15 +632,10 @@ class CountOverlapMixin:
         intersecting features.
         """
         results = []
-        # noinspection unresolved-references
-        threshold = self._min_count
-        for i, geom in enumerate(geometries):
-            if i not in grouped:
-                continue
-            _, names = zip(*grouped[i])
+        for idx, attrs in grouped.items():
+            geom = geometries[idx]
+            _, names = zip(*attrs)
             feature_count = len(names)
-            if feature_count < threshold:
-                continue
             fc_count = len(set(names))
             results.append((geom, (feature_count, fc_count)))
         return results
