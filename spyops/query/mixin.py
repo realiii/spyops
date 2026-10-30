@@ -8,7 +8,6 @@ from collections import defaultdict
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from operator import itemgetter
 from typing import Callable, Optional, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
@@ -585,8 +584,7 @@ class CountOverlapMixin:
 
     def _build_attribute_groups(self, tree: 'STRtree',
                                 queries: list['QueryFeatureIntermediate'],
-                                grid_size: GRID_SIZE) \
-            -> defaultdict[int, list[tuple]]:
+                                grid_size: GRID_SIZE) -> dict[int, list[tuple]]:
         """
         Build Attributes Groups where key is planarized geometry index and
         values are the list of intersecting (fid, fc_name)
@@ -603,7 +601,10 @@ class CountOverlapMixin:
             attributes = [(fid, name) for fid in fids]
             for i, indexes in grouper.items():
                 grouped[i].extend([attributes[idx] for idx in indexes])
-        return grouped
+        # noinspection unresolved-references
+        threshold = self._min_count
+        return {idx: attrs for idx, attrs in grouped.items()
+                if len(attrs) >= threshold}
     # End _build_attribute_groups method
 
     def _add_attributes(self, geometries: list,
@@ -621,8 +622,9 @@ class CountOverlapMixin:
         return self._summarize_by_planarized(geometries, grouped)
     # End _add_attributes method
 
-    def _summarize_by_planarized(self, geometries: list,
-                                 grouped: defaultdict[int, list[tuple]]) \
+    @staticmethod
+    def _summarize_by_planarized(geometries: list,
+                                 grouped: dict[int, list[tuple]]) \
             -> list[tuple['BaseGeometry', tuple]]:
         """
         Summarize grouped attributes on a per planarized geometry basis
@@ -630,44 +632,34 @@ class CountOverlapMixin:
         intersecting features.
         """
         results = []
-        # noinspection unresolved-references
-        threshold = self._min_count
-        for i, geom in enumerate(geometries):
-            if i not in grouped:
-                continue
-            _, names = zip(*grouped[i])
+        for idx, attrs in grouped.items():
+            geom = geometries[idx]
+            _, names = zip(*attrs)
             feature_count = len(names)
-            if feature_count < threshold:
-                continue
             fc_count = len(set(names))
             results.append((geom, (feature_count, fc_count)))
         return results
     # End _summarize_by_planarized method
 
-    def _build_overlaps_table(self, grouped: defaultdict[int, list[tuple]]) -> None:
+    def _build_overlaps_table(self, grouped: dict[int, list[tuple]]) -> None:
         """
         Build Overlaps table
         """
         if not grouped or not self.overlap_table:
             return
         records = []
-        # noinspection unresolved-references
-        threshold = self._min_count
-        for i, values in grouped.items():
-            if len(values) < threshold:
-                continue
-            records.extend([(i, fid, name) for fid, name in values])
+        for i, (_, attrs) in enumerate(grouped.items(), 1):
+            records.extend([(i, fid, name) for fid, name in attrs])
         tbl = self.overlap_table
         names = [f.escaped_name for f in self._get_overlap_fields()]
         # noinspection SqlInsertValues
         sql_insert = f"""
-            INSERT INTO {tbl.escaped_name} ({', '.join(names)}) 
+            INSERT INTO {tbl.escaped_name} ({COMMA_SPACE.join(names)}) 
             VALUES (?, ?, ?)
         """
         # noinspection unresolved-references
         with tbl.geopackage.connection as cout:
-            # noinspection bad-argument-type
-            cout.executemany(sql_insert, sorted(records, key=itemgetter(0, 2)))
+            cout.executemany(sql_insert, records)
     # End _build_overlaps_table method
 
     @cached_property
@@ -701,7 +693,7 @@ class CountOverlapMixin:
         fids = []
         if not feature_class:
             return geometries, fids
-        cursor = feature_class.select(include_primary=True)
+        cursor = feature_class.select(fields=[ORIG_FID])
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
