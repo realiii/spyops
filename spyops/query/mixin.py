@@ -701,7 +701,7 @@ class CountOverlapMixin:
         fids = []
         if not feature_class:
             return geometries, fids
-        cursor = feature_class.select(include_primary=True)
+        cursor = feature_class.select(fields=[ORIG_FID])
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
