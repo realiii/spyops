@@ -10,7 +10,8 @@ from functools import cached_property
 from typing import Callable, Optional
 
 from fudgeo import FeatureClass, MemoryGeoPackage, SpatialReferenceSystem
-from pyproj import CRS, Transformer
+from pyproj import CRS
+from pyproj.transformer import Transformer
 from shapely import LineString, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.strtree import STRtree
