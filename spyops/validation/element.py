@@ -7,9 +7,10 @@ Validation for Feature Classes, Tables, and GeoPackages
 from functools import wraps
 from typing import Any, Callable, ClassVar
 
-from fudgeo import FeatureClass, MemoryGeoPackage, Table
+from fudgeo import FeatureClass, Table
 
 from spyops.shared.constant import EMPTY, MULTI, PADDED_PIPE
+from spyops.shared.database import check_same_element
 from spyops.shared.exception import OverwriteError
 from spyops.shared.hint import ELEMENT, GPKG, NAMES
 from spyops.validation.base import AbstractValidate, AbstractValidateTypeExists
@@ -316,33 +317,12 @@ class ValidateOverwriteInput(AbstractValidate):
         """
         Check Target Same as Input
         """
-        if target.name.casefold() != other.name.casefold():
-            return
-        if not self._check_same_geopackage(target, other):
+        if not check_same_element(target, other):
             return
         raise OverwriteError(
             f'Value for output argument {self._target} is same as value '
             f'for input argument {name}')
     # End _check_same method
-
-    @staticmethod
-    def _check_same_geopackage(target: ELEMENT, other: ELEMENT) -> bool:
-        """
-        Check Same GeoPackage
-        """
-        if target.geopackage is other.geopackage:
-            return True
-        if not isinstance(target.geopackage, other.geopackage.__class__):
-            return False
-        if isinstance(target.geopackage, MemoryGeoPackage):
-            # NOTE if get here identity check has failed, we assume two
-            #  different MemoryGeoPackages, which is true unless someone has
-            #  taken control over the connection string for MemoryGeoPackage
-            #  or done some other changes to the internals
-            return True
-        else:
-            return target.geopackage.path.samefile(other.geopackage.path)
-    # End _check_same_geopackage method
 # End ValidateOverwriteInput class
 
 
