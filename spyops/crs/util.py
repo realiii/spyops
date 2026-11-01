@@ -308,7 +308,7 @@ def xy_to_dd(crs: CRS, coordinates: 'ndarray') -> 'ndarray':
     for i, values in enumerate((xs, ys)):
         coordinates[:, i] = values
     return coordinates
-# End xy_to_lat_lon function
+# End xy_to_dd function
 
 
 @lru_cache(maxsize=1000)
