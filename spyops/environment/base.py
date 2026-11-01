@@ -22,7 +22,8 @@ from spyops.shared.hint import FEATURE_CLASSES
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, SpatialReferenceSystem
-    from pyproj import CRS, Transformer
+    from pyproj import CRS
+    from pyproj.transformer import Transformer
 
 
 class FeatureClassProxy(NamedTuple):

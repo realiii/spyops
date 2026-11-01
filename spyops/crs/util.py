@@ -10,13 +10,14 @@ from typing import TYPE_CHECKING, Union
 
 from fudgeo import SpatialReferenceSystem
 from numpy import isfinite
-from pyproj import CRS, Transformer
+from pyproj import CRS
 from pyproj.crs import ProjectedCRS
 from pyproj.crs.coordinate_operation import AzimuthalEquidistantConversion
 from pyproj.enums import WktVersion
 from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
 from pyproj.network import set_network_enabled
+from pyproj.transformer import Transformer
 from shapely.coordinates import transform
 from shapely.creation import box
 

@@ -10,7 +10,7 @@ from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.geometry import LineString
 from numpy import array, linspace, outer
-from pyproj import Transformer
+from pyproj.transformer import Transformer
 
 from spyops.crs.util import make_geodetic_transformer
 from spyops.geometry.util import filter_features
