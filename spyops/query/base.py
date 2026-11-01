@@ -621,10 +621,9 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         pass
     # End _intermediate_fields property
 
-    @staticmethod
-    def _make_update_from(element_name: str, key_name: str, field_names: NAMES,
-                          from_name: str, from_key_name: str,
-                          from_field_names: NAMES) -> str:
+    def _make_update_from(self, element_name: str, key_name: str,
+                          field_names: NAMES, from_name: str,
+                          from_key_name: str, from_field_names: NAMES) -> str:
         """
         Make SQL statement for Update
         """
@@ -633,10 +632,17 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         return f"""
             UPDATE {element_name} 
             SET {COMMA_SPACE.join(sets)} 
-            FROM {from_name}
+            FROM {self._build_from(from_name)}
             WHERE {element_name}{DOT}{key_name} = {from_name}{DOT}{from_key_name}
         """
     # End _make_update_from method
+
+    def _build_from(self, from_name: str) -> str:
+        """
+        Build FROM expression
+        """
+        return from_name
+    # End _build_from method
 
     @abstractmethod
     def _get_field_names(self) -> NAMES:
