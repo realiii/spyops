@@ -12,14 +12,21 @@ from typing import Callable, Generator, Iterator, NamedTuple, Type
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from numpy import ndarray
+from pyproj import CRS
 from shapely import MultiPolygon, Polygon
+from shapely.strtree import STRtree
 
-from spyops.crs.enumeration import DistanceUnit
+from spyops.crs.enumeration import DistanceUnit, LengthUnit
+from spyops.environment import Extent
 from spyops.environment.core import ZMConfig
-from spyops.query.base import AbstractQueryDissolve, BaseQuerySelect
+from spyops.query.base import (
+    AbstractQueryDissolve, AbstractSourceUpdateQuery,
+    BaseQuerySelect)
 from spyops.query.mixin import UnitTypeMixin
-from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
-from spyops.shared.hint import FIELDS, UNIT, XY_TOL
+from spyops.shared.enumeration import (
+    BufferTypeOption, EndOption,
+    SearchRadiusOption, SideOption)
+from spyops.shared.hint import FEATURE_CLASSES, FIELDS, NAMES, UNIT, XY_TOL
 
 
 
@@ -159,4 +166,39 @@ class QueryCreateThiessenPolygons(BaseQuerySelect):
     @property
     def select(self) -> str: ...
     @cached_property
-    def zm_config(self) -> 'ZMConfig': ...
+    def zm_config(self) -> ZMConfig: ...
+
+
+class QueryNear(AbstractSourceUpdateQuery):
+
+    _operator: FEATURE_CLASSES
+    _radius: UNIT | None
+    _option: SearchRadiusOption
+    _unit: LengthUnit
+
+    def __init__(self, source: FeatureClass, operator: FEATURE_CLASSES,
+                 search_radius: UNIT | None, search_option: SearchRadiusOption,
+                 length_unit: LengthUnit) -> None: ...
+
+    def _get_field_names(self) -> NAMES: ...
+    @property
+    def _short_name(self) -> str: ...
+    def _prepare_source(self) -> None: ...
+    @property
+    def _is_geodesic(self) -> bool: ...
+    def _get_distance_crs(self) -> CRS: ...
+    @cached_property
+    def _overall_extent(self) -> Extent: ...
+    def _get_tree_and_fids(self, distance_crs: CRS) -> tuple[STRtree, ndarray]: ...
+    def _get_distance_transformer(self, feature_class: FeatureClass, distance_crs: CRS) -> Callable | None: ...
+    def _get_radius(self, crs: CRS) -> float | None: ...
+    def find_nearest(self) -> Generator[list[tuple], None, None]: ...
+    @staticmethod
+    def _get_geoms_and_ids(feature_class: FeatureClass) -> tuple[ndarray, ndarray]: ...
+    def _calculate_geodesic(self, crs: CRS, distances: ndarray, coords: ndarray) -> tuple[ndarray, ndarray]: ...
+    def _calculate_planar(self, crs: CRS, distances: ndarray, coords: ndarray) -> tuple[ndarray, ndarray]: ...
+    @staticmethod
+    def _flatten_coordinates(coords: ndarray) -> ndarray: ...
+    @property
+    def _intermediate_fields(self) -> FIELDS: ...
+    def _build_from(self, from_name: str) -> str: ...

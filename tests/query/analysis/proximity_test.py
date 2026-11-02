@@ -6,18 +6,22 @@ Test for Proximity Query classes
 
 from fudgeo import FeatureClass, Field
 from fudgeo.enumeration import FieldType, ShapeType
-from pyproj import CRS
+from numpy import array, isnan
 from pytest import mark, approx
+from shapely.strtree import STRtree
 
 from spyops.crs.constant import WGS84
-from spyops.crs.enumeration import DistanceUnit
-from spyops.crs.unit import DecimalDegrees, Meters, Miles
+from spyops.crs.enumeration import DistanceUnit, LengthUnit
+from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryCreateThiessenPolygons, QueryMultipleBuffer)
-from spyops.shared.enumeration import BufferTypeOption, EndOption, SideOption
+    QueryCreateThiessenPolygons, QueryMultipleBuffer, QueryNear)
+from spyops.shared.enumeration import (
+    BufferTypeOption, EndOption,
+    SearchRadiusOption, SideOption)
 
 pytestmark = [mark.proximity, mark.query, mark.analysis]
 
@@ -658,7 +662,10 @@ class TestQueryCreateThiessenPolygons:
     # End test_get_target_shape_type method
 
     @mark.parametrize('include, names', [
-        (True, ['ORIG_FID', 'FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY', 'ISO_CODE', 'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES', 'AUTONOMOUS', 'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK']),
+        (True,
+         ['ORIG_FID', 'FEATURE_ID', 'PART_ID', 'NAME', 'COUNTRY', 'ISO_CODE',
+          'ISO_CC', 'ISO_SUB', 'ADMINTYPE', 'DISPUTED', 'NOTES', 'AUTONOMOUS',
+          'COUNTRYAFF', 'CONTINENT', 'LAND_TYPE', 'LAND_RANK']),
         (False, ['ORIG_FID']),
     ])
     def test_unique_fields(self, world_features, include, names):
@@ -722,6 +729,169 @@ class TestQueryCreateThiessenPolygons:
         assert query.zm_config == (False, False, False)
     # End test_zm_config method
 # End TestQueryCreateThiessenPolygons class
+
+
+class TestQueryNear:
+    """
+    Test Query Near
+    """
+    def test_get_field_names(self):
+        """
+        Get Field Names
+        """
+        query = QueryNear(None, operator=[], search_radius=None,
+                          search_option=SearchRadiusOption.PLANAR,
+                          length_unit=LengthUnit.METERS)
+        assert query._get_field_names() == [
+            'NEAR_FID', 'NEAR_DIST', 'NEAR_FC', 'NEAR_RANK',
+            'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y', 'NEAR_ANGLE']
+    # End test_get_field_names method
+
+    def test_short_name(self):
+        """
+        Get short name
+        """
+        query = QueryNear(None, operator=[], search_radius=None,
+                          search_option=SearchRadiusOption.PLANAR,
+                          length_unit=LengthUnit.METERS)
+        assert query._short_name == 'near'
+    # End test_short_name method
+
+    def test_prepare_source(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test prepare source
+        """
+        name = 'transmission_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        assert len(source.fields) == 10
+        query = QueryNear(source, operator=[], search_radius=None,
+                          search_option=SearchRadiusOption.PLANAR,
+                          length_unit=LengthUnit.METERS)
+        query._prepare_source()
+        assert len(source.fields) == 19
+        query._prepare_source()
+        assert len(source.fields) == 19
+    # End test_prepare_source method
+
+    @mark.parametrize('name, option, expected', [
+        ('transmission_p', SearchRadiusOption.PLANAR, True),
+        ('transmission_p', SearchRadiusOption.GEODESIC, True),
+        ('transmission_lcc_l', SearchRadiusOption.PLANAR, False),
+        ('transmission_lcc_l', SearchRadiusOption.GEODESIC, True),
+    ])
+    def test_is_geodesic(self, ntdb_zm_small, name, option, expected):
+        """
+        Test is geodesic
+        """
+        query = QueryNear(ntdb_zm_small[name], operator=[], search_radius=None,
+                          search_option=option, length_unit=LengthUnit.METERS)
+        assert query._is_geodesic is expected
+    # End test_is_geodesic method
+
+    @mark.parametrize('name, option, expected', [
+        ('transmission_p', SearchRadiusOption.PLANAR, False),
+        ('transmission_p', SearchRadiusOption.GEODESIC, False),
+        ('transmission_lcc_l', SearchRadiusOption.PLANAR, True),
+        ('transmission_lcc_l', SearchRadiusOption.GEODESIC, False),
+    ])
+    def test_get_distance_crs(self, ntdb_zm_small, name, option, expected):
+        """
+        Test get distance CRS
+        """
+        source = ntdb_zm_small[name]
+        crs = get_crs_from_source(source)
+        query = QueryNear(source, operator=[], search_radius=None,
+                          search_option=option, length_unit=LengthUnit.METERS)
+        assert (query._get_distance_crs() == crs) is expected
+    # End test_get_distance_crs method
+    
+    def test_overall_extent(self, ntdb_zm_small):
+        """
+        Test overall extent
+        """
+        source = ntdb_zm_small['transmission_lcc_l']
+        names = 'toponymy_4617_p', 'toponymy_10tm_p', 'toponymy_utm11_p', 'toponymy_6654_p'
+        operator = [ntdb_zm_small[n] for n in names]
+        query = QueryNear(source, operator=operator, search_radius=None,
+                          search_option=SearchRadiusOption.PLANAR,
+                          length_unit=LengthUnit.METERS)
+        assert query._overall_extent.crs == get_crs_from_source(source)
+        assert approx(query._overall_extent.bounds, abs=1) == (
+            -1277695.2, 1413780.2, -1236362.5, 1450714.0)
+    # End test_overall_extent method
+
+    @mark.parametrize('option, sans_transformer', [
+        (SearchRadiusOption.PLANAR, True),
+        (SearchRadiusOption.GEODESIC, False),
+    ])
+    def test_get_tree_and_fids(self, ntdb_zm_small, option, sans_transformer):
+        """
+        Test get tree and fids
+        """
+        source = ntdb_zm_small['transmission_lcc_l']
+        query = QueryNear(source, operator=[], search_radius=None,
+                          search_option=option,
+                          length_unit=LengthUnit.METERS)
+        crs = query._get_distance_crs()
+        transformer = query._get_distance_transformer(source, crs)
+        assert (transformer is None) is sans_transformer
+        tree, fids = query._get_tree_and_fids(crs)
+        assert isinstance(tree, STRtree)
+        assert len(tree.geometries) == len(source)
+        assert len(fids) == len(source)
+    # End test_get_tree_and_fids method
+
+    @mark.parametrize('name, radius, option, expected', [
+        ('transmission_lcc_l', None, SearchRadiusOption.PLANAR, None),
+        ('transmission_lcc_l', None, SearchRadiusOption.GEODESIC, None),
+        ('transmission_lcc_l', Meters(500), SearchRadiusOption.PLANAR, 500),
+        ('transmission_lcc_l', Meters(500), SearchRadiusOption.GEODESIC, 500),
+        ('transmission_lcc_l', DecimalDegrees(0.0001), SearchRadiusOption.PLANAR, 9.06),
+        ('transmission_lcc_l', DecimalDegrees(0.0001), SearchRadiusOption.GEODESIC, 9.06),
+        ('transmission_p', None, SearchRadiusOption.PLANAR, None),
+        ('transmission_p', None, SearchRadiusOption.GEODESIC, None),
+        ('transmission_p', Meters(500), SearchRadiusOption.PLANAR, 500),
+        ('transmission_p', Meters(500), SearchRadiusOption.GEODESIC, 500),
+        ('transmission_p', DecimalDegrees(0.0001), SearchRadiusOption.PLANAR, 9.06),
+        ('transmission_p', DecimalDegrees(0.0001), SearchRadiusOption.GEODESIC, 9.06),
+    ])
+    def test_get_radius(self, ntdb_zm_small, name, radius, option, expected):
+        """
+        Test get radius
+        """
+        source = ntdb_zm_small[name]
+        query = QueryNear(source, operator=[], search_radius=radius,
+                          search_option=option, length_unit=LengthUnit.METERS)
+        crs = query._get_distance_crs()
+        assert approx(query._get_radius(crs), abs=0.1) == expected
+    # End test_get_radius method
+
+    def test_calculate_planar(self, ntdb_zm_small):
+        """
+        Test calculate planar
+        """
+        source = ntdb_zm_small['transmission_lcc_l']
+        names = 'toponymy_4617_p', 'toponymy_10tm_p'
+        operator = [ntdb_zm_small[n] for n in names]
+        query = QueryNear(
+            source, operator=operator, search_radius=Kilometers(5),
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        crs = query._get_distance_crs()
+        distances = array([500, 1000, 1500, 2000], dtype=float)
+        coords = array([[0, 0.1], [10, 11], [1, 1.2], [11, 12],
+                        [2, 2.3], [20, 23], [3, 3.4], [30, 34]])
+        records, distances = query._calculate_planar(crs, distances, coords)
+        assert len(records) == 4
+        assert len(distances) == 4
+        assert distances.tolist() == [500, 1000, 1500, 2000]
+        assert records[:, 0].tolist() == [0, 1, 2, 3]
+        assert records[:, 1].tolist() == [0.1, 1.2, 2.3, 3.4]
+        assert records[:, 2].tolist() == [10, 11, 20, 30]
+        assert records[:, 3].tolist() == [11, 12, 23, 34]
+        assert not isnan(records[:, 4]).any()
+    # End test_calculate_planar method
+# End TestQueryNear class
 
 
 if __name__ == '__main__':  # pragma: no cover
