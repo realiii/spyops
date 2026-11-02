@@ -39,7 +39,7 @@ class QueryTableToDelimitedFile(BaseQuerySelectOrderBy):
         """
         # noinspection bad-argument-type
         super().__init__(source, target=None, where_clause=where_clause,
-                         sort_fields=sort_fields, )
+                         sort_fields=sort_fields)
         self._delimiter: str = delimiter
         self._use_aliases: bool = use_aliases
     # End init built-in
