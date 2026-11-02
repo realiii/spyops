@@ -55,8 +55,8 @@ class QueryIntersectPairwise(AbstractSpatialAttribute):
 
 class QueryIntersectClassic(ClassicMixin, QueryIntersectPairwise):
 
-    _input_fid_source: 'Field'
-    _input_fid_operator: 'Field'
+    _input_fid_source: Field
+    _input_fid_operator: Field
 
     def __init__(self, source: FeatureClass, target: FeatureClass,
                  operator: FeatureClass, *, attribute_option: AttributeOption,
@@ -78,8 +78,8 @@ class QueryUnionPairwise(QueryIntersectPairwise):
 
 class QueryUnionClassic(ClassicMixin, QueryUnionPairwise):
 
-    _input_fid_source: 'Field'
-    _input_fid_operator: 'Field'
+    _input_fid_source: Field
+    _input_fid_operator: Field
 
     def __init__(self, source: FeatureClass, source_fid: Field,
                  operator: FeatureClass, operator_fid: Field,
@@ -116,8 +116,8 @@ class QuerySymmetricalDifferencePairwise(BaseQuerySymmetricalDifference):
 
 class QuerySymmetricalDifferenceClassic(ClassicMixin, BaseQuerySymmetricalDifference):
 
-    _input_fid_source: 'Field'
-    _input_fid_operator: 'Field'
+    _input_fid_source: Field
+    _input_fid_operator: Field
 
     def __init__(self, source: FeatureClass, target: FeatureClass,
                  operator: FeatureClass, *, attribute_option: AttributeOption,

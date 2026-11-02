@@ -223,7 +223,7 @@ class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
     _fields: FIELDS
     _group_names: str
 
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+    def __init__(self, source: FeatureClass, target: FeatureClass, *,
                  fields: FIELDS, xy_tolerance: XY_TOL) -> None: ...
     @property
     def insert(self) -> str: ...
