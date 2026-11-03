@@ -1378,7 +1378,15 @@ class QueryNear(AbstractSourceUpdateQuery):
                 FROM_X, FROM_Y, NEAR_X, NEAR_Y, NEAR_ANGLE)
     # End _intermediate_fields property
 
-    def _build_from(self, from_name: str) -> str:
+    def _prefix_name(self, from_name: str) -> str:
+        """
+        Prefix Name
+        """
+        _, short_from_name = from_name.split(DOT)
+        return short_from_name
+    # End _prefix_name method
+
+    def _build_from(self, from_name: str, from_key_name: str) -> tuple[str, str]:
         """
         Build FROM expression
         """
@@ -1386,11 +1394,13 @@ class QueryNear(AbstractSourceUpdateQuery):
         fields = orig_fid, near_fid, *fields
         field_names = COMMA_SPACE.join(f.name for f in fields)
         name = near_dist.name
-        return f"""(
+        prefix_name = self._prefix_name(from_name)
+        from_name = f"""(
             SELECT MIN({name}) AS {name}{COMMA_SPACE}{field_names}
             FROM {from_name}
-            GROUP BY {orig_fid.name}) AS {from_name}
+            GROUP BY {orig_fid.name}) AS {prefix_name}
         """
+        return from_name, f'{prefix_name}{DOT}{from_key_name}'
     # End _build_from method
 # End QueryNear class
 
