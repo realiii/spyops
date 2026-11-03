@@ -9,33 +9,35 @@ from typing import TYPE_CHECKING
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 
-from spyops.crs.enumeration import DistanceUnit
+from spyops.crs.enumeration import DistanceUnit, LengthUnit
 from spyops.geometry.proximity import build_voronoi
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryCreateThiessenPolygons, QueryMultipleBuffer)
+    QueryCreateThiessenPolygons, QueryMultipleBuffer, QueryNear)
 from spyops.shared.enumeration import (
-    BufferTypeOption, DissolveOption, EndOption, SideOption)
+    BufferTypeOption, DissolveOption, EndOption, SearchRadiusOption, SideOption)
 from spyops.shared.field import GEOM_TYPE_POINTS
-from spyops.shared.hint import DISTANCE, FIELDS, FIELD_NAMES, XY_TOL
+from spyops.shared.hint import (
+    DISTANCE, FEATURE_CLASSES, FIELDS, FIELD_NAMES, RADIUS, UNIT, XY_TOL)
 from spyops.shared.keywords import (
     BUFFER_TYPE, DISSOLVE_OPTION, DISTANCES, DISTANCE_ARG, DISTANCE_UNIT,
-    END_OPTION, GROUP_FIELDS, RESOLUTION, SIDE_OPTION, SOURCE)
+    END_OPTION, GROUP_FIELDS, LENGTH_UNIT, OPERATOR, SEARCH_RADIUS, RESOLUTION,
+    SEARCH_OPTION, SIDE_OPTION, SOURCE)
 from spyops.shared.records import extend_records
 from spyops.validation import (
-    validate_dissolve_option, validate_distance, validate_field,
-    validate_overwrite_source, validate_range, validate_result,
-    validate_side_option, validate_source_feature_class,
-    validate_str_enumeration, validate_target_feature_class, validate_values,
-    validate_xy_tolerance)
+    validate_dissolve_option, validate_distance, validate_feature_classes,
+    validate_field, validate_linear_unit, validate_overwrite_source,
+    validate_range, validate_result, validate_side_option,
+    validate_source_feature_class, validate_str_enumeration,
+    validate_target_feature_class, validate_values, validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['buffer', 'multiple_buffer', 'create_thiessen_polygons']
+__all__ = ['buffer', 'multiple_buffer', 'create_thiessen_polygons', 'near']
 
 
 @validate_result()
@@ -209,6 +211,38 @@ def create_thiessen_polygons(source: 'FeatureClass', target: 'FeatureClass',
         records.clear()
     return query.target
 # End create_thiessen_polygons function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_feature_classes(OPERATOR)
+@validate_linear_unit(SEARCH_RADIUS, feature_class_name=SOURCE,
+                      is_optional=True)
+@validate_str_enumeration(SEARCH_OPTION, SearchRadiusOption)
+@validate_str_enumeration(LENGTH_UNIT, LengthUnit)
+def near(source: 'FeatureClass', operator: FEATURE_CLASSES, *,
+         search_radius: RADIUS | None = None,
+         search_option: SearchRadiusOption = SearchRadiusOption.PLANAR,
+         length_unit: LengthUnit = LengthUnit.METERS) -> 'FeatureClass':
+    """
+    Near
+
+    Adds proximity attributes to a feature class that capture the nearest
+    feature from another feature class along with coordinates of the nearest
+    point on that feature, the distance to the feature, and the angle to
+    the nearest feature.
+    """
+    search_radius: UNIT | None
+    with QueryNear(source, operator=operator, search_radius=search_radius,
+                   search_option=search_option,
+                   length_unit=length_unit) as query:
+        query_insert = query.insert
+        with query.source.geopackage.connection as cin:
+            for records in query.find_nearest():
+                cin.executemany(query_insert, records)
+            cin.execute(query.update)
+    return query.target
+# End near function
 
 
 if __name__ == '__main__':  # pragma: no cover
