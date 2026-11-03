@@ -35,7 +35,7 @@ from spyops.shared.keywords import (
     AREA_UNIT, ATTRIBUTE_SOURCE, CHECK_OPTIONS, COORDINATE_SYSTEM, DISTANCE_ARG,
     END_X_FIELD, END_Y_FIELD, FIELD, GEOMETRY_ATTRIBUTE, GEOMETRY_TYPE,
     GROUP_FIELDS, GROUP_OPTION, LABEL, LENGTH_UNIT, LINE_TYPE, M_FIELD,
-    POINT_COUNT, POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD,
+    OPERATOR, POINT_COUNT, POINT_TYPE, SORT_FIELDS_ARG, SOURCE, START_X_FIELD,
     START_Y_FIELD, STATISTICS, TARGET, WEIGHT_OPTION, X_FIELD, Y_FIELD, Z_FIELD)
 from spyops.shared.enumeration import (
     AttributeSource, DEFAULT_GEOM_CHECKS, GeometryAttribute, GeometryCheck,
@@ -978,7 +978,7 @@ def unsplit_line(source: 'FeatureClass', target: 'FeatureClass',
 @validate_linear_unit(DISTANCE_ARG, feature_class_name=SOURCE,
                       as_number=True, is_optional=True)
 @validate_xy_tolerance()
-@validate_overwrite_source()
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def split_line_at_point(source: 'FeatureClass', operator: 'FeatureClass',
                         target: 'FeatureClass', *,
                         distance: UNIT_INPUT | None = None,

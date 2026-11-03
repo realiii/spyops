@@ -62,6 +62,7 @@ MIT
 - added `count_overlapping_features` (Analysis - Overlay)
 - added `unsplit_line` (Management - Features)
 - added `split_line_at_point` (Management - Features)
+- added `near` (Analysis - Proximity)
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`

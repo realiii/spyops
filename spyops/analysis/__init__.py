@@ -10,9 +10,9 @@ from spyops.analysis.extract import (
 from spyops.analysis.overlay import (
     count_overlapping_features, erase, intersect, symmetrical_difference, union)
 from spyops.analysis.proximity import (
-    buffer, create_thiessen_polygons, multiple_buffer)
+    buffer, create_thiessen_polygons, multiple_buffer, near)
 from spyops.analysis.statistics import frequency, statistics
-from spyops.crs.enumeration import DistanceUnit
+from spyops.crs.enumeration import DistanceUnit, LengthUnit
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
     Kilometres, Meters, Metres, Miles, MilesInternational, MilesUS,
@@ -21,7 +21,7 @@ from spyops.crs.unit import (
     YardsInternational, YardsUS)
 from spyops.shared.enumeration import (
     AlgorithmOption, AttributeOption, BufferTypeOption, DissolveOption,
-    EndOption, OutputTypeOption, SideOption)
+    EndOption, OutputTypeOption, SearchRadiusOption, SideOption)
 from spyops.shared.stats import (
     Average, Avg, CV, CoefficientOfVariation, Concat, Concatenate, Count,
     CountNonNull, CountNull, CountOutlier, First, FirstQuartile, IQR,
@@ -49,6 +49,7 @@ __all__ = [
     'buffer',
     'create_thiessen_polygons',
     'multiple_buffer',
+    'near',
 
     'frequency',
     'statistics',
@@ -59,9 +60,11 @@ __all__ = [
     'DissolveOption',
     'EndOption',
     'OutputTypeOption',
+    'SearchRadiusOption',
     'SideOption',
 
     'DistanceUnit',
+    'LengthUnit',
 
     'DecimalDegrees',
     'Degrees',

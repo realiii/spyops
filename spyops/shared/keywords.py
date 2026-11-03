@@ -104,6 +104,8 @@ LENGTH: str = 'length'
 WIDTH: str = 'width'
 OVERLAP: str = 'overlap'
 MIN_COUNT: str = 'min_count'
+SEARCH_OPTION: str = 'search_option'
+SEARCH_RADIUS: str = 'search_radius'
 
 
 if __name__ == '__main__':  # pragma: no cover

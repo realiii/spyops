@@ -10,7 +10,8 @@ from functools import cached_property
 from typing import Callable, Optional
 
 from fudgeo import FeatureClass, MemoryGeoPackage, SpatialReferenceSystem
-from pyproj import CRS, Transformer
+from pyproj import CRS
+from pyproj.transformer import Transformer
 from shapely import LineString, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.strtree import STRtree
@@ -135,13 +136,17 @@ class AbstractSourceQuery(AbstractFeatureClassQuery, metaclass=ABCMeta):
 class AbstractSourceUpdateQuery(IntermediateTableContextMixin, AbstractSourceQuery):
     def __init__(self, source: FeatureClass, where_clause: str = EMPTY, xy_tolerance: XY_TOL = None) -> None: ...
     @property
+    @abstractmethod
     def _short_name(self) -> str: ...
+    @abstractmethod
     def _prepare_source(self) -> None: ...
     @property
+    @abstractmethod
     def _intermediate_fields(self) -> FIELDS: ...
-    @staticmethod
-    def _make_update_from(element_name: str, key_name: str, field_names: NAMES,
+    def _make_update_from(self, element_name: str, key_name: str, field_names: NAMES,
                           from_name: str, from_key_name: str, from_field_names: NAMES) -> str: ...
+    def _prefix_name(self, from_name: str) -> str: ...
+    def _build_from(self, from_name: str, from_key_name: str) -> tuple[str, str]: ...
     def _get_field_names(self) -> NAMES: ...
     @property
     def target(self) -> FeatureClass: ...
@@ -219,7 +224,7 @@ class AbstractQueryGroup(GroupQueryMixin, AbstractSourceQuery,
     _fields: FIELDS
     _group_names: str
 
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+    def __init__(self, source: FeatureClass, target: FeatureClass, *,
                  fields: FIELDS, xy_tolerance: XY_TOL) -> None: ...
     @property
     def insert(self) -> str: ...

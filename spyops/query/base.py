@@ -621,22 +621,37 @@ class AbstractSourceUpdateQuery(IntermediateTableContextMixin,
         pass
     # End _intermediate_fields property
 
-    @staticmethod
-    def _make_update_from(element_name: str, key_name: str, field_names: NAMES,
-                          from_name: str, from_key_name: str,
-                          from_field_names: NAMES) -> str:
+    def _make_update_from(self, element_name: str, key_name: str,
+                          field_names: NAMES, from_name: str,
+                          from_key_name: str, from_field_names: NAMES) -> str:
         """
         Make SQL statement for Update
         """
-        sets = [f'{fn} = {from_name}{DOT}{ffn}'
+        prefix_name = self._prefix_name(from_name)
+        sets = [f'{fn} = {prefix_name}{DOT}{ffn}'
                 for fn, ffn in zip(field_names, from_field_names)]
+        from_name, from_key_name = self._build_from(from_name, from_key_name)
         return f"""
             UPDATE {element_name} 
             SET {COMMA_SPACE.join(sets)} 
             FROM {from_name}
-            WHERE {element_name}{DOT}{key_name} = {from_name}{DOT}{from_key_name}
+            WHERE {element_name}{DOT}{key_name} = {from_key_name}
         """
     # End _make_update_from method
+
+    def _prefix_name(self, from_name: str) -> str:
+        """
+        Prefix Name
+        """
+        return from_name
+    # End _prefix_name method
+
+    def _build_from(self, from_name: str, from_key_name: str) -> tuple[str, str]:
+        """
+        Build FROM expression
+        """
+        return from_name, f'{from_name}{DOT}{from_key_name}'
+    # End _build_from method
 
     @abstractmethod
     def _get_field_names(self) -> NAMES:

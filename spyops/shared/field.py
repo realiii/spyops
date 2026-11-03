@@ -98,6 +98,26 @@ END_ALONG: Field = Field(
 ORIENTATION: Field = Field('ORIENTATION', data_type=FieldType.real)
 
 
+NEAR_FID: Field = Field(
+    'NEAR_FID', data_type=FieldType.integer, alias='Near Feature Identifier')
+NEAR_DIST: Field = Field(
+    'NEAR_DIST', data_type=FieldType.real, alias='Distance to Near Feature')
+NEAR_FC: Field = Field(
+    'NEAR_FC', data_type=FieldType.text, alias='Near Feature Class')
+NEAR_RANK: Field = Field(
+    'NEAR_RANK', data_type=FieldType.integer, alias='Rank of Near Feature')
+FROM_X: Field = Field(
+    'FROM_X', data_type=FieldType.real, alias='X Coordinate of Origin Feature')
+FROM_Y: Field = Field(
+    'FROM_Y', data_type=FieldType.real, alias='Y Coordinate of Origin Feature')
+NEAR_X: Field = Field(
+    'NEAR_X', data_type=FieldType.real, alias='X Coordinate of Near Feature')
+NEAR_Y: Field = Field(
+    'NEAR_Y', data_type=FieldType.real, alias='Y Coordinate of Near Feature')
+NEAR_ANGLE: Field = Field(
+    'NEAR_ANGLE', data_type=FieldType.real, alias='Angle to Near Feature')
+
+
 MBG_WIDTH: Field = Field(
     'MBG_WIDTH', data_type=FieldType.real,
     alias='Width of Minimum Bounding Geometry')

@@ -8,6 +8,8 @@ from pyproj import CRS
 from pytest import approx, mark, raises
 
 from spyops.crs.constant import WGS84
+from spyops.crs.util import get_crs_from_source
+from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.base import Extent
 
 
@@ -34,6 +36,32 @@ class TestExtent:
         assert approx(extent.bounds, abs=0.001) == (-180, -90, 180, 83.6654)
         assert extent.coordinate_reference_system == WGS84
     # End test_from_feature_class method
+
+    def test_from_feature_classes(self, world_features):
+        """
+        Test From Feature Classes
+        """
+        transformations = ANALYSIS_SETTINGS.geographic_transformations
+        extent = Extent.from_feature_classes([world_features['admin_a']], transformations)
+        assert approx(extent.bounds, abs=0.001) == (-180, -90, 180, 83.6654)
+        assert extent.coordinate_reference_system == WGS84
+    # End test_from_feature_classes method
+
+    @mark.parametrize('names, expected', [
+        (['hydro_utm11_zm_a', 'hydro_utm11_zm_a', 'transmission_10tm_l', 'toponymy_6654_mp', 'structures_p'], (674475.882, 5652794.991, 710481.517, 5681869.218)),
+        (['structures_p', 'hydro_utm11_zm_a', 'transmission_10tm_l', 'toponymy_6654_mp'], (-114.510, 50.990, -113.984, 51.259)),
+        (['structures_p'], (-114.499, 51.000, -114.001, 51.249)),
+    ])
+    def test_from_feature_classes_mix(self, ntdb_zm_small, names, expected):
+        """
+        Test From Feature Classes using mixture of crs
+        """
+        transformations = ANALYSIS_SETTINGS.geographic_transformations
+        crs = get_crs_from_source(ntdb_zm_small[names[0]])
+        extent = Extent.from_feature_classes([ntdb_zm_small[name] for name in names], transformations)
+        assert approx(extent.bounds, abs=0.001) == expected
+        assert extent.coordinate_reference_system == crs
+    # End test_from_feature_classes_mix method
 
     def test_from_bounds(self):
         """

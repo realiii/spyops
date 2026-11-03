@@ -7,7 +7,10 @@ Database Functionality
 from pathlib import Path
 from sqlite3 import Connection, DatabaseError, OperationalError, connect
 
+from fudgeo import MemoryGeoPackage
+
 from spyops.shared.constant import SPYOPS, UNDERSCORE
+from spyops.shared.hint import ELEMENT
 from spyops.shared.stats import STATS_FUNCS
 
 
@@ -120,6 +123,35 @@ def remove_aggregates(connection: 'Connection') -> None:
         # noinspection bad-argument-type
         connection.create_aggregate(f'{SPYOPS}{UNDERSCORE}{name}', 1, None)
 # End remove_aggregates function
+
+
+def check_same_geopackage(target: ELEMENT, other: ELEMENT) -> bool:
+    """
+    Check Same GeoPackage
+    """
+    if target.geopackage is other.geopackage:
+        return True
+    if not isinstance(target.geopackage, other.geopackage.__class__):
+        return False
+    if isinstance(target.geopackage, MemoryGeoPackage):
+        # NOTE if get here identity check has failed, we assume two
+        #  different MemoryGeoPackages, which is true unless someone has
+        #  taken control over the connection string for MemoryGeoPackage
+        #  or done some other changes to the internals
+        return True
+    else:
+        return target.geopackage.path.samefile(other.geopackage.path)
+# End check_same_geopackage function
+
+
+def check_same_element(target: ELEMENT, other: ELEMENT) -> bool:
+    """
+    Check Same Element
+    """
+    if target.name.casefold() != other.name.casefold():
+        return False
+    return check_same_geopackage(target, other)
+# End check_same_element function
 
 
 if __name__ == '__main__':  # pragma: no cover

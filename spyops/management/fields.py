@@ -267,7 +267,7 @@ def field_statistics_to_table(source: ELEMENT, target: 'Table', *,
         raise ValueError(
             f'No fields found matching the {output_type_option} data types.')
     with cls(source, target=target, fields=fields, group_fields=group_fields,
-             where_clause=where_clause,) as query:
+             where_clause=where_clause) as query:
         with (query.source.geopackage.connection as cin,
               query.target.geopackage.connection as cout,
               ExecuteMany(cout, query.target) as executor):

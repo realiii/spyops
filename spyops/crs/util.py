@@ -10,13 +10,14 @@ from typing import TYPE_CHECKING, Union
 
 from fudgeo import SpatialReferenceSystem
 from numpy import isfinite
-from pyproj import CRS, Transformer
+from pyproj import CRS
 from pyproj.crs import ProjectedCRS
 from pyproj.crs.coordinate_operation import AzimuthalEquidistantConversion
 from pyproj.enums import WktVersion
 from pyproj.datadir import append_data_dir
 from pyproj.exceptions import CRSError
 from pyproj.network import set_network_enabled
+from pyproj.transformer import Transformer
 from shapely.coordinates import transform
 from shapely.creation import box
 
@@ -26,7 +27,6 @@ from spyops.crs.constant import (
     UNDEFINED)
 from spyops.crs.enumeration import InfoOption
 from spyops.crs.message import UNABLE_TO_USE_CRS, UNSUPPORTED_WKT
-from spyops.geometry.extent import extent_from_index_or_geometry, is_degenerate
 from spyops.shared.constant import EMPTY
 from spyops.shared.exception import (
     CoordinateSystemDifferentError, CoordinateSystemNotSupportedError)
@@ -38,7 +38,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
     from numpy import ndarray
     from shapely import Polygon, Point
-    from spyops.environment.base import FeatureClassProxy
+    from spyops.environment.base import Extent, FeatureClassProxy
 
 
 def configure_grids(data_path: Path | str | None = None,
@@ -257,21 +257,19 @@ def get_equidistant_projections(crs: CRS, coordinates: 'ndarray') \
 # End get_equidistant_projections function
 
 
-def get_equidistant_from_extent(source: 'FeatureClass') -> ProjectedCRS | None:
+def get_equidistant_from_extent(extent: 'Extent') -> ProjectedCRS | None:
     """
     Get Equidistant Projection for an Extent, uses the centroid of the
     for the latitude and longitude values.  Rounding to the nearest 10 degree
     for latitude and longitude values when creating the equidistant projection.
     """
-    crs = get_crs_from_source(source)
-    extent = extent_from_index_or_geometry(source)
-    if is_degenerate(extent):
+    if extent.is_degenerate():
         return None
     digits = -1
-    pt = get_geographic_extent_centroid(crs, extent=extent)
+    pt = get_geographic_extent_centroid(extent.crs, extent=extent.bounds)
     lat, lon = round(pt.y, digits), round(pt.x, digits)
     # noinspection bad-assignment
-    geodetic_crs: CRS = crs.geodetic_crs
+    geodetic_crs: CRS = extent.crs.geodetic_crs
     return _equidistant_projection(geodetic_crs, lat=lat, lon=lon)
 # End get_equidistant_from_extent function
 
@@ -310,7 +308,7 @@ def xy_to_dd(crs: CRS, coordinates: 'ndarray') -> 'ndarray':
     for i, values in enumerate((xs, ys)):
         coordinates[:, i] = values
     return coordinates
-# End xy_to_lat_lon function
+# End xy_to_dd function
 
 
 @lru_cache(maxsize=1000)

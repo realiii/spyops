@@ -6,19 +6,24 @@ Base Classes for Environment
 
 from typing import NamedTuple, Self, TYPE_CHECKING
 
-from shapely import Polygon
+from shapely import Polygon, force_2d
 from shapely.creation import box
-from shapely.lib import force_2d
+from shapely.coordinates import transform
+from shapely.measurement import total_bounds
 
+from spyops.crs.transform import get_transform_best_guess
 from spyops.crs.util import get_crs_from_source
+from spyops.environment.util import get_geographic_transformation
 from spyops.geometry.extent import extent_from_feature_class, is_degenerate
 from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.exception import BadExtentError
+from spyops.shared.hint import FEATURE_CLASSES
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, SpatialReferenceSystem
     from pyproj import CRS
+    from pyproj.transformer import Transformer
 
 
 class FeatureClassProxy(NamedTuple):
@@ -58,6 +63,13 @@ class Extent:
             return NotImplemented
         return self.polygon == other.polygon and self.crs == other.crs
     # End eq built-in
+
+    def is_degenerate(self) -> bool:
+        """
+        Is Degenerate
+        """
+        return is_degenerate(self.bounds)
+    # End is_degenerate method
 
     @staticmethod
     def _check_polygon(polygon: Polygon | None) -> Polygon:
@@ -122,6 +134,41 @@ class Extent:
         # noinspection bad-argument-type
         return cls(box(*extent), crs=crs)
     # End from_feature_class method
+
+    @classmethod
+    def from_feature_classes(cls, feature_classes: FEATURE_CLASSES,
+                             transformations: list['Transformer']) -> Self:
+        """
+        Create an Extent from a Feature Class
+        """
+        extents = [cls.from_feature_class(fc) for fc in feature_classes]
+        extents = [e for e in extents if e]
+        if not extents:
+            source, *_ = feature_classes
+            return cls(None, crs=get_crs_from_source(source))
+        target, *others = extents
+        if len(extents) == 1:
+            return target
+        target_crs = target.coordinate_reference_system
+        polygons = [target.polygon]
+        for other in others:
+            if not (transformer := get_geographic_transformation(
+                    source_crs=other.crs, target_crs=target_crs,
+                    transformations=transformations)):
+                transformer = get_transform_best_guess(other.crs, target_crs)
+            polygon = other.polygon
+            if transformer:
+                # noinspection bad-argument-type
+                polygon = transform(
+                    polygon, transformation=transformer.transform,
+                    interleaved=False)
+            polygons.append(polygon)
+        bounds = total_bounds(polygons)
+        # noinspection bad-argument-type
+        if is_degenerate(bounds):
+            return cls(None, crs=target_crs)
+        return cls.from_bounds(*bounds, crs=target_crs)
+    # End from_feature_classes method
 # End Extent class
 
 
