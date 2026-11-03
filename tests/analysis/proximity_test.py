@@ -3,18 +3,23 @@
 Tests for Proximity
 """
 
+
+from bottleneck import nanmean
 from fudgeo import FeatureClass
+from numpy import array
 from pyproj import CRS
 from pytest import mark, param, approx
 
-from spyops.analysis import buffer, create_thiessen_polygons, multiple_buffer
+from spyops.analysis import (
+    buffer, create_thiessen_polygons, multiple_buffer, near)
 from spyops.crs.constant import WGS84
-from spyops.crs.enumeration import DistanceUnit
+from spyops.crs.enumeration import DistanceUnit, LengthUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
 from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.shared.enumeration import (
-    BufferTypeOption, DissolveOption, SideOption)
+    BufferTypeOption, DissolveOption, SearchRadiusOption, SideOption)
+from spyops.shared.field import NEAR_DIST, NEAR_FC, NEAR_FID
 
 pytestmark = [mark.proximity, mark.analysis]
 
@@ -748,6 +753,129 @@ class TestCreateThiessenPolygons:
             assert result.extent != source.extent
     # End test_settings method
 # End TestCreateThiessenPolygons class
+
+
+class TestNear:
+    """
+    Test Near
+    """
+    def test_source_operator_same(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source and operator are same feature class
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        assert len(source.fields) == 10
+        fc = near(source, operator=source)
+        assert fc is source
+        assert len(fc.fields) == 19
+        cursor = fc.select(NEAR_FID, include_geometry=False, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 96
+    # End test_source_operator_same method
+
+    def test_source_point_operator_line(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source point and operator line
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['transmission_l']
+        assert len(source.fields) == 10
+        fc = near(source, operator=operator)
+        assert fc is source
+        assert len(fc.fields) == 19
+        cursor = fc.select(NEAR_FID, include_geometry=False,
+                           include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_point_operator_line method
+
+    def test_source_line_operator_point(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator point
+        """
+        name = 'transmission_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['toponymy_p']
+        assert len(source.fields) == 12
+        fc = near(source, operator=operator)
+        assert fc is source
+        assert len(fc.fields) == 21
+        cursor = fc.select(NEAR_FID, include_geometry=False,
+                           include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_line_operator_point method
+
+    def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator mix of geometries and crs
+        """
+        name = 'transmission_10tm_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        names = 'toponymy_6654_p', 'structures_lcc_p', 'structures_a'
+        operators = [ntdb_zm_small[name] for name in names]
+        assert len(source.fields) == 12
+        fc = near(source, operator=operators)
+        assert fc is source
+        assert len(fc.fields) == 21
+        cursor = fc.select([NEAR_FID, NEAR_FC], include_geometry=False,
+                           include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66
+        oid, nid, fcs = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert None not in fcs
+        assert set(fcs) == {'structures_lcc_p', 'structures_a', 'toponymy_6654_p'}
+    # End test_source_line_operator_mix method
+
+    @mark.parametrize('unit, expected', [
+        (LengthUnit.METERS, 1084.3),
+        (LengthUnit.FEET, 3557.4),
+    ])
+    def test_length_unit(self, ntdb_zm_small, mem_gpkg, unit, expected):
+        """
+        Test length unit
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        fc = near(source, operator=source, length_unit=unit)
+        cursor = fc.select(NEAR_DIST, include_geometry=False)
+        distances = [d for d, in cursor.fetchall()]
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_length_unit method
+
+    @mark.parametrize('radius, option, expected', [
+        (Meters(500), SearchRadiusOption.PLANAR, 290.08),
+        (Meters(500), SearchRadiusOption.GEODESIC, 290.38),
+        (DecimalDegrees(0.005), SearchRadiusOption.PLANAR, 197.8),
+        (DecimalDegrees(0.005), SearchRadiusOption.GEODESIC, 198),
+    ])
+    def test_radius(self, ntdb_zm_small, mem_gpkg, radius, option, expected):
+        """
+        Test radius and option
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        fc = near(source, operator=source, search_radius=radius,
+                  search_option=option)
+        cursor = fc.select(NEAR_DIST, include_geometry=False)
+        distances = array([d for d, in cursor.fetchall()], dtype=float)
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_radius method
+# End TestNear class
 
 
 if __name__ == '__main__':  # pragma: no cover
