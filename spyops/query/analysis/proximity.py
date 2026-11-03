@@ -1203,10 +1203,10 @@ class QueryNear(AbstractSourceUpdateQuery):
         return Extent.from_feature_classes(fcs, transformations)
     # End _overall_extent property
 
-    def _get_tree_and_fids(self, distance_crs: 'CRS') \
-            -> tuple[STRtree, 'ndarray']:
+    def _get_source_geoms_and_fids(self, distance_crs: 'CRS') \
+            -> tuple['ndarray', 'ndarray']:
         """
-        Make Tree from Source Geometries and track feature identifiers
+        Get Source Feature Class Geometries and track Feature Identifiers
         """
         fids = []
         geometries = []
@@ -1224,8 +1224,8 @@ class QueryNear(AbstractSourceUpdateQuery):
                 _, ids = zip(*features)
                 fids.extend(ids)
                 geometries.extend(geoms)
-        return STRtree(geometries), array(fids, dtype=int)
-    # End _get_tree_and_fids method
+        return asarray(geometries), array(fids, dtype=int)
+    # End _get_source_geoms_and_fids method
 
     def _get_distance_transformer(self, feature_class: FeatureClass,
                                   distance_crs: 'CRS') -> Callable | None:
@@ -1268,8 +1268,8 @@ class QueryNear(AbstractSourceUpdateQuery):
         From X, From Y, Near X, Near Y, and Near Angle
         """
         distance_crs = self._get_distance_crs()
-        tree, fids = self._get_tree_and_fids(distance_crs)
         radius = self._get_radius(distance_crs)
+        src_geoms, src_fids = self._get_source_geoms_and_fids(distance_crs)
         if self._is_geodesic:
             calculator = self._calculate_geodesic
         else:
@@ -1278,24 +1278,28 @@ class QueryNear(AbstractSourceUpdateQuery):
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, distance_crs):
             for i, operator in enumerate(self._operator):
                 name = operator.name
-                exclusive = check_same_element(self.source, operator)
-                query = QueryFeatureIntermediate(
-                    operator, target=FeatureClass(scratch, name=f'fc_{i}'))
-                fc = select_transform_insert(query)
-                if not len(fc):
-                    continue
-                geoms, ids = self._get_geoms_and_ids(fc)
-                (op_indexes, src_indexes), distances = tree.query_nearest(
-                    geoms, max_distance=radius, return_distance=True,
+                if exclusive := check_same_element(self.source, operator):
+                    op_geoms = src_geoms
+                    op_fids = src_fids
+                else:
+                    query = QueryFeatureIntermediate(
+                        operator, target=FeatureClass(scratch, name=f'fc_{i}'))
+                    fc = select_transform_insert(query)
+                    if not len(fc):
+                        continue
+                    op_geoms, op_fids = self._get_geoms_and_ids(fc)
+                tree = STRtree(op_geoms)
+                (src_indexes, op_indexes), distances = tree.query_nearest(
+                    src_geoms, max_distance=radius, return_distance=True,
                     all_matches=False, exclusive=exclusive)
                 if not len(distances):
                     continue
                 coords = get_coordinates(shortest_line(
-                    tree.geometries[src_indexes], geoms[op_indexes]))
+                    src_geoms[src_indexes], op_geoms[op_indexes]))
                 records, distances = calculator(distance_crs, distances, coords)
                 yield [(oid, nid, dist, name, 1, *rec)
                        for oid, nid, dist, rec in
-                       zip(fids[src_indexes], ids[op_indexes],
+                       zip(src_fids[src_indexes], op_fids[op_indexes],
                            distances, records)]
         if conn := scratch.connection:
             conn.close()
