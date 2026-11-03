@@ -44,7 +44,7 @@ from spyops.query.base import (
     AbstractQueryDissolve, AbstractSourceUpdateQuery, BaseQuerySelect,
     QueryFeatureIntermediate)
 from spyops.query.mixin import UnitTypeMixin
-from spyops.shared.constant import DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES
+from spyops.shared.constant import DOT, DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES
 from spyops.shared.database import check_same_element
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SearchRadiusOption, SideOption)
