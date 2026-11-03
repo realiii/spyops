@@ -13,7 +13,7 @@ from typing import (
 from warnings import warn
 
 from bottleneck import nanmean
-from fudgeo import Field, MemoryGeoPackage
+from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import FieldType, ShapeType
 from numpy import (
@@ -63,7 +63,6 @@ from spyops.shared.records import select_transform_insert
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    from fudgeo import FeatureClass
     from numpy import ndarray
     from pyproj import CRS
     from shapely import Polygon
@@ -86,7 +85,7 @@ class AbstractQueryBufferDissolve(AbstractQueryDissolve, UnitTypeMixin,
     """
     Abstract Query Buffer Dissolve Class
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass', *,
+    def __init__(self, source: FeatureClass, target: FeatureClass, *,
                  distance: Field | UNIT, buffer_type: BufferTypeOption,
                  fields: FIELDS | None, side_option: SideOption,
                  end_option: EndOption, resolution: int,
@@ -686,7 +685,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
     """
     Query Multiple Buffer
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  distance_unit: DistanceUnit, distances: list[float], *,
                  buffer_type: BufferTypeOption = BufferTypeOption.PLANAR,
                  overlapping: bool = False, only_outside: bool = False,
@@ -852,7 +851,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
     # End dissolved_geometries method
 
     def _create_dissolved_source(self, memory: MemoryGeoPackage) \
-            -> 'FeatureClass':
+            -> FeatureClass:
         """
         Create Dissolved Feature Class
         """
@@ -1021,7 +1020,7 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
     # End _from_distance method
 
     @staticmethod
-    def _get_side_option(source: 'FeatureClass',
+    def _get_side_option(source: FeatureClass,
                          only_outside: bool) -> SideOption:
         """
         Get Side Option, Only Outside applies to Polygons only
@@ -1055,7 +1054,7 @@ class QueryCreateThiessenPolygons(BaseQuerySelect):
     """
     Query Create Thiessen Polygons
     """
-    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+    def __init__(self, source: FeatureClass, target: FeatureClass,
                  include_attributes: bool, xy_tolerance: XY_TOL) -> None:
         """
         Initialize the QueryCreateThiessenPolygons class
@@ -1133,7 +1132,7 @@ class QueryNear(AbstractSourceUpdateQuery):
     """
     Query Near
     """
-    def __init__(self, source: 'FeatureClass', operator: FEATURE_CLASSES,
+    def __init__(self, source: FeatureClass, operator: FEATURE_CLASSES,
                  search_radius: UNIT | None, search_option: SearchRadiusOption,
                  length_unit: LengthUnit) -> None:
         """
@@ -1228,7 +1227,7 @@ class QueryNear(AbstractSourceUpdateQuery):
         return STRtree(geometries), array(fids, dtype=int)
     # End _get_tree_and_fids method
 
-    def _get_distance_transformer(self, feature_class: 'FeatureClass',
+    def _get_distance_transformer(self, feature_class: FeatureClass,
                                   distance_crs: 'CRS') -> Callable | None:
         """
         Get Distance Transformer
@@ -1303,7 +1302,7 @@ class QueryNear(AbstractSourceUpdateQuery):
     # End find_nearest method
 
     @staticmethod
-    def _get_geoms_and_ids(feature_class: 'FeatureClass') \
+    def _get_geoms_and_ids(feature_class: FeatureClass) \
             -> tuple['ndarray', 'ndarray']:
         """
         Get Geometries and IDs
