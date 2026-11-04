@@ -824,9 +824,9 @@ class TestQueryNear:
         (SearchRadiusOption.PLANAR, True),
         (SearchRadiusOption.GEODESIC, False),
     ])
-    def test_get_tree_and_fids(self, ntdb_zm_small, option, sans_transformer):
+    def test_get_source_geoms_and_fids(self, ntdb_zm_small, option, sans_transformer):
         """
-        Test get tree and fids
+        Test get source geoms and fids
         """
         source = ntdb_zm_small['transmission_lcc_l']
         query = QueryNear(source, operator=[], search_radius=None,
@@ -835,11 +835,10 @@ class TestQueryNear:
         crs = query._get_distance_crs()
         transformer = query._get_distance_transformer(source, crs)
         assert (transformer is None) is sans_transformer
-        tree, fids = query._get_tree_and_fids(crs)
-        assert isinstance(tree, STRtree)
-        assert len(tree.geometries) == len(source)
+        geoms, fids = query._get_source_geoms_and_fids(crs)
+        assert len(geoms) == len(source)
         assert len(fids) == len(source)
-    # End test_get_tree_and_fids method
+    # End test_get_source_geoms_and_fids method
 
     @mark.parametrize('name, radius, option, expected', [
         ('transmission_lcc_l', None, SearchRadiusOption.PLANAR, None),
