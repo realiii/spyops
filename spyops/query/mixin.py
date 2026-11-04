@@ -4,40 +4,52 @@ Mixins
 """
 
 
+from _warnings import warn
 from collections import defaultdict
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from typing import Callable, Optional, Self, TYPE_CHECKING, Union
+from typing import Callable, Generator, Optional, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
-from fudgeo import FeatureClass, Field
+from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
-from numpy import array, ones_like
+from numpy import arctan2, array, asarray, degrees, full, ones_like
 from shapely.constructive import centroid
 from shapely.coordinates import get_coordinates, transform
 from shapely.creation import box
+from shapely.linear import shortest_line
+from shapely.strtree import STRtree
 
+from spyops.crs.enumeration import LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
-    DecimalDegrees, LinearUnit, degrees_to_meters,
-    get_linear_unit_conversion_factor, get_unit_name, unit_factory)
-from spyops.crs.util import crs_from_srs, get_crs_from_source
-from spyops.environment import ANALYSIS_SETTINGS
+    DecimalDegrees, LinearUnit, UNIT_CLASS_MAP, degrees_to_meters,
+    get_linear_unit_conversion_factor, get_unit_conversion, get_unit_name,
+    unit_factory)
+from spyops.crs.util import (
+    crs_from_srs, get_crs_from_source, get_equidistant_from_extent, xy_to_dd)
+from spyops.environment import ANALYSIS_SETTINGS, Extent
 from spyops.environment.core import HasZM, zm_config
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.geometry.util import filter_features, to_shapely
-from spyops.shared.constant import DOT, DRID, EMPTY, METRE, SEMI
+from spyops.shared.constant import (
+    DOT, DRID, EMPTY, METRE, SEMI, SKIP_FILE_PREFIXES)
 
-from spyops.shared.database import add_aggregates, remove_aggregates
+from spyops.shared.database import (
+    add_aggregates, check_same_element, remove_aggregates)
+from spyops.shared.enumeration import SearchRadiusOption
+from spyops.shared.exception import CoordinateSystemNotSupportedWarning
 from spyops.shared.field import (
-    FC_COUNT, FEAT_COUNT, NUMBERS, ORIG_FID, ORIG_NAME, OVERLAP_FID,
-    TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
+    FC_COUNT, FEAT_COUNT, FROM_X, FROM_Y, NEAR_ANGLE, NEAR_DIST, NEAR_FC,
+    NEAR_FID, NEAR_RANK, NEAR_X, NEAR_Y, NUMBERS, ORIG_FID, ORIG_NAME,
+    OVERLAP_FID, TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
 from spyops.shared.hint import (
     ELEMENT, EXTENT, FIELDS, GRID_SIZE, STATS_FIELDS, UNIT)
 from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
+from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
 
@@ -47,7 +59,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyproj import CRS
     from shapely import Polygon
     from shapely.geometry.base import BaseGeometry
-    from shapely.strtree import STRtree
     from spyops.environment.core import ZMConfig
     from spyops.query.base import QueryFeatureIntermediate
 
@@ -582,7 +593,7 @@ class CountOverlapMixin:
         return FEAT_COUNT, FC_COUNT
     # End _get_unique_fields method
 
-    def _build_attribute_groups(self, tree: 'STRtree',
+    def _build_attribute_groups(self, tree: STRtree,
                                 queries: list['QueryFeatureIntermediate'],
                                 grid_size: GRID_SIZE) -> dict[int, list[tuple]]:
         """
@@ -608,7 +619,7 @@ class CountOverlapMixin:
     # End _build_attribute_groups method
 
     def _add_attributes(self, geometries: list,
-                        queries: list[QueryFeatureIntermediate],
+                        queries: list['QueryFeatureIntermediate'],
                         grid_size: GRID_SIZE) \
             -> list[tuple['BaseGeometry', tuple]]:
         """
@@ -704,6 +715,244 @@ class CountOverlapMixin:
         return geometries, fids
     # End _get_geoms_attributes method
 # End CountOverlapMixin class
+
+
+class NearMixin:
+    """
+    Near Mixin
+    """
+    def _get_calculator(self) -> Callable:
+        """
+        Get Calculator
+        """
+        if self._is_geodesic:
+            return self._calculate_geodesic
+        return self._calculate_planar
+    # End _get_calculator method
+
+    def _find_closest(self, name: str, exclusive: bool,
+                      src_geoms: 'ndarray', src_fids: 'ndarray',
+                      op_geoms: 'ndarray', op_fids: 'ndarray') \
+            -> Generator[list[tuple], None, None]:
+        """
+        Find Closest (just one match)
+        """
+        tree = STRtree(op_geoms)
+        calculator = self._get_calculator()
+        (src_indexes, op_indexes), distances = tree.query_nearest(
+            src_geoms, max_distance=self._distance_radius, return_distance=True,
+            all_matches=False, exclusive=exclusive)
+        if not len(distances):
+            yield []
+        else:
+            coords = get_coordinates(shortest_line(
+                src_geoms[src_indexes], op_geoms[op_indexes]))
+            records, distances = calculator(distances, coords)
+            yield [(oid, nid, dist, name, 1, *rec)
+                   for oid, nid, dist, rec in
+                   zip(src_fids[src_indexes], op_fids[op_indexes],
+                       distances, records)]
+    # End _find_closest method
+
+    def _get_operator_data(self, scratch: MemoryGeoPackage,
+                           operator: FeatureClass, id_: int,
+                           src_fids: ndarray, src_geoms: ndarray) \
+            -> tuple[bool, ndarray, ndarray]:
+        """
+        Get Operator Geometries in the Distance CRS and the Feature IDs
+        """
+        # noinspection unresolved-references
+        if exclusive := check_same_element(self.source, operator):
+            op_geoms = src_geoms
+            op_fids = src_fids
+        else:
+            # noinspection unresolved-references
+            query = self._make_query(operator, scratch, id_)
+            fc = select_transform_insert(query)
+            if not len(fc):
+                return exclusive, array([]), array([])
+            op_geoms, op_fids = self._get_geoms_and_ids(fc)
+        return exclusive, op_fids, op_geoms
+    # End _get_operator_data method
+
+    @property
+    def _intermediate_fields(self) -> FIELDS:
+        """
+        Intermediate Fields
+        """
+        return (ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK,
+                FROM_X, FROM_Y, NEAR_X, NEAR_Y, NEAR_ANGLE)
+    # End _intermediate_fields property
+
+    @property
+    def _is_geodesic(self) -> bool:
+        """
+        Is Geodesic
+        """
+        # noinspection unresolved-references
+        if not self.source_crs.is_projected:
+            return True
+        # noinspection unresolved-references
+        return self._option == SearchRadiusOption.GEODESIC
+    # End _is_geodesic property
+
+    @cached_property
+    def _distance_crs(self) -> 'CRS':
+        """
+        Distance CRS
+        """
+        if not self._is_geodesic:
+            # noinspection unresolved-references
+            return self.source_crs
+        # noinspection unresolved-references
+        return get_equidistant_from_extent(
+            self._overall_extent) or self.source_crs
+    # End _distance_crs method
+
+    @cached_property
+    def _overall_extent(self) -> Extent:
+        """
+        Get Overall Extent
+        """
+        if extent := ANALYSIS_SETTINGS.extent:
+            return extent
+        # noinspection unresolved-references
+        fcs = self.source, *self._operator
+        transformations = ANALYSIS_SETTINGS.geographic_transformations
+        return Extent.from_feature_classes(fcs, transformations)
+    # End _overall_extent property
+
+    def _get_source_geoms_and_fids(self) -> tuple['ndarray', 'ndarray']:
+        """
+        Get Source Feature Class Geometries and track Feature Identifiers
+        """
+        fids = []
+        geometries = []
+        # noinspection unresolved-references
+        transformer = self._get_distance_transformer(self.source)
+        # noinspection unresolved-references
+        with self.source.geopackage.connection as cin:
+            # noinspection unresolved-references
+            cursor = cin.execute(self.select_only_fid)
+            while features := cursor.fetchmany(FETCH_SIZE):
+                if not (features := filter_features(features)):
+                    continue
+                features, geoms = to_shapely(
+                    features, transformer=transformer,
+                    option=DimensionOption.TWO_D)
+                if not features:
+                    continue
+                _, ids = zip(*features)
+                fids.extend(ids)
+                geometries.extend(geoms)
+        return asarray(geometries), array(fids, dtype=int)
+    # End _get_source_geoms_and_fids method
+
+    def _get_distance_transformer(self, feature_class: FeatureClass) \
+            -> Callable | None:
+        """
+        Get Distance Transformer
+        """
+        crs = get_crs_from_source(feature_class)
+        # noinspection unresolved-references
+        transformer = self._get_transformer_or_guess(crs, self._distance_crs)
+        return make_transformer_function(
+            feature_class.shape_type, has_z=feature_class.has_z,
+            has_m=feature_class.has_m, transformer=transformer)
+    # End _get_distance_transformer method
+
+    @cached_property
+    def _distance_radius(self) -> float | None:
+        """
+        Get Radius in Distance CRS Units
+        """
+        # noinspection unresolved-references
+        if (unit := self._radius) is None:
+            return None
+        if isinstance(unit, LinearUnit):
+            value = unit.meters
+        else:
+            extent = self._overall_extent
+            coordinates = get_coordinates([extent.polygon.centroid])
+            # noinspection bad-argument-type,unresolved-references
+            value = nanmean(degrees_to_meters(
+                extent.crs, coordinates=coordinates, value=unit.value))
+        # noinspection bad-argument-type
+        if to_unit := UNIT_CLASS_MAP.get(get_unit_name(self._distance_crs)):
+            value *= get_unit_conversion(LengthUnit.METERS, to_unit(0).unit)
+        # noinspection bad-return
+        return value
+    # End _distance_radius method
+
+    @staticmethod
+    def _get_geoms_and_ids(feature_class: FeatureClass) \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Get Geometries and IDs
+        """
+        fids = []
+        geometries = []
+        cursor = feature_class.select([ORIG_FID])
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if not (features := filter_features(features)):
+                continue
+            features, geoms = to_shapely(features, transformer=None)
+            fids.extend([fid for _, fid in features])
+            geometries.extend(geoms)
+        return asarray(geometries), array(fids, dtype=int)
+    # End _get_geoms_and_ids method
+
+    def _calculate_geodesic(self, distances: 'ndarray', coords: 'ndarray') \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Calculate Coordinates and Angles for Geodesic
+        """
+        coords = xy_to_dd(self._distance_crs, coords)
+        records = self._flatten_coordinates(coords)
+        # noinspection unresolved-references
+        distances *= get_unit_conversion(LengthUnit.METERS, self._unit)
+        if not (geod := self._distance_crs.get_geod()):  # pragma: no cover
+            warn('Cannot calculate angle for a CRS without a Geod',
+                 category=CoordinateSystemNotSupportedWarning,
+                 skip_file_prefixes=SKIP_FILE_PREFIXES)
+            return records, distances
+        forward, _, _ = geod.inv(
+            lons1=records[:, 0], lats1=records[:, 1],
+            lons2=records[:, 2], lats2=records[:, 3])
+        records[:, 4] = forward
+        return records, distances
+    # End _calculate_geodesic method
+
+    def _calculate_planar(self, distances: 'ndarray', coords: 'ndarray') \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Calculate Coordinates and Angles for Planar
+        """
+        records = self._flatten_coordinates(coords)
+        # noinspection bad-argument-type
+        if from_unit := UNIT_CLASS_MAP.get(get_unit_name(self._distance_crs)):
+            # noinspection unresolved-references
+            distances *= get_unit_conversion(from_unit(0).unit, self._unit)
+        delta_x = records[:, 2] - records[:, 0]
+        delta_y = records[:, 3] - records[:, 1]
+        records[:, 4] = degrees(arctan2(delta_y, delta_x))
+        return records, distances
+    # End _calculate_planar method
+
+    @staticmethod
+    def _flatten_coordinates(coords: 'ndarray') -> 'ndarray':
+        """
+        Flatten Coordinates, structure is from x, from y, near x, near y,
+        and a placeholder for angle.
+        """
+        records = full((len(coords) // 2, 5), fill_value=nan, dtype=float)
+        records[:, 0] = coords[:, 0][::2]
+        records[:, 1] = coords[:, 1][::2]
+        records[:, 2] = coords[:, 0][1::2]
+        records[:, 3] = coords[:, 1][1::2]
+        return records
+    # End _flatten_coordinates method
+# End NearMixin class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -6,18 +6,17 @@ Query Classes for management.proximity module
 
 from abc import ABCMeta, abstractmethod
 from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
+from datetime import datetime
 from functools import cached_property, partial
-from math import nan
 from typing import (
     Callable, Generator, Iterator, NamedTuple, TYPE_CHECKING, Type)
 from warnings import warn
 
-from bottleneck import nanmean
 from fudgeo import FeatureClass, Field, MemoryGeoPackage
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.enumeration import FieldType, ShapeType
-from numpy import (
-    arctan2, array, asarray, degrees, full, isfinite, ones_like, unique)
+from fudgeo.util import escape_name
+from numpy import array, asarray, isfinite, ones_like, unique
 from shapely import GeometryCollection, MultiPolygon
 from shapely.coordinates import get_coordinates
 from shapely.linear import shortest_line
@@ -27,10 +26,8 @@ from shapely.strtree import STRtree
 from spyops.crs.enumeration import DistanceUnit, LengthUnit
 from spyops.crs.transform import make_transformer_function
 from spyops.crs.unit import (
-    DISTANCE_UNIT_LUT, LinearUnit, Meters, UNIT_CLASS_MAP, degrees_to_meters,
-    get_unit_conversion, get_unit_name, unit_factory)
-from spyops.crs.util import (
-    crs_from_srs, get_crs_from_source, get_equidistant_from_extent, xy_to_dd)
+    DISTANCE_UNIT_LUT, Meters, get_unit_name, unit_factory)
+from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.context import Swap
 from spyops.environment.core import ZMConfig, zm_config
@@ -43,17 +40,15 @@ from spyops.geometry.util import (
 from spyops.query.base import (
     AbstractQueryDissolve, AbstractSourceUpdateQuery, BaseQuerySelect,
     QueryFeatureIntermediate)
-from spyops.query.mixin import UnitTypeMixin
+from spyops.query.mixin import NearMixin, UnitTypeMixin
 from spyops.shared.constant import DOT, DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES
 from spyops.shared.database import check_same_element
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SearchRadiusOption, SideOption)
 from spyops.shared.exception import (
-    CoordinateSystemNotSupportedWarning,
     DistanceCalculationWarning, UnitParseWarning)
 from spyops.shared.field import (
-    FROM_X, FROM_Y, NEAR_ANGLE, NEAR_DIST, NEAR_FC, NEAR_FID, NEAR_RANK, NEAR_X,
-    NEAR_Y, ORIG_FID, add_orig_fid, get_geometry_column_name, make_field_names,
+    ORIG_FID, add_orig_fid, get_geometry_column_name, make_field_names,
     make_unique_fields, validate_fields)
 from spyops.shared.hint import FEATURE_CLASSES, FIELDS, NAMES, UNIT, XY_TOL
 from spyops.shared.keywords import (
@@ -63,8 +58,8 @@ from spyops.shared.records import select_transform_insert
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
+    from fudgeo import Table
     from numpy import ndarray
-    from pyproj import CRS
     from shapely import Polygon
 
 
@@ -1128,7 +1123,7 @@ class QueryCreateThiessenPolygons(BaseQuerySelect):
 # End QueryCreateThiessenPolygons class
 
 
-class QueryNear(AbstractSourceUpdateQuery):
+class QueryNear(NearMixin, AbstractSourceUpdateQuery):
     """
     Query Near
     """
@@ -1171,95 +1166,6 @@ class QueryNear(AbstractSourceUpdateQuery):
         self.source.add_fields(fields)
     # End _prepare_source method
 
-    @property
-    def _is_geodesic(self) -> bool:
-        """
-        Is Geodesic
-        """
-        if not self.source_crs.is_projected:
-            return True
-        return self._option == SearchRadiusOption.GEODESIC
-    # End _is_geodesic property
-
-    def _get_distance_crs(self) -> 'CRS':
-        """
-        Get Distance CRS
-        """
-        if not self._is_geodesic:
-            return self.source_crs
-        return get_equidistant_from_extent(
-            self._overall_extent) or self.source_crs
-    # End _get_distance_crs method
-
-    @cached_property
-    def _overall_extent(self) -> Extent:
-        """
-        Get Overall Extent
-        """
-        if extent := ANALYSIS_SETTINGS.extent:
-            return extent
-        fcs = self.source, *self._operator
-        transformations = ANALYSIS_SETTINGS.geographic_transformations
-        return Extent.from_feature_classes(fcs, transformations)
-    # End _overall_extent property
-
-    def _get_source_geoms_and_fids(self, distance_crs: 'CRS') \
-            -> tuple['ndarray', 'ndarray']:
-        """
-        Get Source Feature Class Geometries and track Feature Identifiers
-        """
-        fids = []
-        geometries = []
-        transformer = self._get_distance_transformer(self.source, distance_crs)
-        with self.source.geopackage.connection as cin:
-            cursor = cin.execute(self.select_only_fid)
-            while features := cursor.fetchmany(FETCH_SIZE):
-                if not (features := filter_features(features)):
-                    continue
-                features, geoms = to_shapely(
-                    features, transformer=transformer,
-                    option=DimensionOption.TWO_D)
-                if not features:
-                    continue
-                _, ids = zip(*features)
-                fids.extend(ids)
-                geometries.extend(geoms)
-        return asarray(geometries), array(fids, dtype=int)
-    # End _get_source_geoms_and_fids method
-
-    def _get_distance_transformer(self, feature_class: FeatureClass,
-                                  distance_crs: 'CRS') -> Callable | None:
-        """
-        Get Distance Transformer
-        """
-        crs = get_crs_from_source(feature_class)
-        transformer = self._get_transformer_or_guess(crs, distance_crs)
-        return make_transformer_function(
-            feature_class.shape_type, has_z=feature_class.has_z,
-            has_m=feature_class.has_m, transformer=transformer)
-    # End _get_distance_transformer method
-
-    def _get_radius(self, crs: 'CRS') -> float | None:
-        """
-        Get Radius in Distance CRS Units
-        """
-        if (unit := self._radius) is None:
-            return None
-        if isinstance(unit, LinearUnit):
-            value = unit.meters
-        else:
-            extent = self._overall_extent
-            coordinates = get_coordinates([extent.polygon.centroid])
-            # noinspection bad-argument-type,unresolved-references
-            value = nanmean(degrees_to_meters(
-                extent.crs, coordinates=coordinates, value=unit.value))
-        # noinspection bad-argument-type
-        if to_unit := UNIT_CLASS_MAP.get(get_unit_name(crs)):
-            value *= get_unit_conversion(LengthUnit.METERS, to_unit(0).unit)
-        # noinspection bad-return
-        return value
-    # End _get_radius method
-
     def find_nearest(self) -> Generator[list[tuple], None, None]:
         """
         Find Nearest, data record is:
@@ -1267,119 +1173,21 @@ class QueryNear(AbstractSourceUpdateQuery):
         Orig FID, Near FID, Near Distance, Near Feature Class Name, Near Rank,
         From X, From Y, Near X, Near Y, and Near Angle
         """
-        distance_crs = self._get_distance_crs()
-        radius = self._get_radius(distance_crs)
-        src_geoms, src_fids = self._get_source_geoms_and_fids(distance_crs)
-        if self._is_geodesic:
-            calculator = self._calculate_geodesic
-        else:
-            calculator = self._calculate_planar
         scratch = MemoryGeoPackage.create()
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, distance_crs):
+        src_geoms, src_fids = self._get_source_geoms_and_fids()
+        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs):
             for i, operator in enumerate(self._operator):
-                name = operator.name
-                if exclusive := check_same_element(self.source, operator):
-                    op_geoms = src_geoms
-                    op_fids = src_fids
-                else:
-                    query = QueryFeatureIntermediate(
-                        operator, target=FeatureClass(scratch, name=f'fc_{i}'))
-                    fc = select_transform_insert(query)
-                    if not len(fc):
-                        continue
-                    op_geoms, op_fids = self._get_geoms_and_ids(fc)
-                tree = STRtree(op_geoms)
-                (src_indexes, op_indexes), distances = tree.query_nearest(
-                    src_geoms, max_distance=radius, return_distance=True,
-                    all_matches=False, exclusive=exclusive)
-                if not len(distances):
+                exclusive, op_fids, op_geoms = self._get_operator_data(
+                    scratch, operator=operator, id_=i,
+                    src_fids=src_fids, src_geoms=src_geoms)
+                if not len(op_geoms):
                     continue
-                coords = get_coordinates(shortest_line(
-                    src_geoms[src_indexes], op_geoms[op_indexes]))
-                records, distances = calculator(distance_crs, distances, coords)
-                yield [(oid, nid, dist, name, 1, *rec)
-                       for oid, nid, dist, rec in
-                       zip(src_fids[src_indexes], op_fids[op_indexes],
-                           distances, records)]
+                yield from self._find_closest(
+                    operator.name, exclusive=exclusive, src_geoms=src_geoms,
+                    src_fids=src_fids, op_geoms=op_geoms, op_fids=op_fids)
         if conn := scratch.connection:
             conn.close()
     # End find_nearest method
-
-    @staticmethod
-    def _get_geoms_and_ids(feature_class: FeatureClass) \
-            -> tuple['ndarray', 'ndarray']:
-        """
-        Get Geometries and IDs
-        """
-        fids = []
-        geometries = []
-        cursor = feature_class.select([ORIG_FID])
-        while features := cursor.fetchmany(FETCH_SIZE):
-            if not (features := filter_features(features)):
-                continue
-            features, geoms = to_shapely(features, transformer=None)
-            fids.extend([fid for _, fid in features])
-            geometries.extend(geoms)
-        return asarray(geometries), array(fids, dtype=int)
-    # End _get_geoms_and_ids method
-
-    def _calculate_geodesic(self, crs: 'CRS', distances: 'ndarray',
-                            coords: 'ndarray') -> tuple['ndarray', 'ndarray']:
-        """
-        Calculate Coordinates and Angles for Geodesic
-        """
-        coords = xy_to_dd(crs, coords)
-        records = self._flatten_coordinates(coords)
-        distances *= get_unit_conversion(LengthUnit.METERS, self._unit)
-        if not (geod := crs.get_geod()):  # pragma: no cover
-            warn('Cannot calculate angle for a CRS without a Geod',
-                 category=CoordinateSystemNotSupportedWarning,
-                 skip_file_prefixes=SKIP_FILE_PREFIXES)
-            return records, distances
-        forward, _, _ = geod.inv(
-            lons1=records[:, 0], lats1=records[:, 1],
-            lons2=records[:, 2], lats2=records[:, 3])
-        records[:, 4] = forward
-        return records, distances
-    # End _calculate_geodesic method
-
-    def _calculate_planar(self, crs: 'CRS', distances: 'ndarray',
-                          coords: 'ndarray') -> tuple['ndarray', 'ndarray']:
-        """
-        Calculate Coordinates and Angles for Planar
-        """
-        records = self._flatten_coordinates(coords)
-        # noinspection bad-argument-type
-        if from_unit := UNIT_CLASS_MAP.get(get_unit_name(crs)):
-            distances *= get_unit_conversion(from_unit(0).unit, self._unit)
-        delta_x = records[:, 2] - records[:, 0]
-        delta_y = records[:, 3] - records[:, 1]
-        records[:, 4] = degrees(arctan2(delta_y, delta_x))
-        return records, distances
-    # End _calculate_planar method
-
-    @staticmethod
-    def _flatten_coordinates(coords: 'ndarray') -> 'ndarray':
-        """
-        Flatten Coordinates, structure is from x, from y, near x, near y,
-        and a placeholder for angle.
-        """
-        records = full((len(coords) // 2, 5), fill_value=nan, dtype=float)
-        records[:, 0] = coords[:, 0][::2]
-        records[:, 1] = coords[:, 1][::2]
-        records[:, 2] = coords[:, 0][1::2]
-        records[:, 3] = coords[:, 1][1::2]
-        return records
-    # End _flatten_coordinates method
-
-    @property
-    def _intermediate_fields(self) -> FIELDS:
-        """
-        Intermediate Fields
-        """
-        return (ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK,
-                FROM_X, FROM_Y, NEAR_X, NEAR_Y, NEAR_ANGLE)
-    # End _intermediate_fields property
 
     def _prefix_name(self, from_name: str) -> str:
         """
@@ -1405,6 +1213,16 @@ class QueryNear(AbstractSourceUpdateQuery):
         """
         return from_name, f'{prefix_name}{DOT}{from_key_name}'
     # End _build_from method
+
+    @staticmethod
+    def _make_query(operator: FeatureClass, scratch: MemoryGeoPackage,
+                    id_: int) -> QueryFeatureIntermediate:
+        """
+        Make Query
+        """
+        return QueryFeatureIntermediate(
+            operator, target=FeatureClass(scratch, name=f'fc_{id_}'))
+    # End _make_query method
 # End QueryNear class
 
 

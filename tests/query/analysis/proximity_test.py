@@ -802,7 +802,7 @@ class TestQueryNear:
         crs = get_crs_from_source(source)
         query = QueryNear(source, operator=[], search_radius=None,
                           search_option=option, length_unit=LengthUnit.METERS)
-        assert (query._get_distance_crs() == crs) is expected
+        assert (query._distance_crs == crs) is expected
     # End test_get_distance_crs method
     
     def test_overall_extent(self, ntdb_zm_small):
@@ -832,10 +832,10 @@ class TestQueryNear:
         query = QueryNear(source, operator=[], search_radius=None,
                           search_option=option,
                           length_unit=LengthUnit.METERS)
-        crs = query._get_distance_crs()
-        transformer = query._get_distance_transformer(source, crs)
+        crs = query._distance_crs
+        transformer = query._get_distance_transformer(source)
         assert (transformer is None) is sans_transformer
-        geoms, fids = query._get_source_geoms_and_fids(crs)
+        geoms, fids = query._get_source_geoms_and_fids()
         assert len(geoms) == len(source)
         assert len(fids) == len(source)
     # End test_get_source_geoms_and_fids method
@@ -861,8 +861,8 @@ class TestQueryNear:
         source = ntdb_zm_small[name]
         query = QueryNear(source, operator=[], search_radius=radius,
                           search_option=option, length_unit=LengthUnit.METERS)
-        crs = query._get_distance_crs()
-        assert approx(query._get_radius(crs), abs=0.1) == expected
+        crs = query._distance_crs
+        assert approx(query._distance_radius, abs=0.1) == expected
     # End test_get_radius method
 
     def test_calculate_planar(self, ntdb_zm_small):
@@ -876,11 +876,11 @@ class TestQueryNear:
             source, operator=operator, search_radius=Kilometers(5),
             search_option=SearchRadiusOption.PLANAR,
             length_unit=LengthUnit.METERS)
-        crs = query._get_distance_crs()
+        crs = query._distance_crs
         distances = array([500, 1000, 1500, 2000], dtype=float)
         coords = array([[0, 0.1], [10, 11], [1, 1.2], [11, 12],
                         [2, 2.3], [20, 23], [3, 3.4], [30, 34]])
-        records, distances = query._calculate_planar(crs, distances, coords)
+        records, distances = query._calculate_planar(distances, coords)
         assert len(records) == 4
         assert len(distances) == 4
         assert distances.tolist() == [500, 1000, 1500, 2000]
