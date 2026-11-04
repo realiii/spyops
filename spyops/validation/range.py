@@ -102,7 +102,7 @@ class ValidateRange(AbstractValidate):
         kwargs[self._name] = obj
     # End _set_object method
 
-    def _validate_value(self, value: OPT_NUMBER) -> NUMBER:
+    def _validate_value(self, value: OPT_NUMBER) -> OPT_NUMBER:
         """
         Validate Value against the range
         """
