@@ -106,6 +106,7 @@ OVERLAP: str = 'overlap'
 MIN_COUNT: str = 'min_count'
 SEARCH_OPTION: str = 'search_option'
 SEARCH_RADIUS: str = 'search_radius'
+CLOSEST_COUNT: str = 'closest_count'
 
 
 if __name__ == '__main__':  # pragma: no cover
