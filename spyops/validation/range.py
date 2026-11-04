@@ -4,6 +4,7 @@ Validate Range
 """
 
 
+import sys
 from functools import wraps
 from typing import Any, Callable, Type
 
@@ -17,8 +18,9 @@ class ValidateRange(AbstractValidate):
     Validate Range
     """
     def __init__(self, name: str, default: NUMBER,
-                 min_value: NUMBER = 0, max_value: NUMBER = 1,
+                 min_value: NUMBER = 0, max_value: NUMBER = sys.maxsize,
                  inclusive: bool = True, clamp: bool = True,
+                 is_optional: bool = False,
                  type_: Type[NUMBER] = float) -> None:
         """
         Initialize the ValidateRange class
@@ -29,6 +31,7 @@ class ValidateRange(AbstractValidate):
         :param max_value: Maximum value for the range
         :param inclusive: Whether the range is inclusive
         :param clamp: Whether to clamp the value to the range
+        :param is_optional: If True the None is a valid value
         :param type_: Type of the value to validate
         """
         super().__init__()
@@ -40,6 +43,7 @@ class ValidateRange(AbstractValidate):
         self._max: NUMBER = max_
         self._inclusive: bool = inclusive
         self._clamp: bool = clamp
+        self._is_optional: bool = is_optional
         self._type: Type[NUMBER] = type_
         self._check_inputs(
             name, min_value=min_, max_value=max_,
@@ -59,7 +63,9 @@ class ValidateRange(AbstractValidate):
                 func=func, args=args, kwargs=kwargs)
             value = self._get_object(kwargs)
             value = self._validate_value(value)
-            self._set_object(self._type(value), kwargs=kwargs)
+            if not self._is_optional:
+                value = self._type(value)
+            self._set_object(value, kwargs=kwargs)
             return func(**kwargs)
         # End wrapper function
         return wrapper
@@ -101,6 +107,8 @@ class ValidateRange(AbstractValidate):
         Validate Value against the range
         """
         if value is None:
+            if self._is_optional:
+                return value
             return self._default
         if not self._clamp:
             msg = f'{self._name} must be between {self._min} and {self._max}'

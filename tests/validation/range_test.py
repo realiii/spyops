@@ -45,5 +45,17 @@ def test_validate_range(value, expected, inclusive, clamp, throws):
 # End test_validate_range function
 
 
+def test_validate_range_optional():
+    """
+    Test validate range optional
+    """
+    @validate_range('a', default=10, max_value=100, type_=int,
+                    is_optional=True)
+    def range_function(a: int = 20):
+        return a
+    assert range_function(None) is None
+# End test_validate_range_optional function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
