@@ -64,6 +64,7 @@ class ValidateRange(AbstractValidate):
             value = self._get_object(kwargs)
             value = self._validate_value(value)
             if not self._is_optional:
+                # noinspection bad-argument-type
                 value = self._type(value)
             self._set_object(value, kwargs=kwargs)
             return func(**kwargs)
@@ -95,7 +96,7 @@ class ValidateRange(AbstractValidate):
         return safe_float(value)
     # End _get_object method
 
-    def _set_object(self, obj: NUMBER, kwargs: dict[str, Any]) -> None:
+    def _set_object(self, obj: OPT_NUMBER, kwargs: dict[str, Any]) -> None:
         """
         Set Object into the kwargs
         """
