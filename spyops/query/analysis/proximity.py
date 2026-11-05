@@ -1182,7 +1182,7 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
                     src_fids=src_fids, src_geoms=src_geoms)
                 if not len(op_geoms):
                     continue
-                yield from self._find_closest(
+                yield from self._find_nearest(
                     operator.name, exclusive=exclusive, src_geoms=src_geoms,
                     src_fids=src_fids, op_geoms=op_geoms, op_fids=op_fids)
         if conn := scratch.connection:

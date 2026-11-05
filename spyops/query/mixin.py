@@ -730,7 +730,7 @@ class NearMixin:
         return self._calculate_planar
     # End _get_calculator method
 
-    def _find_closest(self, name: str, exclusive: bool,
+    def _find_nearest(self, name: str, exclusive: bool,
                       src_geoms: 'ndarray', src_fids: 'ndarray',
                       op_geoms: 'ndarray', op_fids: 'ndarray') \
             -> Generator[list[tuple], None, None]:
@@ -738,21 +738,35 @@ class NearMixin:
         Find Closest (just one match)
         """
         tree = STRtree(op_geoms)
-        calculator = self._get_calculator()
         (src_indexes, op_indexes), distances = tree.query_nearest(
             src_geoms, max_distance=self._distance_radius, return_distance=True,
             all_matches=False, exclusive=exclusive)
         if not len(distances):
             yield []
         else:
-            coords = get_coordinates(shortest_line(
-                src_geoms[src_indexes], op_geoms[op_indexes]))
-            records, distances = calculator(distances, coords)
-            yield [(oid, nid, dist, name, 1, *rec)
-                   for oid, nid, dist, rec in
-                   zip(src_fids[src_indexes], op_fids[op_indexes],
-                       distances, records)]
-    # End _find_closest method
+            lines = shortest_line(src_geoms[src_indexes], op_geoms[op_indexes])
+            # noinspection bad-argument-type
+            yield from self._build_records(
+                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
+                op_indexes=op_indexes, distances=distances, lines=lines,
+                name=name)
+    # End _find_nearest method
+
+    def _build_records(self, src_fids: 'ndarray', src_indexes: 'ndarray',
+                       op_fids: 'ndarray', op_indexes: 'ndarray',
+                       distances: 'ndarray', lines: 'ndarray', name: str) \
+            -> Generator[list[tuple], None, None]:
+        """
+        Build Records
+        """
+        coords = get_coordinates(lines)
+        calculator = self._get_calculator()
+        records, distances = calculator(distances, coords)
+        yield [(oid, nid, dist, name, 1, *rec)
+               for oid, nid, dist, rec in
+               zip(src_fids[src_indexes], op_fids[op_indexes],
+                   distances, records)]
+    # End _build_records method
 
     def _get_operator_data(self, scratch: MemoryGeoPackage,
                            operator: FeatureClass, id_: int,
