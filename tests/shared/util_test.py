@@ -4,15 +4,18 @@ Test Utilities
 """
 
 
+from fudgeo.geometry import Point
+from numpy import array
+
 from pytest import approx, mark, raises
 
 from spyops.environment.enumeration import OutputMOption
 from spyops.shared.enumeration import DEFAULT_GEOM_CHECKS, GeometryCheck
 from spyops.shared.util import (
     check_int_flag_enum, check_str_enum, element_names, expand_extent,
+    find_slice_indexes, get_smallest_indexes, get_smallest_values,
     make_unique_name, make_valid_field_name, make_valid_table_name,
-    _replace_double_under, safe_float,
-    safe_int)
+    _replace_double_under, nada, safe_float, safe_int)
 
 
 pytestmark = [mark.utility]
@@ -165,6 +168,70 @@ def test_make_valid_field_name(name, expected):
     """
     assert make_valid_field_name(name) == expected
 # End test_make_valid_field_name function
+
+
+@mark.parametrize('indexes, expected', [
+    ([], ()),
+    ([0, 0, 0, 0], (0, 4)),
+    ([0, 0, 1, 1], (0, 2, 4)),
+    ([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2], (0, 3, 8, 12)),
+])
+def test_find_slice_indexes(indexes, expected):
+    """
+    Test find_slice_indexes
+    """
+    assert find_slice_indexes(array(indexes, dtype=int)) == expected
+# End test_find_slice_indexes function
+
+
+@mark.parametrize('ids, values, n, unique, mins', [
+    ([], [], 2, [], []),
+    ([0], [1.1], 2, [0], [1.1]),
+    ([0, 0, 1, 1, 1], [1.1, 2, 1.2, 4.2, 3.3], 2, [0, 0, 1, 1], [1.1, 2, 1.2, 3.3]),
+    ([0, 0, 1, 1, 1], [1.1, 2, 1.2, 4.2, 3.3], 3, [0, 0, 1, 1, 1], [1.1, 2, 1.2, 3.3, 4.2]),
+])
+def test_get_smallest_values(ids, values, n, unique, mins):
+    """
+    Test get smallest in group
+    """
+    ids = array(ids)
+    values = array(values)
+    unique_ids, smallest = get_smallest_values(ids=ids, values=values, n=n)
+    assert unique_ids.tolist() == unique
+    assert approx(smallest.tolist(), abs=0.001, nan_ok=True) == mins
+# End test_get_smallest_values function
+
+
+@mark.parametrize('ids, values, n, unique, mins', [
+    ([], [], 2, [], []),
+    ([0], [1.1], 2, [0], [0]),
+    ([0, 0, 1, 1, 1], [1.1, 2, 1.2, 4.2, 3.3], 2, [0, 0, 1, 1], [0, 1, 2, 4]),
+    ([0, 0, 1, 1, 1], [1.1, 2, 1.2, 4.2, 3.3], 3, [0, 0, 1, 1, 1], [0, 1, 2, 4, 3]),
+    ([1, 1, 0, 1, 0], [1.1, 2, 1.2, 4.2, 3.3], 3, [0, 0, 1, 1, 1], [2, 4, 0, 1, 3]),
+])
+def test_get_smallest_indexes(ids, values, n, unique, mins):
+    """
+    Test get smallest in group, returning indexes
+    """
+    ids = array(ids)
+    values = array(values)
+    unique_ids, smallest = get_smallest_indexes(ids=ids, values=values, n=n)
+    assert unique_ids.tolist() == unique
+    assert smallest.tolist() == mins
+# End test_get_smallest_indexes function
+
+
+@mark.parametrize('value, expected', [
+    (None, None),
+    (2, 2),
+    (Point, Point),
+])
+def test_nada(value, expected):
+    """
+    Test
+    """
+    assert nada(value) == expected
+# End test_nada function
 
 
 if __name__ == '__main__':  # pragma: no cover

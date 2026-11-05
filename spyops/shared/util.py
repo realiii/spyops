@@ -5,12 +5,16 @@ Utilities
 
 
 from enum import IntFlag, StrEnum
+from math import nan
 from re import IGNORECASE, compile as recompile
 from typing import Any, Callable
 
 from fudgeo.constant import FID, SHAPE
 from fudgeo.sql import KEYWORDS
 from fudgeo.util import NAME_MATCHER
+from numpy import (
+    arange, array, diff, full, isfinite, lexsort, ndarray, nonzero, repeat,
+    unique)
 
 from spyops.shared.constant import DOUBLE_UNDER, UNDERSCORE
 from spyops.shared.hint import EXTENT, GPKG
@@ -152,6 +156,74 @@ def check_int_flag_enum(value: Any, enum: type[IntFlag]) -> Any:
         return value
     return enum(value)
 # End check_int_flag_enum function
+
+
+def nada(value: Any) -> Any:
+    """
+    Nada
+    """
+    return value
+# End nada function
+
+
+def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
+    """
+    Find Slice Indexes, include the final index to allow for easier striding
+    """
+    if not len(indexes):
+        return ()
+    ids, = nonzero(diff(indexes))
+    ids += 1
+    return 0, *[int(i) for i in ids], len(indexes)
+# End find_slice_indexes function
+
+
+def get_smallest_indexes(ids: 'ndarray', values: 'ndarray', n: int = 1) \
+        -> tuple['ndarray', 'ndarray']:
+    """
+    Extract the indexes of the smallest n values for each group of unique
+    identifiers
+    """
+    if not len(ids):
+        return array([]), array([], dtype=int)
+    indexes = lexsort((values, ids))
+    uids, starts, counts = unique(
+        ids[indexes], return_index=True, return_counts=True)
+    offsets = arange(n)
+    group_indexes = starts[:, None] + offsets
+    mask = offsets < counts[:, None]
+    return repeat(uids, n)[mask.ravel()], indexes[group_indexes[mask]]
+# End get_smallest_indexes function
+
+
+def get_smallest_values(ids: 'ndarray', values: 'ndarray', n: int = 1) \
+        -> tuple['ndarray', 'ndarray']:
+    """
+    Extract the smallest n values for each group of unique identifiers
+    """
+    if not len(ids):
+        return array([]), array([])
+    indexes = lexsort((values, ids))
+    uids, starts, counts = unique(
+        ids[indexes], return_index=True, return_counts=True)
+    smalls = full((len(uids), n), fill_value=nan, dtype=float)
+    offsets = arange(n)
+    group_indexes = starts[:, None] + offsets
+    mask = offsets < counts[:, None]
+    smalls[mask] = values[indexes][group_indexes[mask]]
+    smalls = smalls.reshape(-1)
+    mask = isfinite(smalls)
+    return repeat(uids, n)[mask], smalls[mask]
+# get_smallest_values function
+
+
+def make_none_mask(values: 'ndarray') -> 'ndarray':
+    """
+    Create a mask of None values for the given array.
+    """
+    # NOTE this is the way
+    return values == None
+# End make_none_mask function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -21,7 +21,7 @@ from spyops.geometry.distance import (
     get_equidistant_details, interpolate_locations, interpolate_rectangles,
     interpolate_transects, make_lines, make_points, make_rectangles)
 from spyops.geometry.util import (
-    get_coords_and_slices, get_geoms, nada, to_shapely)
+    get_coords_and_slices, get_geoms, to_shapely)
 from spyops.query.base import AbstractSourceQuery
 from spyops.query.mixin import UnitTypeMixin
 from spyops.shared.constant import SEMI, SKIP_FILE_PREFIXES
@@ -31,7 +31,7 @@ from spyops.shared.field import (
     ALONG, BEGIN_ALONG, END_ALONG, NEXT_NUM, ORIENTATION, ORIG_FID, PREV_NUM,
     SEQ_NUM, get_geometry_column_name, make_field_names)
 from spyops.shared.hint import FIELDS, PLACEMENT, UNIT
-from spyops.shared.util import safe_float
+from spyops.shared.util import nada, safe_float
 
 
 if TYPE_CHECKING:  # pragma: no cover

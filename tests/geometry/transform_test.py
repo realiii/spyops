@@ -30,7 +30,8 @@ from spyops.geometry.transform import (
     transform_linestrings, transform_multi_linestrings,
     transform_multi_points, transform_multi_polygons, transform_points,
     transform_polygons)
-from spyops.geometry.util import find_slice_indexes, get_validity
+from spyops.geometry.util import get_validity
+from spyops.shared.util import find_slice_indexes
 from spyops.shared.keywords import (
     HAS_M_KEY, HAS_Z_KEY, INCLUDE_VERTICAL_KEY, TRANSFORMER_KEY)
 
