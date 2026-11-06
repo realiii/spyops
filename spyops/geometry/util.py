@@ -5,12 +5,12 @@ Utility Functions
 
 
 from math import nan
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+from typing import Callable, Optional, TYPE_CHECKING, Union
 
 from bottleneck import nanmean, nansum
 from numpy import (
-    array, copysign, cross, cumsum, diff, hypot, interp, isfinite, ndarray,
-    nonzero, ones, ones_like, zeros_like)
+    array, copysign, cross, cumsum, diff, hypot, interp, isfinite,
+    ones, ones_like, zeros_like)
 from numpy.linalg import norm
 from shapely import force_2d, force_3d
 from shapely.coordinates import get_coordinates
@@ -20,20 +20,14 @@ from shapely.predicates import is_empty, is_valid
 from spyops.geometry.enumeration import DimensionOption
 from spyops.shared.hint import VALUES
 from spyops.shared.keywords import GEOMS_ATTR
+from spyops.shared.util import find_slice_indexes, make_none_mask
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    from numpy import ndarray
     from shapely import LinearRing, Polygon
     from shapely.geometry.base import (
         BaseMultipartGeometry, BaseGeometry, GeometrySequence)
-
-
-def nada(value: Any) -> Any:
-    """
-    Nada
-    """
-    return value
-# End nada function
 
 
 def get_geoms(geom: 'BaseMultipartGeometry') -> 'GeometrySequence':
@@ -59,18 +53,6 @@ def filter_features(features: list[tuple]) -> list[tuple]:
     """
     return [feature for feature in features if not feature[0].is_empty]
 # End filter_features function
-
-
-def find_slice_indexes(indexes: 'ndarray') -> tuple[int, ...]:
-    """
-    Find Slice Indexes, include the final index to allow for easier striding
-    """
-    if not len(indexes):
-        return ()
-    ids, = nonzero(diff(indexes))
-    ids += 1
-    return 0, *[int(i) for i in ids], len(indexes)
-# End find_slice_indexes function
 
 
 def get_coords_and_slices(geoms: Union['ndarray', 'GeometrySequence', list], *,
@@ -145,15 +127,6 @@ def get_validity(geoms: 'ndarray', transformer: Callable | None) -> 'ndarray':
     mask_invalid = ~is_valid(geoms)
     return ~(mask_none | mask_empty | mask_invalid)
 # End get_validity function
-
-
-def make_none_mask(values: 'ndarray') -> 'ndarray':
-    """
-    Create a mask of None values for the given array.
-    """
-    # NOTE this is the way
-    return values == None
-# End make_none_mask function
 
 
 def ring_area_and_centroid(ring: 'LinearRing', has_z: bool, has_m: bool,

@@ -208,7 +208,7 @@ def union(source: 'FeatureClass', operator: 'FeatureClass',
 @validate_result()
 @validate_feature_classes(SOURCE, same_type=True)
 @validate_target_feature_class()
-@validate_range(MIN_COUNT, default=1, min_value=1, max_value=100_000, type_=int)
+@validate_range(MIN_COUNT, default=1, min_value=1, type_=int)
 @validate_table(OVERLAP, exists=False, is_output=True, is_optional=True)
 @validate_xy_tolerance()
 @validate_overwrite_input(TARGET, SOURCE)

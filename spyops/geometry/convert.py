@@ -14,11 +14,12 @@ from shapely.coordinates import get_coordinates
 
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import get_coords_and_slices, get_geoms, nada
+from spyops.geometry.util import get_coords_and_slices, get_geoms
 from spyops.shared.enumeration import OutputTypeOption
 from spyops.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.keywords import GEOMS_ATTR
+from spyops.shared.util import nada
 
 
 if TYPE_CHECKING:  # pragma: no cover

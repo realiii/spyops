@@ -13,8 +13,7 @@ from shapely.io import from_wkt
 
 from spyops.geometry.config import (
     GeometryConfig, geometry_config, _combine_lines_workaround)
-from spyops.geometry.util import nada
-
+from spyops.shared.util import nada
 
 pytestmark = [mark.geometry]
 

@@ -8,7 +8,7 @@ from math import nan
 
 from fudgeo.constant import WGS84
 from fudgeo.geometry.point import Point, PointZ, PointZM
-from numpy import array, ndarray
+from numpy import ndarray
 from pytest import mark, approx
 from shapely import (
     Point as ShapelyPoint, LineString, MultiPoint, MultiLineString)
@@ -17,38 +17,11 @@ from shapely.geometry.polygon import LinearRing
 
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.util import (
-    ring_area_and_centroid, find_slice_indexes, get_geoms, get_geoms_iter,
-    nada, to_shapely)
-
+    ring_area_and_centroid,
+    get_geoms, get_geoms_iter,
+    to_shapely)
 
 pytestmark = [mark.geometry]
-
-
-@mark.parametrize('indexes, expected', [
-    ([], ()),
-    ([0, 0, 0, 0], (0, 4)),
-    ([0, 0, 1, 1], (0, 2, 4)),
-    ([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2], (0, 3, 8, 12)),
-])
-def test_find_slice_indexes(indexes, expected):
-    """
-    Test find_slice_indexes
-    """
-    assert find_slice_indexes(array(indexes, dtype=int)) == expected
-# End test_find_slice_indexes function
-
-
-@mark.parametrize('value, expected', [
-    (None, None),
-    (2, 2),
-    (Point, Point),
-])
-def test_nada(value, expected):
-    """
-    Test
-    """
-    assert nada(value) == expected
-# End test_nada function
 
 
 @mark.parametrize('geom, expected_count, expected_type', [

@@ -23,8 +23,8 @@ from spyops.geometry.distance import (
     interpolate_locations, make_points, _add_end_locations,
     _group_by_line_indexes)
 from spyops.geometry.measured import MeasuredLine
-from spyops.geometry.util import find_slice_indexes, get_geoms
-
+from spyops.geometry.util import get_geoms
+from spyops.shared.util import find_slice_indexes
 
 pytestmark = [mark.geometry]
 

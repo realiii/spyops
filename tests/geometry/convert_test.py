@@ -24,7 +24,7 @@ from spyops.geometry.convert import (
     _as_lines, _update_z_values, _use_boundary_factory,
     cast_linestrings, cast_multi_linestrings, cast_multi_points,
     cast_multi_polygons, cast_points, cast_polygons, get_geometry_converters)
-from spyops.geometry.util import nada
+from spyops.shared.util import nada
 from spyops.shared.enumeration import OutputTypeOption
 from spyops.environment.enumeration import Setting
 from spyops.environment.context import Swap

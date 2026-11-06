@@ -5,13 +5,14 @@ Tests for Proximity
 
 
 from bottleneck import nanmean
-from fudgeo import FeatureClass
+from fudgeo import FeatureClass, Table
 from numpy import array
 from pyproj import CRS
 from pytest import mark, param, approx
 
 from spyops.analysis import (
-    buffer, create_thiessen_polygons, multiple_buffer, near)
+    buffer, create_thiessen_polygons, generate_near_table, multiple_buffer,
+    near)
 from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import DistanceUnit, LengthUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
@@ -876,6 +877,381 @@ class TestNear:
         assert approx(nanmean(distances), abs=1) == expected
     # End test_radius method
 # End TestNear class
+
+
+class TestGenerateNearTableFindNearest:
+    """
+    Test Generate Near Table -- using Nearest e.g. closest_count=1
+    """
+    def test_source_operator_same(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source and operator are same feature class
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(source, operator=source, target=target)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 96
+    # End test_source_operator_same method
+
+    def test_source_point_operator_line(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source point and operator line
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['transmission_l']
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(source, operator=operator, target=target)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_point_operator_line method
+
+    def test_source_line_operator_point(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator point
+        """
+        name = 'transmission_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['toponymy_p']
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(source, operator=operator, target=target)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_line_operator_point method
+
+    def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator mix of geometries and crs
+        """
+        name = 'transmission_10tm_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        names = 'toponymy_6654_p', 'structures_lcc_p', 'structures_a'
+        operators = [ntdb_zm_small[name] for name in names]
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(source, operator=operators, target=target)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select([NEAR_FID, NEAR_FC], include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66
+        oid, nid, fcs = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert None not in fcs
+        assert set(fcs) == {'structures_lcc_p', 'structures_a', 'toponymy_6654_p'}
+    # End test_source_line_operator_mix method
+
+    @mark.parametrize('unit, expected', [
+        (LengthUnit.METERS, 1084.3),
+        (LengthUnit.FEET, 3557.4),
+    ])
+    def test_length_unit(self, ntdb_zm_small, mem_gpkg, unit, expected):
+        """
+        Test length unit
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(source, operator=source, target=target, length_unit=unit)
+        assert len(tbl) == len(source)
+        cursor = tbl.select(NEAR_DIST)
+        distances = [d for d, in cursor.fetchall()]
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_length_unit method
+
+    @mark.parametrize('radius, option, expected', [
+        (Meters(500), SearchRadiusOption.PLANAR, 290.08),
+        (Meters(500), SearchRadiusOption.GEODESIC, 290.38),
+        (DecimalDegrees(0.005), SearchRadiusOption.PLANAR, 197.8),
+        (DecimalDegrees(0.005), SearchRadiusOption.GEODESIC, 198),
+    ])
+    def test_radius(self, ntdb_zm_small, mem_gpkg, radius, option, expected):
+        """
+        Test radius and option
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(source, operator=source, target=target,
+                                  search_radius=radius, search_option=option)
+        cursor = tbl.select(NEAR_DIST)
+        distances = array([d for d, in cursor.fetchall()], dtype=float)
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_radius method
+# End TestGenerateNearTableFindNearest class
+
+
+class TestGenerateNearTableFindAll:
+    """
+    Test Generate Near Table -- Find All e.g. closest_count=None
+    """
+    def test_source_operator_same(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source and operator are same feature class
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=source, target=target, closest_count=None)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142**2
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 20162
+    # End test_source_operator_same method
+
+    def test_source_point_operator_line(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source point and operator line
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['transmission_l']
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=operator, target=target, closest_count=None)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142 * 66
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_point_operator_line method
+
+    def test_source_line_operator_point(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator point
+        """
+        name = 'transmission_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['toponymy_p']
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=operator, target=target, closest_count=None)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66 * 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_line_operator_point method
+
+    def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator mix of geometries and crs
+        """
+        name = 'transmission_10tm_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        names = 'toponymy_6654_p', 'structures_lcc_p', 'structures_a'
+        operators = [ntdb_zm_small[name] for name in names]
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=operators, target=target, closest_count=None)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select([NEAR_FID, NEAR_FC], include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 363_462
+        oid, nid, fcs = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert None not in fcs
+        assert set(fcs) == {'structures_lcc_p', 'structures_a', 'toponymy_6654_p'}
+    # End test_source_line_operator_mix method
+
+    @mark.parametrize('unit, expected', [
+        (LengthUnit.METERS, 10214.4),
+        (LengthUnit.FEET, 33512.1),
+    ])
+    def test_length_unit(self, ntdb_zm_small, mem_gpkg, unit, expected):
+        """
+        Test length unit
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=source, target=target, length_unit=unit,
+            closest_count=None)
+        assert len(tbl) == len(source)**2
+        cursor = tbl.select(NEAR_DIST)
+        distances = [d for d, in cursor.fetchall()]
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_length_unit method
+
+    @mark.parametrize('radius, option, count, expected', [
+        (Meters(500), SearchRadiusOption.PLANAR, 178, 57.6),
+        (Meters(500), SearchRadiusOption.GEODESIC, 178, 57.6),
+        (DecimalDegrees(0.005), SearchRadiusOption.PLANAR, 166, 26.7),
+        (DecimalDegrees(0.005), SearchRadiusOption.GEODESIC, 166, 26.7),
+    ])
+    def test_radius(self, ntdb_zm_small, mem_gpkg, radius, option, count, expected):
+        """
+        Test radius and option
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=source, target=target,
+            search_radius=radius, search_option=option,
+            closest_count=None)
+        assert len(tbl) == count
+        cursor = tbl.select(NEAR_DIST)
+        distances = array([d for d, in cursor.fetchall()], dtype=float)
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_radius method
+# End TestGenerateNearTableFindAll class
+
+
+class TestGenerateNearTableFindNNearest:
+    """
+    Test Generate Near Table -- Find N Nearest e.g. closest_count=5
+    """
+    def test_source_operator_same(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source and operator are same feature class
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=source, target=target, closest_count=5)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142 * 5
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 710
+    # End test_source_operator_same method
+
+    def test_source_point_operator_line(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source point and operator line
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['transmission_l']
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=operator, target=target, closest_count=5)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 142 * 5
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_point_operator_line method
+
+    def test_source_line_operator_point(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator point
+        """
+        name = 'transmission_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['toponymy_p']
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=operator, target=target, closest_count=5)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select(NEAR_FID, include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66 * 5
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_line_operator_point method
+
+    def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator mix of geometries and crs
+        """
+        name = 'transmission_10tm_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        names = 'toponymy_6654_p', 'structures_lcc_p', 'structures_a'
+        operators = [ntdb_zm_small[name] for name in names]
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=operators, target=target, closest_count=5)
+        assert len(tbl.fields) == 11
+        cursor = tbl.select([NEAR_FID, NEAR_FC], include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == 66 * 5
+        oid, nid, fcs = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert None not in fcs
+        assert set(fcs) == {'structures_lcc_p', 'structures_a', 'toponymy_6654_p'}
+    # End test_source_line_operator_mix method
+
+    @mark.parametrize('unit, expected', [
+        (LengthUnit.METERS, 1464.2),
+        (LengthUnit.FEET, 4803.9),
+    ])
+    def test_length_unit(self, ntdb_zm_small, mem_gpkg, unit, expected):
+        """
+        Test length unit
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=source, target=target, length_unit=unit,
+            closest_count=5)
+        assert len(tbl) == len(source) * 5
+        cursor = tbl.select(NEAR_DIST)
+        distances = [d for d, in cursor.fetchall()]
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_length_unit method
+
+    @mark.parametrize('radius, option, count, expected', [
+        (Meters(1500), SearchRadiusOption.PLANAR, 529, 686.2),
+        (Meters(1500), SearchRadiusOption.GEODESIC, 529, 686.2),
+        (DecimalDegrees(0.01), SearchRadiusOption.PLANAR, 308, 354.1),
+        (DecimalDegrees(0.01), SearchRadiusOption.GEODESIC, 308, 354.1),
+    ])
+    def test_radius(self, ntdb_zm_small, mem_gpkg, radius, option, count, expected):
+        """
+        Test radius and option
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = Table(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_near_table(
+            source, operator=source, target=target,
+            search_radius=radius, search_option=option,
+            closest_count=5)
+        assert len(tbl) == count
+        cursor = tbl.select(NEAR_DIST)
+        distances = array([d for d, in cursor.fetchall()], dtype=float)
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_radius method
+# End TestGenerateNearTableFindAll class
 
 
 if __name__ == '__main__':  # pragma: no cover

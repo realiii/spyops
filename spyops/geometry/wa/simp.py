@@ -12,10 +12,11 @@ from shapely import (
     MultiPoint, Point, from_wkb, get_rings, simplify as _simplify)
 
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
-from spyops.geometry.util import get_coords_and_slices, get_geoms_iter, nada
+from spyops.geometry.util import get_coords_and_slices, get_geoms_iter
 from spyops.geometry.wa.util import ensure_iterable, get_shape_type_from_geom
 from spyops.geometry.wa.uwa import USE_WORKAROUNDS
 from spyops.shared.constant import SRS_ID_WKB
+from spyops.shared.util import nada
 
 
 def simplify(geometry, tolerance, preserve_topology=True, **kwargs):

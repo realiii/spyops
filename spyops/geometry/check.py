@@ -17,11 +17,11 @@ from shapely.constructive import make_valid
 from shapely.io import from_wkb
 from shapely.predicates import is_ccw, is_closed, is_valid
 
-from spyops.geometry.util import (
-    get_coords_and_slices, get_geoms_iter, make_none_mask)
+from spyops.geometry.util import get_coords_and_slices, get_geoms_iter
 from spyops.shared.enumeration import GeometryCheck
 from spyops.shared.field import GEOM_TYPE_LINES, GEOM_TYPE_POLYGONS
 from spyops.shared.hint import FEATURES, GRID_SIZE
+from spyops.shared.util import make_none_mask
 
 
 if TYPE_CHECKING:  # pragma: no cover

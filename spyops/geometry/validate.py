@@ -15,11 +15,12 @@ from shapely import (
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
 
 from spyops.geometry.enumeration import DimensionOption
-from spyops.geometry.util import get_geoms_iter, nada, to_shapely
+from spyops.geometry.util import get_geoms_iter, to_shapely
 from spyops.geometry.wa.valid import make_valid_structure
 from spyops.shared.exception import GeometryDimensionError
 from spyops.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
+from spyops.shared.util import nada
 
 
 if TYPE_CHECKING:  # pragma: no cover
