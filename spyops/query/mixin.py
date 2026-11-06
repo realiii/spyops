@@ -36,7 +36,7 @@ from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import extent_from_feature_class
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.shared.constant import (
-    DOT, DRID, EMPTY, METRE, SEMI, SKIP_FILE_PREFIXES)
+    DOT, DRID, EMPTY, METRE, SEMI, SKIP_FILE_PREFIXES, TIMESTAMP)
 
 from spyops.shared.database import (
     add_aggregates, check_same_element, remove_aggregates)
@@ -218,7 +218,7 @@ class IntermediateTableContextMixin:
         """
         Intermediate Name
         """
-        now = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        now = datetime.now().strftime(TIMESTAMP)
         # noinspection unresolved-references
         return escape_name(f'tmp_{self.source.name}_{self._short_name}_{now}')
     # End _intermediate_name property

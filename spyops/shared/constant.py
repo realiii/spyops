@@ -42,5 +42,8 @@ FEATURE: str = 'Feature'
 FEATURE_COLLECTION: str = 'FeatureCollection'
 
 
+TIMESTAMP: str = '%Y%m%d_%H%M%S_%f'
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
