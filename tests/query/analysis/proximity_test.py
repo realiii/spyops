@@ -832,7 +832,6 @@ class TestQueryNear:
         query = QueryNear(source, operator=[], search_radius=None,
                           search_option=option,
                           length_unit=LengthUnit.METERS)
-        crs = query._distance_crs
         transformer = query._get_distance_transformer(source)
         assert (transformer is None) is sans_transformer
         geoms, fids = query._get_source_geoms_and_fids()
@@ -861,7 +860,6 @@ class TestQueryNear:
         source = ntdb_zm_small[name]
         query = QueryNear(source, operator=[], search_radius=radius,
                           search_option=option, length_unit=LengthUnit.METERS)
-        crs = query._distance_crs
         assert approx(query._distance_radius, abs=0.1) == expected
     # End test_get_radius method
 
@@ -876,7 +874,6 @@ class TestQueryNear:
             source, operator=operator, search_radius=Kilometers(5),
             search_option=SearchRadiusOption.PLANAR,
             length_unit=LengthUnit.METERS)
-        crs = query._distance_crs
         distances = array([500, 1000, 1500, 2000], dtype=float)
         coords = array([[0, 0.1], [10, 11], [1, 1.2], [11, 12],
                         [2, 2.3], [20, 23], [3, 3.4], [30, 34]])
