@@ -37,7 +37,7 @@ from spyops.validation import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import FeatureClass
+    from fudgeo import FeatureClass, Table
 
 
 __all__ = ['buffer', 'multiple_buffer', 'create_thiessen_polygons',
@@ -265,8 +265,7 @@ def generate_near_table(source: 'FeatureClass', operator: FEATURE_CLASSES,
                         search_radius: RADIUS | None = None,
                         search_option: SearchRadiusOption = (
                                 SearchRadiusOption.PLANAR),
-                        length_unit: LengthUnit = LengthUnit.METERS) \
-        -> 'FeatureClass':
+                        length_unit: LengthUnit = LengthUnit.METERS) -> 'Table':
     """
     Generate Near Table
 
