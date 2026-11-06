@@ -4,6 +4,7 @@ Query Classes for management.proximity module
 """
 
 
+import sys
 from abc import ABCMeta, abstractmethod
 from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
 from datetime import datetime
@@ -18,8 +19,8 @@ from fudgeo.enumeration import FieldType, ShapeType
 from fudgeo.util import escape_name
 from numpy import array, asarray, isfinite, ones_like, unique
 from shapely import GeometryCollection, MultiPolygon
-from shapely.coordinates import get_coordinates
 from shapely.linear import shortest_line
+from shapely.measurement import length
 from shapely.predicates import is_empty
 from shapely.strtree import STRtree
 
@@ -36,13 +37,14 @@ from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.multi import build_dissolved
 from spyops.geometry.proximity import geodesic_buffer, planar_buffer
 from spyops.geometry.util import (
-    filter_features, get_validity, make_none_mask, to_shapely)
+    filter_features, get_validity, to_shapely)
 from spyops.query.base import (
     AbstractQueryDissolve, AbstractSourceUpdateQuery, BaseQuerySelect,
     QueryFeatureIntermediate)
 from spyops.query.mixin import NearMixin, UnitTypeMixin
-from spyops.shared.constant import DOT, DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES
-from spyops.shared.database import check_same_element
+from spyops.shared.constant import (
+    DOT, DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES,
+    TIMESTAMP)
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SearchRadiusOption, SideOption)
 from spyops.shared.exception import (
@@ -53,7 +55,7 @@ from spyops.shared.field import (
 from spyops.shared.hint import FEATURE_CLASSES, FIELDS, NAMES, UNIT, XY_TOL
 from spyops.shared.keywords import (
     CRS_KEY, END_OPTION, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION)
-from spyops.shared.records import select_transform_insert
+from spyops.shared.util import get_smallest_indexes, make_none_mask
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -1173,8 +1175,10 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
         Orig FID, Near FID, Near Distance, Near Feature Class Name, Near Rank,
         From X, From Y, Near X, Near Y, and Near Angle
         """
-        scratch = MemoryGeoPackage.create()
         src_geoms, src_fids = self._get_source_geoms_and_fids()
+        if not len(src_geoms):
+            return
+        scratch = MemoryGeoPackage.create()
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs):
             for i, operator in enumerate(self._operator):
                 exclusive, op_fids, op_geoms = self._get_operator_data(
@@ -1218,12 +1222,224 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
     def _make_query(operator: FeatureClass, scratch: MemoryGeoPackage,
                     id_: int) -> QueryFeatureIntermediate:
         """
-        Make Query
+        Make Query, this is here vs in mixin module to avoid circular imports
         """
         return QueryFeatureIntermediate(
             operator, target=FeatureClass(scratch, name=f'fc_{id_}'))
     # End _make_query method
 # End QueryNear class
+
+
+class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
+    """
+    Query Generate Near Table
+    """
+    def __init__(self, source: FeatureClass, operator: FEATURE_CLASSES,
+                 target: 'Table', closest_count: int | None,
+                 search_radius: UNIT | None, search_option: SearchRadiusOption,
+                 length_unit: LengthUnit) -> None:
+        """
+        Initialize the QueryGenerateNearTable class
+        """
+        super().__init__(source, target=target)
+        self._operator: FEATURE_CLASSES = operator
+        self._count: int | None = closest_count
+        self._radius: UNIT | None = search_radius
+        self._option: SearchRadiusOption = search_option
+        self._unit: LengthUnit = length_unit
+    # End init built-in
+
+    @staticmethod
+    def _make_query(operator: FeatureClass, scratch: MemoryGeoPackage,
+                    id_: int) -> QueryFeatureIntermediate:
+        """
+        Make Query, this is here vs in mixin module to avoid circular imports
+        """
+        return QueryFeatureIntermediate(
+            operator, target=FeatureClass(scratch, name=f'fc_{id_}'))
+    # End _make_query method
+
+    def _get_finder(self) -> Callable:
+        """
+        Get Finder
+        """
+        if not self._count:
+            return self._find_all
+        elif self._count == 1:
+            return self._find_nearest
+        return self._find_n_nearest
+    # End _get_finder method
+
+    def _find_n_nearest(self, name: str, src_geoms: 'ndarray',
+                        src_fids: 'ndarray', op_geoms: 'ndarray',
+                        op_fids: 'ndarray', **kwargs) \
+            -> Generator[list[tuple], None, None]:
+        """
+        Find Closest N Features
+        """
+        indexes = self._get_query_indexes(src_geoms, op_geoms)
+        if not len(indexes):
+            yield []
+        else:
+            # noinspection bad-argument-type
+            (src_indexes, op_indexes,
+             lines, distances) = self._get_indexes_and_lines(
+                indexes, src_geoms, op_geoms)
+            # noinspection bad-argument-type
+            src_indexes, ordered_indexes = get_smallest_indexes(
+                src_indexes, values=distances, n=self._count)
+            distances = distances[ordered_indexes]
+            op_indexes = op_indexes[ordered_indexes]
+            lines = lines[ordered_indexes]
+            yield from self._build_records(
+                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
+                op_indexes=op_indexes, distances=distances, lines=lines,
+                name=name)
+    # End _find_n_nearest method
+
+    def _find_all(self, name: str, src_geoms: 'ndarray', src_fids: 'ndarray',
+                  op_geoms: 'ndarray', op_fids: 'ndarray', **kwargs) \
+            -> Generator[list[tuple], None, None]:
+        """
+        Find All Features
+        """
+        indexes = self._get_query_indexes(src_geoms, op_geoms)
+        if not len(indexes):
+            yield []
+        else:
+            # noinspection bad-argument-type
+            (src_indexes, op_indexes,
+             lines, distances) = self._get_indexes_and_lines(
+                indexes, src_geoms, op_geoms)
+            yield from self._build_records(
+                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
+                op_indexes=op_indexes, distances=distances, lines=lines,
+                name=name)
+    # End _find_all method
+
+    def _get_query_indexes(self, src_geoms: 'ndarray', op_geoms: 'ndarray') \
+            -> tuple['ndarray', 'ndarray']:
+        """
+        Get query indexes
+        """
+        tree = STRtree(op_geoms)
+        # noinspection bad-return
+        return tree.query(
+            src_geoms, predicate='dwithin',
+            distance=self._distance_radius or sys.maxsize)
+    # End _get_query_indexes method
+
+    @staticmethod
+    def _get_indexes_and_lines(indexes: tuple['ndarray', 'ndarray'],
+                               src_geoms: 'ndarray', op_geoms: 'ndarray') \
+            -> tuple['ndarray', 'ndarray', 'ndarray', 'ndarray']:
+        """
+        Get Source and Operator Indexes, get lines and distances
+        """
+        src_indexes, op_indexes = indexes
+        lines = shortest_line(src_geoms[src_indexes], op_geoms[op_indexes])
+        return src_indexes, op_indexes, lines, length(lines)
+    # End _get_indexes_and_lines method
+
+    def find_nearest(self) -> Generator[list[tuple], None, None]:
+        """
+        Find Nearest, data record is:
+
+        Orig FID, Near FID, Near Distance, Near Feature Class Name, Near Rank,
+        From X, From Y, Near X, Near Y, and Near Angle
+        """
+        src_geoms, src_fids = self._get_source_geoms_and_fids()
+        if not len(src_geoms):
+            return
+        finder = self._get_finder()
+        scratch = MemoryGeoPackage.create()
+        intermediate, sql_insert = self._configure_intermediate(scratch)
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs),
+              intermediate.geopackage.connection as cin):
+            for i, operator in enumerate(self._operator):
+                exclusive, op_fids, op_geoms = self._get_operator_data(
+                    scratch, operator=operator, id_=i,
+                    src_fids=src_fids, src_geoms=src_geoms)
+                if not len(op_geoms):
+                    continue
+                records = finder(
+                    operator.name, src_geoms=src_geoms, src_fids=src_fids,
+                    op_geoms=op_geoms, op_fids=op_fids, exclusive=exclusive)
+                if not (records := next(records, [])):
+                    continue
+                cin.executemany(sql_insert, records)
+            cursor = cin.execute(self._make_rank_query(intermediate))
+            while records := cursor.fetchmany(FETCH_SIZE):
+                yield records
+        if conn := scratch.connection:
+            conn.close()
+    # End find_nearest method
+
+    def _make_rank_query(self, table: 'Table') -> str:
+        """
+        Make Rank Query
+        """
+        if not self._count:
+            condition = ' > 0'
+        else:
+            condition = f'<= {self._count}'
+        return f"""
+               WITH RNK AS (
+                   SELECT ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, 
+                          ROW_NUMBER() OVER (
+                            PARTITION BY ORIG_FID 
+                            ORDER BY NEAR_DIST ASC) AS NEAR_RANK, 
+                          FROM_X, FROM_Y, NEAR_X, NEAR_Y, NEAR_ANGLE                  
+                    FROM {table.escaped_name})
+               SELECT *
+               FROM RNK
+               WHERE NEAR_RANK {condition}
+               """
+    # End _make_rank_query method
+
+    def _configure_intermediate(self, scratch: MemoryGeoPackage) \
+            -> tuple['Table', str]:
+        """
+        Intermediate Table and Insert Statement
+        """
+        now = datetime.now().strftime(TIMESTAMP)
+        name = escape_name(f'tmp_gen_near_table_{now}')
+        table = scratch.create_table(name, fields=self._fields, overwrite=True)
+        field_count, insert_field_names, _ = self._field_names_and_count(table)
+        return table, self._make_insert(
+            table.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End _configure_intermediate method
+
+    @property
+    def _fields(self) -> FIELDS:
+        """
+        Fields
+        """
+        return self._intermediate_fields
+    # End _fields property
+
+    # noinspection method-overriding
+    @property
+    def target(self) -> 'Table':
+        """
+        Target
+        """
+        return self.target_empty
+    # End target property
+
+    # noinspection method-overriding
+    @cached_property
+    def target_empty(self) -> 'Table':
+        """
+        Target Empty
+        """
+        return self._target.geopackage.create_table(
+            self._target.name, fields=self._fields,
+            description='Results from Generate Near Table',
+            overwrite=ANALYSIS_SETTINGS.overwrite)
+    # End target_empty property
+# End QueryGenerateNearTable class
 
 
 if __name__ == '__main__':  # pragma: no cover

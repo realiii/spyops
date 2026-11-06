@@ -14,30 +14,34 @@ from spyops.geometry.proximity import build_voronoi
 from spyops.geometry.util import filter_features, to_shapely
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryCreateThiessenPolygons, QueryMultipleBuffer, QueryNear)
+    QueryCreateThiessenPolygons, QueryGenerateNearTable, QueryMultipleBuffer,
+    QueryNear)
 from spyops.shared.enumeration import (
     BufferTypeOption, DissolveOption, EndOption, SearchRadiusOption, SideOption)
 from spyops.shared.field import GEOM_TYPE_POINTS
 from spyops.shared.hint import (
     DISTANCE, FEATURE_CLASSES, FIELDS, FIELD_NAMES, RADIUS, UNIT, XY_TOL)
 from spyops.shared.keywords import (
-    BUFFER_TYPE, DISSOLVE_OPTION, DISTANCES, DISTANCE_ARG, DISTANCE_UNIT,
-    END_OPTION, GROUP_FIELDS, LENGTH_UNIT, OPERATOR, SEARCH_RADIUS, RESOLUTION,
-    SEARCH_OPTION, SIDE_OPTION, SOURCE)
+    BUFFER_TYPE, CLOSEST_COUNT, DISSOLVE_OPTION, DISTANCES, DISTANCE_ARG,
+    DISTANCE_UNIT, END_OPTION, GROUP_FIELDS, LENGTH_UNIT, OPERATOR,
+    SEARCH_RADIUS, RESOLUTION, SEARCH_OPTION, SIDE_OPTION, SOURCE, TARGET)
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_dissolve_option, validate_distance, validate_feature_classes,
-    validate_field, validate_linear_unit, validate_overwrite_source,
-    validate_range, validate_result, validate_side_option,
-    validate_source_feature_class, validate_str_enumeration,
-    validate_target_feature_class, validate_values, validate_xy_tolerance)
+    validate_field, validate_linear_unit, validate_overwrite_input,
+    validate_overwrite_source, validate_range, validate_result,
+    validate_side_option, validate_source_feature_class,
+    validate_str_enumeration, validate_target_feature_class,
+    validate_target_table, validate_values,
+    validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass
 
 
-__all__ = ['buffer', 'multiple_buffer', 'create_thiessen_polygons', 'near']
+__all__ = ['buffer', 'multiple_buffer', 'create_thiessen_polygons',
+           'near', 'generate_near_table']
 
 
 @validate_result()
@@ -243,6 +247,51 @@ def near(source: 'FeatureClass', operator: FEATURE_CLASSES, *,
             cin.execute(query.update)
     return query.target
 # End near function
+
+
+@validate_result()
+@validate_source_feature_class()
+@validate_feature_classes(OPERATOR)
+@validate_target_table()
+@validate_range(CLOSEST_COUNT, default=1, min_value=1,
+                is_optional=True, type_=int)
+@validate_linear_unit(SEARCH_RADIUS, feature_class_name=SOURCE,
+                      is_optional=True)
+@validate_str_enumeration(SEARCH_OPTION, SearchRadiusOption)
+@validate_str_enumeration(LENGTH_UNIT, LengthUnit)
+@validate_overwrite_input(TARGET, SOURCE, OPERATOR)
+def generate_near_table(source: 'FeatureClass', operator: FEATURE_CLASSES,
+                        target: 'Table', *, closest_count: int | None = 1,
+                        search_radius: RADIUS | None = None,
+                        search_option: SearchRadiusOption = (
+                                SearchRadiusOption.PLANAR),
+                        length_unit: LengthUnit = LengthUnit.METERS) \
+        -> 'FeatureClass':
+    """
+    Generate Near Table
+
+    Creates a table of proximity attributes measuring from the source feature
+    class to the operator feature classes.  Table includes source feature
+    identifier and operator feature identifiers, feature class name, coordinates
+    of the nearest point on the feature, the distance to the feature, and
+    the angle to the feature.
+
+    Default is to return only the nearest operator feature for each source
+    feature (e.g. closest_count=1).  Set closest_count=None to return all
+    operator features within the search radius or use another number to
+    return a subset of operator features within the search radius (e.g.
+    closest_count=5 will return the 5 nearest operator features).
+    """
+    search_radius: UNIT | None
+    query = QueryGenerateNearTable(
+        source, operator=operator, target=target,
+        closest_count=closest_count, search_radius=search_radius,
+        search_option=search_option, length_unit=length_unit)
+    with query.target.geopackage.connection as cout:
+        for records in query.find_nearest():
+            cout.executemany(query.insert, records)
+    return query.target
+# End generate_near_table function
 
 
 if __name__ == '__main__':  # pragma: no cover

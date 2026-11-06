@@ -7,8 +7,8 @@ Test for Proximity Query classes
 from fudgeo import FeatureClass, Field
 from fudgeo.enumeration import FieldType, ShapeType
 from numpy import array, isnan
-from pytest import mark, approx
-from shapely.strtree import STRtree
+from pytest import mark, approx, raises
+from shapely import Point
 
 from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import DistanceUnit, LengthUnit
@@ -18,7 +18,8 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryCreateThiessenPolygons, QueryMultipleBuffer, QueryNear)
+    QueryCreateThiessenPolygons, QueryMultipleBuffer, QueryNear,
+    QueryGenerateNearTable)
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption,
     SearchRadiusOption, SideOption)
@@ -888,6 +889,77 @@ class TestQueryNear:
         assert not isnan(records[:, 4]).any()
     # End test_calculate_planar method
 # End TestQueryNear class
+
+
+class TestQueryGenerateNearTable:
+    """
+    Test Query Generate Near Table
+    """
+    @mark.parametrize('closest_count, expected', [
+        (None, '_find_all'),
+        (1, '_find_nearest'),
+        (5, '_find_n_nearest'),
+    ])
+    def test_get_finder(self, closest_count, expected):
+        """
+        Test Get Finder
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=closest_count, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._get_finder() == getattr(query, expected)
+    # End test_get_finder method
+
+    @mark.parametrize('src_geoms, op_geoms, expected', [
+        ([], [], []),
+        ([], [Point(1, 1)], [0]),
+        ([Point(0, 0)], [Point(1, 1)], ([0], [0])),
+        ([Point(0, 0), Point(1, 1)], [Point(2, 3), Point(4, 5)], ([0, 0, 1, 1], [0, 1, 0, 1])),
+    ])
+    def test_get_query_indexes(self, src_geoms, op_geoms, expected):
+        """
+        Test get query indexes
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        if not src_geoms or not op_geoms:
+            with raises(TypeError):
+                query._get_query_indexes(src_geoms, op_geoms)
+        else:
+            src_indexes, op_indexes = query._get_query_indexes(src_geoms, op_geoms)
+            assert (src_indexes.tolist(), op_indexes.tolist()) == expected
+    # End test_get_query_indexes method
+
+    def test_fields(self):
+        """
+        Test fields
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        names = [f.name for f in query._fields]
+        assert names == [
+            'ORIG_FID', 'NEAR_FID', 'NEAR_DIST', 'NEAR_FC', 'NEAR_RANK',
+            'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y', 'NEAR_ANGLE']
+    # End test_fields method
+
+    def test_configure_intermediate(self, mem_gpkg):
+        """
+        Test configure intermediate
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        tbl, sql = query._configure_intermediate(mem_gpkg)
+        assert tbl.name.startswith('tmp_gen_near_table')
+        assert '(ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK, ' in sql
+    # End test_configure_intermediate method
+# End TestQueryGenerateNearTable class
 
 
 if __name__ == '__main__':  # pragma: no cover
