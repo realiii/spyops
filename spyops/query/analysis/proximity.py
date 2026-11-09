@@ -1401,22 +1401,14 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
         """
         Intermediate Table and Insert Statement
         """
-        now = datetime.now().strftime(TIMESTAMP)
-        name = escape_name(f'tmp_gen_near_table_{now}')
-        table = scratch.create_table(name, fields=self._fields, overwrite=True)
+        name = self._make_intermediate_name()
+        table = scratch.create_table(
+            name, fields=self._intermediate_fields, overwrite=True)
         field_count, insert_field_names, _ = self._field_names_and_count(table)
         return table, self._make_insert(
             table.escaped_name, field_names=insert_field_names,
             field_count=field_count)
     # End _configure_intermediate method
-
-    @property
-    def _fields(self) -> FIELDS:
-        """
-        Fields
-        """
-        return self._intermediate_fields
-    # End _fields property
 
     # noinspection method-overriding
     @property
@@ -1434,7 +1426,7 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
         Target Empty
         """
         return self._target.geopackage.create_table(
-            self._target.name, fields=self._fields,
+            self._target.name, fields=self._intermediate_fields,
             description='Results from Generate Near Table',
             overwrite=ANALYSIS_SETTINGS.overwrite)
     # End target_empty property
