@@ -1413,5 +1413,159 @@ class TestGenerateOriginDestinationLinksFindNearest:
 # End TestGenerateOriginDestinationLinksFindNearest class
 
 
+class TestGenerateOriginDestinationLinksFindAll:
+    """
+    Test Generate Origin Destination Links -- Find All e.g. closest_count=None
+    """
+    def test_source_operator_same(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source and operator are same feature class
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_origin_destination_links(
+            source, operator=source, target=target, closest_count=None)
+        assert len(tbl.fields) == 12
+        cursor = tbl.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 20022
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 20021
+    # End test_source_operator_same method
+
+    @mark.parametrize('field_name', [
+        'ENTITY_NAME',
+        'CODE',
+    ])
+    def test_source_operator_same_field(self, ntdb_zm_small, mem_gpkg, field_name):
+        """
+        Test when source and operator are same feature class and using field
+        """
+        name = 'structures_p'
+        source = ntdb_zm_small[name].copy(
+            name, geopackage=mem_gpkg, where_clause='OBJECTID <= 20')
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(
+            source, operator=source, target=target, closest_count=None,
+            source_field=field_name, operator_field=field_name)
+        assert len(fc.fields) == 13
+        cursor = fc.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 90
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 89
+    # End test_source_operator_same_field method
+
+    def test_source_point_operator_line(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source point and operator line
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['transmission_l']
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_origin_destination_links(
+            source, operator=operator, target=target, closest_count=None)
+        assert len(tbl.fields) == 12
+        cursor = tbl.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 142 * 66
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_point_operator_line method
+
+    def test_source_line_operator_point(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator point
+        """
+        name = 'transmission_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['toponymy_p']
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_origin_destination_links(
+            source, operator=operator, target=target, closest_count=None)
+        assert len(tbl.fields) == 12
+        cursor = tbl.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 66 * 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_line_operator_point method
+
+    @mark.slow
+    def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator mix of geometries and crs
+        """
+        name = 'transmission_10tm_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        names = 'toponymy_6654_p', 'structures_lcc_p', 'structures_a'
+        operators = [ntdb_zm_small[name] for name in names]
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_origin_destination_links(
+            source, operator=operators, target=target, closest_count=None)
+        assert len(tbl.fields) == 12
+        cursor = tbl.select([NEAR_FID, NEAR_FC], include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 363_462
+        oid, nid, fcs = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert None not in fcs
+        assert set(fcs) == {'structures_lcc_p', 'structures_a', 'toponymy_6654_p'}
+    # End test_source_line_operator_mix method
+
+    @mark.parametrize('unit, expected', [
+        (LengthUnit.METERS, 10286.9),
+        (LengthUnit.FEET, 33749.7),
+    ])
+    def test_length_unit(self, ntdb_zm_small, mem_gpkg, unit, expected):
+        """
+        Test length unit
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_origin_destination_links(
+            source, operator=source, target=target, length_unit=unit,
+            closest_count=None)
+        assert len(tbl) == 20022
+        cursor = tbl.select(NEAR_DIST, include_geometry=False)
+        distances = [d for d, in cursor.fetchall()]
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_length_unit method
+
+    @mark.parametrize('radius, option, count, expected', [
+        (Meters(500), SearchRadiusOption.PLANAR, 36, 284.9),
+        (Meters(500), SearchRadiusOption.GEODESIC, 36, 285.2),
+        (DecimalDegrees(0.005), SearchRadiusOption.PLANAR, 24, 184.8),
+        (DecimalDegrees(0.005), SearchRadiusOption.GEODESIC, 24, 185.0),
+    ])
+    def test_radius(self, ntdb_zm_small, mem_gpkg, radius, option, count, expected):
+        """
+        Test radius and option
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        tbl = generate_origin_destination_links(
+            source, operator=source, target=target,
+            search_radius=radius, search_option=option,
+            closest_count=None)
+        assert len(tbl) == count
+        cursor = tbl.select(NEAR_DIST, include_geometry=False)
+        distances = array([d for d, in cursor.fetchall()], dtype=float)
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_radius method
+# End TestGenerateOriginDestinationLinksFindAll class
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
