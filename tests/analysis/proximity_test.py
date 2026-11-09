@@ -1059,6 +1059,7 @@ class TestGenerateNearTableFindAll:
         assert None not in nid
     # End test_source_line_operator_point method
 
+    @mark.slow
     def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg):
         """
         Test when source line and operator mix of geometries and crs
