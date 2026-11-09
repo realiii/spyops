@@ -24,8 +24,8 @@ from spyops.query.mixin import (
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption
 from spyops.shared.hint import (
-    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS,
-    XY_TOL)
+    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, OPT_FIELD,
+    SORT_FIELDS, XY_TOL)
 
 
 class AbstractElementQuery(metaclass=ABCMeta):
@@ -245,7 +245,10 @@ class AbstractQueryDissolve(AbstractQueryGroup):
 
 
 class QueryFeatureIntermediate(BaseQuerySelect):
-    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None) -> None: ...
+
+    _group: OPT_FIELD
+
+    def __init__(self, source: FeatureClass, target: Optional[FeatureClass], xy_tolerance: XY_TOL = None, group: OPT_FIELD = None) -> None: ...
     def _field_names_and_count(self, element: FeatureClass) -> tuple[int, str, str]: ...
     def _get_unique_fields(self) -> FIELDS: ...
 
