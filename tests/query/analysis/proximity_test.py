@@ -18,11 +18,14 @@ from spyops.environment import Extent, Setting
 from spyops.environment.context import Swap
 from spyops.query.analysis.proximity import (
     QueryBufferDissolveAll, QueryBufferDissolveList, QueryBufferDissolveNone,
-    QueryCreateThiessenPolygons, QueryMultipleBuffer, QueryNear,
+    QueryCreateThiessenPolygons, QueryGenerateOriginDestinationLinks,
+    QueryMultipleBuffer, QueryNear,
     QueryGenerateNearTable)
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption,
     SearchRadiusOption, SideOption)
+from spyops.shared.field import NEAR_FID, ORIG_FID
+from spyops.shared.keywords import INCLUDE_LINE
 
 pytestmark = [mark.proximity, mark.query, mark.analysis]
 
@@ -960,7 +963,226 @@ class TestQueryGenerateNearTable:
         assert tbl.name.startswith('tmp_gen_near_tab')
         assert '(ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK, ' in sql
     # End test_configure_intermediate method
+
+    def test_get_operator_fields(self):
+        """
+        Test get operator fields
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._get_operator_fields() == [ORIG_FID]
+    # End test_get_operator_fields method
+
+    def test_get_record_kwargs(self):
+        """
+        Test get record kwargs
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._get_record_kwargs() == {}
+    # End test_get_record_kwargs method
+
+    def test_short_name(self):
+        """
+        Test short name
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._short_name == 'gen_near_tab'
+    # End test_short_name method
+
+    def test_group_field(self):
+        """
+        Test group field
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._group_field is None
+    # End test_group_field method
+
+    def test_get_unique_fields(self):
+        """
+        Test get unique fields
+        """
+        query = QueryGenerateNearTable(
+            None, None, None, closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        names = [f.name for f in query._get_unique_fields()]
+        assert names == ['ORIG_FID', 'NEAR_FID', 'NEAR_DIST', 'NEAR_FC',
+                         'NEAR_RANK', 'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y',
+                         'NEAR_ANGLE']
+    # End test_get_unique_fields method
 # End TestQueryGenerateNearTable class
+
+
+class TestQueryGenerateOriginDestinationLinks:
+    """
+    Test Query Generate Origin Destination Links
+    """
+    @mark.parametrize('closest_count, expected', [
+        (None, '_find_all'),
+        (1, '_find_nearest'),
+        (5, '_find_n_nearest'),
+    ])
+    def test_get_finder(self, closest_count, expected):
+        """
+        Test Get Finder
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=None, operator_field=None,
+            closest_count=closest_count, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._get_finder() == getattr(query, expected)
+    # End test_get_finder method
+
+    @mark.parametrize('src_geoms, op_geoms, expected', [
+        ([], [], []),
+        ([], [Point(1, 1)], [0]),
+        ([Point(0, 0)], [Point(1, 1)], ([0], [0])),
+        ([Point(0, 0), Point(1, 1)], [Point(2, 3), Point(4, 5)], ([0, 0, 1, 1], [0, 1, 0, 1])),
+    ])
+    def test_get_query_indexes(self, src_geoms, op_geoms, expected):
+        """
+        Test get query indexes
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=None, operator_field=None,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        if not src_geoms or not op_geoms:
+            with raises(TypeError):
+                query._get_query_indexes(src_geoms, op_geoms)
+        else:
+            src_indexes, op_indexes = query._get_query_indexes(src_geoms, op_geoms)
+            assert (src_indexes.tolist(), op_indexes.tolist()) == expected
+    # End test_get_query_indexes method
+
+    def test_fields(self):
+        """
+        Test fields
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=None, operator_field=None,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        names = [f.name for f in query._intermediate_fields]
+        assert names == [
+            'ORIG_FID', 'NEAR_FID', 'NEAR_DIST', 'NEAR_FC', 'NEAR_RANK',
+            'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y', 'NEAR_ANGLE']
+    # End test_fields method
+
+    @mark.parametrize('field, expected', [
+        (None, '(SHAPE, ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK, '),
+        (NEAR_FID, '(SHAPE, GROUP_VALUE, ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK, '),
+    ])
+    def test_configure_intermediate(self, world_features, mem_gpkg, field, expected):
+        """
+        Test configure intermediate
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            world_features['admin_a'], None, None,
+            source_field=field, operator_field=field,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        tbl, sql = query._configure_intermediate(mem_gpkg)
+        assert tbl.name.startswith('tmp_gen_ori_dest_link')
+        assert expected in sql
+    # End test_configure_intermediate method
+
+    @mark.parametrize('field, expected', [
+        (None, [ORIG_FID]),
+        (NEAR_FID, [ORIG_FID, NEAR_FID]),
+    ])
+    def test_get_operator_fields(self, field, expected):
+        """
+        Test get operator fields
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=field, operator_field=field,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._get_operator_fields() == expected
+    # End test_get_operator_fields method
+
+    def test_get_record_kwargs(self):
+        """
+        Test get record kwargs
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=None, operator_field=None,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._get_record_kwargs() == {INCLUDE_LINE: True}
+    # End test_get_record_kwargs method
+
+    def test_short_name(self):
+        """
+        Test short name
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=None, operator_field=None,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert query._short_name == 'gen_ori_dest_link'
+    # End test_short_name method
+
+    @mark.parametrize('field, expected', [
+        (None, True),
+        (NEAR_FID, False),
+    ])
+    def test_group_field(self, field, expected):
+        """
+        Test group field
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=field, operator_field=field,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        assert (query._group_field is None) is expected
+    # End test_group_field method
+
+    @mark.parametrize('field, expected', [
+        (None, ['ORIG_FID', 'NEAR_FID', 'NEAR_DIST', 'NEAR_FC', 'NEAR_RANK', 'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y', 'NEAR_ANGLE']),
+        (NEAR_FID, ['GROUP_VALUE', 'ORIG_FID', 'NEAR_FID', 'NEAR_DIST', 'NEAR_FC', 'NEAR_RANK', 'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y', 'NEAR_ANGLE']),
+    ])
+    def test_get_unique_fields(self, field, expected):
+        """
+        Test get unique fields
+        """
+        query = QueryGenerateOriginDestinationLinks(
+            None, None, None,
+            source_field=field, operator_field=field,
+            closest_count=None, search_radius=None,
+            search_option=SearchRadiusOption.PLANAR,
+            length_unit=LengthUnit.METERS)
+        names = [f.name for f in query._get_unique_fields()]
+        assert names == expected
+    # End test_get_unique_fields method
+# End TestQueryGenerateOriginDestinationLinks class
 
 
 if __name__ == '__main__':  # pragma: no cover
