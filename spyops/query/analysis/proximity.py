@@ -1175,15 +1175,15 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
         Orig FID, Near FID, Near Distance, Near Feature Class Name, Near Rank,
         From X, From Y, Near X, Near Y, and Near Angle
         """
-        src_geoms, src_fids = self._get_source_geoms_and_fids()
+        src_geoms, src_fids, _ = self._get_source_data()
         if not len(src_geoms):
             return
         scratch = MemoryGeoPackage.create()
         with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs):
             for i, operator in enumerate(self._operator):
-                exclusive, op_fids, op_geoms = self._get_operator_data(
-                    scratch, operator=operator, id_=i,
-                    src_fids=src_fids, src_geoms=src_geoms)
+                exclusive, op_geoms, op_fids, _ = self._get_operator_data(
+                    scratch, operator=operator, id_=i, src_geoms=src_geoms,
+                    src_fids=src_fids, src_grps=[], fields=[ORIG_FID])
                 if not len(op_geoms):
                     continue
                 yield from self._find_nearest(

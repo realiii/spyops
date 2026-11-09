@@ -769,9 +769,10 @@ class NearMixin:
     # End _build_records method
 
     def _get_operator_data(self, scratch: MemoryGeoPackage,
-                           operator: FeatureClass, id_: int,
-                           src_fids: ndarray, src_geoms: ndarray) \
-            -> tuple[bool, ndarray, ndarray]:
+                           operator: FeatureClass, id_: int, src_geoms: ndarray,
+                           src_fids: ndarray, src_grps: list | ndarray,
+                           fields: FIELDS) \
+            -> tuple[bool, ndarray, ndarray, list | ndarray]:
         """
         Get Operator Geometries in the Distance CRS and the Feature IDs
         """
@@ -779,14 +780,15 @@ class NearMixin:
         if exclusive := check_same_element(self.source, operator):
             op_geoms = src_geoms
             op_fids = src_fids
+            op_grps = src_grps
         else:
             # noinspection unresolved-references
             query = self._make_query(operator, scratch, id_)
             fc = select_transform_insert(query)
             if not len(fc):
-                return exclusive, array([]), array([])
-            op_geoms, op_fids = self._get_geoms_and_ids(fc)
-        return exclusive, op_fids, op_geoms
+                return exclusive, array([]), array([]), []
+            op_geoms, op_fids, op_grps = self._get_geoms_and_ids(fc, fields)
+        return exclusive, op_geoms, op_fids, op_grps
     # End _get_operator_data method
 
     @property
@@ -836,11 +838,13 @@ class NearMixin:
         return Extent.from_feature_classes(fcs, transformations)
     # End _overall_extent property
 
-    def _get_source_geoms_and_fids(self) -> tuple['ndarray', 'ndarray']:
+    def _get_source_data(self) -> tuple['ndarray', 'ndarray', list]:
         """
-        Get Source Feature Class Geometries and track Feature Identifiers
+        Get Source Feature Class Geometries, track Feature Identifiers,
+        and retrieve grouping values.
         """
         fids = []
+        groups = []
         geometries = []
         # noinspection unresolved-references
         transformer = self._get_distance_transformer(self.source)
@@ -856,11 +860,16 @@ class NearMixin:
                     option=DimensionOption.TWO_D)
                 if not features:
                     continue
-                _, ids = zip(*features)
+                _, ids, *grps = zip(*features)
                 fids.extend(ids)
+                if grps:
+                    grps, = grps
+                groups.extend(grps)
                 geometries.extend(geoms)
-        return asarray(geometries), array(fids, dtype=int)
-    # End _get_source_geoms_and_fids method
+        if not groups:
+            groups = ones_like(geometries, dtype=int).tolist()
+        return asarray(geometries), array(fids, dtype=int), groups
+    # End _get_source_data method
 
     def _get_distance_transformer(self, feature_class: FeatureClass) \
             -> Callable | None:
