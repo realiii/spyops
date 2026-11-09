@@ -6,6 +6,7 @@ Tests for Proximity
 
 from bottleneck import nanmean
 from fudgeo import FeatureClass, Table
+from fudgeo.geometry.linestring import LineString
 from numpy import array
 from pyproj import CRS
 from pytest import mark, param, approx
@@ -13,6 +14,7 @@ from pytest import mark, param, approx
 from spyops.analysis import (
     buffer, create_thiessen_polygons, generate_near_table, multiple_buffer,
     near)
+from spyops.analysis.proximity import generate_origin_destination_links
 from spyops.crs.constant import WGS84
 from spyops.crs.enumeration import DistanceUnit, LengthUnit
 from spyops.crs.unit import DecimalDegrees, Kilometers, Meters, Miles
@@ -1253,6 +1255,162 @@ class TestGenerateNearTableFindNNearest:
         assert approx(nanmean(distances), abs=1) == expected
     # End test_radius method
 # End TestGenerateNearTableFindNNearest class
+
+
+class TestGenerateOriginDestinationLinksFindNearest:
+    """
+    Test Generate Origin Destination Links -- using Nearest e.g. closest_count=1
+    """
+    def test_source_operator_same(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source and operator are same feature class
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(
+            source, operator=source, target=target)
+        assert len(fc.fields) == 12
+        cursor = fc.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 96
+    # End test_source_operator_same method
+
+    @mark.parametrize('field_name', [
+        'ENTITY_NAME',
+        'CODE',
+    ])
+    def test_source_operator_same_field(self, ntdb_zm_small, mem_gpkg, field_name):
+        """
+        Test when source and operator are same feature class and using field
+        """
+        name = 'structures_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(
+            source, operator=source, target=target,
+            source_field=field_name, operator_field=field_name)
+        assert len(fc.fields) == 13
+        cursor = fc.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 3909
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+        assert len({frozenset(pairs) for pairs in data}) == 3904
+    # End test_source_operator_same_field method
+
+    def test_source_point_operator_line(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source point and operator line
+        """
+        name = 'toponymy_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['transmission_l']
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(source, operator=operator, target=target)
+        assert len(fc.fields) == 12
+        cursor = fc.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 142
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_point_operator_line method
+
+    def test_source_line_operator_point(self, ntdb_zm_small, mem_gpkg):
+        """
+        Test when source line and operator point
+        """
+        name = 'transmission_l'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        operator = ntdb_zm_small['toponymy_p']
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(source, operator=operator, target=target)
+        assert len(fc.fields) == 12
+        cursor = fc.select(NEAR_FID, include_primary=True, include_geometry=False)
+        data = cursor.fetchall()
+        assert len(data) == 66
+        oid, nid = zip(*data)
+        assert None not in oid
+        assert None not in nid
+    # End test_source_line_operator_point method
+
+    @mark.parametrize('src_name', [
+        'transmission_10tm_l',
+        'transmission_10tm_zm_l',
+    ])
+    @mark.parametrize('op_name, count', [
+        ('toponymy_6654_p', 66),
+        ('structures_lcc_p', 66),
+        ('structures_a', 56),
+    ])
+    def test_source_line_operator_mix(self, ntdb_zm_small, mem_gpkg, src_name, op_name, count):
+        """
+        Test when source line and operator mix of geometries and crs
+        """
+        source = ntdb_zm_small[src_name].copy(src_name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(
+            source, operator=ntdb_zm_small[op_name], target=target)
+        assert len(fc.fields) == 12
+        cursor = fc.select([NEAR_FID, NEAR_FC], include_primary=True)
+        data = cursor.fetchall()
+        assert len(data) == count
+        geoms, oid, nid, fcs = zip(*data)
+        assert all(isinstance(g, LineString) for g in geoms)
+        assert None not in oid
+        assert None not in nid
+        assert None not in fcs
+        assert set(fcs) == {op_name}
+        assert fc.spatial_reference_system.srs_id == 102179
+        assert not fc.has_z
+        assert not fc.has_m
+    # End test_source_line_operator_mix method
+
+    @mark.parametrize('unit, expected', [
+        (LengthUnit.METERS, 1084.3),
+        (LengthUnit.FEET, 3557.4),
+    ])
+    def test_length_unit(self, ntdb_zm_small, mem_gpkg, unit, expected):
+        """
+        Test length unit
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(source, operator=source, target=target, length_unit=unit)
+        assert len(fc) == len(source)
+        cursor = fc.select(NEAR_DIST, include_geometry=False)
+        distances = [d for d, in cursor.fetchall()]
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_length_unit method
+
+    @mark.parametrize('radius, option, expected', [
+        (Meters(500), SearchRadiusOption.PLANAR, 290.08),
+        (Meters(500), SearchRadiusOption.GEODESIC, 290.38),
+        (DecimalDegrees(0.005), SearchRadiusOption.PLANAR, 197.8),
+        (DecimalDegrees(0.005), SearchRadiusOption.GEODESIC, 198),
+    ])
+    def test_radius(self, ntdb_zm_small, mem_gpkg, radius, option, expected):
+        """
+        Test radius and option
+        """
+        name = 'toponymy_10tm_p'
+        source = ntdb_zm_small[name].copy(name, geopackage=mem_gpkg)
+        target = FeatureClass(name='gnt', geopackage=mem_gpkg)
+        fc = generate_origin_destination_links(
+            source, operator=source, target=target,
+            search_radius=radius, search_option=option)
+        cursor = fc.select(NEAR_DIST, include_geometry=False)
+        distances = array([d for d, in cursor.fetchall()], dtype=float)
+        assert approx(nanmean(distances), abs=1) == expected
+    # End test_radius method
+# End TestGenerateOriginDestinationLinksFindNearest class
 
 
 if __name__ == '__main__':  # pragma: no cover
