@@ -835,9 +835,10 @@ class TestQueryNear:
                           length_unit=LengthUnit.METERS)
         transformer = query._get_distance_transformer(source)
         assert (transformer is None) is sans_transformer
-        geoms, fids = query._get_source_geoms_and_fids()
+        geoms, fids, grps = query._get_source_data()
         assert len(geoms) == len(source)
         assert len(fids) == len(source)
+        assert len(grps) == len(source)
     # End test_get_source_geoms_and_fids method
 
     @mark.parametrize('name, radius, option, expected', [
@@ -941,7 +942,7 @@ class TestQueryGenerateNearTable:
             None, None, None, closest_count=None, search_radius=None,
             search_option=SearchRadiusOption.PLANAR,
             length_unit=LengthUnit.METERS)
-        names = [f.name for f in query._fields]
+        names = [f.name for f in query._intermediate_fields]
         assert names == [
             'ORIG_FID', 'NEAR_FID', 'NEAR_DIST', 'NEAR_FC', 'NEAR_RANK',
             'FROM_X', 'FROM_Y', 'NEAR_X', 'NEAR_Y', 'NEAR_ANGLE']
@@ -956,7 +957,7 @@ class TestQueryGenerateNearTable:
             search_option=SearchRadiusOption.PLANAR,
             length_unit=LengthUnit.METERS)
         tbl, sql = query._configure_intermediate(mem_gpkg)
-        assert tbl.name.startswith('tmp_gen_near_table')
+        assert tbl.name.startswith('tmp_gen_near_tab')
         assert '(ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, NEAR_RANK, ' in sql
     # End test_configure_intermediate method
 # End TestQueryGenerateNearTable class
