@@ -1218,8 +1218,7 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
         return from_name, f'{prefix_name}{DOT}{from_key_name}'
     # End _build_from method
 
-    @staticmethod
-    def _make_query(operator: FeatureClass, scratch: MemoryGeoPackage,
+    def _make_query(self, operator: FeatureClass, scratch: MemoryGeoPackage,
                     id_: int) -> QueryFeatureIntermediate:
         """
         Make Query, this is here vs in mixin module to avoid circular imports
