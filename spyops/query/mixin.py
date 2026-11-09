@@ -907,21 +907,29 @@ class NearMixin:
     # End _distance_radius method
 
     @staticmethod
-    def _get_geoms_and_ids(feature_class: FeatureClass) \
-            -> tuple['ndarray', 'ndarray']:
+    def _get_geoms_and_ids(feature_class: FeatureClass, fields: FIELDS) \
+            -> tuple['ndarray', 'ndarray', list]:
         """
-        Get Geometries and IDs
+        Get Geometries, Feature Identifiers, and Grouping Data
         """
         fids = []
+        groups = []
         geometries = []
-        cursor = feature_class.select([ORIG_FID])
+        cursor = feature_class.select(fields)
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            features, geoms = to_shapely(features, transformer=None)
-            fids.extend([fid for _, fid in features])
+            features, geoms = to_shapely(
+                features, transformer=None, option=DimensionOption.TWO_D)
+            _, ids, *grps = zip(*features)
+            fids.extend(ids)
+            if grps:
+                grps, = grps
+            groups.extend(grps)
             geometries.extend(geoms)
-        return asarray(geometries), array(fids, dtype=int)
+        if not groups:
+            groups = ones_like(geometries, dtype=int).tolist()
+        return asarray(geometries), array(fids, dtype=int), groups
     # End _get_geoms_and_ids method
 
     def _calculate_geodesic(self, distances: 'ndarray', coords: 'ndarray') \
