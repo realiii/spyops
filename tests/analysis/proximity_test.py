@@ -1252,7 +1252,7 @@ class TestGenerateNearTableFindNNearest:
         distances = array([d for d, in cursor.fetchall()], dtype=float)
         assert approx(nanmean(distances), abs=1) == expected
     # End test_radius method
-# End TestGenerateNearTableFindAll class
+# End TestGenerateNearTableFindNNearest class
 
 
 if __name__ == '__main__':  # pragma: no cover
