@@ -732,8 +732,8 @@ class NearMixin:
 
     def _find_nearest(self, name: str, exclusive: bool,
                       src_geoms: 'ndarray', src_fids: 'ndarray',
-                      op_geoms: 'ndarray', op_fids: 'ndarray') \
-            -> Generator[list[tuple], None, None]:
+                      op_geoms: 'ndarray', op_fids: 'ndarray',
+                      **kwargs) -> list[tuple]:
         """
         Find Closest (just one match)
         """
@@ -742,14 +742,13 @@ class NearMixin:
             src_geoms, max_distance=self._distance_radius, return_distance=True,
             all_matches=False, exclusive=exclusive)
         if not len(distances):
-            yield []
+            return []
         else:
             lines = shortest_line(src_geoms[src_indexes], op_geoms[op_indexes])
             # noinspection bad-argument-type
-            yield from self._build_records(
-                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
-                op_indexes=op_indexes, distances=distances, lines=lines,
-                name=name)
+            return self._build_records(
+                src_fids=src_fids[src_indexes], op_fids=op_fids[op_indexes],
+                distances=distances, lines=lines, name=name, **kwargs)
     # End _find_nearest method
 
     def _build_records(self, src_fids: 'ndarray', src_indexes: 'ndarray',
