@@ -25,11 +25,11 @@ from spyops.query.editing import (
 from spyops.shared.field import (
     GEOM_TYPE_LINES, GEOM_TYPE_POINTS, GEOM_TYPE_POLYGONS)
 from spyops.shared.hint import UNIT_INPUT, UNIT_TOLERANCE
-from spyops.shared.keywords import DISTANCE_ARG, SOURCE, TOLERANCE
+from spyops.shared.keywords import DISTANCE_ARG, OPERATOR, SOURCE, TOLERANCE
 from spyops.shared.records import extend_records
 from spyops.validation import (
     validate_linear_unit, validate_operator_feature_class, validate_result,
-    validate_source_feature_class)
+    validate_source_feature_class, validate_supported_crs)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -173,6 +173,7 @@ def flip(source: 'FeatureClass', *, where_clause: str = '') -> 'FeatureClass':
 @validate_result()
 @validate_source_feature_class(geometry_types=GEOM_TYPE_POINTS)
 @validate_operator_feature_class(geometry_types=GEOM_TYPE_POLYGONS)
+@validate_supported_crs(SOURCE, OPERATOR)
 def erase_point(source: 'FeatureClass', operator: 'FeatureClass',
                 remove_inside: bool, *,
                 where_clause: str = '') -> 'FeatureClass':
