@@ -31,7 +31,7 @@ from spyops.crs.unit import (
 from spyops.crs.util import crs_from_srs
 from spyops.environment import ANALYSIS_SETTINGS, Extent, Setting
 from spyops.environment.context import Swap
-from spyops.environment.core import ZMConfig, zm_config
+from spyops.environment.core import HasZM, ZMConfig, zm_config
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.lookup import FUDGEO_GEOMETRY_LOOKUP
 from spyops.geometry.multi import build_dissolved
@@ -43,18 +43,18 @@ from spyops.query.base import (
     QueryFeatureIntermediate)
 from spyops.query.mixin import NearMixin, UnitTypeMixin
 from spyops.shared.constant import (
-    DOT, DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES,
-    TIMESTAMP)
+    DOT, DRID, EMPTY, MULTI, SKIP_FILE_PREFIXES, TIMESTAMP)
 from spyops.shared.enumeration import (
     BufferTypeOption, EndOption, SearchRadiusOption, SideOption)
-from spyops.shared.exception import (
-    DistanceCalculationWarning, UnitParseWarning)
+from spyops.shared.exception import DistanceCalculationWarning, UnitParseWarning
 from spyops.shared.field import (
-    ORIG_FID, add_orig_fid, get_geometry_column_name, make_field_names,
-    make_unique_fields, validate_fields)
-from spyops.shared.hint import FEATURE_CLASSES, FIELDS, NAMES, UNIT, XY_TOL
+    ORIG_FID, add_orig_fid, clone_field, get_geometry_column_name,
+    make_field_names, make_unique_fields, validate_fields)
+from spyops.shared.hint import (
+    ELEMENT, FEATURE_CLASSES, FIELDS, NAMES, OPT_FIELD, UNIT, XY_TOL)
 from spyops.shared.keywords import (
-    CRS_KEY, END_OPTION, RESOLUTION, SHAPE_TYPE_KEY, SIDE_OPTION)
+    CRS_KEY, END_OPTION, GROUP_VALUE, INCLUDE_LINE, RESOLUTION, SHAPE_TYPE_KEY,
+    SIDE_OPTION)
 from spyops.shared.util import get_smallest_indexes, make_none_mask
 
 
@@ -1229,16 +1229,17 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
 # End QueryNear class
 
 
-class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
+class AbstractQueryGenerate(NearMixin, BaseQuerySelect):
     """
-    Query Generate Near Table
+    Abstract Base Class for Query Generate Near Table and
+    Query Generate Origin Destination Links
     """
     def __init__(self, source: FeatureClass, operator: FEATURE_CLASSES,
                  target: 'Table', closest_count: int | None,
                  search_radius: UNIT | None, search_option: SearchRadiusOption,
                  length_unit: LengthUnit) -> None:
         """
-        Initialize the QueryGenerateNearTable class
+        Initialize the AbstractQueryGenerate class
         """
         super().__init__(source, target=target)
         self._operator: FEATURE_CLASSES = operator
@@ -1247,16 +1248,6 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
         self._option: SearchRadiusOption = search_option
         self._unit: LengthUnit = length_unit
     # End init built-in
-
-    @staticmethod
-    def _make_query(operator: FeatureClass, scratch: MemoryGeoPackage,
-                    id_: int) -> QueryFeatureIntermediate:
-        """
-        Make Query, this is here vs in mixin module to avoid circular imports
-        """
-        return QueryFeatureIntermediate(
-            operator, target=FeatureClass(scratch, name=f'fc_{id_}'))
-    # End _make_query method
 
     def _get_finder(self) -> Callable:
         """
@@ -1271,49 +1262,50 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
 
     def _find_n_nearest(self, name: str, src_geoms: 'ndarray',
                         src_fids: 'ndarray', op_geoms: 'ndarray',
-                        op_fids: 'ndarray', **kwargs) \
-            -> Generator[list[tuple], None, None]:
+                        op_fids: 'ndarray', **kwargs) -> list[tuple]:
         """
         Find Closest N Features
         """
         indexes = self._get_query_indexes(src_geoms, op_geoms)
         if not len(indexes):
-            yield []
+            return []
         else:
             # noinspection bad-argument-type
             (src_indexes, op_indexes,
              lines, distances) = self._get_indexes_and_lines(
                 indexes, src_geoms, op_geoms)
+            if not len(src_indexes):
+                return []
             # noinspection bad-argument-type
             src_indexes, ordered_indexes = get_smallest_indexes(
                 src_indexes, values=distances, n=self._count)
             distances = distances[ordered_indexes]
             op_indexes = op_indexes[ordered_indexes]
             lines = lines[ordered_indexes]
-            yield from self._build_records(
-                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
-                op_indexes=op_indexes, distances=distances, lines=lines,
-                name=name)
+            return self._build_records(
+                src_fids=src_fids[src_indexes], op_fids=op_fids[op_indexes],
+                distances=distances, lines=lines, name=name, **kwargs)
     # End _find_n_nearest method
 
     def _find_all(self, name: str, src_geoms: 'ndarray', src_fids: 'ndarray',
-                  op_geoms: 'ndarray', op_fids: 'ndarray', **kwargs) \
-            -> Generator[list[tuple], None, None]:
+                  op_geoms: 'ndarray', op_fids: 'ndarray',
+                  **kwargs) -> list[tuple]:
         """
         Find All Features
         """
         indexes = self._get_query_indexes(src_geoms, op_geoms)
         if not len(indexes):
-            yield []
+            return []
         else:
             # noinspection bad-argument-type
             (src_indexes, op_indexes,
              lines, distances) = self._get_indexes_and_lines(
                 indexes, src_geoms, op_geoms)
-            yield from self._build_records(
-                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
-                op_indexes=op_indexes, distances=distances, lines=lines,
-                name=name)
+            if not len(src_indexes):
+                return []
+            return self._build_records(
+                src_fids=src_fids[src_indexes], op_fids=op_fids[op_indexes],
+                distances=distances, lines=lines, name=name, **kwargs)
     # End _find_all method
 
     def _get_query_indexes(self, src_geoms: 'ndarray', op_geoms: 'ndarray') \
@@ -1328,8 +1320,7 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
             distance=self._distance_radius or sys.maxsize)
     # End _get_query_indexes method
 
-    @staticmethod
-    def _get_indexes_and_lines(indexes: tuple['ndarray', 'ndarray'],
+    def _get_indexes_and_lines(self, indexes: tuple['ndarray', 'ndarray'],
                                src_geoms: 'ndarray', op_geoms: 'ndarray') \
             -> tuple['ndarray', 'ndarray', 'ndarray', 'ndarray']:
         """
@@ -1337,8 +1328,18 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
         """
         src_indexes, op_indexes = indexes
         lines = shortest_line(src_geoms[src_indexes], op_geoms[op_indexes])
-        return src_indexes, op_indexes, lines, length(lines)
+        distances = length(lines)
+        mask = self._make_keepers_mask(distances)
+        return src_indexes[mask], op_indexes[mask], lines[mask], distances[mask]
     # End _get_indexes_and_lines method
+
+    @abstractmethod
+    def _make_keepers_mask(self, distances: 'ndarray') -> 'ndarray':
+        """
+        Make Mask that indicates which values to keep
+        """
+        pass
+    # End _make_keepers_mask method
 
     def find_nearest(self) -> Generator[list[tuple], None, None]:
         """
@@ -1347,26 +1348,40 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
         Orig FID, Near FID, Near Distance, Near Feature Class Name, Near Rank,
         From X, From Y, Near X, Near Y, and Near Angle
         """
-        src_geoms, src_fids = self._get_source_geoms_and_fids()
+        src_geoms, src_fids, src_grps = self._get_source_data()
         if not len(src_geoms):
             return
+        src_keys = set(src_grps)
+        src_grps = array(src_grps)
         finder = self._get_finder()
+        kwargs = self._get_record_kwargs()
         scratch = MemoryGeoPackage.create()
+        fields = self._get_operator_fields()
         intermediate, sql_insert = self._configure_intermediate(scratch)
         with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs),
               intermediate.geopackage.connection as cin):
             for i, operator in enumerate(self._operator):
-                exclusive, op_fids, op_geoms = self._get_operator_data(
-                    scratch, operator=operator, id_=i,
-                    src_fids=src_fids, src_geoms=src_geoms)
+                exclusive, op_geoms, op_fids, op_grps = self._get_operator_data(
+                    scratch, operator=operator, id_=i, src_geoms=src_geoms,
+                    src_fids=src_fids, src_grps=src_grps, fields=fields)
                 if not len(op_geoms):
                     continue
-                records = finder(
-                    operator.name, src_geoms=src_geoms, src_fids=src_fids,
-                    op_geoms=op_geoms, op_fids=op_fids, exclusive=exclusive)
-                if not (records := next(records, [])):
-                    continue
-                cin.executemany(sql_insert, records)
+                op_grps = asarray(op_grps)
+                for key in src_keys:
+                    ops_mask = op_grps == key
+                    if not ops_mask.any():
+                        continue
+                    src_mask = src_grps == key
+                    if self._group_field:
+                        kwargs[GROUP_VALUE] = key
+                    records = finder(
+                        operator.name, src_geoms=src_geoms[src_mask],
+                        src_fids=src_fids[src_mask],
+                        op_geoms=op_geoms[ops_mask], op_fids=op_fids[ops_mask],
+                        exclusive=exclusive, **kwargs)
+                    if not records:
+                        continue
+                    cin.executemany(sql_insert, records)
             cursor = cin.execute(self._make_rank_query(intermediate))
             while records := cursor.fetchmany(FETCH_SIZE):
                 yield records
@@ -1374,7 +1389,14 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
             conn.close()
     # End find_nearest method
 
-    def _make_rank_query(self, table: 'Table') -> str:
+    def _get_operator_fields(self) -> FIELDS:
+        """
+        Get Operator Fields
+        """
+        return [ORIG_FID]
+    # End _get_operator_fields method
+
+    def _make_rank_query(self, element: ELEMENT) -> str:
         """
         Make Rank Query
         """
@@ -1382,19 +1404,126 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
             condition = ' > 0'
         else:
             condition = f'<= {self._count}'
+        if isinstance(element, FeatureClass):
+            geom = element.geometry_column_name
+        else:
+            geom = None
+        if self._group_field is not None:
+            group_name = self._group_field.escaped_name
+        else:
+            group_name = None
+        # noinspection bad-argument-type
+        if names := COMMA_SPACE.join([n for n in (geom, group_name) if n]):
+            names = f'{names}{COMMA_SPACE}'
         return f"""
                WITH RNK AS (
-                   SELECT ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, 
+                   SELECT {names}ORIG_FID, NEAR_FID, NEAR_DIST, NEAR_FC, 
                           ROW_NUMBER() OVER (
                             PARTITION BY ORIG_FID 
                             ORDER BY NEAR_DIST ASC) AS NEAR_RANK, 
                           FROM_X, FROM_Y, NEAR_X, NEAR_Y, NEAR_ANGLE                  
-                    FROM {table.escaped_name})
+                    FROM {element.escaped_name})
                SELECT *
                FROM RNK
                WHERE NEAR_RANK {condition}
                """
     # End _make_rank_query method
+
+    def _make_intermediate_name(self) -> str:
+        """
+        Make Intermediate Name
+        """
+        now = datetime.now().strftime(TIMESTAMP)
+        return escape_name(f'tmp_{self._short_name}_{now}')
+    # End _make_intermediate_name method
+
+    @cached_property
+    def _group_field(self) -> OPT_FIELD:
+        """
+        Group Field
+        """
+        return None
+    # End _group_field property
+
+    @abstractmethod
+    def _get_record_kwargs(self) -> dict:
+        """
+        Get Record Builder Keyword Arguments
+        """
+        pass
+    # End _get_record_kwargs method
+
+    @abstractmethod
+    def _make_query(self, operator: FeatureClass, scratch: MemoryGeoPackage,
+                    id_: int) -> QueryFeatureIntermediate:
+        """
+        Make Query, this is here vs in mixin module to avoid circular imports
+        """
+        pass
+    # End _make_query method
+
+    @abstractmethod
+    def _configure_intermediate(self, scratch: MemoryGeoPackage) \
+            -> tuple[ELEMENT, str]:
+        """
+        Intermediate Table and Insert Statement
+        """
+        pass
+    # End _configure_intermediate method
+
+    @property
+    @abstractmethod
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        pass
+    # End _short_name property
+# End AbstractQueryGenerate class
+
+
+class QueryGenerateNearTable(AbstractQueryGenerate):
+    """
+    Query Generate Near Table
+    """
+    def _make_keepers_mask(self, distances: 'ndarray') -> 'ndarray':
+        """
+        Make Mask that indicates which values to keep -- here we want to retain
+        all regardless of distance so we make an array of True
+        """
+        return ones_like(distances, dtype=bool)
+    # End _make_keepers_mask method
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        return self._intermediate_fields
+    # End _get_unique_fields method
+
+    def _get_record_kwargs(self) -> dict:
+        """
+        Get Record Builder Keyword Arguments
+        """
+        return {}
+    # End _get_record_kwargs method
+
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'gen_near_tab'
+    # End _short_name property
+
+    def _make_query(self, operator: FeatureClass, scratch: MemoryGeoPackage,
+                    id_: int) -> QueryFeatureIntermediate:
+        """
+        Make Query, this is here vs in mixin module to avoid circular imports
+        """
+        return QueryFeatureIntermediate(
+            operator, target=FeatureClass(scratch, name=f'fc_{id_}'))
+    # End _make_query method
 
     def _configure_intermediate(self, scratch: MemoryGeoPackage) \
             -> tuple['Table', str]:
@@ -1403,7 +1532,7 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
         """
         name = self._make_intermediate_name()
         table = scratch.create_table(
-            name, fields=self._intermediate_fields, overwrite=True)
+            name, fields=self._get_unique_fields(), overwrite=True)
         field_count, insert_field_names, _ = self._field_names_and_count(table)
         return table, self._make_insert(
             table.escaped_name, field_names=insert_field_names,
@@ -1431,6 +1560,138 @@ class QueryGenerateNearTable(NearMixin, BaseQuerySelect):
             overwrite=ANALYSIS_SETTINGS.overwrite)
     # End target_empty property
 # End QueryGenerateNearTable class
+
+
+class QueryGenerateOriginDestinationLinks(AbstractQueryGenerate):
+    """
+    Query Generate Origin Destination Links
+    """
+    def __init__(self, source: FeatureClass, operator: FeatureClass,
+                 target: FeatureClass, source_field: OPT_FIELD,
+                 operator_field: OPT_FIELD, closest_count: int | None,
+                 search_radius: UNIT | None, search_option: SearchRadiusOption,
+                 length_unit: LengthUnit) -> None:
+        """
+        Initialize the QueryGenerateOriginDestinationLinks class
+        """
+        super().__init__(
+            source, operator=[operator], target=target,
+            closest_count=closest_count, search_radius=search_radius,
+            search_option=search_option, length_unit=length_unit)
+        self._source_field: OPT_FIELD = source_field
+        self._operator_field: OPT_FIELD = operator_field
+    # End init built-in
+
+    def _make_keepers_mask(self, distances: 'ndarray') -> 'ndarray':
+        """
+        Make Mask that indicates which values to keep -- here we want to exclude
+        anything that intersects, that is, has a distance of 0.
+        """
+        return distances > 0
+    # End _make_keepers_mask method
+
+    def _get_operator_fields(self) -> FIELDS:
+        """
+        Get Operator Fields
+        """
+        fields = ORIG_FID, self._operator_field
+        return [f for f in fields if f is not None]
+    # End _get_operator_fields method
+
+    def _get_record_kwargs(self) -> dict:
+        """
+        Get Record Builder Keyword Arguments
+        """
+        return {INCLUDE_LINE: True}
+    # End _get_record_kwargs method
+
+    @property
+    def _short_name(self) -> str:
+        """
+        Short Name
+        """
+        return 'gen_ori_dest_link'
+    # End _short_name property
+
+    def _get_target_shape_type(self) -> str:
+        """
+        Get Target Shape Type
+        """
+        return ShapeType.linestring
+    # End _get_target_shape_type method
+
+    @cached_property
+    def _group_field(self) -> OPT_FIELD:
+        """
+        Group Field
+        """
+        if self._source_field is None or self._operator_field is None:
+            return None
+        field = clone_field(self._source_field, name=GROUP_VALUE.upper())
+        field.alias = 'Group Value'
+        field.comment = EMPTY
+        return field
+    # End _group_field property
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields
+        """
+        if field := self._group_field:
+            return field, *self._intermediate_fields
+        return self._intermediate_fields
+    # End _get_unique_fields method
+
+    @property
+    def select_only_fid(self) -> str:
+        """
+        Selection Query
+        """
+        if not self._group_field:
+            return super().select_only_fid
+        # noinspection bad-argument-type
+        return self._build_select([
+            self.source.primary_key_field, self._source_field])
+    # End select_only_fid property
+
+    def _make_query(self, operator: FeatureClass, scratch: MemoryGeoPackage,
+                    id_: int) -> QueryFeatureIntermediate:
+        """
+        Make Query, this is here vs in mixin module to avoid circular imports
+        """
+        if self._group_field:
+            op_fld = self._operator_field
+        else:
+            op_fld = None
+        return QueryFeatureIntermediate(
+            operator, target=FeatureClass(scratch, name=f'fc_{id_}'),
+            group=op_fld)
+    # End _make_query method
+
+    @property
+    def _has_zm(self) -> HasZM:
+        """
+        Has ZM, only output 2D lines
+        """
+        return HasZM(has_z=False, has_m=False)
+    # End _has_zm property
+
+    def _configure_intermediate(self, scratch: MemoryGeoPackage) \
+            -> tuple[FeatureClass, str]:
+        """
+        Intermediate Feature Class and Insert Statement
+        """
+        name = self._make_intermediate_name()
+        fc = scratch.create_feature_class(
+            name, fields=self._get_unique_fields(),
+            shape_type=self._get_target_shape_type(),
+            srs=self.source.spatial_reference_system, overwrite=True)
+        field_count, insert_field_names, _ = self._field_names_and_count(fc)
+        return fc, self._make_insert(
+            fc.escaped_name, field_names=insert_field_names,
+            field_count=field_count)
+    # End _configure_intermediate method
+# End QueryGenerateOriginDestinationLinks class
 
 
 if __name__ == '__main__':  # pragma: no cover
