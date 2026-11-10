@@ -43,8 +43,8 @@ from spyops.shared.field import (
     ORIG_FID, clone_field, get_geometry_column_name, make_field_names,
     make_unique_fields, validate_fields)
 from spyops.shared.hint import (
-    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, SORT_FIELDS,
-    XY_TOL)
+    ELEMENT, EXTENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, NAMES, OPT_FIELD,
+    SORT_FIELDS, XY_TOL)
 from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import IN, NOT_IN, SQL_ALL_ID, SQL_NO_ID
 from spyops.shared.util import make_unique_name
@@ -1041,12 +1041,13 @@ class QueryFeatureIntermediate(BaseQuerySelect):
     Query for each input for use into an intermediate feature class
     """
     def __init__(self, source: FeatureClass, target: FeatureClass | None,
-                 xy_tolerance: XY_TOL = None) -> None:
+                 xy_tolerance: XY_TOL = None, group: OPT_FIELD = None) -> None:
         """
         Initialize the QueryFeatureIntermediate class
         """
         # noinspection bad-argument-type
         super().__init__(source, target=target, xy_tolerance=xy_tolerance)
+        self._group: OPT_FIELD = group
     # End init built-in
 
     @cache
@@ -1066,7 +1067,8 @@ class QueryFeatureIntermediate(BaseQuerySelect):
         """
         Limit fields to just geometry, sans attributes
         """
-        return [ORIG_FID]
+        fields = ORIG_FID, self._group
+        return [f for f in fields if f is not None]
     # End _get_unique_fields method
 # End QueryFeatureIntermediate class
 

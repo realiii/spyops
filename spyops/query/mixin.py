@@ -9,10 +9,11 @@ from collections import defaultdict
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from typing import Callable, Generator, Optional, Self, TYPE_CHECKING, Union
+from typing import Callable, Optional, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
 from fudgeo import FeatureClass, Field, MemoryGeoPackage
+from fudgeo.geometry import LineString
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
 from numpy import arctan2, array, asarray, degrees, full, ones_like
@@ -34,7 +35,8 @@ from spyops.environment import ANALYSIS_SETTINGS, Extent
 from spyops.environment.core import HasZM, zm_config
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import extent_from_feature_class
-from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.util import filter_features, get_validity, to_shapely
+from spyops.geometry.wa.seg import segmentize
 from spyops.shared.constant import (
     DOT, DRID, EMPTY, METRE, SEMI, SKIP_FILE_PREFIXES, TIMESTAMP)
 
@@ -48,7 +50,8 @@ from spyops.shared.field import (
     OVERLAP_FID, TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
 from spyops.shared.hint import (
     ELEMENT, EXTENT, FIELDS, GRID_SIZE, STATS_FIELDS, UNIT)
-from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
+from spyops.shared.keywords import (
+    GROUP_VALUE, INCLUDE_LINE, METERS_ATTR, VALUE_ATTR)
 from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
@@ -732,8 +735,8 @@ class NearMixin:
 
     def _find_nearest(self, name: str, exclusive: bool,
                       src_geoms: 'ndarray', src_fids: 'ndarray',
-                      op_geoms: 'ndarray', op_fids: 'ndarray') \
-            -> Generator[list[tuple], None, None]:
+                      op_geoms: 'ndarray', op_fids: 'ndarray',
+                      **kwargs) -> list[tuple]:
         """
         Find Closest (just one match)
         """
@@ -742,36 +745,77 @@ class NearMixin:
             src_geoms, max_distance=self._distance_radius, return_distance=True,
             all_matches=False, exclusive=exclusive)
         if not len(distances):
-            yield []
+            return []
         else:
             lines = shortest_line(src_geoms[src_indexes], op_geoms[op_indexes])
             # noinspection bad-argument-type
-            yield from self._build_records(
-                src_fids=src_fids, src_indexes=src_indexes, op_fids=op_fids,
-                op_indexes=op_indexes, distances=distances, lines=lines,
-                name=name)
+            return self._build_records(
+                src_fids=src_fids[src_indexes], op_fids=op_fids[op_indexes],
+                distances=distances, lines=lines, name=name, **kwargs)
     # End _find_nearest method
 
-    def _build_records(self, src_fids: 'ndarray', src_indexes: 'ndarray',
-                       op_fids: 'ndarray', op_indexes: 'ndarray',
-                       distances: 'ndarray', lines: 'ndarray', name: str) \
-            -> Generator[list[tuple], None, None]:
+    def _build_records(self, src_fids: 'ndarray', op_fids: 'ndarray',
+                       distances: 'ndarray', lines: 'ndarray', name: str,
+                       **kwargs) -> list[tuple]:
         """
         Build Records
         """
         coords = get_coordinates(lines)
         calculator = self._get_calculator()
         records, distances = calculator(distances, coords)
-        yield [(oid, nid, dist, name, 1, *rec)
-               for oid, nid, dist, rec in
-               zip(src_fids[src_indexes], op_fids[op_indexes],
-                   distances, records)]
+        if INCLUDE_LINE not in kwargs:
+            return [(oid, nid, dist, name, 1, *rec)
+                    for oid, nid, dist, rec in
+                    zip(src_fids, op_fids, distances, records)]
+        mask = distances > 0
+        distances = distances[mask]
+        lines, validity = self._prepare_lines(lines[mask], distances)
+        src_fids = src_fids[mask][validity]
+        op_fids = op_fids[mask][validity]
+        records = records[mask][validity]
+        if GROUP_VALUE not in kwargs:
+            return [(line, oid, nid, dist, name, 1, *rec)
+                    for oid, nid, dist, rec, line in
+                    zip(src_fids, op_fids, distances, records, lines)]
+        else:
+            group_value = kwargs[GROUP_VALUE]
+            return [(line, group_value, oid, nid, dist, name, 1, *rec)
+                    for oid, nid, dist, rec, line in
+                    zip(src_fids, op_fids, distances, records, lines)]
     # End _build_records method
 
+    def _prepare_lines(self, lines: 'ndarray', distances: 'ndarray') \
+            -> tuple[list[LineString], 'ndarray']:
+        """
+        Prepare Lines by densifying (useful for long lines, apply to all)
+        and transform to the source CRS from the distance CRS.
+        """
+        # noinspection unresolved-references
+        crs = get_crs_from_source(self.source)
+        # noinspection unresolved-references
+        srs_id = self.source.spatial_reference_system.srs_id
+        lines = asarray([segmentize(line, max_segment_length=dist)
+                         for line, dist in zip(lines, distances / 10.)])
+        # noinspection unresolved-references
+        transformer = self._get_transformer_or_guess(self._distance_crs, crs)
+        # noinspection unresolved-references
+        transformer = make_transformer_function(
+            self._get_target_shape_type(), has_z=False,
+            has_m=False, transformer=transformer)
+        if transformer is None:
+            validity = ones_like(lines, dtype=bool)
+        else:
+            lines = transformer(lines)
+            validity = get_validity(lines, transformer=transformer)
+        lines = [LineString.from_wkb(line.wkb, srs_id=srs_id) for line in lines]
+        return lines, validity
+    # End _prepare_lines method
+
     def _get_operator_data(self, scratch: MemoryGeoPackage,
-                           operator: FeatureClass, id_: int,
-                           src_fids: ndarray, src_geoms: ndarray) \
-            -> tuple[bool, ndarray, ndarray]:
+                           operator: FeatureClass, id_: int, src_geoms: ndarray,
+                           src_fids: ndarray, src_grps: list | ndarray,
+                           fields: FIELDS) \
+            -> tuple[bool, ndarray, ndarray, list | ndarray]:
         """
         Get Operator Geometries in the Distance CRS and the Feature IDs
         """
@@ -779,14 +823,15 @@ class NearMixin:
         if exclusive := check_same_element(self.source, operator):
             op_geoms = src_geoms
             op_fids = src_fids
+            op_grps = src_grps
         else:
             # noinspection unresolved-references
             query = self._make_query(operator, scratch, id_)
             fc = select_transform_insert(query)
             if not len(fc):
-                return exclusive, array([]), array([])
-            op_geoms, op_fids = self._get_geoms_and_ids(fc)
-        return exclusive, op_fids, op_geoms
+                return exclusive, array([]), array([]), []
+            op_geoms, op_fids, op_grps = self._get_geoms_and_ids(fc, fields)
+        return exclusive, op_geoms, op_fids, op_grps
     # End _get_operator_data method
 
     @property
@@ -836,11 +881,13 @@ class NearMixin:
         return Extent.from_feature_classes(fcs, transformations)
     # End _overall_extent property
 
-    def _get_source_geoms_and_fids(self) -> tuple['ndarray', 'ndarray']:
+    def _get_source_data(self) -> tuple['ndarray', 'ndarray', list]:
         """
-        Get Source Feature Class Geometries and track Feature Identifiers
+        Get Source Feature Class Geometries, track Feature Identifiers,
+        and retrieve grouping values.
         """
         fids = []
+        groups = []
         geometries = []
         # noinspection unresolved-references
         transformer = self._get_distance_transformer(self.source)
@@ -856,11 +903,16 @@ class NearMixin:
                     option=DimensionOption.TWO_D)
                 if not features:
                     continue
-                _, ids = zip(*features)
+                _, ids, *grps = zip(*features)
                 fids.extend(ids)
+                if grps:
+                    grps, = grps
+                groups.extend(grps)
                 geometries.extend(geoms)
-        return asarray(geometries), array(fids, dtype=int)
-    # End _get_source_geoms_and_fids method
+        if not groups:
+            groups = ones_like(geometries, dtype=int).tolist()
+        return asarray(geometries), array(fids, dtype=int), groups
+    # End _get_source_data method
 
     def _get_distance_transformer(self, feature_class: FeatureClass) \
             -> Callable | None:
@@ -899,21 +951,29 @@ class NearMixin:
     # End _distance_radius method
 
     @staticmethod
-    def _get_geoms_and_ids(feature_class: FeatureClass) \
-            -> tuple['ndarray', 'ndarray']:
+    def _get_geoms_and_ids(feature_class: FeatureClass, fields: FIELDS) \
+            -> tuple['ndarray', 'ndarray', list]:
         """
-        Get Geometries and IDs
+        Get Geometries, Feature Identifiers, and Grouping Data
         """
         fids = []
+        groups = []
         geometries = []
-        cursor = feature_class.select([ORIG_FID])
+        cursor = feature_class.select(fields)
         while features := cursor.fetchmany(FETCH_SIZE):
             if not (features := filter_features(features)):
                 continue
-            features, geoms = to_shapely(features, transformer=None)
-            fids.extend([fid for _, fid in features])
+            features, geoms = to_shapely(
+                features, transformer=None, option=DimensionOption.TWO_D)
+            _, ids, *grps = zip(*features)
+            fids.extend(ids)
+            if grps:
+                grps, = grps
+            groups.extend(grps)
             geometries.extend(geoms)
-        return asarray(geometries), array(fids, dtype=int)
+        if not groups:
+            groups = ones_like(geometries, dtype=int).tolist()
+        return asarray(geometries), array(fids, dtype=int), groups
     # End _get_geoms_and_ids method
 
     def _calculate_geodesic(self, distances: 'ndarray', coords: 'ndarray') \

@@ -107,6 +107,10 @@ MIN_COUNT: str = 'min_count'
 SEARCH_OPTION: str = 'search_option'
 SEARCH_RADIUS: str = 'search_radius'
 CLOSEST_COUNT: str = 'closest_count'
+SOURCE_FIELD: str = 'source_field'
+OPERATOR_FIELD: str = 'operator_field'
+GROUP_VALUE: str = 'group_value'
+INCLUDE_LINE: str = 'include_line'
 
 
 if __name__ == '__main__':  # pragma: no cover

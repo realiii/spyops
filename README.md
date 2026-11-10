@@ -64,6 +64,7 @@ MIT
 - added `split_line_at_point` (Management - Features)
 - added `near` (Analysis - Proximity)
 - added `generate_near_table` (Analysis - Proximity)
+- added `generate_origin_destination_links` (Analysis - Proximity)
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`
