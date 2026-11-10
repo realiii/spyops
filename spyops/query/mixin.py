@@ -9,10 +9,11 @@ from collections import defaultdict
 from datetime import datetime
 from functools import cache, cached_property
 from math import nan
-from typing import Callable, Generator, Optional, Self, TYPE_CHECKING, Union
+from typing import Callable, Optional, Self, TYPE_CHECKING, Union
 
 from bottleneck import nanmean
 from fudgeo import FeatureClass, Field, MemoryGeoPackage
+from fudgeo.geometry import LineString
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
 from fudgeo.util import escape_name
 from numpy import arctan2, array, asarray, degrees, full, ones_like
@@ -34,7 +35,8 @@ from spyops.environment import ANALYSIS_SETTINGS, Extent
 from spyops.environment.core import HasZM, zm_config
 from spyops.geometry.enumeration import DimensionOption
 from spyops.geometry.extent import extent_from_feature_class
-from spyops.geometry.util import filter_features, to_shapely
+from spyops.geometry.util import filter_features, get_validity, to_shapely
+from spyops.geometry.wa.seg import segmentize
 from spyops.shared.constant import (
     DOT, DRID, EMPTY, METRE, SEMI, SKIP_FILE_PREFIXES, TIMESTAMP)
 
@@ -48,7 +50,8 @@ from spyops.shared.field import (
     OVERLAP_FID, TYPE_ALIAS_LUT, make_field_names, make_unique_fields)
 from spyops.shared.hint import (
     ELEMENT, EXTENT, FIELDS, GRID_SIZE, STATS_FIELDS, UNIT)
-from spyops.shared.keywords import METERS_ATTR, VALUE_ATTR
+from spyops.shared.keywords import (
+    GROUP_VALUE, INCLUDE_LINE, METERS_ATTR, VALUE_ATTR)
 from spyops.shared.records import select_transform_insert
 from spyops.shared.sql import IN, TEMP_SCHEMA
 
@@ -751,21 +754,62 @@ class NearMixin:
                 distances=distances, lines=lines, name=name, **kwargs)
     # End _find_nearest method
 
-    def _build_records(self, src_fids: 'ndarray', src_indexes: 'ndarray',
-                       op_fids: 'ndarray', op_indexes: 'ndarray',
-                       distances: 'ndarray', lines: 'ndarray', name: str) \
-            -> Generator[list[tuple], None, None]:
+    def _build_records(self, src_fids: 'ndarray', op_fids: 'ndarray',
+                       distances: 'ndarray', lines: 'ndarray', name: str,
+                       **kwargs) -> list[tuple]:
         """
         Build Records
         """
         coords = get_coordinates(lines)
         calculator = self._get_calculator()
         records, distances = calculator(distances, coords)
-        yield [(oid, nid, dist, name, 1, *rec)
-               for oid, nid, dist, rec in
-               zip(src_fids[src_indexes], op_fids[op_indexes],
-                   distances, records)]
+        if INCLUDE_LINE not in kwargs:
+            return [(oid, nid, dist, name, 1, *rec)
+                    for oid, nid, dist, rec in
+                    zip(src_fids, op_fids, distances, records)]
+        mask = distances > 0
+        distances = distances[mask]
+        lines, validity = self._prepare_lines(lines[mask], distances)
+        src_fids = src_fids[mask][validity]
+        op_fids = op_fids[mask][validity]
+        records = records[mask][validity]
+        if GROUP_VALUE not in kwargs:
+            return [(line, oid, nid, dist, name, 1, *rec)
+                    for oid, nid, dist, rec, line in
+                    zip(src_fids, op_fids, distances, records, lines)]
+        else:
+            group_value = kwargs[GROUP_VALUE]
+            return [(line, group_value, oid, nid, dist, name, 1, *rec)
+                    for oid, nid, dist, rec, line in
+                    zip(src_fids, op_fids, distances, records, lines)]
     # End _build_records method
+
+    def _prepare_lines(self, lines: 'ndarray', distances: 'ndarray') \
+            -> tuple[list[LineString], 'ndarray']:
+        """
+        Prepare Lines by densifying (useful for long lines, apply to all)
+        and transform to the source CRS from the distance CRS.
+        """
+        # noinspection unresolved-references
+        crs = get_crs_from_source(self.source)
+        # noinspection unresolved-references
+        srs_id = self.source.spatial_reference_system.srs_id
+        lines = asarray([segmentize(line, max_segment_length=dist)
+                         for line, dist in zip(lines, distances / 10.)])
+        # noinspection unresolved-references
+        transformer = self._get_transformer_or_guess(self._distance_crs, crs)
+        # noinspection unresolved-references
+        transformer = make_transformer_function(
+            self._get_target_shape_type(), has_z=False,
+            has_m=False, transformer=transformer)
+        if transformer is None:
+            validity = ones_like(lines, dtype=bool)
+        else:
+            lines = transformer(lines)
+            validity = get_validity(lines, transformer=transformer)
+        lines = [LineString.from_wkb(line.wkb, srs_id=srs_id) for line in lines]
+        return lines, validity
+    # End _prepare_lines method
 
     def _get_operator_data(self, scratch: MemoryGeoPackage,
                            operator: FeatureClass, id_: int, src_geoms: ndarray,
