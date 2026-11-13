@@ -5,10 +5,14 @@ Tests for Statistics
 
 
 from fudgeo import Table
+from pytest import mark
 
 from conftest import world_features
 from spyops.analysis import statistics, frequency
 from spyops.shared.stats import First, Min, Mode
+
+
+pytestmark = [mark.statistics, mark.analysis]
 
 
 class TestStatistics:
