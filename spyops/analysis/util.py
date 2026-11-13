@@ -7,12 +7,15 @@ Internal functions for analysis package
 from collections import defaultdict
 from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 
-from fudgeo import FeatureClass, Table
+from fudgeo import FeatureClass, Field, Table
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
+from fudgeo.enumeration import FieldType, ShapeType
 from numpy import concatenate
 from shapely import STRtree, difference
 
+from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.crs.util import get_crs_from_source
 from spyops.environment import ANALYSIS_SETTINGS
 from spyops.environment.context import Swap
 from spyops.environment.core import zm_config
@@ -26,7 +29,9 @@ from spyops.query.analysis.extract import (
     QueryClip, QuerySplitByAttributesFeatureClass, QuerySplitByAttributesTable)
 from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
-from spyops.shared.hint import ELEMENT, FIELDS, GPKG, GRID_SIZE, XY_TOL
+from spyops.shared.enumeration import GeometryAttribute
+from spyops.shared.hint import (
+    ELEMENT, FIELDS, GPKG, GRID_SIZE, OPT_FIELD, XY_TOL)
 from spyops.shared.records import bulk_features, extend_records
 from spyops.shared.sql import SQL_NO_ID
 from spyops.shared.util import (
@@ -286,6 +291,71 @@ def _intersect(*, query: QUERY_INT, op_features: list[tuple],
             records.clear()
     return query.target
 # End _intersect function
+
+
+def _add_geometry_attribute_fields(feature_class: FeatureClass, *,
+                                   length_unit: LengthUnit,
+                                   area_unit: AreaUnit) \
+        -> tuple[OPT_FIELD, OPT_FIELD, OPT_FIELD]:
+    """
+    Add and Calculate Geometry Attribute Fields for Point Count, Length, and
+    Area as applicable, return the added fields.
+    """
+    count_field = length_field = area_field = None
+    if not len(feature_class):
+        return count_field, length_field, area_field
+    shape_type = feature_class.shape_type
+    if ShapeType.point in shape_type:
+        attr = GeometryAttribute.POINT_COUNT
+        count_field = _add_geom_attr_field(
+            feature_class, name=attr, attr=attr, length_unit=length_unit,
+            area_unit=area_unit, data_type=FieldType.integer)
+        return count_field, length_field, area_field
+    is_line = ShapeType.linestring in shape_type
+    is_projected = get_crs_from_source(feature_class).is_projected
+    if is_projected and is_line:
+        attr = GeometryAttribute.LENGTH
+    elif not is_projected and is_line:
+        attr = GeometryAttribute.LENGTH_GEODESIC
+    elif is_projected and not is_line:
+        attr = GeometryAttribute.PERIMETER
+    else:
+        attr = GeometryAttribute.PERIMETER_GEODESIC
+    length_field = _add_geom_attr_field(
+        feature_class, name=GeometryAttribute.LENGTH, attr=attr,
+        length_unit=length_unit, area_unit=area_unit)
+    if is_line:
+        return count_field, length_field, area_field
+    if is_projected:
+        attr = GeometryAttribute.AREA
+    else:
+        attr = GeometryAttribute.AREA_GEODESIC
+    area_field = _add_geom_attr_field(
+        feature_class, name=GeometryAttribute.AREA, attr=attr,
+        length_unit=length_unit, area_unit=area_unit)
+    return count_field, length_field, area_field
+# End _add_geometry_attribute_fields function
+
+
+def _add_geom_attr_field(feature_class: FeatureClass, *,
+                         name: GeometryAttribute, attr: GeometryAttribute,
+                         length_unit: LengthUnit, area_unit: AreaUnit,
+                         data_type: str = FieldType.real) -> Field:
+    """
+    Make Unique Field for Geometry Attribute, Add Field to the Feature Class,
+    and Calculate Geometry Attribute.
+    """
+    from spyops.management import calculate_geometry_attributes
+
+    names = {f.casefold() for f in feature_class.field_names}
+    field = Field(name=str(name).upper(), data_type=data_type)
+    field.name = make_unique_name(field.name, names=names)
+    feature_class.add_fields([field])
+    calculate_geometry_attributes(
+        feature_class, field=field, geometry_attribute=attr,
+        length_unit=length_unit, area_unit=area_unit)
+    return field
+# End _add_geom_attr_field function
 
 
 if __name__ == '__main__':  # pragma: no cover
