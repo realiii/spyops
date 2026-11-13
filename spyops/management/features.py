@@ -206,6 +206,8 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     POINT_Y -- y-coordinate
     POINT_Z -- z-coordinate
     POINT_M -- m-value
+    PART_COUNT -- number of parts
+    POINT_COUNT -- number of points
 
     MultiPoint
     ----------
