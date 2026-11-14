@@ -43,25 +43,34 @@ class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
         """
         Field Names for Select and Insert + Derive Field Count
         """
-        fields = self._fields
-        stats = self.statistics
-        field_count = len(fields) + len(stats)
+        field_count = len(self._fields) + len(self.statistics)
+        select_names = self._make_select_names(self._fields, self.statistics)
+        insert_names = self._make_insert_names(self._fields)
+        return field_count, insert_names, select_names
+    # End _field_names_and_count method
 
-        select_names = insert_names = make_field_names(fields)
-        select_stats = COMMA_SPACE.join([s.aggregate for s in stats])
-        if select_names:
-            select_names = self._concatenate(select_names, select_stats)
-        else:
-            select_names = select_stats
-
+    def _make_insert_names(self, fields: FIELDS) -> str:
+        """
+        Make Insert Names
+        """
+        insert_names = make_field_names(fields)
         stats_fields = self._get_unique_fields()[len(fields):]
         insert_stats = make_field_names(stats_fields)
         if insert_names:
-            insert_names = self._concatenate(insert_names, insert_stats)
-        else:
-            insert_names = insert_stats
-        return field_count, insert_names, select_names
-    # End _field_names_and_count method
+            return self._concatenate(insert_names, insert_stats)
+        return insert_stats
+    # End _make_insert_names method
+
+    def _make_select_names(self, fields: FIELDS, stats: STATS_FIELDS) -> str:
+        """
+        Make Select Names
+        """
+        select_names = make_field_names(fields)
+        select_stats = COMMA_SPACE.join([s.aggregate for s in stats])
+        if select_names:
+            return self._concatenate(select_names, select_stats)
+        return select_stats
+    # End _make_select_names method
 
     @property
     def select(self) -> str:
