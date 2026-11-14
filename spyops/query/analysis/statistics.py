@@ -150,7 +150,7 @@ class QueryFrequency(BaseSummaryStatistics):
     @staticmethod
     def _get_frequency_stat(fields: FIELDS) -> Frequency:
         """
-        Get Frequency Statistics wtih output name set
+        Get Frequency Statistics with output name set
         """
         stat = Frequency()
         *_, frequency = add_key_fields([FREQUENCY], fields)
