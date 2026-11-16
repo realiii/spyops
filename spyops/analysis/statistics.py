@@ -117,9 +117,9 @@ def tabulate_intersection(source: FeatureClass, operator: FeatureClass,
     """
     Tabulate Intersection
 
-    Performs an intersection of the source and operator feature classes,
+    Perform an intersection of the source and operator feature classes,
     grouping the source by group fields and the operator by class fields.
-    Generates a table of the intersection results that includes geometry
+    Generate a table of the intersection results that includes geometry
     attributes, counts, and statistics from the operator feature class.
     """
     from spyops.analysis import intersect
