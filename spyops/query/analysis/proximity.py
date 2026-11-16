@@ -821,29 +821,27 @@ class QueryMultipleBuffer(AbstractQueryBufferDissolve):
         distances = []
         config = self._config
         has_field = self._distance_field is not None
-        scratch = MemoryGeoPackage.create()
-        source = self._create_dissolved_source(scratch)
-        units, labels = self._distances_and_labels()
-        for unit, label in zip(units, labels):
-            # noinspection bad-argument-type
-            query = QueryBufferDissolveAll(
-                source=source, target=None, buffer_type=self.buffer_type,
-                fields=None, distance=unit, side_option=config.side_option,
-                end_option=config.end_option, resolution=config.resolution,
-                xy_tolerance=self._xy_tolerance)
-            if not (geoms := next(query.dissolved_geometries(), {})):
-                continue
-            geom, = geoms.values()
-            if geom.is_empty:
-                continue
-            if has_field:
-                attrs = label,
-            else:
-                attrs = ()
-            ordered.append((geom, attrs))
-            distances.append(unit.value)
-        if conn := scratch.connection:
-            conn.close()
+        with MemoryGeoPackage.create() as scratch:
+            source = self._create_dissolved_source(scratch)
+            units, labels = self._distances_and_labels()
+            for unit, label in zip(units, labels):
+                # noinspection bad-argument-type
+                query = QueryBufferDissolveAll(
+                    source=source, target=None, buffer_type=self.buffer_type,
+                    fields=None, distance=unit, side_option=config.side_option,
+                    end_option=config.end_option, resolution=config.resolution,
+                    xy_tolerance=self._xy_tolerance)
+                if not (geoms := next(query.dissolved_geometries(), {})):
+                    continue
+                geom, = geoms.values()
+                if geom.is_empty:
+                    continue
+                if has_field:
+                    attrs = label,
+                else:
+                    attrs = ()
+                ordered.append((geom, attrs))
+                distances.append(unit.value)
         return self._resolve_overlaps(ordered, distances=distances)
     # End dissolved_geometries method
 
@@ -1178,19 +1176,17 @@ class QueryNear(NearMixin, AbstractSourceUpdateQuery):
         src_geoms, src_fids, _ = self._get_source_data()
         if not len(src_geoms):
             return
-        scratch = MemoryGeoPackage.create()
-        with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs):
-            for i, operator in enumerate(self._operator):
-                exclusive, op_geoms, op_fids, _ = self._get_operator_data(
-                    scratch, operator=operator, id_=i, src_geoms=src_geoms,
-                    src_fids=src_fids, src_grps=[], fields=[ORIG_FID])
-                if not len(op_geoms):
-                    continue
-                yield self._find_nearest(
-                    operator.name, exclusive=exclusive, src_geoms=src_geoms,
-                    src_fids=src_fids, op_geoms=op_geoms, op_fids=op_fids)
-        if conn := scratch.connection:
-            conn.close()
+        with MemoryGeoPackage.create() as scratch:
+            with Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs):
+                for i, operator in enumerate(self._operator):
+                    exclusive, op_geoms, op_fids, _ = self._get_operator_data(
+                        scratch, operator=operator, id_=i, src_geoms=src_geoms,
+                        src_fids=src_fids, src_grps=[], fields=[ORIG_FID])
+                    if not len(op_geoms):
+                        continue
+                    yield self._find_nearest(
+                        operator.name, exclusive=exclusive, src_geoms=src_geoms,
+                        src_fids=src_fids, op_geoms=op_geoms, op_fids=op_fids)
     # End find_nearest method
 
     def _prefix_name(self, from_name: str) -> str:
@@ -1355,38 +1351,38 @@ class AbstractQueryGenerate(NearMixin, BaseQuerySelect):
         src_grps = array(src_grps)
         finder = self._get_finder()
         kwargs = self._get_record_kwargs()
-        scratch = MemoryGeoPackage.create()
         fields = self._get_operator_fields()
-        intermediate, sql_insert = self._configure_intermediate(scratch)
-        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs),
-              intermediate.geopackage.connection as cin):
-            for i, operator in enumerate(self._operator):
-                exclusive, op_geoms, op_fids, op_grps = self._get_operator_data(
-                    scratch, operator=operator, id_=i, src_geoms=src_geoms,
-                    src_fids=src_fids, src_grps=src_grps, fields=fields)
-                if not len(op_geoms):
-                    continue
-                op_grps = asarray(op_grps)
-                for key in src_keys:
-                    ops_mask = op_grps == key
-                    if not ops_mask.any():
+        with MemoryGeoPackage.create() as scratch:
+            intermediate, sql_insert = self._configure_intermediate(scratch)
+            with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, self._distance_crs),
+                  intermediate.geopackage.connection as cin):
+                for i, operator in enumerate(self._operator):
+                    (exclusive, op_geoms, op_fids,
+                     op_grps) = self._get_operator_data(
+                        scratch, operator=operator, id_=i, src_geoms=src_geoms,
+                        src_fids=src_fids, src_grps=src_grps, fields=fields)
+                    if not len(op_geoms):
                         continue
-                    src_mask = src_grps == key
-                    if self._group_field:
-                        kwargs[GROUP_VALUE] = key
-                    records = finder(
-                        operator.name, src_geoms=src_geoms[src_mask],
-                        src_fids=src_fids[src_mask],
-                        op_geoms=op_geoms[ops_mask], op_fids=op_fids[ops_mask],
-                        exclusive=exclusive, **kwargs)
-                    if not records:
-                        continue
-                    cin.executemany(sql_insert, records)
-            cursor = cin.execute(self._make_rank_query(intermediate))
-            while records := cursor.fetchmany(FETCH_SIZE):
-                yield records
-        if conn := scratch.connection:
-            conn.close()
+                    op_grps = asarray(op_grps)
+                    for key in src_keys:
+                        ops_mask = op_grps == key
+                        if not ops_mask.any():
+                            continue
+                        src_mask = src_grps == key
+                        if self._group_field:
+                            kwargs[GROUP_VALUE] = key
+                        records = finder(
+                            operator.name, src_geoms=src_geoms[src_mask],
+                            src_fids=src_fids[src_mask],
+                            op_geoms=op_geoms[ops_mask],
+                            op_fids=op_fids[ops_mask],
+                            exclusive=exclusive, **kwargs)
+                        if not records:
+                            continue
+                        cin.executemany(sql_insert, records)
+                cursor = cin.execute(self._make_rank_query(intermediate))
+                while records := cursor.fetchmany(FETCH_SIZE):
+                    yield records
     # End find_nearest method
 
     def _get_operator_fields(self) -> FIELDS:

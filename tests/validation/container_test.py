@@ -36,7 +36,8 @@ class TestValidateGeopackage:
             with raises(ValueError):
                 geo_function(GeoPackage(Path.home()))
         geo_function(mem_gpkg)
-        geo_function(MemoryGeoPackage.create())
+        with MemoryGeoPackage.create() as mem:
+            geo_function(mem)
     # End test_exists method
 
     @mark.parametrize('exists', [
