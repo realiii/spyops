@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [[package]]
@@ -476,8 +476,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bottleneck", specifier = ">=1.6.0" },
-    { name = "numpy", specifier = "==2.5.4" },
     { name = "fudgeo", specifier = ">=1.6.0" },
+    { name = "numpy", specifier = ">=2.3.2" },
     { name = "pyproj", specifier = ">=3.8.0" },
     { name = "shapely", specifier = ">=2.2.0" },
 ]
