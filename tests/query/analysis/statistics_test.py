@@ -4,10 +4,21 @@ Test for Statistics Query classes
 """
 
 
-from fudgeo import Field, Table
+from fudgeo import FeatureClass, Field, Table
+from fudgeo.enumeration import FieldType
+from pytest import mark
 
-from spyops.query.analysis.statistics import QueryFrequency, QueryStatistics
-from spyops.shared.stats import First, Max
+from spyops.analysis import intersect
+from spyops.analysis.util import _add_geometry_attribute_fields
+from spyops.crs.enumeration import AreaUnit, LengthUnit
+from spyops.query.analysis.statistics import (
+    QueryFrequency, QueryStatistics, QueryTabulateIntersection)
+from spyops.shared.enumeration import AttributeOption
+from spyops.shared.field import validate_fields
+from spyops.shared.stats import Count, First, Max
+
+
+pytestmark = [mark.statistics, mark.query, mark.analysis]
 
 
 class TestQueryStatistics:
@@ -95,6 +106,177 @@ class TestQueryFrequency:
         assert 'GROUP BY COUNTRY' in sql
     # End test_field_names_and_count_with_group method
 # End TestQueryFrequency class
+
+
+class TestQueryTabulateIntersection:
+    """
+    Test QueryTabulateIntersection
+    """
+    @mark.parametrize('src_name, op_name, group_names, class_names, expected_target, expected_intermediate', [
+        ('grid_a', 'structures_p', [], ['DATANAME'], ['DATANAME'], ['DATANAME']),
+        ('grid_a', 'structures_p', ['DATANAME'], ['DATANAME'], ['DATANAME_1', 'DATANAME'], ['DATANAME_1','DATANAME']),
+        ('grid_a', 'structures_p', ['DATANAME', 'row_index'], ['DATANAME', 'CODE'], ['DATANAME_1', 'row_index', 'DATANAME', 'CODE'], ['DATANAME_1', 'row_index', 'DATANAME', 'CODE']),
+        ('grid_a', 'structures_p', ['DATANAME', 'CODE'], ['DATANAME', 'CODE'], ['DATANAME_1', 'CODE_1', 'DATANAME', 'CODE'], ['DATANAME_1', 'CODE_1', 'DATANAME', 'CODE']),
+        ('grid_a', 'structures_p', ['DATANAME', 'CODE'], ['ENTITY'], ['DATANAME', 'CODE', 'ENTITY'], ['DATANAME_1', 'CODE_1', 'ENTITY']),
+    ])
+    def test_rebuild_fields(self, ntdb_zm_small, grid_index, mem_gpkg, src_name, op_name,
+                            group_names, class_names, expected_target, expected_intermediate):
+        """
+        Test rebuild fields
+        """
+        source = grid_index[src_name].copy(name=src_name, geopackage=mem_gpkg)
+        source.add_fields([Field('CODE', data_type=FieldType.text)])
+        operator = ntdb_zm_small[op_name]
+        intermediate = FeatureClass(name='intermediate', geopackage=mem_gpkg)
+        intermediate = intersect(
+            operator, operator=source, target=intermediate,
+            attribute_option=AttributeOption.SANS_FID)
+        group_fields = validate_fields(source, fields=group_names)
+        class_fields = validate_fields(operator, fields=class_names)
+        dataname, = validate_fields(operator, fields=['DATANAME'])
+        query = QueryTabulateIntersection(
+            source, operator=operator, intermediate=intermediate,
+            target=None, group_fields=group_fields, class_fields=class_fields,
+            statistics=[Count(dataname)],
+            count_field=None, length_field=None, area_field=None)
+        results = query._rebuild_fields(
+            source, operator=operator, intermediate=intermediate,
+            group_fields=group_fields, class_fields=class_fields)
+        intermediate_fields, target_fields = results
+        target_names = [f.name for f in target_fields]
+        intermediate_names = [f.name for f in intermediate_fields]
+        assert target_names == expected_target
+        assert intermediate_names == expected_intermediate
+    # End test_rebuild_fields method
+
+    @mark.parametrize('add_fields, src_name, op_name, group_names, class_names, expected_field_names, expected_stat_names', [
+        (True, 'grid_a', 'structures_a', ['DATANAME'], ['ENTITY'], ['LENGTH', 'AREA'], ['SUM_LENGTH_1', 'SUM_AREA_1']),
+        (True, 'grid_a', 'structures_p', ['DATANAME'], ['ENTITY'], ['POINT_COUNT'], ['SUM_POINT_COUNT_1']),
+        (True, 'grid_a', 'structures_a', ['DATANAME', 'AREA'], ['ENTITY'], ['LENGTH', 'AREA_1'], ['SUM_LENGTH_1', 'SUM_AREA_1']),
+        (True, 'grid_a', 'structures_p', ['DATANAME', 'POINT_COUNT'], ['ENTITY'], ['POINT_COUNT_1'], ['SUM_POINT_COUNT_1']),
+        (False, 'grid_a', 'structures_a', ['DATANAME'], ['ENTITY'], ['LENGTH', 'AREA'], ['SUM_LENGTH', 'SUM_AREA']),
+        (False, 'grid_a', 'structures_p', ['DATANAME'], ['ENTITY'], ['POINT_COUNT'], ['SUM_POINT_COUNT']),
+    ])
+    def test_rebuild_geom_stats(self, ntdb_zm_small, grid_index, mem_gpkg, add_fields,
+                                src_name, op_name, group_names, class_names,
+                                expected_field_names, expected_stat_names):
+        """
+        Test rebuild geom stats where the default geometry columns are present
+        in source (added in the test)
+        """
+        source = grid_index[src_name].copy(name=src_name, geopackage=mem_gpkg)
+        if add_fields:
+            for name in ('POINT_COUNT', 'AREA', 'LENGTH'):
+                source.add_fields([Field(name, data_type=FieldType.real)])
+        operator = ntdb_zm_small[op_name]
+        intermediate = FeatureClass(name='intermediate', geopackage=mem_gpkg)
+        intermediate = intersect(
+            operator, operator=source, target=intermediate,
+            attribute_option=AttributeOption.SANS_FID)
+        count_field, length_field, area_field = _add_geometry_attribute_fields(
+            intermediate, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        group_fields = validate_fields(source, fields=group_names)
+        class_fields = validate_fields(operator, fields=class_names)
+        dataname, = validate_fields(operator, fields=['DATANAME'])
+        query = QueryTabulateIntersection(
+            source, operator=operator, intermediate=intermediate,
+            target=None, group_fields=group_fields, class_fields=class_fields,
+            statistics=[Count(dataname)], count_field=count_field,
+            length_field=length_field, area_field=area_field)
+        results = query._rebuild_fields(
+            source, operator=operator, intermediate=intermediate,
+            group_fields=group_fields, class_fields=class_fields)
+        _, target_fields = results
+        geom_fields, geom_stats = QueryTabulateIntersection._rebuild_geom_stats(
+            target_fields, count_field=count_field, length_field=length_field,
+            area_field=area_field)
+        geom_names = [field.name for field in geom_fields]
+        stat_names = [stat.output_name for stat in geom_stats]
+        assert geom_names == expected_field_names
+        assert stat_names == expected_stat_names
+    # End test_rebuild_geom_stats method
+
+    @mark.parametrize('add_fields, src_name, op_name, group_names, class_names, expected_field_names', [
+        (True, 'grid_a', 'structures_a', ['DATANAME'], ['ENTITY'], ['DATANAME', 'ENTITY', 'COUNT_DATANAME', 'LENGTH', 'AREA']),
+        (True, 'grid_a', 'structures_p', ['DATANAME'], ['ENTITY'], ['DATANAME', 'ENTITY', 'COUNT_DATANAME', 'POINT_COUNT']),
+        (True, 'grid_a', 'structures_a', ['DATANAME', 'AREA'], ['ENTITY'], ['DATANAME', 'AREA', 'ENTITY', 'COUNT_DATANAME', 'LENGTH', 'AREA_1']),
+        (True, 'grid_a', 'structures_p', ['DATANAME', 'POINT_COUNT'], ['ENTITY'], ['DATANAME', 'POINT_COUNT', 'ENTITY', 'COUNT_DATANAME', 'POINT_COUNT_1']),
+        (False, 'grid_a', 'structures_a', ['DATANAME'], ['ENTITY'], ['DATANAME', 'ENTITY', 'COUNT_DATANAME', 'LENGTH', 'AREA']),
+        (False, 'grid_a', 'structures_p', ['DATANAME'], ['ENTITY'], ['DATANAME', 'ENTITY', 'COUNT_DATANAME', 'POINT_COUNT'] ),
+    ])
+    def test_get_unique_fields(self, ntdb_zm_small, grid_index, mem_gpkg, add_fields,
+                               src_name, op_name, group_names, class_names,
+                               expected_field_names):
+        """
+        Test get unique fields
+        """
+        source = grid_index[src_name].copy(name=src_name, geopackage=mem_gpkg)
+        if add_fields:
+            for name in ('POINT_COUNT', 'AREA', 'LENGTH'):
+                source.add_fields([Field(name, data_type=FieldType.real)])
+        operator = ntdb_zm_small[op_name]
+        group_fields = validate_fields(source, fields=group_names)
+        class_fields = validate_fields(operator, fields=class_names)
+        dataname, = validate_fields(operator, fields=['DATANAME'])
+        intermediate = FeatureClass(name='intermediate', geopackage=mem_gpkg)
+        intermediate = intersect(
+            operator, operator=source, target=intermediate,
+            attribute_option=AttributeOption.SANS_FID)
+        count_field, length_field, area_field = _add_geometry_attribute_fields(
+            intermediate, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        query = QueryTabulateIntersection(
+            source, operator=operator, intermediate=intermediate,
+            target=None, group_fields=group_fields, class_fields=class_fields,
+            statistics=[Count(dataname)],
+            count_field=count_field, length_field=length_field,
+            area_field=area_field)
+        names = [field.name for field in query._get_unique_fields()]
+        assert names == expected_field_names
+    # End test_get_unique_fields method
+
+    @mark.parametrize('add_fields, src_name, op_name, group_names, class_names, expected_count, expected_insert, expected_select', [
+        (True, 'grid_a', 'structures_a', ['DATANAME'], ['ENTITY'], 5, 'DATANAME, ENTITY, COUNT_DATANAME, LENGTH, AREA', 'DATANAME_1, ENTITY, COUNT(DATANAME), SUM(LENGTH_1), SUM(AREA_1)'),
+        (True, 'grid_a', 'structures_p', ['DATANAME'], ['ENTITY'], 4, 'DATANAME, ENTITY, COUNT_DATANAME, POINT_COUNT', 'DATANAME_1, ENTITY, COUNT(DATANAME), SUM(POINT_COUNT_1)'),
+        (True, 'grid_a', 'structures_a', ['DATANAME', 'AREA'], ['ENTITY'], 6, 'DATANAME, AREA, ENTITY, COUNT_DATANAME, LENGTH, AREA_1', 'DATANAME_1, AREA, ENTITY, COUNT(DATANAME), SUM(LENGTH_1), SUM(AREA_1)'),
+        (True, 'grid_a', 'structures_p', ['DATANAME', 'POINT_COUNT'], ['ENTITY'], 5, 'DATANAME, POINT_COUNT, ENTITY, COUNT_DATANAME, POINT_COUNT_1', 'DATANAME_1, POINT_COUNT, ENTITY, COUNT(DATANAME), SUM(POINT_COUNT_1)'),
+        (False, 'grid_a', 'structures_a', ['DATANAME'], ['ENTITY'], 5, 'DATANAME, ENTITY, COUNT_DATANAME, LENGTH, AREA', 'DATANAME_1, ENTITY, COUNT(DATANAME), SUM(LENGTH), SUM(AREA)'),
+        (False, 'grid_a', 'structures_p', ['DATANAME'], ['ENTITY'], 4, 'DATANAME, ENTITY, COUNT_DATANAME, POINT_COUNT', 'DATANAME_1, ENTITY, COUNT(DATANAME), SUM(POINT_COUNT)'),
+    ])
+    def test_field_names_and_count(self, ntdb_zm_small, grid_index, mem_gpkg, add_fields,
+                                   src_name, op_name, group_names, class_names,
+                                   expected_count, expected_insert, expected_select):
+        """
+        Test field names and count
+        """
+        source = grid_index[src_name].copy(name=src_name, geopackage=mem_gpkg)
+        if add_fields:
+            for name in ('POINT_COUNT', 'AREA', 'LENGTH'):
+                source.add_fields([Field(name, data_type=FieldType.real)])
+        operator = ntdb_zm_small[op_name]
+        group_fields = validate_fields(source, fields=group_names)
+        class_fields = validate_fields(operator, fields=class_names)
+        dataname, = validate_fields(operator, fields=['DATANAME'])
+        intermediate = FeatureClass(name='intermediate', geopackage=mem_gpkg)
+        intermediate = intersect(
+            operator, operator=source, target=intermediate,
+            attribute_option=AttributeOption.SANS_FID)
+        count_field, length_field, area_field = _add_geometry_attribute_fields(
+            intermediate, length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS)
+        query = QueryTabulateIntersection(
+            source, operator=operator, intermediate=intermediate,
+            target=None, group_fields=group_fields, class_fields=class_fields,
+            statistics=[Count(dataname)],
+            count_field=count_field, length_field=length_field,
+            area_field=area_field)
+        count, insert, select = query._field_names_and_count(source)
+        assert insert == expected_insert
+        assert select == expected_select
+        assert count == expected_count
+    # End test_field_names_and_count method
+# End TestQueryTabulateIntersection class
 
 
 if __name__ == '__main__':  # pragma: no cover
