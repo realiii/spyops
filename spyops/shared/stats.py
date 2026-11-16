@@ -693,6 +693,13 @@ class AbstractStatisticField(metaclass=ABCMeta):
         """
         return self._get_data_type()
     # End data_type property
+
+    def _get_field_name(self) -> Field | str:
+        """
+        Get Field Name
+        """
+        return getattr(self.field, 'escaped_name', self.field)
+    # End _get_field_name method
 # End AbstractStatisticField class
 
 
@@ -705,8 +712,7 @@ class _BaseStatisticField(AbstractStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        return f'{self.prefix}({self.field.escaped_name})'
+        return f'{self.prefix}({self._get_field_name()})'
     # End aggregate property
 # End _BaseStatisticField class
 
@@ -767,8 +773,7 @@ class _FunctionStatisticField(AbstractStatisticField):
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        # noinspection unresolved-references
-        return f'{name}({self.field.escaped_name})'
+        return f'{name}({self._get_field_name()})'
     # End aggregate property
 # End _FunctionStatisticField class
 
@@ -782,12 +787,10 @@ class _FunctionStatisticNumericDateField(_NumericDateStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        escaped_name = self.field.escaped_name
+        escaped_name = self._get_field_name()
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
         if not self._is_date:
             return f'{name}({escaped_name})'
-        # noinspection unresolved-references
         return f"{name}_date(unixepoch({escaped_name}, 'subsecond'))"
     # End aggregate property
 # End _FunctionStatisticNumericDateField class
@@ -803,8 +806,7 @@ class _FunctionNumericStatisticField(_NumericStatisticField):
         Function Stub
         """
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        # noinspection unresolved-references
-        return f'{name}({self.field.escaped_name})'
+        return f'{name}({self._get_field_name()})'
     # End aggregate property
 # End _FunctionNumericStatisticField class
 
@@ -836,7 +838,7 @@ class Average(_NumericDateStatisticField):
         if not self._is_date:
             return super().aggregate
         # noinspection unresolved-references
-        return (f"datetime({self.prefix}(unixepoch({self.field.escaped_name}, "
+        return (f"datetime({self.prefix}(unixepoch({self._get_field_name()}, "
                 f"'subsecond')), 'unixepoch')")
     # End aggregate property
 # End Average class
@@ -860,10 +862,8 @@ class Median(_FunctionStatisticNumericDateField):
         """
         if not self._is_date:
             return super().aggregate
-        # noinspection unresolved-references
-        escaped_name = self.field.escaped_name
         name = f'{SPYOPS}{UNDERSCORE}{self.prefix.casefold()}'
-        agg = f"{name}(unixepoch({escaped_name}, 'subsecond'))"
+        agg = f"{name}(unixepoch({self._get_field_name()}, 'subsecond'))"
         return f"datetime({agg}, 'unixepoch')"
     # End aggregate property
 # End Median class
@@ -927,8 +927,7 @@ class Range(_NumericDateStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        name = self.field.escaped_name
+        name = self._get_field_name()
         if not self._is_date:
             return f'(MAX({name}) - MIN({name}))'
         return (f"(MAX(unixepoch({name}, 'subsecond')) - "
@@ -1029,8 +1028,7 @@ class CountNull(_BaseStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        name = self.field.escaped_name
+        name = self._get_field_name()
         return f'SUM(CASE WHEN {name} IS NULL THEN 1 ELSE 0 END)'
     # End aggregate property
 # End CountNull class
@@ -1052,8 +1050,7 @@ class CountNonNull(_BaseStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        name = self.field.escaped_name
+        name = self._get_field_name()
         return f'SUM(CASE WHEN {name} IS NOT NULL THEN 1 ELSE 0 END)'
     # End aggregate property
 # End CountNonNull class
@@ -1125,8 +1122,7 @@ class Unique(AbstractStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        return f'COUNT(DISTINCT {self.field.escaped_name})'
+        return f'COUNT(DISTINCT {self._get_field_name()})'
     # End aggregate property
 
     @property
@@ -1312,8 +1308,7 @@ class Concatenate(AbstractStatisticField):
         """
         Function Stub
         """
-        # noinspection unresolved-references
-        return f"group_concat({self.field.escaped_name}, '{self._delimiter}')"
+        return f"group_concat({self._get_field_name()}, '{self._delimiter}')"
     # End aggregate property
 
     @property
