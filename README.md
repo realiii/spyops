@@ -66,6 +66,7 @@ MIT
 - added `generate_near_table` (Analysis - Proximity)
 - added `generate_origin_destination_links` (Analysis - Proximity)
 - added `tabulate_intersection` (Analysis - Statistics)
+- fix type annotations to ensure compatibility with 3.12
 
 ### v0.2.3
 - add support for `date` and `datetime` in `features_to_geojson`
