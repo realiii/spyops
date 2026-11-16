@@ -510,6 +510,8 @@ class TestCalculateGeometryAttributes:
         (GeometryAttribute.POINT_Y, 1436251.88, 51.15),
         (GeometryAttribute.POINT_Z, 1244.70, 1244.70),
         (GeometryAttribute.POINT_M, 210530.83, 210530.83),
+        (GeometryAttribute.POINT_COUNT, 1, 1),
+        (GeometryAttribute.PART_COUNT, 1, 1),
     ])
     def test_point(self, ntdb_zm_small, mem_gpkg, attribute, average_lcc, average_dd):
         """

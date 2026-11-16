@@ -206,6 +206,8 @@ def calculate_geometry_attributes(source: 'FeatureClass', field: Field | str,
     POINT_Y -- y-coordinate
     POINT_Z -- z-coordinate
     POINT_M -- m-value
+    PART_COUNT -- number of parts
+    POINT_COUNT -- number of points
 
     MultiPoint
     ----------
@@ -835,7 +837,6 @@ def feature_to_polygon(source: FEATURE_CLASSES, target: 'FeatureClass', *,
         *GEOM_TYPE_LINES, *GEOM_TYPE_POLYGONS))
 @validate_target_feature_class()
 @validate_xy_tolerance()
-@validate_supported_crs(SOURCE)
 @validate_overwrite_source()
 def feature_to_line(source: FEATURE_CLASSES, target: 'FeatureClass', *,
                     xy_tolerance: XY_TOL = None) -> 'FeatureClass':
@@ -978,6 +979,7 @@ def unsplit_line(source: 'FeatureClass', target: 'FeatureClass',
 @validate_linear_unit(DISTANCE_ARG, feature_class_name=SOURCE,
                       as_number=True, is_optional=True)
 @validate_xy_tolerance()
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def split_line_at_point(source: 'FeatureClass', operator: 'FeatureClass',
                         target: 'FeatureClass', *,

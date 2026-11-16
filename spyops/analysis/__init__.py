@@ -12,8 +12,9 @@ from spyops.analysis.overlay import (
 from spyops.analysis.proximity import (
     buffer, create_thiessen_polygons, generate_near_table,
     generate_origin_destination_links, multiple_buffer, near)
-from spyops.analysis.statistics import frequency, statistics
-from spyops.crs.enumeration import DistanceUnit, LengthUnit
+from spyops.analysis.statistics import (
+    frequency, statistics, tabulate_intersection)
+from spyops.crs.enumeration import AreaUnit, DistanceUnit, LengthUnit
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
     Kilometres, Meters, Metres, Miles, MilesInternational, MilesUS,
@@ -56,6 +57,7 @@ __all__ = [
 
     'frequency',
     'statistics',
+    'tabulate_intersection',
 
     'AlgorithmOption',
     'AttributeOption',
@@ -66,6 +68,7 @@ __all__ = [
     'SearchRadiusOption',
     'SideOption',
 
+    'AreaUnit',
     'DistanceUnit',
     'LengthUnit',
 

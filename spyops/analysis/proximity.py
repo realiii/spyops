@@ -33,8 +33,9 @@ from spyops.validation import (
     validate_field, validate_linear_unit, validate_operator_feature_class,
     validate_overwrite_input, validate_overwrite_source, validate_range,
     validate_result, validate_side_option, validate_source_feature_class,
-    validate_str_enumeration, validate_target_feature_class,
-    validate_target_table, validate_values, validate_xy_tolerance)
+    validate_str_enumeration, validate_supported_crs,
+    validate_target_feature_class, validate_target_table, validate_values,
+    validate_xy_tolerance)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -225,6 +226,7 @@ def create_thiessen_polygons(source: 'FeatureClass', target: 'FeatureClass',
                       is_optional=True)
 @validate_str_enumeration(SEARCH_OPTION, SearchRadiusOption)
 @validate_str_enumeration(LENGTH_UNIT, LengthUnit)
+@validate_supported_crs(SOURCE, OPERATOR)
 def near(source: 'FeatureClass', operator: FEATURE_CLASSES, *,
          search_radius: RADIUS | None = None,
          search_option: SearchRadiusOption = SearchRadiusOption.PLANAR,
@@ -260,6 +262,7 @@ def near(source: 'FeatureClass', operator: FEATURE_CLASSES, *,
                       is_optional=True)
 @validate_str_enumeration(SEARCH_OPTION, SearchRadiusOption)
 @validate_str_enumeration(LENGTH_UNIT, LengthUnit)
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def generate_near_table(source: 'FeatureClass', operator: FEATURE_CLASSES,
                         target: 'Table', *, closest_count: int | None = 1,
@@ -308,6 +311,7 @@ def generate_near_table(source: 'FeatureClass', operator: FEATURE_CLASSES,
                       is_optional=True)
 @validate_str_enumeration(SEARCH_OPTION, SearchRadiusOption)
 @validate_str_enumeration(LENGTH_UNIT, LengthUnit)
+@validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def generate_origin_destination_links(
         source: 'FeatureClass', operator: 'FeatureClass',

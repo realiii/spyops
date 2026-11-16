@@ -1206,29 +1206,17 @@ class AbstractQueryFeatureClassesPolygon(AbstractQueryFeatureClasses):
         return ShapeType.polygon
     # End _get_target_shape_type method
 
-    @staticmethod
-    def _close_scratch(scratch: MemoryGeoPackage) -> None:
-        """
-        Close Scratch GeoPackage
-        """
-        if conn := scratch.connection:
-            conn.close()
-    # End _close_scratch method
-
     def build_features(self) -> list[tuple['Polygon', tuple]]:
         """
         Planarized Features with Attributes
         """
-        scratch = MemoryGeoPackage.create()
-        lines, queries, grid_size = self._get_geoms(scratch)
-        if not len(lines):
-            self._close_scratch(scratch)
-            return []
-        if not (planarized := self._build_features(lines)):
-            self._close_scratch(scratch)
-            return []
-        results = self._add_attributes(planarized, queries, grid_size)
-        self._close_scratch(scratch)
+        with MemoryGeoPackage.create() as scratch:
+            lines, queries, grid_size = self._get_geoms(scratch)
+            if not len(lines):
+                return []
+            if not (planarized := self._build_features(lines)):
+                return []
+            results = self._add_attributes(planarized, queries, grid_size)
         return results
     # End build_features method
 

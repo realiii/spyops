@@ -143,7 +143,7 @@ def test_validate_dissolve_option(world_features, fc_name, option, fields, expec
     ('toponymy_p', GeometryAttribute.POINT_Y, False),
     ('toponymy_p', GeometryAttribute.POINT_Z, True),
     ('toponymy_p', GeometryAttribute.POINT_M, True),
-    ('toponymy_p', GeometryAttribute.PART_COUNT, True),
+    ('toponymy_p', GeometryAttribute.LENGTH, True),
     ('toponymy_p', GeometryAttribute.CENTROID_X, True),
     ('toponymy_zm_p', GeometryAttribute.POINT_M, False),
     ('toponymy_mp', GeometryAttribute.POINT_X, True),

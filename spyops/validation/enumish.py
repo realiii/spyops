@@ -331,7 +331,8 @@ class ValidateGeometryAttribute(AbstractValidateType):
         """
         Validate Points and MultiPoints
         """
-        valid = GeometryAttribute.POINT_X, GeometryAttribute.POINT_Y
+        valid = (GeometryAttribute.POINT_X, GeometryAttribute.POINT_Y,
+                 GeometryAttribute.POINT_COUNT, GeometryAttribute.PART_COUNT)
         if has_z:
             valid = *valid, GeometryAttribute.POINT_Z
         if has_m:

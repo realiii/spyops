@@ -15,9 +15,8 @@ def _open_geopackage(path: Path) -> Generator[GeoPackage, None, None]:
     """
     Open GeoPackage and Close connection
     """
-    gpkg = GeoPackage(path)
-    yield gpkg
-    gpkg.connection.close()
+    with GeoPackage(path) as gpkg:
+        yield gpkg
 # End _open_geopackage function
 
 
@@ -220,9 +219,8 @@ def fresh_gpkg(tmp_path) -> Generator[GeoPackage, None, None]:
     """
     Fresh GeoPackage
     """
-    gpkg = GeoPackage.create(tmp_path.joinpath('geo.gpkg'))
-    yield gpkg
-    gpkg.connection.close()
+    with GeoPackage.create(tmp_path.joinpath('geo.gpkg')) as gpkg:
+        yield gpkg
 # End fresh_gpkg function
 
 
@@ -231,9 +229,8 @@ def mem_gpkg(tmp_path) -> Generator[MemoryGeoPackage, None, None]:
     """
     Fresh MemoryGeoPackage
     """
-    gpkg = MemoryGeoPackage.create()
-    yield gpkg
-    gpkg.connection.close()
+    with MemoryGeoPackage.create() as gpkg:
+        yield gpkg
 # End mem_gpkg function
 
 

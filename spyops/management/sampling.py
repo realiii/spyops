@@ -229,32 +229,32 @@ def generate_rectangles_along_lines(
       source feature class spatial reference.
 
     """
-    scratch = None
-    if spatial_sort_option != SpatialSortOption.NONE:
-        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None),
-              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.SAME),
-              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.SAME),
-              Swap(Setting.Z_VALUE, None)):
-            scratch = MemoryGeoPackage.create()
-            scratch_target = FeatureClass(geopackage=scratch, name=target.name)
-            query = QuerySortFeatureClass(
-                source=source, target=scratch_target, sort_fields=[],
-                spatial_sort_option=spatial_sort_option)
-            source = select_transform_insert(query)
     if placement_option == PlacementOption.PERCENTAGE:
         cls = QueryGenerateRectanglesAlongLinesPercentage
     elif placement_option == PlacementOption.FIELD:
         cls = QueryGenerateRectanglesAlongLinesField
     else:
         cls = QueryGenerateRectanglesAlongLinesDistance
-    # noinspection bad-argument-type
-    query = cls(source=source, target=target, placement=placement,
-                length=length, width=width, include_ends=include_ends,
-                distance_type=distance_type, where_clause=where_clause)
-    target = generate_along_lines(query)
-    if scratch:
-        if conn := scratch.connection:
-            conn.close()
+    kwargs = dict(source=source, target=target, placement=placement,
+                  length=length, width=width, include_ends=include_ends,
+                  distance_type=distance_type, where_clause=where_clause)
+    if spatial_sort_option != SpatialSortOption.NONE:
+        with (Swap(Setting.OUTPUT_COORDINATE_SYSTEM, None),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.SAME),
+              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.SAME),
+              Swap(Setting.Z_VALUE, None)):
+            with MemoryGeoPackage.create() as scratch:
+                scratch_target = FeatureClass(scratch, name=target.name)
+                query = QuerySortFeatureClass(
+                    source=source, target=scratch_target, sort_fields=[],
+                    spatial_sort_option=spatial_sort_option)
+                source = select_transform_insert(query)
+                kwargs[SOURCE] = source
+                query = cls(**kwargs)
+                target = generate_along_lines(query)
+    else:
+        query = cls(**kwargs)
+        target = generate_along_lines(query)
     return target
 # End generate_rectangles_along_lines function
 

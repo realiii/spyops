@@ -467,29 +467,17 @@ class AbstractQueryFeatureClassesGeneral(
         pass
     # End _make_tree method
 
-    @staticmethod
-    def _close_scratch(scratch: MemoryGeoPackage) -> None:
-        """
-        Close Scratch GeoPackage
-        """
-        if conn := scratch.connection:
-            conn.close()
-    # End _close_scratch method
-
     def build_features(self) -> list[tuple['BaseGeometry', tuple]]:
         """
         Planarized Features - Lines
         """
-        scratch = MemoryGeoPackage.create()
-        geoms, queries, grid_size = self._get_geoms(scratch)
-        if not len(geoms):
-            self._close_scratch(scratch)
-            return []
-        if not (planarized := self._build_features(geoms)):
-            self._close_scratch(scratch)
-            return []
-        results = self._add_attributes(planarized, queries, grid_size)
-        self._close_scratch(scratch)
+        with MemoryGeoPackage.create() as scratch:
+            geoms, queries, grid_size = self._get_geoms(scratch)
+            if not len(geoms):
+                return []
+            if not (planarized := self._build_features(geoms)):
+                return []
+            results = self._add_attributes(planarized, queries, grid_size)
         return results
     # End build_features method
 
