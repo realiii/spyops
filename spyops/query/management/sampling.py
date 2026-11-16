@@ -198,7 +198,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
     # End generate_features method
 
     @property
-    def target_crs(self) -> CRS:
+    def target_crs(self) -> 'CRS':
         """
         Target CRS
         """
@@ -358,7 +358,7 @@ class AbstractQueryGenerateAlongLines(AbstractSourceQuery, UnitTypeMixin):
     def _get_placement_details(self, features: list[tuple],
                                geometries: 'ndarray', crs: 'CRS',
                                getter: Callable) \
-            -> Generator[PlacementDetails]:
+            -> Generator[PlacementDetails, None, None]:
         """
         Get Placement Details
         """

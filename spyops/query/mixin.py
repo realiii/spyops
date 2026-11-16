@@ -555,7 +555,7 @@ class OperatorMixin:
     # End operator property
 
     @cached_property
-    def operator_crs(self) -> CRS:
+    def operator_crs(self) -> 'CRS':
         """
         Operator CRS
         """
@@ -812,10 +812,10 @@ class NearMixin:
     # End _prepare_lines method
 
     def _get_operator_data(self, scratch: MemoryGeoPackage,
-                           operator: FeatureClass, id_: int, src_geoms: ndarray,
-                           src_fids: ndarray, src_grps: list | ndarray,
-                           fields: FIELDS) \
-            -> tuple[bool, ndarray, ndarray, list | ndarray]:
+                           operator: FeatureClass, id_: int,
+                           src_geoms: 'ndarray', src_fids: 'ndarray',
+                           src_grps: Union[list, 'ndarray'], fields: FIELDS) \
+            -> tuple[bool, 'ndarray', 'ndarray', Union[list, 'ndarray']]:
         """
         Get Operator Geometries in the Distance CRS and the Feature IDs
         """

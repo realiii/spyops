@@ -198,7 +198,8 @@ def select_transform_insert(query: 'BaseQuerySelect') -> 'FeatureClass':
 # End select_transform_insert function
 
 
-def select_transform(query: 'BaseQuerySelect') -> Generator[list[tuple]]:
+def select_transform(query: 'BaseQuerySelect') \
+        -> Generator[list[tuple], None, None]:
     """
     Select and Transform Features
     """
