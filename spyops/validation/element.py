@@ -301,7 +301,9 @@ class ValidateOverwriteInput(AbstractValidate):
             """
             kwargs = self._get_arguments(
                 func=func, args=args, kwargs=kwargs)
-            target: ELEMENT = kwargs[self._target]
+            target: ELEMENT | None = kwargs[self._target]
+            if target is None:
+                return func(**kwargs)
             for name in self._inputs:
                 others = self._make_iterable(kwargs[name])
                 for other in others:
