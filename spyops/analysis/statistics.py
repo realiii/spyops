@@ -4,9 +4,7 @@ Statistics
 """
 
 
-from typing import TYPE_CHECKING
-
-from fudgeo import FeatureClass, MemoryGeoPackage
+from fudgeo import FeatureClass, MemoryGeoPackage, Table
 
 from spyops.analysis.util import _add_geometry_attribute_fields
 from spyops.crs.enumeration import AreaUnit, LengthUnit
@@ -26,12 +24,8 @@ from spyops.validation import (
     validate_operator_feature_class, validate_overwrite_input,
     validate_overwrite_source, validate_result, validate_source_element,
     validate_source_feature_class, validate_statistic_field,
-    validate_str_enumeration, validate_supported_crs, validate_target_table,
-    validate_xy_tolerance)
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from fudgeo import Table
+    validate_str_enumeration, validate_supported_crs, validate_table,
+    validate_target_feature_class, validate_target_table, validate_xy_tolerance)
 
 
 __all__ = ['statistics', 'frequency', 'tabulate_intersection']
@@ -44,10 +38,10 @@ __all__ = ['statistics', 'frequency', 'tabulate_intersection']
                           is_optional=False)
 @validate_field(GROUP_FIELDS, element_name=SOURCE, is_optional=True)
 @validate_overwrite_source()
-def statistics(source: ELEMENT, target: 'Table', *,
+def statistics(source: ELEMENT, target: Table, *,
                stats_fields: STATS_FIELDS,
                group_fields: FIELDS | FIELD_NAMES = (),
-               where_clause: str = '') -> 'Table':
+               where_clause: str = '') -> Table:
     """
     Statistics
 
@@ -70,10 +64,10 @@ def statistics(source: ELEMENT, target: 'Table', *,
 @validate_field(GROUP_FIELDS, element_name=SOURCE)
 @validate_statistic_field(STATS_FIELDS_ARG, element_name=SOURCE)
 @validate_overwrite_source()
-def frequency(source: ELEMENT, target: 'Table', *,
+def frequency(source: ELEMENT, target: Table, *,
               group_fields: FIELDS | FIELD_NAMES,
               stats_fields: STATS_FIELDS | None = None,
-              where_clause: str = '') -> 'Table':
+              where_clause: str = '') -> Table:
     """
     Frequency
 
@@ -105,7 +99,7 @@ def frequency(source: ELEMENT, target: 'Table', *,
 @validate_supported_crs(SOURCE, OPERATOR)
 @validate_overwrite_input(TARGET, SOURCE, OPERATOR)
 def tabulate_intersection(source: FeatureClass, operator: FeatureClass,
-                          target: 'Table', *,
+                          target: Table, *,
                           group_fields: FIELDS | FIELD_NAMES,
                           class_fields: FIELDS | FIELD_NAMES,
                           stats_fields: STATS_FIELDS | None = None,
@@ -113,7 +107,7 @@ def tabulate_intersection(source: FeatureClass, operator: FeatureClass,
                           area_unit: AreaUnit = AreaUnit.SQUARE_METERS,
                           algorithm_option: AlgorithmOption = (
                                   AlgorithmOption.PAIRWISE),
-                          xy_tolerance: XY_TOL = None) -> 'Table':
+                          xy_tolerance: XY_TOL = None) -> Table:
     """
     Tabulate Intersection
 
