@@ -11,7 +11,7 @@ from pytest import mark
 
 from spyops.crs.constant import WGS84
 from spyops.crs.unit import Meters
-from spyops.environment import Extent, OutputZOption, Setting
+from spyops.environment import Extent, OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
 from spyops.shared.enumeration import DistanceTypeOption, PlacementOption
 from spyops.threed import generate_points_along_3d_lines
@@ -371,7 +371,7 @@ class TestGeneratePointsAlongLines3D:
         source = along_field['transmission_6654_z_l']
         target = FeatureClass(mem_gpkg, name='points')
         with (Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.ENABLED),
-              Swap(Setting.OUTPUT_M_OPTION, OutputZOption.ENABLED),
+              Swap(Setting.OUTPUT_M_OPTION, OutputMOption.ENABLED),
               Swap(Setting.Z_VALUE, 1234),
               Swap(Setting.OUTPUT_COORDINATE_SYSTEM, WGS84)):
             result = generate_points_along_3d_lines(
