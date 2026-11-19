@@ -83,7 +83,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         """
         Initialize the QueryMultiPartToSinglePart class
         """
-        super().__init__(source, target=target, xy_tolerance=None)
+        super().__init__(source, target=target)
     # End init built-in
 
     def _get_target_shape_type(self) -> str:
@@ -529,7 +529,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
         Initialize the QueryXYTablePoint class
         """
         # noinspection bad-argument-type
-        super().__init__(source, target=target, xy_tolerance=None)
+        super().__init__(source, target=target)
         self._fields: tuple[Field | None, ...] = fields
         self._coord_sys: CRS | SpatialReferenceSystem = coordinate_system
     # End init built-in
