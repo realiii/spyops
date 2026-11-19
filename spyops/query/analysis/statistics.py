@@ -338,14 +338,14 @@ class QueryTabulateIntersectionSummarizeWithin(QueryTabulateIntersection):
 # End QueryTabulateIntersectionSummarizeWithin class
 
 
-class QuerySummarizeWithin(BaseQuerySelect):
+class QuerySummarizeWithinFeatureClass(BaseQuerySelect):
     """
     Query Summarize Within -- Feature Class output
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
                  summary: 'Table', keep_all: bool) -> None:
         """
-        Initialize the QuerySummarizeWithin class
+        Initialize the QuerySummarizeWithinFeatureClass class
         """
         super().__init__(source, target=target)
         self._summary: 'Table' = summary
@@ -422,7 +422,60 @@ class QuerySummarizeWithin(BaseQuerySelect):
             elm.escaped_name, field_names=insert_field_names,
             field_count=len(fields) + 1)
     # End insert property
-# End QuerySummarizeWithin class
+# End QuerySummarizeWithinFeatureClass class
+
+
+class QuerySummarizeWithinTable(BaseQuerySelect):
+    """
+    Query Summarize Within -- Table output
+    """
+    def __init__(self, source: 'FeatureClass', target: 'Table',
+                 summary: 'Table') -> None:
+        """
+        Initialize the QuerySummarizeWithinFeatureClass class
+        """
+        super().__init__(source, target=target)
+        self._summary: 'Table' = summary
+    # End init built-in
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields, rework the order of the fields place group by fields
+        at the start then followed by statistics.
+        """
+        key_fields = ORIG_FID, FEAT_COUNT
+        _, _, class_field, _, *fields = self._summary.fields
+        orig_fid, feat_count, class_field, *fields = add_key_fields(
+            [class_field, *fields], key_fields)
+        return orig_fid, class_field, feat_count, *fields
+    # End _get_unique_fields method
+
+    @property
+    def select(self) -> str:
+        """
+        Select
+        """
+        elm = self._summary
+        _, *fields = self._summary.fields
+        select_field_names = make_field_names(fields)
+        where_clause = self._get_where_clause()
+        return self._make_select(
+            elm, field_names=select_field_names, where_clause=where_clause)
+    # End select property
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        elm = self.target
+        fields = self._get_unique_fields()
+        insert_field_names = make_field_names(fields)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=len(fields))
+    # End insert property
+# End QuerySummarizeWithinTable class
 
 
 if __name__ == '__main__':  # pragma: no cover
