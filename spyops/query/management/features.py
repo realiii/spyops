@@ -1807,7 +1807,7 @@ class AbstractQueryPointsToLine(AbstractQueryGroup):
 
 class QueryPointsToLineNone(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- No Atttributes (besides group fields)
+    Query Points to Line -- No Attributes (besides group fields)
     """
     def _get_unique_fields(self) -> FIELDS:
         """
@@ -1848,7 +1848,7 @@ class QueryPointsToLineNone(AbstractQueryPointsToLine):
 
 class QueryPointsToLineBoth(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- Both Start and End Atttributes
+    Query Points to Line -- Both Start and End Attributes
     """
     def _get_unique_fields(self) -> FIELDS:
         """
@@ -1899,7 +1899,7 @@ class QueryPointsToLineBoth(AbstractQueryPointsToLine):
 
 class QueryPointsToLineStart(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- Start Atttributes
+    Query Points to Line -- Start Attributes
     """
     def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
             -> dict[int, list[tuple]]:
@@ -1925,7 +1925,7 @@ class QueryPointsToLineStart(AbstractQueryPointsToLine):
 
 class QueryPointsToLineEnd(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- End Atttributes
+    Query Points to Line -- End Attributes
     """
     def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
             -> dict[int, list[tuple]]:
