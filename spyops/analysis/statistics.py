@@ -6,7 +6,8 @@ Statistics
 
 from fudgeo import FeatureClass, MemoryGeoPackage, Table
 
-from spyops.analysis.util import _add_geometry_attribute_fields
+from spyops.analysis.util import (
+    _combine_inputs, _summarize_by_class, _summarize_by_feature)
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.environment import OutputMOption, OutputZOption, Setting
 from spyops.environment.context import Swap
@@ -116,23 +117,16 @@ def tabulate_intersection(source: FeatureClass, operator: FeatureClass,
     Generate a table of the intersection results that includes geometry
     attributes, counts, and statistics from the operator feature class.
     """
-    from spyops.analysis import intersect
-
     group_fields: FIELDS
     class_fields: FIELDS
     stats_fields: STATS_FIELDS
     with MemoryGeoPackage.create() as scratch:
-        intermediate = FeatureClass(scratch, name=target.name)
-        # NOTE reverse source / operator to stay consistent with validation
-        with (Swap(Setting.OUTPUT_M_OPTION, OutputMOption.DISABLED),
-              Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.DISABLED),
-              Swap(Setting.Z_VALUE, None)):
-            intersect(operator, operator=source, target=intermediate,
-                      attribute_option=AttributeOption.SANS_FID,
-                      algorithm_option=algorithm_option,
-                      xy_tolerance=xy_tolerance)
-        count_field, length_field, area_field = _add_geometry_attribute_fields(
-            intermediate, length_unit=length_unit, area_unit=area_unit)
+        (intermediate, count_field, length_field,
+         area_field) = _combine_inputs(
+            scratch=scratch, attribute_option=AttributeOption.SANS_FID,
+            source=source, operator=operator, target=target,
+            algorithm_option=algorithm_option, length_unit=length_unit,
+            area_unit=area_unit, xy_tolerance=xy_tolerance)
         with QueryTabulateIntersection(
                 source, operator=operator, intermediate=intermediate,
                 target=target, group_fields=group_fields,
