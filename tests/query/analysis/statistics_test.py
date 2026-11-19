@@ -327,7 +327,7 @@ class TestQuerySummarizeWithin:
             algorithm_option=AlgorithmOption.PAIRWISE,
             length_unit=LengthUnit.METERS,
             area_unit=AreaUnit.SQUARE_METERS, xy_tolerance=None)
-        summary = _summarize_by_feature(
+        summary, _ = _summarize_by_feature(
             scratch=mem_gpkg, source=source, operator=operator,
             intermediate=intermediate, geom_fields=geom_fields,
             least_most=least_most, stats_fields=stats_fields)
@@ -360,7 +360,7 @@ class TestQuerySummarizeWithin:
             algorithm_option=AlgorithmOption.PAIRWISE,
             length_unit=LengthUnit.METERS,
             area_unit=AreaUnit.SQUARE_METERS, xy_tolerance=None)
-        summary = _summarize_by_feature(
+        summary, _ = _summarize_by_feature(
             scratch=mem_gpkg, source=source, operator=operator,
             intermediate=intermediate, geom_fields=geom_fields,
             least_most=least_most, stats_fields=stats_fields)

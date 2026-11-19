@@ -109,12 +109,13 @@ class TestSummarizeByFeature:
             algorithm_option=AlgorithmOption.PAIRWISE,
             length_unit=LengthUnit.METERS,
             area_unit=AreaUnit.SQUARE_METERS, xy_tolerance=None)
-        summary = _summarize_by_feature(
+        summary, group_field = _summarize_by_feature(
             scratch=mem_gpkg, source=source, operator=operator,
             intermediate=intermediate, geom_fields=geom_fields,
             least_most=least_most, stats_fields=stats_fields)
         assert len(summary) == count
         assert summary.field_names == expected
+        assert group_field.name == 'fid_grid_a'
     # End test_with_class_field method
 
     def test_least_most_overlap(self, grid_index, ntdb_zm_small, mem_gpkg):
@@ -132,7 +133,7 @@ class TestSummarizeByFeature:
             algorithm_option=AlgorithmOption.PAIRWISE,
             length_unit=LengthUnit.METERS,
             area_unit=AreaUnit.SQUARE_METERS, xy_tolerance=None)
-        summary = _summarize_by_feature(
+        summary, group_field = _summarize_by_feature(
             scratch=mem_gpkg, source=source, operator=operator,
             intermediate=intermediate, geom_fields=geom_fields,
             least_most=least_most, stats_fields=stats_fields)
@@ -140,7 +141,9 @@ class TestSummarizeByFeature:
         assert summary.field_names == [
             'fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
             'MOST_COMMON_CODE', 'LENGTH', 'AREA']
+        assert group_field.name == 'fid_grid_a'
     # End test_with_class_field method
+# End TestSummarizeByFeature class
 
 
 if __name__ == '__main__':  # pragma: no cover

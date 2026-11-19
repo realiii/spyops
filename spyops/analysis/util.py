@@ -393,7 +393,7 @@ def _summarize_by_feature(*, scratch: MemoryGeoPackage, source: FeatureClass,
                           operator: FeatureClass, intermediate: FeatureClass,
                           geom_fields: list[OPT_FIELD],
                           least_most: STATS_FIELDS,
-                          stats_fields: STATS_FIELDS) -> Table:
+                          stats_fields: STATS_FIELDS) -> tuple[Table, Field]:
     """
     Summarize by Feature e.g. a summary record per feature
     """
@@ -409,7 +409,7 @@ def _summarize_by_feature(*, scratch: MemoryGeoPackage, source: FeatureClass,
             count_field=count_field, length_field=length_field,
             area_field=area_field) as query:
         summary = bulk_records(query)
-    return summary
+    return summary, group_field
 # End _summarize_by_feature function
 
 
