@@ -304,22 +304,21 @@ class QueryTabulateIntersection(BaseSummaryStatistics):
 # End QueryTabulateIntersection class
 
 
-class QueryTabulateIntersectionSummarizeWithinFeatureClass(
-        QueryTabulateIntersection):
+class QueryTabulateIntersectionSummarizeWithin(QueryTabulateIntersection):
     """
-    Query Tabulate Intersection Summarize within Feature Class
+    Query Tabulate Intersection for Summarize Within
     """
     def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
                  intermediate: 'FeatureClass', target: 'Table',
-                 group_fields: FIELDS, statistics: STATS_FIELDS,
-                 count_field: OPT_FIELD, length_field: OPT_FIELD,
-                 area_field: OPT_FIELD) -> None:
+                 group_fields: FIELDS, class_fields: FIELDS,
+                 statistics: STATS_FIELDS, count_field: OPT_FIELD,
+                 length_field: OPT_FIELD, area_field: OPT_FIELD) -> None:
         """
-        Initialize the QueryTabulateIntersectionSummarizeWithinFeatureClass class
+        Initialize the QueryTabulateIntersectionSummarizeWithin class
         """
         super().__init__(
             source, operator=operator, intermediate=intermediate,
-            target=target, group_fields=group_fields, class_fields=[],
+            target=target, group_fields=group_fields, class_fields=class_fields,
             statistics=statistics, count_field=count_field,
             length_field=length_field, area_field=area_field)
     # End init built-in
@@ -331,11 +330,12 @@ class QueryTabulateIntersectionSummarizeWithinFeatureClass(
         Rebuild field names -- here we just pass through the group fields
         since the group field is really a reference to the source FID column.
         Done this way to avoid attempting to add two FID columns.  Final
-        renaming handled in QuerySummarizeWithin.
+        renaming handled in QuerySummarizeWithinFeatureClass.
         """
-        return group_fields, group_fields
+        fields = *group_fields, *class_fields
+        return fields, fields
     # End _rebuild_fields method
-# End QueryTabulateIntersectionSummarizeWithinFeatureClass class
+# End QueryTabulateIntersectionSummarizeWithin class
 
 
 class QuerySummarizeWithin(BaseQuerySelect):

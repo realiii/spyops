@@ -28,7 +28,7 @@ from spyops.geometry.wa.sp import set_precision
 from spyops.query.analysis.extract import (
     QueryClip, QuerySplitByAttributesFeatureClass, QuerySplitByAttributesTable)
 from spyops.query.analysis.statistics import (
-    QueryTabulateIntersectionSummarizeWithinFeatureClass)
+    QueryTabulateIntersectionSummarizeWithin)
 from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
 from spyops.shared.enumeration import (
@@ -402,15 +402,37 @@ def _summarize_by_feature(*, scratch: MemoryGeoPackage, source: FeatureClass,
     # NOTE FID from source will be used as group field
     group_field = intermediate.fields[len(operator.fields) + 1]
     extended_stats_fields = Count(group_field), *least_most
-    with QueryTabulateIntersectionSummarizeWithinFeatureClass(
+    with QueryTabulateIntersectionSummarizeWithin(
             source, operator=operator, intermediate=intermediate,
-            target=summary, group_fields=[group_field],
+            target=summary, group_fields=[group_field], class_fields=[],
             statistics=(*extended_stats_fields, *stats_fields),
             count_field=count_field, length_field=length_field,
             area_field=area_field) as query:
         summary = bulk_records(query)
     return summary, group_field
 # End _summarize_by_feature function
+
+
+def _summarize_by_class(*, scratch: MemoryGeoPackage, source: FeatureClass,
+                        operator: FeatureClass, intermediate: FeatureClass,
+                        group_field: Field, class_fields: FIELDS,
+                        geom_fields: list[OPT_FIELD],
+                        stats_fields: STATS_FIELDS) -> Table:
+    """
+    Summarize by class and FID e.g. a summary record per feature per class
+    """
+    summary = Table(scratch, name='per_feature_per_class_summary')
+    count_field, length_field, area_field = geom_fields
+    statistics = Count(group_field), *stats_fields
+    with QueryTabulateIntersectionSummarizeWithin(
+            source, operator=operator, intermediate=intermediate,
+            target=summary, group_fields=[group_field],
+            class_fields=class_fields, statistics=statistics,
+            count_field=count_field, length_field=length_field,
+            area_field=area_field) as query:
+        summary = bulk_records(query)
+    return summary
+# End _summarize_by_class function
 
 
 if __name__ == '__main__':  # pragma: no cover
