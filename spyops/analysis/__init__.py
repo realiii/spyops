@@ -13,7 +13,7 @@ from spyops.analysis.proximity import (
     buffer, create_thiessen_polygons, generate_near_table,
     generate_origin_destination_links, multiple_buffer, near)
 from spyops.analysis.statistics import (
-    frequency, statistics, tabulate_intersection)
+    frequency, statistics, summarize_within, tabulate_intersection)
 from spyops.crs.enumeration import AreaUnit, DistanceUnit, LengthUnit
 from spyops.crs.unit import (
     DecimalDegrees, Degrees, Feet, FeetInternational, FeetUS, Kilometers,
@@ -57,6 +57,7 @@ __all__ = [
 
     'frequency',
     'statistics',
+    'summarize_within',
     'tabulate_intersection',
 
     'AlgorithmOption',
