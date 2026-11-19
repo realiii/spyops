@@ -429,13 +429,12 @@ class QuerySummarizeWithinTable(BaseQuerySelect):
     """
     Query Summarize Within -- Table output
     """
-    def __init__(self, source: 'FeatureClass', target: 'Table',
-                 summary: 'Table') -> None:
+    def __init__(self, summary: 'Table', target: 'Table') -> None:
         """
-        Initialize the QuerySummarizeWithinFeatureClass class
+        Initialize the QuerySummarizeWithinTable class
         """
-        super().__init__(source, target=target)
-        self._summary: 'Table' = summary
+        # noinspection bad-argument-type
+        super().__init__(summary, target=target)
     # End init built-in
 
     def _get_unique_fields(self) -> FIELDS:
@@ -444,7 +443,7 @@ class QuerySummarizeWithinTable(BaseQuerySelect):
         at the start then followed by statistics.
         """
         key_fields = ORIG_FID, FEAT_COUNT
-        _, _, class_field, _, *fields = self._summary.fields
+        _, _, class_field, _, *fields = self.source.fields
         orig_fid, feat_count, class_field, *fields = add_key_fields(
             [class_field, *fields], key_fields)
         return orig_fid, class_field, feat_count, *fields
@@ -455,8 +454,8 @@ class QuerySummarizeWithinTable(BaseQuerySelect):
         """
         Select
         """
-        elm = self._summary
-        _, *fields = self._summary.fields
+        elm = self.source
+        _, *fields = elm.fields
         select_field_names = make_field_names(fields)
         where_clause = self._get_where_clause()
         return self._make_select(
