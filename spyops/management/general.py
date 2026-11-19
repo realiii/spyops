@@ -41,7 +41,7 @@ __all__ = ['copy', 'delete', 'rename', 'find_identical', 'delete_identical',
 def copy(source: ELEMENT, target: ELEMENT, *,
          where_clause: str = '') -> ELEMENT:
     """
-    Copy Table or Feature Class
+    Copy
 
     Copies a source table to a target table or source feature class
     to a target feature class.  This function only honors the
@@ -60,6 +60,8 @@ def copy(source: ELEMENT, target: ELEMENT, *,
 @validate_elements(SOURCE, has_content=False)
 def delete(source: ELEMENT | ELEMENTS) -> bool:
     """
+    Delete
+
     Delete Table(s) and/or Feature Class(es)
     """
     if not source:
@@ -75,6 +77,8 @@ def delete(source: ELEMENT | ELEMENTS) -> bool:
 @validate_source_element(has_content=False)
 def rename(source: ELEMENT, name: str) -> ELEMENT:
     """
+    Rename
+
     Rename Table or Feature Class
     """
     source.rename(name)

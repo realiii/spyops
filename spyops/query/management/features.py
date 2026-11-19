@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Any, Callable, Generator, TYPE_CHECKING, Union
+from typing import Callable, Generator, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
@@ -83,7 +83,7 @@ class QueryMultiPartToSinglePart(AbstractSourceQuery):
         """
         Initialize the QueryMultiPartToSinglePart class
         """
-        super().__init__(source, target=target, xy_tolerance=None)
+        super().__init__(source, target=target)
     # End init built-in
 
     def _get_target_shape_type(self) -> str:
@@ -529,7 +529,7 @@ class QueryXYTablePoint(AbstractSourceQuery):
         Initialize the QueryXYTablePoint class
         """
         # noinspection bad-argument-type
-        super().__init__(source, target=target, xy_tolerance=None)
+        super().__init__(source, target=target)
         self._fields: tuple[Field | None, ...] = fields
         self._coord_sys: CRS | SpatialReferenceSystem = coordinate_system
     # End init built-in
@@ -979,8 +979,6 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         steps, remainder = divmod(self.group_count, size)
         steps += bool(remainder)
         sql = self.select_geometry
-        bounder = self._bounding_function
-        attributer = self._attribute_function
         with self.source.geopackage.connection as cin:
             for step in range(steps):
                 features, geometries = self._fetch_features(
@@ -1809,7 +1807,7 @@ class AbstractQueryPointsToLine(AbstractQueryGroup):
 
 class QueryPointsToLineNone(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- No Atttributes (besides group fields)
+    Query Points to Line -- No Attributes (besides group fields)
     """
     def _get_unique_fields(self) -> FIELDS:
         """
@@ -1850,7 +1848,7 @@ class QueryPointsToLineNone(AbstractQueryPointsToLine):
 
 class QueryPointsToLineBoth(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- Both Start and End Atttributes
+    Query Points to Line -- Both Start and End Attributes
     """
     def _get_unique_fields(self) -> FIELDS:
         """
@@ -1901,7 +1899,7 @@ class QueryPointsToLineBoth(AbstractQueryPointsToLine):
 
 class QueryPointsToLineStart(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- Start Atttributes
+    Query Points to Line -- Start Attributes
     """
     def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
             -> dict[int, list[tuple]]:
@@ -1927,7 +1925,7 @@ class QueryPointsToLineStart(AbstractQueryPointsToLine):
 
 class QueryPointsToLineEnd(AbstractQueryPointsToLine):
     """
-    Query Points to Line -- End Atttributes
+    Query Points to Line -- End Attributes
     """
     def _get_segment_attrs(self, attributes: defaultdict[int, list[tuple]]) \
             -> dict[int, list[tuple]]:
