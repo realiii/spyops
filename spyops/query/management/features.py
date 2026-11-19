@@ -979,8 +979,6 @@ class QueryMinimumBoundingGeometryList(AbstractQueryMinimumBoundingGeometry):
         steps, remainder = divmod(self.group_count, size)
         steps += bool(remainder)
         sql = self.select_geometry
-        bounder = self._bounding_function
-        attributer = self._attribute_function
         with self.source.geopackage.connection as cin:
             for step in range(steps):
                 features, geometries = self._fetch_features(
