@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import cache, cached_property, partial
 from operator import itemgetter
-from typing import Any, Callable, Generator, TYPE_CHECKING, Union
+from typing import Callable, Generator, TYPE_CHECKING, Union
 
 from fudgeo import FeatureClass, Field, MemoryGeoPackage, SpatialReferenceSystem
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, SHAPE
