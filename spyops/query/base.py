@@ -765,6 +765,13 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
         return fields
     # End _get_fields method
 
+    def _make_fields_nullable(self, fields: FIELDS) -> FIELDS:
+        """
+        Make Fields Nullable
+        """
+        return fields
+    # End _make_fields_nullable method
+
     def _get_unique_fields(self) -> FIELDS:
         """
         Get Unique Fields and Rename Primary Key Columns if included

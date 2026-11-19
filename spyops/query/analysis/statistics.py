@@ -17,7 +17,8 @@ from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import GeometryAttribute
 from spyops.shared.field import (
     FEAT_COUNT, FREQUENCY, ORIG_FID, add_key_fields, clone_field,
-    get_geometry_column_name, make_field_names, make_unique_fields)
+    get_geometry_column_name, make_field_names, make_fields_nullable,
+    make_unique_fields)
 from spyops.shared.hint import ELEMENT, FIELDS, OPT_FIELD, STATS_FIELDS
 from spyops.shared.stats import Frequency, Sum
 
@@ -363,10 +364,9 @@ class QuerySummarizeWithinFeatureClass(BaseQuerySelect):
         fields = add_key_fields(self._summary.fields[3:], key_fields)
         if not self._keep_all:
             return fields
-        # NOTE original fid will always have a value
-        for field in fields[1:]:
-            field.is_nullable = True
-        return fields
+        # NOTE original fid will always have a value, no need to set nullable
+        fid, *fields = fields
+        return fid, *make_fields_nullable(fields)
     # End _get_unique_fields method
 
     def build_features(self) -> Generator[list[tuple], None, None]:
