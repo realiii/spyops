@@ -179,7 +179,7 @@ class QueryTabulateIntersection(BaseSummaryStatistics):
         intermediate_fields, target_fields = self._rebuild_fields(
             source, operator=operator, intermediate=intermediate,
             group_fields=group_fields, class_fields=class_fields)
-        stats_output_fields = [s.output_field for s in statistics]
+        stats_output_fields = self._get_stats_output_fields(statistics)
         geom_fields, geom_stats = self._rebuild_geom_stats(
             (*target_fields, *stats_output_fields), count_field=count_field,
             length_field=length_field, area_field=area_field)
@@ -190,6 +190,23 @@ class QueryTabulateIntersection(BaseSummaryStatistics):
         self._geom_fields: FIELDS = geom_fields
         self._geom_stats: STATS_FIELDS = geom_stats
     # End init built-in
+
+    @staticmethod
+    def _get_stats_output_fields(statistics: STATS_FIELDS) -> FIELDS:
+        """
+        Get Statistic Output Fields, Removing Repeated Stats
+        """
+        fields = []
+        output_names = set()
+        for stat in statistics:
+            field = stat.output_field
+            name = field.name.casefold()
+            if name in output_names:
+                continue
+            fields.append(field)
+            output_names.add(name)
+        return fields
+    # End _get_stats_output_fields method
 
     @staticmethod
     def _get_renamed_fields(source: 'FeatureClass', operator: 'FeatureClass',
