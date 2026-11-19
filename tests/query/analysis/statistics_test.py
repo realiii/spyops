@@ -14,7 +14,7 @@ from spyops.analysis.util import (
     _add_geometry_attribute_fields, _combine_inputs, _summarize_by_feature)
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.query.analysis.statistics import (
-    QueryFrequency, QueryStatistics, QuerySummarizeWithinFeatureClass,
+    QueryFrequency, QueryStatistics, QuerySummarizeWithin,
     QueryTabulateIntersection)
 from spyops.shared.enumeration import AlgorithmOption, AttributeOption
 from spyops.shared.field import validate_fields
@@ -281,9 +281,9 @@ class TestQueryTabulateIntersection:
 # End TestQueryTabulateIntersection class
 
 
-class TestQuerySummarizeWithinFeatureClass:
+class TestQuerySummarizeWithin:
     """
-    Test Query Summarize Within -- Feature Class
+    Test Query Summarize Within -- Feature Class output
     """
     @mark.parametrize('src_name, op_name, stats_field_names, count, expected', [
         ('grid_a', 'hydro_a', ['CODE', 'ACCURACY'], 8,
@@ -334,7 +334,7 @@ class TestQuerySummarizeWithinFeatureClass:
         assert len(summary) == count
         assert summary.field_names == expected
         target = FeatureClass(name='target', geopackage=mem_gpkg)
-        query = QuerySummarizeWithinFeatureClass(
+        query = QuerySummarizeWithin(
             source, target=target, summary=summary, keep_all=keep_all)
         features = next(query.build_features())
         assert len(features) == count
@@ -370,7 +370,7 @@ class TestQuerySummarizeWithinFeatureClass:
             'MOST_COMMON_CODE', 'LENGTH', 'AREA']
         assert summary.field_names == expected
         target = FeatureClass(name='target', geopackage=mem_gpkg)
-        query = QuerySummarizeWithinFeatureClass(
+        query = QuerySummarizeWithin(
             source, target=target, summary=summary, keep_all=True)
         features = next(query.build_features())
         assert len(features) == len(source)
@@ -381,7 +381,7 @@ class TestQuerySummarizeWithinFeatureClass:
         assert len(fields) == len(expected) - 1
         assert 'INTO target(SHAPE, ORIG_FID, FEAT_COUNT, LEAST_COMMON_CODE, MOST_COMMON_CODE, LENGTH, AREA)' in query.insert
     # End test_with_class_field method
-# End QuerySummarizeWithinFeatureClass class
+# End TestQuerySummarizeWithin class
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -331,21 +331,21 @@ class QueryTabulateIntersectionSummarizeWithinFeatureClass(
         Rebuild field names -- here we just pass through the group fields
         since the group field is really a reference to the source FID column.
         Done this way to avoid attempting to add two FID columns.  Final
-        renaming handled in QuerySummarizeWithinFeatureClass.
+        renaming handled in QuerySummarizeWithin.
         """
         return group_fields, group_fields
     # End _rebuild_fields method
 # End QueryTabulateIntersectionSummarizeWithinFeatureClass class
 
 
-class QuerySummarizeWithinFeatureClass(BaseQuerySelect):
+class QuerySummarizeWithin(BaseQuerySelect):
     """
-    Query Summarize Within Feature Class
+    Query Summarize Within -- Feature Class output
     """
     def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
                  summary: 'Table', keep_all: bool) -> None:
         """
-        Initialize the QuerySummarizeWithinFeatureClass class
+        Initialize the QuerySummarizeWithin class
         """
         super().__init__(source, target=target)
         self._summary: 'Table' = summary
@@ -422,7 +422,7 @@ class QuerySummarizeWithinFeatureClass(BaseQuerySelect):
             elm.escaped_name, field_names=insert_field_names,
             field_count=len(fields) + 1)
     # End insert property
-# End QuerySummarizeWithinFeatureClass class
+# End QuerySummarizeWithin class
 
 
 if __name__ == '__main__':  # pragma: no cover
