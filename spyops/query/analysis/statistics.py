@@ -5,24 +5,26 @@ Query Classes for management.statistics module
 
 
 from functools import cache, cached_property
-from typing import TYPE_CHECKING
+from typing import Generator, TYPE_CHECKING
 
-from fudgeo.constant import COMMA_SPACE
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE
+from numpy import array, isin
 
 from spyops.environment import ANALYSIS_SETTINGS
-from spyops.query.base import AbstractElementGroupQuery
+from spyops.query.base import AbstractElementGroupQuery, BaseQuerySelect
 from spyops.query.mixin import StatisticsMixin
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import GeometryAttribute
 from spyops.shared.field import (
-    FREQUENCY, add_key_fields, clone_field, make_field_names,
-    make_unique_fields)
+    FEAT_COUNT, FREQUENCY, ORIG_FID, add_key_fields, clone_field,
+    get_geometry_column_name, make_field_names, make_unique_fields)
 from spyops.shared.hint import ELEMENT, FIELDS, OPT_FIELD, STATS_FIELDS
 from spyops.shared.stats import Frequency, Sum
 
 
 if TYPE_CHECKING:  # pragma: no cover
     from fudgeo import FeatureClass, Table
+    from numpy import ndarray
 
 
 class BaseSummaryStatistics(StatisticsMixin, AbstractElementGroupQuery):
@@ -300,6 +302,127 @@ class QueryTabulateIntersection(BaseSummaryStatistics):
         return field_count, insert_names, select_names
     # End _field_names_and_count method
 # End QueryTabulateIntersection class
+
+
+class QueryTabulateIntersectionSummarizeWithinFeatureClass(
+        QueryTabulateIntersection):
+    """
+    Query Tabulate Intersection Summarize within Feature Class
+    """
+    def __init__(self, source: 'FeatureClass', operator: 'FeatureClass',
+                 intermediate: 'FeatureClass', target: 'Table',
+                 group_fields: FIELDS, statistics: STATS_FIELDS,
+                 count_field: OPT_FIELD, length_field: OPT_FIELD,
+                 area_field: OPT_FIELD) -> None:
+        """
+        Initialize the QueryTabulateIntersectionSummarizeWithinFeatureClass class
+        """
+        super().__init__(
+            source, operator=operator, intermediate=intermediate,
+            target=target, group_fields=group_fields, class_fields=[],
+            statistics=statistics, count_field=count_field,
+            length_field=length_field, area_field=area_field)
+    # End init built-in
+
+    def _rebuild_fields(self, source: 'FeatureClass', operator: 'FeatureClass',
+                        intermediate: 'FeatureClass', group_fields: FIELDS,
+                        class_fields: FIELDS) -> tuple[FIELDS, FIELDS]:
+        """
+        Rebuild field names -- here we just pass through the group fields
+        since the group field is really a reference to the source FID column.
+        Done this way to avoid attempting to add two FID columns.  Final
+        renaming handled in QuerySummarizeWithinFeatureClass.
+        """
+        return group_fields, group_fields
+    # End _rebuild_fields method
+# End QueryTabulateIntersectionSummarizeWithinFeatureClass class
+
+
+class QuerySummarizeWithinFeatureClass(BaseQuerySelect):
+    """
+    Query Summarize Within Feature Class
+    """
+    def __init__(self, source: 'FeatureClass', target: 'FeatureClass',
+                 summary: 'Table', keep_all: bool) -> None:
+        """
+        Initialize the QuerySummarizeWithinFeatureClass class
+        """
+        super().__init__(source, target=target)
+        self._summary: 'Table' = summary
+        self._keep_all: bool = keep_all
+    # End init built-in
+
+    def _get_unique_fields(self) -> FIELDS:
+        """
+        Get Unique Fields, need to use the summary table for the field names,
+        ensure support for Null values when keep all is True, force the first
+        field to be ORIG_FID.
+        """
+        key_fields = ORIG_FID, FEAT_COUNT
+        # NOTE exclude primary key, original fid, and count of fid
+        fields = add_key_fields(self._summary.fields[3:], key_fields)
+        if not self._keep_all:
+            return fields
+        # NOTE original fid will always have a value
+        for field in fields[1:]:
+            field.is_nullable = True
+        return fields
+    # End _get_unique_fields method
+
+    def build_features(self) -> Generator[list[tuple], None, None]:
+        """
+        Build Features
+        """
+        geometries, fids = self._get_source_data()
+        if not len(geometries):
+            return
+        visited = set()
+        # NOTE select all fields except primary key
+        cursor = self._summary.select(self._summary.fields[1:])
+        while records := cursor.fetchmany(FETCH_SIZE):
+            orig_fids, *_ = zip(*records)
+            visited.update(orig_fids)
+            geoms = geometries[isin(orig_fids, fids)]
+            yield [(g, *rec) for g, rec in zip(geoms, records)]
+        if not self._keep_all:
+            return
+        if not (missing := set(fids) - visited):
+            return
+        missing = sorted(missing)
+        geoms = geometries[isin(missing, fids)]
+        empty = (None,) * (len(cursor.description) - 1)
+        yield [(g, fid, *empty) for g, fid in zip(geoms, missing)]
+    # End build_features method
+
+    def _get_source_data(self) -> tuple['ndarray', 'ndarray']:
+        """
+        Get Source Data -- returning fudgeo geometry and FID integers, this
+        will only be the features within the extent.
+        """
+        with self.source.geopackage.connection as cin:
+            cursor = cin.execute(self.select_only_fid)
+            features = cursor.fetchall()
+        if not features:
+            return array([]), array([])
+        geometries, fids = zip(*features)
+        return array(geometries, dtype=object), array(fids, dtype=int)
+    # End _get_source_data method
+
+    @property
+    def insert(self) -> str:
+        """
+        Insert Query
+        """
+        elm = self.target
+        fields = self._get_unique_fields()
+        geom = get_geometry_column_name(elm)
+        insert_field_names = make_field_names(fields)
+        insert_field_names = self._concatenate(geom, insert_field_names)
+        return self._make_insert(
+            elm.escaped_name, field_names=insert_field_names,
+            field_count=len(fields) + 1)
+    # End insert property
+# End QuerySummarizeWithinFeatureClass class
 
 
 if __name__ == '__main__':  # pragma: no cover

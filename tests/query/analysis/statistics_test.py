@@ -6,17 +6,19 @@ Test for Statistics Query classes
 
 from fudgeo import FeatureClass, Field, Table
 from fudgeo.enumeration import FieldType
+from fudgeo.geometry.polygon import Polygon
 from pytest import mark
 
 from spyops.analysis import intersect
-from spyops.analysis.util import _add_geometry_attribute_fields
+from spyops.analysis.util import (
+    _add_geometry_attribute_fields, _combine_inputs, _summarize_by_feature)
 from spyops.crs.enumeration import AreaUnit, LengthUnit
 from spyops.query.analysis.statistics import (
-    QueryFrequency, QueryStatistics, QueryTabulateIntersection)
-from spyops.shared.enumeration import AttributeOption
+    QueryFrequency, QueryStatistics, QuerySummarizeWithinFeatureClass,
+    QueryTabulateIntersection)
+from spyops.shared.enumeration import AlgorithmOption, AttributeOption
 from spyops.shared.field import validate_fields
-from spyops.shared.stats import Count, First, Max
-
+from spyops.shared.stats import Count, First, Least, Max, Most, Sum
 
 pytestmark = [mark.statistics, mark.query, mark.analysis]
 
@@ -277,6 +279,109 @@ class TestQueryTabulateIntersection:
         assert count == expected_count
     # End test_field_names_and_count method
 # End TestQueryTabulateIntersection class
+
+
+class TestQuerySummarizeWithinFeatureClass:
+    """
+    Test Query Summarize Within -- Feature Class
+    """
+    @mark.parametrize('src_name, op_name, stats_field_names, count, expected', [
+        ('grid_a', 'hydro_a', ['CODE', 'ACCURACY'], 8,
+         ['fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+          'MOST_COMMON_CODE', 'SUM_CODE', 'SUM_ACCURACY', 'LENGTH', 'AREA']),
+        ('grid_a', 'hydro_a', [], 8,
+         ['fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+          'MOST_COMMON_CODE', 'LENGTH', 'AREA']),
+        ('grid_a', 'structures_p', ['CODE', 'ACCURACY'], 8,
+         ['fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+          'MOST_COMMON_CODE', 'SUM_CODE', 'SUM_ACCURACY', 'POINT_COUNT']),
+        ('grid_a', 'structures_p', [], 8,
+         ['fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+          'MOST_COMMON_CODE', 'POINT_COUNT']),
+        ('grid_a', 'transmission_l', ['CODE', 'ACCURACY'], 8,
+         ['fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+          'MOST_COMMON_CODE', 'SUM_CODE', 'SUM_ACCURACY', 'LENGTH']),
+        ('grid_a', 'transmission_l', [], 8,
+         ['fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+          'MOST_COMMON_CODE', 'LENGTH']),
+    ])
+    @mark.parametrize('keep_all', [
+        True,
+        False
+    ])
+    def test_with_class_field(self, grid_index, ntdb_zm_small, mem_gpkg,
+                              src_name, op_name, stats_field_names, count,
+                              expected, keep_all):
+        """
+        Test with class field
+        """
+        source = grid_index[src_name]
+        operator = ntdb_zm_small[op_name]
+        class_field, = validate_fields(operator, fields=['CODE'])
+        stats_fields = [Sum(f) for f in validate_fields(operator, fields=stats_field_names)]
+        least_most = Least(class_field), Most(class_field)
+        target = FeatureClass(name='summary', geopackage=mem_gpkg)
+        intermediate, *geom_fields = _combine_inputs(
+            scratch=mem_gpkg, attribute_option=AttributeOption.ALL,
+            source=source, operator=operator, target=target,
+            algorithm_option=AlgorithmOption.PAIRWISE,
+            length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS, xy_tolerance=None)
+        summary = _summarize_by_feature(
+            scratch=mem_gpkg, source=source, operator=operator,
+            intermediate=intermediate, geom_fields=geom_fields,
+            least_most=least_most, stats_fields=stats_fields)
+        assert len(summary) == count
+        assert summary.field_names == expected
+        target = FeatureClass(name='target', geopackage=mem_gpkg)
+        query = QuerySummarizeWithinFeatureClass(
+            source, target=target, summary=summary, keep_all=keep_all)
+        features = next(query.build_features())
+        assert len(features) == count
+        (geom, *attrs), *_ = features
+        assert isinstance(geom, Polygon)
+        assert len(attrs) == len(expected) - 1
+        fields = query._get_unique_fields()
+        assert len(fields) == len(expected) - 1
+    # End test_with_class_field method
+
+    def test_least_most_overlap(self, grid_index, ntdb_zm_small, mem_gpkg):
+        """
+        Test least most overlap with class field least most
+        """
+        source = grid_index['grid_a']
+        operator = ntdb_zm_small['hydro_a']
+        class_field, = validate_fields(operator, fields=['CODE'])
+        stats_fields = least_most = Least(class_field), Most(class_field)
+        target = FeatureClass(name='summary', geopackage=mem_gpkg)
+        intermediate, *geom_fields = _combine_inputs(
+            scratch=mem_gpkg, attribute_option=AttributeOption.ALL,
+            source=source, operator=operator, target=target,
+            algorithm_option=AlgorithmOption.PAIRWISE,
+            length_unit=LengthUnit.METERS,
+            area_unit=AreaUnit.SQUARE_METERS, xy_tolerance=None)
+        summary = _summarize_by_feature(
+            scratch=mem_gpkg, source=source, operator=operator,
+            intermediate=intermediate, geom_fields=geom_fields,
+            least_most=least_most, stats_fields=stats_fields)
+        assert len(summary) == 8
+        expected = [
+            'fid', 'fid_grid_a', 'COUNT_fid_grid_a', 'LEAST_COMMON_CODE',
+            'MOST_COMMON_CODE', 'LENGTH', 'AREA']
+        assert summary.field_names == expected
+        target = FeatureClass(name='target', geopackage=mem_gpkg)
+        query = QuerySummarizeWithinFeatureClass(
+            source, target=target, summary=summary, keep_all=True)
+        features = next(query.build_features())
+        assert len(features) == len(source)
+        (geom, *attrs), *_ = features
+        assert isinstance(geom, Polygon)
+        assert len(attrs) == len(expected) - 1
+        fields = query._get_unique_fields()
+        assert len(fields) == len(expected) - 1
+        assert 'INTO target(SHAPE, ORIG_FID, FEAT_COUNT, LEAST_COMMON_CODE, MOST_COMMON_CODE, LENGTH, AREA)' in query.insert
+    # End test_with_class_field method
+# End QuerySummarizeWithinFeatureClass class
 
 
 if __name__ == '__main__':  # pragma: no cover
