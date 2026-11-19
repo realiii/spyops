@@ -7,7 +7,7 @@ Internal functions for analysis package
 from collections import defaultdict
 from typing import Callable, TYPE_CHECKING, TypeAlias, Union
 
-from fudgeo import FeatureClass, Field, Table
+from fudgeo import FeatureClass, Field, MemoryGeoPackage, Table
 from fudgeo.constant import FETCH_SIZE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import FieldType, ShapeType
@@ -27,13 +27,17 @@ from spyops.geometry.validate import get_validated_geometries
 from spyops.geometry.wa.sp import set_precision
 from spyops.query.analysis.extract import (
     QueryClip, QuerySplitByAttributesFeatureClass, QuerySplitByAttributesTable)
+from spyops.query.analysis.statistics import (
+    QueryTabulateIntersectionSummarizeWithinFeatureClass)
 from spyops.shared.constant import UNDERSCORE
 from spyops.shared.element import copy_element
-from spyops.shared.enumeration import GeometryAttribute
+from spyops.shared.enumeration import (
+    AlgorithmOption, AttributeOption, GeometryAttribute)
 from spyops.shared.hint import (
-    ELEMENT, FIELDS, GPKG, GRID_SIZE, OPT_FIELD, XY_TOL)
-from spyops.shared.records import bulk_features, extend_records
+    ELEMENT, FIELDS, GPKG, GRID_SIZE, OPT_FIELD, STATS_FIELDS, XY_TOL)
+from spyops.shared.records import bulk_features, bulk_records, extend_records
 from spyops.shared.sql import SQL_NO_ID
+from spyops.shared.stats import Count
 from spyops.shared.util import (
     element_names, make_unique_name, make_valid_table_name)
 
@@ -356,6 +360,57 @@ def _add_geom_attr_field(feature_class: FeatureClass, *,
         length_unit=length_unit, area_unit=area_unit)
     return field
 # End _add_geom_attr_field function
+
+
+def _combine_inputs(*, scratch: MemoryGeoPackage,
+                    attribute_option: AttributeOption,
+                    source: FeatureClass, operator: FeatureClass,
+                    target: ELEMENT, algorithm_option: AlgorithmOption,
+                    length_unit: LengthUnit, area_unit: AreaUnit,
+                    xy_tolerance: XY_TOL) \
+        -> tuple[FeatureClass, OPT_FIELD, OPT_FIELD, OPT_FIELD]:
+    """
+    Combine inputs for summary
+    """
+    from spyops.analysis import intersect
+
+    intermediate = FeatureClass(scratch, name=target.name)
+    with (Swap(Setting.OUTPUT_M_OPTION, OutputMOption.DISABLED),
+          Swap(Setting.OUTPUT_Z_OPTION, OutputZOption.DISABLED),
+          Swap(Setting.Z_VALUE, None)):
+        # NOTE reverse source / operator to stay consistent with validation
+        intersect(operator, operator=source, target=intermediate,
+                  attribute_option=attribute_option,
+                  algorithm_option=algorithm_option,
+                  xy_tolerance=xy_tolerance)
+    count_field, length_field, area_field = _add_geometry_attribute_fields(
+        intermediate, length_unit=length_unit, area_unit=area_unit)
+    return intermediate, count_field, length_field, area_field
+# End _combine_inputs function
+
+
+def _summarize_by_feature(*, scratch: MemoryGeoPackage, source: FeatureClass,
+                          operator: FeatureClass, intermediate: FeatureClass,
+                          geom_fields: list[OPT_FIELD],
+                          least_most: STATS_FIELDS,
+                          stats_fields: STATS_FIELDS) -> Table:
+    """
+    Summarize by Feature e.g. a summary record per feature
+    """
+    summary = Table(scratch, name='per_feature_summary')
+    count_field, length_field, area_field = geom_fields
+    # NOTE FID from source will be used as group field
+    group_field = intermediate.fields[len(operator.fields) + 1]
+    extended_stats_fields = Count(group_field), *least_most
+    with QueryTabulateIntersectionSummarizeWithinFeatureClass(
+            source, operator=operator, intermediate=intermediate,
+            target=summary, group_fields=[group_field],
+            statistics=(*extended_stats_fields, *stats_fields),
+            count_field=count_field, length_field=length_field,
+            area_field=area_field) as query:
+        summary = bulk_records(query)
+    return summary
+# End _summarize_by_feature function
 
 
 if __name__ == '__main__':  # pragma: no cover
