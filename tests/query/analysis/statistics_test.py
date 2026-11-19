@@ -433,8 +433,7 @@ class TestSummarizeWithinTable:
         assert summary.field_names == expected
         assert group_field.name == 'fid_grid_a'
         target = FeatureClass(name='target', geopackage=mem_gpkg)
-        query = QuerySummarizeWithinTable(
-            source, target=target, summary=summary)
+        query = QuerySummarizeWithinTable(summary, target=target)
         fields = query._get_unique_fields()
         assert len(fields) == len(expected) - 1
     # End test_with_class_field method
@@ -470,8 +469,7 @@ class TestSummarizeWithinTable:
         assert summary.field_names == expected
         assert group_field.name == 'fid_grid_a'
         target = FeatureClass(name='target', geopackage=mem_gpkg)
-        query = QuerySummarizeWithinTable(
-            source, target=target, summary=summary)
+        query = QuerySummarizeWithinTable(summary, target=target)
         assert len(query._get_unique_fields()) == len(expected) - 1
         assert 'fid_grid_a, CODE, COUNT_fid_grid_a, LEAST_COMMON_CODE, MOST_COMMON_CODE, LENGTH, AREA' in query.select
         assert 'INTO target(ORIG_FID, CODE, FEAT_COUNT, LEAST_COMMON_CODE, MOST_COMMON_CODE, LENGTH, AREA)' in query.insert
