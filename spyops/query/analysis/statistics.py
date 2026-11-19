@@ -474,6 +474,26 @@ class QuerySummarizeWithinTable(BaseQuerySelect):
             elm.escaped_name, field_names=insert_field_names,
             field_count=len(fields))
     # End insert property
+
+    # noinspection method-overriding
+    @property
+    def target(self) -> 'Table':
+        """
+        Target
+        """
+        return self.target_empty
+    # End target property
+
+    # noinspection method-overriding
+    @cached_property
+    def target_empty(self) -> 'Table':
+        """
+        Target Empty
+        """
+        return self._target.geopackage.create_table(
+            self._target.name, fields=self._get_unique_fields(),
+            overwrite=ANALYSIS_SETTINGS.overwrite)
+    # End target_empty property
 # End QuerySummarizeWithinTable class
 
 
