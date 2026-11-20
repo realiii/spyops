@@ -781,14 +781,15 @@ class AbstractSpatialAttribute(AbstractSpatialQuery, metaclass=ABCMeta):
             op_fields = self._get_fields(self.operator)[1:]
             src_fields = [self.output_fid_source, *src_fields]
             op_fields = make_unique_fields(src_fields, op_fields)
-            return [*src_fields, self.output_fid_operator, *op_fields]
+            fields = [*src_fields, self.output_fid_operator, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
-            return self.output_fid_source, self.output_fid_operator
+            fields = [self.output_fid_source, self.output_fid_operator]
         else:
             src_fields = self._get_fields(self.source)
             op_fields = self._get_fields(self.operator)
             op_fields = make_unique_fields(src_fields, op_fields)
-            return [*src_fields, *op_fields]
+            fields = [*src_fields, *op_fields]
+        return self._make_fields_nullable(fields)
     # End _get_unique_fields method
 
     @staticmethod
