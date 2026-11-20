@@ -30,8 +30,8 @@ from spyops.shared.base import QueryConfig
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
-    get_geometry_column_name, make_field_names, make_unique_fields,
-    validate_fields)
+    get_geometry_column_name, make_field_names, make_fields_nullable,
+    make_unique_fields, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, XY_TOL)
 from spyops.shared.records import process_disjoint
@@ -72,14 +72,15 @@ class ClassicMixin:
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
             op_fields = make_unique_fields(src_fields, op_fields)
-            return [*src_fields, *op_fields]
+            fields = [*src_fields, *op_fields]
         elif self._attr_option == AttributeOption.ONLY_FID:
-            return self.output_fid_source, self.output_fid_operator
+            fields = [self.output_fid_source, self.output_fid_operator]
         else:
             src_fields = self._get_fields(self.source)[1:]
             op_fields = self._get_fields(self.operator)[1:]
             op_fields = make_unique_fields(src_fields, op_fields)
-            return [*src_fields, *op_fields]
+            fields = [*src_fields, *op_fields]
+        return self._make_fields_nullable(fields)
     # End _get_unique_fields method
 
     # noinspection unresolved-references
@@ -211,6 +212,13 @@ class QueryUnionPairwise(QueryIntersectPairwise):
             output_type_option=OutputTypeOption.SAME)
     # End init built-in
 
+    def _make_fields_nullable(self, fields: FIELDS) -> FIELDS:
+        """
+        Make Fields Nullable
+        """
+        return make_fields_nullable(fields, in_place=False)
+    # End _make_fields_nullable method
+
     @property
     def target(self) -> 'FeatureClass':
         """
@@ -282,6 +290,13 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         """
         return self._make_disjoint_select(self.operator)
     # End _disjoint_operator property
+
+    def _make_fields_nullable(self, fields: FIELDS) -> FIELDS:
+        """
+        Make Fields Nullable
+        """
+        return make_fields_nullable(fields, in_place=False)
+    # End _make_fields_nullable method
 
     def _get_insert_fields(self, element: 'FeatureClass') -> FIELDS:
         """

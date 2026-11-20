@@ -285,6 +285,18 @@ def make_field_names(fields: FIELDS) -> str:
 # End make_field_names function
 
 
+def make_fields_nullable(fields: FIELDS, in_place: bool = True) -> FIELDS:
+    """
+    Make Fields Nullable, change is made in place by default
+    """
+    if not in_place:
+        return [clone_field(f, name=f.name, allow_null=True) for f in fields]
+    for field in fields:
+        field.is_nullable = True
+    return fields
+# End make_fields_nullable function
+
+
 def add_orig_fid(element: ELEMENT) -> FIELDS:
     """
     Add Original FID
