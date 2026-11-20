@@ -1387,6 +1387,21 @@ class TestSymmetricalDifference:
         assert len(cursor.fetchall()) == 18
     # End test_holes_and_shifted method
 
+    def test_strict_null_holes_and_shifted(self, inputs, mem_gpkg):
+        """
+        Test for union using small datasets that have non-nullable columns
+        """
+        source = inputs['strict_null_holes_a']
+        operator = inputs['strict_null_shifted_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='sym_diff_strict_a')
+        symmetrical_difference(source=source, operator=operator, target=target)
+        assert len(target) == 36
+        cursor = target.select(where_clause="""fid_strict_null_holes_a IS NULL""")
+        assert len(cursor.fetchall()) == 18
+        cursor = target.select(where_clause="""fid_strict_null_shifted_a IS NULL""")
+        assert len(cursor.fetchall()) == 18
+    # End test_strict_null_holes_and_shifted method
+
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 194, 42),
         ('hydro_a', 'hydro_zm_a', 194, 43),
@@ -1938,6 +1953,27 @@ class TestUnion:
         cursor = target.select(where_clause="""fid_intersect_holes_a IS NOT NULL AND fid_intersect_holes_shifted_a IS NOT NULL""")
         assert len(cursor.fetchall()) == feature_count - (hole_count + shifted_count)
     # End test_holes_and_shifted method
+
+    @mark.parametrize('algorithm_option, feature_count, hole_count, shifted_count', [
+        (AlgorithmOption.PAIRWISE, 50, 18, 18),
+        (AlgorithmOption.CLASSIC, 82, 29, 29),
+    ])
+    def test_strict_null_holes_and_shifted(self, inputs, mem_gpkg, algorithm_option, feature_count, hole_count, shifted_count):
+        """
+        Test for union using small datasets that have non-nullable columns
+        """
+        source = inputs['strict_null_holes_a']
+        operator = inputs['strict_null_shifted_a']
+        target = FeatureClass(geopackage=mem_gpkg, name='union_strict_a')
+        union(source=source, operator=operator, target=target, algorithm_option=algorithm_option)
+        assert len(target) == feature_count
+        cursor = target.select(where_clause="""fid_strict_null_holes_a IS NULL""")
+        assert len(cursor.fetchall()) == hole_count
+        cursor = target.select(where_clause="""fid_strict_null_shifted_a IS NULL""")
+        assert len(cursor.fetchall()) == shifted_count
+        cursor = target.select(where_clause="""fid_strict_null_holes_a IS NOT NULL AND fid_strict_null_shifted_a IS NOT NULL""")
+        assert len(cursor.fetchall()) == feature_count - (hole_count + shifted_count)
+    # End test_strict_null_holes_and_shifted method
 
     @mark.parametrize('source_name, operator_name, feature_count, field_count', [
         ('hydro_a', 'hydro_a', 227, 42),

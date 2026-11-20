@@ -30,8 +30,8 @@ from spyops.shared.base import QueryConfig
 from spyops.shared.constant import EMPTY
 from spyops.shared.enumeration import AttributeOption, OutputTypeOption
 from spyops.shared.field import (
-    get_geometry_column_name, make_field_names, make_unique_fields,
-    validate_fields)
+    get_geometry_column_name, make_field_names, make_fields_nullable,
+    make_unique_fields, validate_fields)
 from spyops.shared.hint import (
     ELEMENT, FEATURE_CLASSES, FIELDS, GRID_SIZE, XY_TOL)
 from spyops.shared.records import process_disjoint
@@ -212,6 +212,13 @@ class QueryUnionPairwise(QueryIntersectPairwise):
             output_type_option=OutputTypeOption.SAME)
     # End init built-in
 
+    def _make_fields_nullable(self, fields: FIELDS) -> FIELDS:
+        """
+        Make Fields Nullable
+        """
+        return make_fields_nullable(fields, in_place=False)
+    # End _make_fields_nullable method
+
     @property
     def target(self) -> 'FeatureClass':
         """
@@ -283,6 +290,13 @@ class BaseQuerySymmetricalDifference(AbstractSpatialAttribute):
         """
         return self._make_disjoint_select(self.operator)
     # End _disjoint_operator property
+
+    def _make_fields_nullable(self, fields: FIELDS) -> FIELDS:
+        """
+        Make Fields Nullable
+        """
+        return make_fields_nullable(fields, in_place=False)
+    # End _make_fields_nullable method
 
     def _get_insert_fields(self, element: 'FeatureClass') -> FIELDS:
         """
